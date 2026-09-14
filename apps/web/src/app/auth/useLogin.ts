@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, type AuthError } from 'firebase/auth';
-import { firebaseAuth } from '../providers/firebase';
+import { getFirebaseAuth } from '../providers/firebase';
 import { recordLoginAttempt } from './audit-client';
 import type { LoginFormValues } from './login.schema';
 
@@ -45,7 +45,7 @@ export function useLogin() {
       setState('VALIDATING');
       try {
         await signInWithEmailAndPassword(
-          firebaseAuth,
+          getFirebaseAuth(),
           values.emailOrUsername,
           values.password,
         );

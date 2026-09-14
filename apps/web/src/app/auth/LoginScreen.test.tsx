@@ -10,7 +10,7 @@ vi.mock('firebase/auth', () => ({
 }));
 
 vi.mock('../providers/firebase', () => ({
-  firebaseAuth: {},
+  getFirebaseAuth: () => ({}),
 }));
 
 vi.mock('./audit-client', () => ({
