@@ -1,0 +1,14 @@
+/*
+ * Paleta base - PANTALLAS-V2-B-TRANSVERSAL.md (corregida WCAG 2.2 AA,
+ * 11 sep 2026: acento #C6600A->#9E4C08, advertencia #B5720A->#8A5505).
+ */
+:root {
+  --color-ink: #1F2A33;
+  --color-border: #A39C90;
+  --color-accent: #9E4C08;
+  --color-warning: #8A5505;
+  --color-error: #C22B2B;
+  --color-success: #1E7D4B;
+  --color-muted: #4E4A45;
+  --color-surface: #FFFFFF;
+}
