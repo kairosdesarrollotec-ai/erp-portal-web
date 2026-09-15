@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { signInWithEmailAndPassword, type AuthError } from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
 import { recordLoginAttempt } from './audit-client';
+import { getActivationStatus } from './activation-client';
 import type { LoginFormValues } from './login.schema';
 
 /**
@@ -44,7 +45,7 @@ export function useLogin() {
     async (values: LoginFormValues) => {
       setState('VALIDATING');
       try {
-        await signInWithEmailAndPassword(
+        const credential = await signInWithEmailAndPassword(
           getFirebaseAuth(),
           values.emailOrUsername,
           values.password,
@@ -54,9 +55,26 @@ export function useLogin() {
         // el endpoint esta lento o no responde, no debe dejar el boton en
         // VALIDATING indefinidamente.
         void recordLoginAttempt(values.emailOrUsername, 'SUCCESS', null);
-        // TR-02 (primer acceso) y TR-03 (MFA) dependen de flags de perfil
-        // que todavia no existen en el backend (HU-21/HU-22, siguientes en
-        // el plan) - por ahora todo login exitoso va directo a TR-06.
+
+        // TR-02 (HU-21): si el usuario esta en "primer acceso" (contrasena
+        // temporal sin cambiar y/o MFA sin enrolar), se redirige a la
+        // pantalla de activacion en lugar de ir directo al tablero. Si el
+        // chequeo falla (backend caido, usuario sin UserProfile todavia -
+        // ver PROP-001 en docs/decision-log.md del repo backend) se asume
+        // que NO requiere activacion, para no bloquear el acceso de un
+        // usuario ya autenticado correctamente por una falla de este
+        // chequeo adicional.
+        try {
+          const idToken = await credential.user.getIdToken();
+          const activationStatus = await getActivationStatus(idToken);
+          if (activationStatus.requiresPasswordChange || activationStatus.requiresMfaEnrollment) {
+            navigate('/activar-cuenta');
+            return;
+          }
+        } catch {
+          // Ver nota arriba.
+        }
+
         navigate('/tablero');
       } catch (error) {
         const authError = error as AuthError;

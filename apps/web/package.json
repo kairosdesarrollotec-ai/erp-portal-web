@@ -26,7 +26,8 @@
     "lucide-react": "^0.446.0",
     "date-fns": "^3.6.0",
     "@tanstack/react-table": "^8.20.5",
-    "firebase": "^10.13.2"
+    "firebase": "^10.13.2",
+    "qrcode": "^1.5.4"
   },
   "devDependencies": {
     "@types/react": "^18.3.9",
@@ -38,6 +39,7 @@
     "@testing-library/react": "^16.0.1",
     "@testing-library/jest-dom": "^6.5.0",
     "msw": "^2.4.9",
-    "jsdom": "^25.0.1"
+    "jsdom": "^25.0.1",
+    "@types/qrcode": "^1.5.5"
   }
 }
