@@ -13,6 +13,6 @@ Que hace: resuelve `prototype-manifest.yaml` y la especificacion UX/UI, analiza 
 Puede modificar: nada.
 No puede modificar: codigo, manifiestos.
 
-STOP: `MISSING_SOURCE` (fuente ausente), `MISSING_VISUAL_BASELINE` (sin PROTO-ID `APPROVED` vigente para el UX-ID), `SOURCE_CONFLICT` (contradiccion material).
+STOP: `MISSING_SOURCE` (fuente ausente), `MISSING_VISUAL_BASELINE` (sin PROTO-ID `APPROVED` vigente para cada screen_state/viewport requerido del UX-ID, o archivo corrupto/ilegible), `SOURCE_CONFLICT` (contradiccion material).
 
 Salida: Verdict, Sources, Visual sources (PROTO-ID usados), Findings (mapa), Risks, Open questions.

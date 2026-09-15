@@ -23,7 +23,7 @@ Los manifiestos deben existir y estar sincronizados con los archivos reales (si 
 
 ## Secuencia de ejecucion
 1. Leer `source-manifest.yaml` y `prototype-manifest.yaml`.
-2. Exigir `source_refs` no vacio; si hay UI, exigir `visual_refs` con al menos un `PROTO-ID` en `status: APPROVED` vigente para el `UX-ID`.
+2. Exigir `source_refs` no vacio; si hay UI, exigir `visual_refs` con un `PROTO-ID` en `status: APPROVED` vigente, especifico y legible para CADA `screen_state` y `viewport` que la tarea vaya a tocar (no basta con uno solo para el `UX-ID`).
 3. Resolver version/estado de cada fuente referenciada.
 4. Cruzar contra `docs/conflicts/` — si el alcance toca un conflicto abierto, detenerse.
 5. Devolver PASS con el mapa de fuentes resueltas, o STOP con el codigo correspondiente.
