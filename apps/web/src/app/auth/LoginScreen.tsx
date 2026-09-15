@@ -9,16 +9,10 @@ import styles from './LoginScreen.module.css';
 /**
  * TR-01 - Inicio de sesion.
  * Fuente: PANTALLAS-V2-B-TRANSVERSAL.md, prototipos aprobados
- * PROTO-TR-01-CREDENCIALES-INVALIDAS (RECOVERABLE_ERROR, desktop) y
- * PROTO-TR-01-CUENTA-BLOQUEADA (BLOCKING_ERROR, desktop) - releidos
- * directamente de los screen.png aprobados para esta version.
- *
- * NOTA de trazabilidad: no existe un prototipo aprobado READY en desktop
- * (solo movil, y ese archivo esta corrupto/en negro - no se pudo usar como
- * referencia). El layout READY desktop sigue el contrato escrito de la
- * tabla TR-01 (punto 12: "mismo layout en los 3 breakpoints, ancho maximo
- * 380px"), cruzado contra la base compartida de los prototipos
- * ERROR/BLOCKED. Pendiente: aprobar un prototipo READY desktop real.
+ * PROTO-TR-01-LOGIN-DESKTOP (READY, desktop), PROTO-TR-01-CREDENCIALES-INVALIDAS
+ * (RECOVERABLE_ERROR, desktop) y PROTO-TR-01-CUENTA-BLOQUEADA (BLOCKING_ERROR,
+ * desktop) - releidos directamente de los screen.png/screen.jpeg aprobados
+ * para esta version.
  *
  * NOTA: el campo del prototipo se llama "Correo o usuario", pero Firebase
  * Authentication (TDD-KAIROS-TRANSVERSAL 8.1/8.4) solo soporta email.
@@ -81,7 +75,7 @@ export function LoginScreen() {
               id="emailOrUsername"
               type="text"
               autoComplete="username"
-              placeholder="usuario@empresa.com"
+              placeholder="nombre@veloxrent.pe o usuario"
               className={styles.input}
               disabled={isValidating}
               autoFocus
@@ -101,6 +95,7 @@ export function LoginScreen() {
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
+                placeholder="••••••••••••"
                 className={styles.input}
                 disabled={isValidating}
                 {...register('password')}

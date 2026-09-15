@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inicio de sesión - VeloxRent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Public Sans', sans-serif;
+      background-color: #FFFFFF;
+    }
+    .font-space {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-white min-h-screen flex items-center justify-center p-4 antialiased text-[#1F2A33]">
+
+  <!-- Tarjeta de 380px de ancho centrada vertical y horizontalmente -->
+  <main class="w-full max-w-[380px] flex flex-col items-center">
+    
+    <!-- Encabezado de marca -->
+    <div class="text-center mb-6">
+      <span class="font-space font-bold text-[22px] tracking-tight text-[#1F2A33] block">
+        VeloxRent
+      </span>
+      <h1 class="font-space font-medium text-[20px] text-[#1F2A33] mt-2">
+        Ingresa a tu cuenta
+      </h1>
+    </div>
+
+    <!-- Formulario de credenciales -->
+    <form class="w-full space-y-4" onsubmit="event.preventDefault();">
+      <!-- Campo Correo o usuario -->
+      <div>
+        <label for="username" class="block text-[13px] font-medium text-[#1F2A33] mb-1.5">
+          Correo o usuario
+        </label>
+        <input 
+          type="text" 
+          id="username" 
+          name="username" 
+          placeholder="nombre@veloxrent.pe o usuario" 
+          class="w-full h-11 px-3 bg-white text-[14px] text-[#1F2A33] placeholder-[#A39C90] border-[1.5px] border-[#A39C90] rounded-[2px] focus:outline-none focus:border-[#1F2A33] transition-colors"
+          required
+        >
+      </div>
+
+      <!-- Campo Contraseña con botón mostrar/ocultar -->
+      <div>
+        <label for="password" class="block text-[13px] font-medium text-[#1F2A33] mb-1.5">
+          Contraseña
+        </label>
+        <div class="relative flex items-center">
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            placeholder="••••••••••••" 
+            class="w-full h-11 pl-3 pr-10 bg-white text-[14px] text-[#1F2A33] placeholder-[#A39C90] border-[1.5px] border-[#A39C90] rounded-[2px] focus:outline-none focus:border-[#1F2A33] transition-colors"
+            required
+          >
+          <button 
+            type="button" 
+            aria-label="Mostrar u ocultar contraseña"
+            class="absolute right-3 text-[#A39C90] hover:text-[#1F2A33] transition-colors focus:outline-none"
+            onclick="const p = document.getElementById('password'); p.type = p.type === 'password' ? 'text' : 'password';"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Botón principal Ingresar -->
+      <div class="pt-2">
+        <button 
+          type="submit" 
+          class="w-full h-11 bg-[#1F2A33] hover:bg-[#2c3b47] active:bg-[#151c22] text-white text-[14px] font-semibold rounded-[4px] transition-colors flex items-center justify-center cursor-pointer shadow-sm"
+        >
+          Ingresar
+        </button>
+      </div>
+
+      <!-- Enlace ¿Olvidaste tu contraseña? -->
+      <div class="text-center pt-2">
+        <a 
+          href="#recuperar" 
+          class="text-[13px] font-medium text-[#9E4C08] hover:underline transition-all inline-block"
+        >
+          ¿Olvidaste tu contraseña?
+        </a>
+      </div>
+    </form>
+
+  </main>
+
+</body>
+</html>

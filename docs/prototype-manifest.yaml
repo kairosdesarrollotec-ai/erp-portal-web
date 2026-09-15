@@ -1803,6 +1803,30 @@ screens:
   supersedes: null
   note: login movil
   is_reference_asset: false
+- proto_id: PROTO-TR-01-LOGIN-DESKTOP
+  ux_id: TR-01
+  module: transversal
+  source: stitch_veloxrent_prototipo_b
+  folder: inicio_de_sesi_n_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/inicio_de_sesi_n_veloxrent/screen.jpeg
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/inicio_de_sesi_n_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 1600
+    height: 1280
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-09-15'
+  sha256: a5122fa35c268bae094329f5015210eff137824024af76879e5c5bf434e041ba
+  bytes: 38842
+  supersedes: null
+  note: "login desktop READY, provisto y confirmado por el usuario en conversacion (registrado via prototype-intake); reemplaza el hueco previo de baseline READY desktop"
+  is_reference_asset: false
 - proto_id: PROTO-ASSET-interior-car-cabin-photo-showing-dashboard-steerin
   ux_id: null
   module: asset
