@@ -131,7 +131,8 @@
 
 /* Estado de pantalla completa (BLOCKING_ERROR / EXTERNAL_DEPENDENCY_PENDING)
    - PROTO-TR-01-CUENTA-BLOQUEADA: reemplaza el formulario entero, no es un
-   mensaje inline sobre el formulario. */
+   mensaje inline sobre el formulario. Sin prototipo mobile propio - solo
+   reflowa dentro del mismo max-width 380px, sin contenido mobile-only nuevo. */
 .fullScreenNotice {
   text-align: center;
 }
@@ -163,4 +164,103 @@
   background: none;
   border: none;
   cursor: pointer;
+}
+
+/* Visibilidad por viewport - PROTO-TR-01-LOGIN-MOVIL tiene contenido propio
+   (isotipo+wordmark, subtitulo, pie de pagina) que el desktop no tiene. */
+.mobileOnly {
+  display: none;
+}
+
+.desktopOnly {
+  display: block;
+}
+
+/* ===== Mobile (<= 480px) - PROTO-TR-01-LOGIN-MOVIL ===== */
+@media (max-width: 480px) {
+  .mobileOnly {
+    display: block;
+  }
+
+  .desktopOnly {
+    display: none;
+  }
+
+  .wrapper {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .card {
+    max-width: 390px;
+    margin: 0 auto;
+    padding: 1.5rem 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  /* Isotipo "VR" + wordmark - PROTO-TR-01-LOGIN-MOVIL (el desktop solo
+     tiene el texto "VeloxRent", sin isotipo) */
+  .brandRow {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-bottom: 2rem;
+  }
+
+  .brandMark {
+    width: 28px;
+    height: 28px;
+    border-radius: 3px;
+    background: var(--color-ink);
+    color: white;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: -0.02em;
+    flex-shrink: 0;
+  }
+
+  .brandWordmark {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    color: var(--color-ink);
+  }
+
+  .title {
+    margin: 0;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--color-muted);
+    margin: 0.375rem 0 1.5rem;
+  }
+
+  .input {
+    height: 48px;
+  }
+
+  .submit {
+    height: 48px;
+  }
+
+  /* Pie de pagina fijo al fondo de la pantalla - PROTO-TR-01-LOGIN-MOVIL */
+  .mobileFooter {
+    text-align: center;
+    font-size: 12px;
+    color: var(--color-muted);
+    margin: 1.5rem 0 0;
+    padding-top: 1rem;
+  }
 }

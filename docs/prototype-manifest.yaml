@@ -1,7 +1,7 @@
 schema_version: '1.0'
 generated_note: Catalogo inicial generado por bootstrap Claude Code a partir de docs/prototypes/approved/stitch_veloxrent_prototipo_b.
-  ux_id=null o status=PENDING_TRACE_REVIEW requiere vinculacion/revision manual antes de usarse como baseline
-  de una skill frontend-screen.
+  ux_id=null o status=PENDING_TRACE_REVIEW requiere vinculacion/revision manual antes
+  de usarse como baseline de una skill frontend-screen.
 screens:
 - proto_id: PROTO-TR-02-ACTIVACION-PASO-1
   ux_id: TR-02
@@ -1750,8 +1750,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: fc3fd4075d069fb4223282a62e8891d081b88616b6774c032ca302ccd70e3f06
-  bytes: 29794
+  sha256: cafd57a522fe9474c032daec43da207ce8cfb2303a6358d41d17bcfb82c1f6b0
+  bytes: 3498
   supersedes: null
   note: cuenta bloqueada
   is_reference_asset: false
@@ -1774,8 +1774,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 3b7d7c97896ff4d733a3f651ebaf32f6391e8f2c659f1c4a5b249e76cc2cf140
-  bytes: 47405
+  sha256: 96146fda80857a824c58e52c16f16bd6fc879c5c151c36c4c231685ff114947c
+  bytes: 6227
   supersedes: null
   note: credenciales invalidas
   is_reference_asset: false
@@ -1798,8 +1798,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: c977e92ee4c7a0e114b4a69315e294fc7ea93a8cb7d9ff99a73ae6f6a1d4fd28
-  bytes: 5527
+  sha256: 88b15071d1118f1f6fd19e099d0fc74360acd3ec9255ba43a74db507ab555a00
+  bytes: 5841
   supersedes: null
   note: login movil
   is_reference_asset: false
@@ -1822,10 +1822,12 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-15'
-  sha256: a5122fa35c268bae094329f5015210eff137824024af76879e5c5bf434e041ba
-  bytes: 38842
+  sha256: 689f77650e37401f1ada4c05d93dca6611c6bfb7f6cf38f494118f6ee624767f
+  bytes: 4202
   supersedes: null
-  note: "login desktop READY, provisto y confirmado por el usuario en conversacion (registrado via prototype-intake); reemplaza el hueco previo de baseline READY desktop"
+  note: login desktop READY, provisto y confirmado por el usuario en conversacion
+    (registrado via prototype-intake); reemplaza el hueco previo de baseline READY
+    desktop
   is_reference_asset: false
 - proto_id: PROTO-ASSET-interior-car-cabin-photo-showing-dashboard-steerin
   ux_id: null
