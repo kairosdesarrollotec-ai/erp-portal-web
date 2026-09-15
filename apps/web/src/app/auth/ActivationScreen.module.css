@@ -287,3 +287,213 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Visibilidad por viewport - los prototipos mobile (PROTO-TR-02-
+   ACTIVACION-PASO-1-MOVIL, -PASO-2-MOVIL, -PASO-2-ERROR-MOVIL) tienen
+   contenido propio, no son solo un reflow del desktop. */
+.mobileOnly {
+  display: none;
+}
+
+.desktopOnly {
+  display: block;
+}
+
+/* ===== Mobile (<= 480px) - PROTO-TR-02-ACTIVACION-*-MOVIL ===== */
+@media (max-width: 480px) {
+  .mobileOnly {
+    display: block;
+  }
+
+  .desktopOnly {
+    display: none;
+  }
+
+  .wrapper {
+    display: block;
+    padding: 0;
+  }
+
+  .card {
+    max-width: 390px;
+    margin: 0 auto;
+    padding: 1.5rem 1.5rem 6.5rem;
+  }
+
+  .greetingDescription {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-muted);
+    margin: 0.375rem 0 0;
+  }
+
+  .mfaDescription {
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--color-muted);
+    margin: 0 0 1.25rem;
+  }
+
+  /* Header fijo del paso 2 - PROTO-TR-02-ACTIVACION-PASO-2-MOVIL */
+  .mobileHeader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+    z-index: 50;
+  }
+
+  .mobileBack {
+    background: none;
+    border: none;
+    color: var(--color-muted);
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    margin-left: -0.5rem;
+    cursor: pointer;
+  }
+
+  .mobileHeaderTag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+  }
+
+  .mobileHeaderAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-ink);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card:has(.mobileHeader) {
+    padding-top: 4.5rem;
+  }
+
+  /* QR mas grande - PROTO-TR-02-ACTIVACION-PASO-2-MOVIL */
+  .qrCard {
+    background: #f6f3ed;
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+
+  .qrBox {
+    width: 220px;
+    height: 220px;
+  }
+
+  .manualSecret {
+    width: 100%;
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .manualSecretToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    background: none;
+    border: none;
+    color: var(--color-accent);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+  }
+
+  .manualSecretPanel {
+    width: 100%;
+    margin-top: 0.5rem;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .manualSecretLabel {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .manualSecretValue {
+    display: block;
+    font-family: 'Space Grotesk', monospace, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--color-ink);
+  }
+
+  .manualSecretCopy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #ebe8e2;
+    color: var(--color-ink);
+    border: none;
+    border-radius: 4px;
+    padding: 0.375rem 0.625rem;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* Casillas de codigo mas grandes - PROTO-TR-02-ACTIVACION-PASO-2-MOVIL */
+  .digitBox {
+    width: 48px;
+    height: 52px;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  .digitBox:focus {
+    box-shadow: 0 0 0 2px var(--color-accent);
+  }
+
+  .digitBoxError {
+    background-color: #fbe9e9;
+    color: var(--color-error);
+    box-shadow: 0 0 0 2px var(--color-error);
+  }
+
+  .mfaHint {
+    font-size: 12px;
+    color: var(--color-muted);
+    margin-top: 0.375rem;
+  }
+
+  /* Boton principal fijo abajo - PROTO-TR-02-ACTIVACION-*-MOVIL */
+  .submit {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: 52px;
+    margin: 0 1.5rem 1.25rem;
+    border-radius: 4px;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+  }
+}

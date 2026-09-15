@@ -7,19 +7,20 @@ import type { ActivationPasswordFormValues } from './activation.schema';
 
 /**
  * TR-02 - Activa tu cuenta (2 pasos). Fuente: PANTALLAS-V2-B-TRANSVERSAL.md.
- * Estados cubiertos por prototipo aprobado: paso 1 READY (PROTO-TR-02-
- * ACTIVACION-PASO-1), paso 2 READY (PROTO-TR-02-ACTIVACION-PASO-2) y paso 2
- * RECOVERABLE_ERROR (PROTO-TR-02-ACTIVACION-PASO-2-ERROR). VALIDATING no
- * tiene prototipo propio (mismo patron que TR-01: reutiliza el boton en
- * estado deshabilitado). Paso 1 en viewport mobile y paso 2 error en
- * viewport mobile NO tienen prototipo aprobado todavia - no se implementa
- * un layout mobile propio para esos 2 casos (decision del usuario:
- * "Implemento solo lo cubierto ahora").
+ * Estados cubiertos por prototipo aprobado, desktop y mobile: paso 1 READY
+ * (PROTO-TR-02-ACTIVACION-PASO-1 desktop, PROTO-TR-02-ACTIVACION-PASO-1-MOVIL
+ * mobile), paso 2 READY (PROTO-TR-02-ACTIVACION-PASO-2 desktop,
+ * PROTO-TR-02-ACTIVACION-PASO-2-MOVIL mobile) y paso 2 RECOVERABLE_ERROR
+ * (PROTO-TR-02-ACTIVACION-PASO-2-ERROR desktop, PROTO-TR-02-ACTIVACION-
+ * PASO-2-ERROR-MOVIL mobile) - los 6 registrados y aprobados por Producto.
+ * VALIDATING no tiene prototipo propio (mismo patron que TR-01: reutiliza
+ * el boton en estado deshabilitado).
  *
  * MFA: TOTP nativo de Firebase Multi-Factor (PROP-002 en docs/decision-
  * log.md del repo backend, confirmado por el usuario) - multiFactor(user)
  * .getSession() + TotpMultiFactorGenerator, no una implementacion propia
- * de TOTP.
+ * de TOTP. `secretKey` se expone porque el prototipo mobile incluye un
+ * boton "Ingresar clave manual" como alternativa a escanear el QR.
  */
 export type ActivationStep = 'PASSWORD' | 'MFA';
 export type ActivationScreenState = 'READY' | 'VALIDATING' | 'RECOVERABLE_ERROR';
@@ -89,5 +90,12 @@ export function useActivation() {
       )
     : null;
 
-  return { step, state, qrCodeUrl, submitPassword, submitMfaCode };
+  return {
+    step,
+    state,
+    qrCodeUrl,
+    secretKey: totpSecret?.secretKey ?? null,
+    submitPassword,
+    submitMfaCode,
+  };
 }

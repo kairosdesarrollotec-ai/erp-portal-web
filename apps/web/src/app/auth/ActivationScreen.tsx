@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Eye, EyeOff, Key, User } from 'lucide-react';
 import QRCode from 'qrcode';
 import { activationPasswordSchema, evaluatePasswordRequirements } from './activation.schema';
 import type { ActivationPasswordFormValues } from './activation.schema';
@@ -9,24 +9,41 @@ import { useActivation } from './useActivation';
 import styles from './ActivationScreen.module.css';
 
 /**
- * TR-02 - Activa tu cuenta. Fuente: PANTALLAS-V2-B-TRANSVERSAL.md.
- * Prototipos aprobados: PROTO-TR-02-ACTIVACION-PASO-1 (READY, desktop),
- * PROTO-TR-02-ACTIVACION-PASO-2 (READY, desktop), PROTO-TR-02-ACTIVACION-
- * PASO-2-ERROR (RECOVERABLE_ERROR, desktop) y PROTO-TR-02-ACTIVACION-
- * PASO-2-MOVIL (READY, mobile).
+ * TR-02 - Activa tu cuenta. Fuente: PANTALLAS-V2-B-TRANSVERSAL.md. Los 6
+ * prototipos (desktop + mobile x 3 estados) estan aprobados por Producto:
+ * PROTO-TR-02-ACTIVACION-PASO-1 / -PASO-1-MOVIL (READY), PROTO-TR-02-
+ * ACTIVACION-PASO-2 / -PASO-2-MOVIL (READY), PROTO-TR-02-ACTIVACION-
+ * PASO-2-ERROR / -PASO-2-ERROR-MOVIL (RECOVERABLE_ERROR).
  *
- * NO CUBIERTO todavia (sin prototipo aprobado - "implemento solo lo
- * cubierto ahora"): paso 1 en viewport mobile, paso 2 RECOVERABLE_ERROR en
- * viewport mobile. Estos 2 casos usan el mismo layout desktop mientras no
- * exista el prototipo correspondiente.
+ * El layout mobile del prototipo tiene contenido propio (no es solo un
+ * reflow del desktop): header fijo con boton "atras" en paso 2, texto de
+ * contexto adicional, y un boton "Ingresar clave manual" como alternativa
+ * al QR. Esos bloques se marcan con .mobileOnly/.desktopOnly (visibilidad
+ * controlada por CSS via @media, no por JS) para no duplicar componentes.
  */
 export function ActivationScreen() {
-  const { step, state, qrCodeUrl, submitPassword, submitMfaCode } = useActivation();
+  const { step, state, qrCodeUrl, secretKey, submitPassword, submitMfaCode } = useActivation();
 
   return (
     <main className={styles.wrapper}>
+      {step === 'MFA' && (
+        <header className={`${styles.mobileHeader} ${styles.mobileOnly}`}>
+          <button
+            type="button"
+            className={styles.mobileBack}
+            aria-label="Volver"
+            onClick={() => window.history.back()}
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <span className={styles.mobileHeaderTag}>Verificación 2FA</span>
+          <span className={styles.mobileHeaderAvatar}>
+            <User size={18} />
+          </span>
+        </header>
+      )}
       <div className={styles.card}>
-        <p className={styles.brand}>VeloxRent</p>
+        <p className={`${styles.brand} ${step === 'MFA' ? styles.desktopOnly : ''}`}>VeloxRent</p>
         <Stepper activeStep={step === 'PASSWORD' ? 1 : 2} />
         {step === 'PASSWORD' ? (
           <PasswordStep isValidating={state === 'VALIDATING'} onSubmit={submitPassword} />
@@ -35,6 +52,7 @@ export function ActivationScreen() {
             isValidating={state === 'VALIDATING'}
             hasError={state === 'RECOVERABLE_ERROR'}
             qrCodeUrl={qrCodeUrl}
+            secretKey={secretKey}
             onSubmit={submitMfaCode}
           />
         )}
@@ -79,7 +97,9 @@ function PasswordStep({
   });
 
   const newPassword = watch('newPassword') ?? '';
+  const confirmPassword = watch('confirmPassword') ?? '';
   const requirements = evaluatePasswordRequirements(newPassword);
+  const passwordsMatch = newPassword.length > 0 && newPassword === confirmPassword;
   const allRequirementsMet =
     requirements.hasLength && requirements.hasUpper && requirements.hasNumber;
 
@@ -88,6 +108,9 @@ function PasswordStep({
       <div className={styles.greeting}>
         <h1 className={styles.greetingTitle}>Hola</h1>
         <h2 className={styles.greetingSubtitle}>Crea tu nueva contraseña</h2>
+        <p className={`${styles.greetingDescription} ${styles.mobileOnly}`}>
+          Configura tu credencial corporativa para acceder a la plataforma interna.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -151,6 +174,11 @@ function PasswordStep({
             <RequirementItem met={requirements.hasLength} label="Mínimo 8 caracteres" />
             <RequirementItem met={requirements.hasUpper} label="Al menos una letra mayúscula" />
             <RequirementItem met={requirements.hasNumber} label="Al menos un número" />
+            <RequirementItem
+              met={passwordsMatch}
+              label="Ambas contraseñas son idénticas"
+              className={styles.mobileOnly}
+            />
           </ul>
         </div>
 
@@ -166,9 +194,19 @@ function PasswordStep({
   );
 }
 
-function RequirementItem({ met, label }: { met: boolean; label: string }) {
+function RequirementItem({
+  met,
+  label,
+  className,
+}: {
+  met: boolean;
+  label: string;
+  className?: string;
+}) {
   return (
-    <li className={`${styles.requirementItem} ${met ? styles.requirementItemMet : ''}`}>
+    <li
+      className={`${styles.requirementItem} ${met ? styles.requirementItemMet : ''} ${className ?? ''}`}
+    >
       <span className={`${styles.requirementIcon} ${met ? styles.requirementIconMet : ''}`}>
         {met && (
           <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
@@ -191,15 +229,19 @@ function MfaStep({
   isValidating,
   hasError,
   qrCodeUrl,
+  secretKey,
   onSubmit,
 }: {
   isValidating: boolean;
   hasError: boolean;
   qrCodeUrl: string | null;
+  secretKey: string | null;
   onSubmit: (code: string) => void | Promise<void>;
 }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''));
+  const [showSecret, setShowSecret] = useState(false);
+  const [copied, setCopied] = useState(false);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
@@ -248,18 +290,59 @@ function MfaStep({
 
   const code = digits.join('');
   const isComplete = code.length === 6;
+  const formattedSecret = secretKey ? secretKey.replace(/(.{4})/g, '$1-').replace(/-$/, '') : '';
+
+  function handleCopySecret() {
+    if (!secretKey) return;
+    void navigator.clipboard.writeText(secretKey).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   return (
     <>
       <h1 className={styles.title}>Protege tu cuenta</h1>
+      <p className={`${styles.mfaDescription} ${styles.mobileOnly}`}>
+        Escanea el código QR con tu aplicación autenticadora (Google Authenticator, Microsoft
+        Authenticator o similar) e ingresa el código de 6 dígitos generado.
+      </p>
 
       <div className={styles.qrCard}>
         <div className={styles.qrBox}>
           {qrDataUrl && <img src={qrDataUrl} alt="Código QR para app de autenticación" width={148} height={148} />}
         </div>
-        <p className={styles.helpText}>
+        <p className={`${styles.helpText} ${styles.desktopOnly}`}>
           Escanea este código con tu app de autenticación (Google Authenticator, Authy, etc.)
         </p>
+
+        <div className={`${styles.manualSecret} ${styles.mobileOnly}`}>
+          <button
+            type="button"
+            className={styles.manualSecretToggle}
+            onClick={() => setShowSecret((v) => !v)}
+          >
+            <Key size={16} />
+            <span>¿No puedes escanear el código? Ingresar clave manual</span>
+          </button>
+          {showSecret && secretKey && (
+            <div className={styles.manualSecretPanel}>
+              <div>
+                <span className={styles.manualSecretLabel}>Clave secreta segura</span>
+                <span className={styles.manualSecretValue}>{formattedSecret}</span>
+              </div>
+              <button
+                type="button"
+                className={styles.manualSecretCopy}
+                onClick={handleCopySecret}
+                aria-label="Copiar clave secreta"
+              >
+                {copied ? <Check size={15} /> : <Copy size={15} />}
+                <span>{copied ? '¡Copiado!' : 'Copiar'}</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <form
@@ -292,9 +375,13 @@ function MfaStep({
               />
             ))}
           </div>
-          {hasError && (
+          {hasError ? (
             <p className={styles.mfaError}>
               Código incorrecto o expirado — genera uno nuevo en tu app e intenta de nuevo
+            </p>
+          ) : (
+            <p className={`${styles.mfaHint} ${styles.mobileOnly}`}>
+              Ingresa el código temporal de 6 dígitos de tu app
             </p>
           )}
         </div>
