@@ -1,7 +1,7 @@
 schema_version: '1.0'
 generated_note: Catalogo inicial generado por bootstrap Claude Code a partir de docs/prototypes/approved/stitch_veloxrent_prototipo_b.
-  ux_id=null o status=PENDING_TRACE_REVIEW requiere vinculacion/revision manual antes de usarse como baseline
-  de una skill frontend-screen.
+  ux_id=null o status=PENDING_TRACE_REVIEW requiere vinculacion/revision manual antes
+  de usarse como baseline de una skill frontend-screen.
 screens:
 - proto_id: PROTO-TR-02-ACTIVACION-PASO-1
   ux_id: TR-02
@@ -22,8 +22,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: d18f7057474d55a058721a8944350e4d632dfaef0396426ab01af6e4a94cbac6
-  bytes: 56555
+  sha256: d6f53184f526a46b2c31a6f58b7799a706e9180dd02dd66c0c8a22389f565914
+  bytes: 9526
   supersedes: null
   note: activacion paso 1
   is_reference_asset: false
@@ -46,8 +46,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 4493dd3cccd85daeea2a51c55bbf0215f2c7bf7e6b93fdda2864cffea64f3853
-  bytes: 62103
+  sha256: dcfcf7240bed4a15e3795c149eb411606176a0c67cc2923cf8ba0a571720738d
+  bytes: 9753
   supersedes: null
   note: activacion paso 2 error
   is_reference_asset: false
@@ -70,8 +70,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 5bb4b5ba313ff4c800089ea175deb8bb80cdec9a221bbab02f56f46df8c3083a
-  bytes: 163977
+  sha256: 0957c58ae773ac24e1634244ca9cae7f8a0804b8dccbb9e03f56b0963e00c7d6
+  bytes: 23195
   supersedes: null
   note: activacion paso 2 movil
   is_reference_asset: false
@@ -94,8 +94,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 5d2dd0e4e6ffdb6caaeafd1431250d4fe2f5166a5d3418a82c04043029f7ac63
-  bytes: 51207
+  sha256: 39a6d332fcfaea7408552c74e6110c3cc0ccc9ca52e384ef6c57e820eab1a0d6
+  bytes: 10086
   supersedes: null
   note: activacion paso 2
   is_reference_asset: false
@@ -118,8 +118,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 1330541b37128448a30eeef9e0eaa6259e125e1c36d487cd76d3153afc12ec54
-  bytes: 530797
+  sha256: 1b4605074b068e86abaa6104d3c67c316982c79d132bcbab6491979eace32c88
+  bytes: 20306
   supersedes: null
   note: desfavorable
   is_reference_asset: false
@@ -142,8 +142,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 0e36036637e4102a04ac53a4c249cb88f242efd6aab3be24d71478f2189894ad
-  bytes: 563834
+  sha256: bfd465271e383bca66e3b1336f8c1b1457e6dde0aca6ef4fa97c0557345847cb
+  bytes: 20023
   supersedes: null
   note: recepcion DEV-0456
   is_reference_asset: false
@@ -166,8 +166,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 13118177fc7e2185d3e271bde5caeb66b0d88a25415c8dca400d3382f6b8f9ca
-  bytes: 526137
+  sha256: d1c88aa784017c73112b3a8e93261d3020b738faa4afe356cfb7abf3a9c4d26b
+  bytes: 30361
   supersedes: null
   note: activo ALQ-1187
   is_reference_asset: false
@@ -190,8 +190,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 901592031c7e2f5662c95d9a0752f4a3a50faeccecc8a06426436bb05b708193
-  bytes: 541312
+  sha256: c0d42a55e431a02607790100c22f2e26a6fd55aa877f8801bff43a914964dfb9
+  bytes: 24499
   supersedes: null
   note: alerta GPS BR-ALQ-006
   is_reference_asset: false
@@ -214,8 +214,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 9387adcb37da6bbf59be38b760538bd72659c103c02670dcdcd8108029a9fa32
-  bytes: 579220
+  sha256: 486d76c13c227efa2c1fea22b110265a5913381c61fc2066f771be9206d520b0
+  bytes: 21875
   supersedes: null
   note: bandeja
   is_reference_asset: false
@@ -238,8 +238,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 52226c9b8f0c0212fe850df56397ca0f762cdad8241c448f0e4e39f81c743bba
-  bytes: 366137
+  sha256: 124beff293c8db7f96a4d1c15a9c5b95d9257eb64ad84fbbf7c942b33c7aa087
+  bytes: 57919
   supersedes: null
   note: asistencia
   is_reference_asset: false
@@ -262,8 +262,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: acb256790e958fffe14a7754fa43244aab6bf0b8d1faf4d671eaf3440f19f5e7
-  bytes: 571672
+  sha256: 445236c84b88caf41248993feee764963b9f2496b64a81ccf724e24586a8415f
+  bytes: 37488
   supersedes: null
   note: auditoria administrativa
   is_reference_asset: false
@@ -358,8 +358,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: f902a0d6991b704b799d64d99468f15a0c35211d6c4000d0ee0de9881def38a3
-  bytes: 347645
+  sha256: b0eeaf46e4b80eb0384e325d3a49a3a4da8b2b66d9dd83e5294aac2c8011f89c
+  bytes: 15997
   supersedes: null
   note: cola autorizacion
   is_reference_asset: false
@@ -382,8 +382,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 758966e7dbb4fdce126e8987c5936a6b2e30a9de4d866944d3f79779cae371eb
-  bytes: 185694
+  sha256: 6343df7aba2820e11615a468ab01116c538061d3390a36b3f541ff13b88b7c90
+  bytes: 12620
   supersedes: null
   note: cola autorizacion movil
   is_reference_asset: false
@@ -406,8 +406,8 @@ screens:
   status: PENDING_TRACE_REVIEW
   approved_by_role: null
   approved_at: null
-  sha256: 3ebeb7489734b8f7f51c60105bd99357f8fc8f81b30c316fd173a80e50217d6b
-  bytes: 197504
+  sha256: bb1e8d070fdfe6adcb9664d873f15c851a664dd3fea5983d7147004ba142fbee
+  bytes: 17743
   supersedes: null
   note: shell global - busqueda, sin UX-ID canonico dedicado
   is_reference_asset: false
@@ -430,8 +430,8 @@ screens:
   status: PENDING_TRACE_REVIEW
   approved_by_role: null
   approved_at: null
-  sha256: a81e8c93957938f4ac4001d73ccf9fc20ce6bb4de8ed5ad19ff649b143f0a641
-  bytes: 117590
+  sha256: 882283b8fa71fd64217351f0de17a29f1faffe8888c5116e025e06e14a283c49
+  bytes: 17603
   supersedes: null
   note: shell global - busqueda movil
   is_reference_asset: false
@@ -454,8 +454,8 @@ screens:
   status: PENDING_TRACE_REVIEW
   approved_by_role: null
   approved_at: null
-  sha256: dd58114fb9a1f69f6ab4df7c418b34722d87f9c29676b7f43cd3c1c28d4e6797
-  bytes: 165730
+  sha256: cbd6d9f46d77b8a9662f4e3d5547c6bc17fb3b72f12e7c3c266d944203b1aece
+  bytes: 11021
   supersedes: null
   note: shell global - busqueda vacia
   is_reference_asset: false
@@ -478,8 +478,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 270af52f6e4b2da2b057a6b5b444ec43576c0a408c45ce5364ca3bdc47bfcc00
-  bytes: 309517
+  sha256: 51505e89ebdc2f0ba5e67c227acf4d3a02043910fe0fdbb20a82b83363e35c08
+  bytes: 31065
   supersedes: null
   note: bandeja candidatos vacante mecanico
   is_reference_asset: false
@@ -526,8 +526,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: ea3c5080eea06bbac54ec503bf8aecf249de6f246ba9114205815f3cc36b314f
-  bytes: 541009
+  sha256: 5cb3f9918b3212290ce9f4397d79c921be75872c3872aaa35d6c3317245fe1c8
+  bytes: 26735
   supersedes: null
   note: catalogos y parametros
   is_reference_asset: false
@@ -550,8 +550,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 0724a7946ae0e98fcc7bb1b7f8c897349c37a712b9f27f8bf0506a534e204ae3
-  bytes: 308130
+  sha256: 2fd6589ce277520cde1441b14d688593293a390f254c25713baeca3ac878609f
+  bytes: 28733
   supersedes: null
   note: bandeja
   is_reference_asset: false
@@ -574,8 +574,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 50fa46000ba9b49823230257648de86852d15392774bd6411306d92c1d0fcbc9
-  bytes: 331004
+  sha256: f81ca5e4e523fb600771badea3037999b238ed537b297de98f988ab57ccc97b4
+  bytes: 21166
   supersedes: null
   note: coincidencia DNI
   is_reference_asset: false
@@ -598,8 +598,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 7522da741fe266b46f07a6865cb8d9c499d98fa69efc33432e53f0cd50bd8ffc
-  bytes: 86446
+  sha256: 25da4476a74ccbe0ce1aa959bbddd52cc4b8c3fb2e5bff9f1514cba697e30287
+  bytes: 11088
   supersedes: null
   note: desafio MFA movil 1
   is_reference_asset: false
@@ -622,8 +622,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 0b94a2ecb60c44860e9afab8c468340f66d772ab2585705a9d93a46b2b0c9fe0
-  bytes: 96501
+  sha256: 3d8359e048ac6b4592fa2419786c9bac3208e110c05bbdd4cfef0b2189220931
+  bytes: 7754
   supersedes: null
   note: desafio MFA movil 2
   is_reference_asset: false
@@ -646,8 +646,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: baeb45ea926c22881af1da726aca70b41716055dd6ce9b47e8fd2db99915515a
-  bytes: 15039
+  sha256: b3328355c164e7cd55a20e219e120c3e65e008124b12c46af8f2874af91ca6fd
+  bytes: 7187
   supersedes: null
   note: desafio MFA modal
   is_reference_asset: false
@@ -670,8 +670,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 3b69190af88be5f286aa8d1fd85af0166ac468b737b9f24524cc88cebdcaa90d
-  bytes: 173312
+  sha256: 6b280d1bc4b7c4c54cc948ac244bd7aa06fe432191454d9b1306491e6365968c
+  bytes: 17999
   supersedes: null
   note: requisitos confirmacion movil
   is_reference_asset: false
@@ -694,8 +694,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 5a474b3e2cb1b970cadeabbb0f85b9087fcab5bfe6c80cf33533be6ef737991b
-  bytes: 380576
+  sha256: 9195bc5d7a8085f345319d251e85d3988787f2d6748513a2a67cf0b663b7a666
+  bytes: 19454
   supersedes: null
   note: modalidad no determinada
   is_reference_asset: false
@@ -718,8 +718,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 9dacc2a34ea6fcb40ca41588cf3ea2165514967238afbe82898fd382999730b2
-  bytes: 432870
+  sha256: 877a569346054909dbacb70dff131472c6b2f27ea7afacc0fdc3bd51c4efcc36
+  bytes: 17540
   supersedes: null
   note: requisitos confirmacion
   is_reference_asset: false
@@ -742,8 +742,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: a0dd7659bf137fe613317742a3cac532ed85e45baced27658d7628e8a7e3f8ea
-  bytes: 540985
+  sha256: dee9395fd2fe45d52aab96997c3f1692a91aa6342537474c857377ee1446622b
+  bytes: 17393
   supersedes: null
   note: detalle CON-0842
   is_reference_asset: false
@@ -766,8 +766,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: df2431e4169998adc1dc378a8c7f525e819500e484081ef2be672b01d1bc6013
-  bytes: 507314
+  sha256: 106bab76e5f2759baa23c24aa0c6c04e6952c6949bdd715446252ff6bc04e033
+  bytes: 18277
   supersedes: null
   note: modal cerrar sin conversion
   is_reference_asset: false
@@ -790,8 +790,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 5a3d35c54f57716279b6fb60be74e1826aaf172225e3cf837bd2287eb661bf33
-  bytes: 152231
+  sha256: 1d5b71145f70edba03a37141c0b1878dcc272240224f10a17fced81a20ac5ae4
+  bytes: 18038
   supersedes: null
   note: bandeja movil
   is_reference_asset: false
@@ -814,8 +814,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: b813b01975edeb467ba193790a1710f6dbc87f368519a3cb930f473c8b30cc61
-  bytes: 109913
+  sha256: e96837b0759aa412cbb1283251d138d658a26ff161134e735fa6ec147e307b20
+  bytes: 9137
   supersedes: null
   note: bandeja vacia
   is_reference_asset: false
@@ -838,8 +838,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 4382b0d190bb1a2715c8b5a105d202b2d6bdf9e99bdfdffd552c51a438353020
-  bytes: 8655
+  sha256: f1026a6d7f3cd5685303704eeaa267a2b55e64ecf3c662a6318d8af7f7a787ee
+  bytes: 22193
   supersedes: null
   note: bandeja
   is_reference_asset: false
@@ -862,8 +862,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 6315a621c6c8420ba95c6599957fa3ae6812c3d3ba368936a609226848bced69
-  bytes: 59127
+  sha256: 89e405fc2d3bb7395e3f5a3f2fec39415111c09bc8bda6209a524529955fa9cf
+  bytes: 2840
   supersedes: null
   note: sesion expirada
   is_reference_asset: false
@@ -886,8 +886,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 62784974c84ed7e6cab451631447a2619d1cca83420d5c269fa4fb8e81a82658
-  bytes: 45553
+  sha256: ba8ae57a17a77ae52bc398429f65926b1b266ef6b06c178bb07a166ae9bc72ee
+  bytes: 3658
   supersedes: null
   note: acceso denegado
   is_reference_asset: false
@@ -934,8 +934,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: c85c4c6865201170e42f554f5ef3711644332aba4829caf219b201de18ff96bf
-  bytes: 106516
+  sha256: c50c389dae5539bbd73d88291f3d70ef8012eebc89ba70531caff943dbebbd0f
+  bytes: 12473
   supersedes: null
   note: seleccion empresa/sede
   is_reference_asset: false
@@ -958,8 +958,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 4e0521cfc19a8e390b43d9434ab6dd53139350f2579649987e206325d9d3596b
-  bytes: 873030
+  sha256: b90713816ffdfabe286dfaa4f16d3e8b3b34bb30b67e807b09016c387bee6450
+  bytes: 24292
   supersedes: null
   note: dano estetico DEV-0456
   is_reference_asset: false
@@ -982,8 +982,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 21a724440da1e357efd72c4ada9de7c0c73f7073e22f8f132d5b1542aefad16b
-  bytes: 487610
+  sha256: e5e2f39a73d3cef1d61bda7073865551710a58b3a0d39ffed8af1d21cc08de5d
+  bytes: 25469
   supersedes: null
   note: cargo por paralizacion 24h
   is_reference_asset: false
@@ -1006,8 +1006,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 99385696da061fad19edb3d37cb7a3c7fb257d9e1c4ee41b9603b7439c2cdf83
-  bytes: 788554
+  sha256: 99375b84b0047bd229a5a5353e9b11f878577e6d565fcdd3ddb5a49ff6529c85
+  bytes: 21787
   supersedes: null
   note: dano tecnico DEV-0456
   is_reference_asset: false
@@ -1030,8 +1030,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: c9b65c52c932feb378bd9f10255354428709c6ce259b6b85c2584a707f0bc9e8
-  bytes: 560953
+  sha256: b29bdafb1ea959ad3bb1584042065eb285029228488de85be2ed751138f72cc5
+  bytes: 26017
   supersedes: null
   note: decision de contratacion
   is_reference_asset: false
@@ -1054,8 +1054,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 214250b0d90a73831fbd14caf14bde2153afc7d26fe530001dbc883353a9d1da
-  bytes: 395284
+  sha256: b4d8a6877c1856e584db80d6c1a3cfd6af1e51ae514ec9001d1fdb436f536252
+  bytes: 30217
   supersedes: null
   note: cierre y expediente DEV-0456
   is_reference_asset: false
@@ -1078,8 +1078,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 6567ca54126e796ed74443b050f2ce7e468676477862e0c528e39b0270b7ff54
-  bytes: 543041
+  sha256: 3128d63eb946126b09d5aa17ca1fdd406bc7afb1b64ccec5e1f180724409de5f
+  bytes: 22307
   supersedes: null
   note: bandeja
   is_reference_asset: false
@@ -1102,8 +1102,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: ad1a4749502404d9579b75707d1c610dac92c127b5997748e3c4b38916af1f59
-  bytes: 172364
+  sha256: ba845a90ddb5dd187ed6e199886ada76e4ea7c10efc814b13c69ce17027ad62e
+  bytes: 20454
   supersedes: null
   note: entrega paso1 movil 1
   is_reference_asset: false
@@ -1126,8 +1126,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 6bb24834e990240d210eda1a4f652ccd5d0e6b6280c06451a991d402755ebe0f
-  bytes: 167576
+  sha256: d6db26350c4fb047964a2e1e9c6ac1d60265c04f4e1fe11c78078cb49f127d8f
+  bytes: 24842
   supersedes: null
   note: entrega paso1 movil 2
   is_reference_asset: false
@@ -1150,8 +1150,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: cf67666eb75f700b2efc84bc172decaca0febbd230eb5b81acdf06f2e5661cfc
-  bytes: 610183
+  sha256: 768f303c4f071fc912882458565d592ba065b2118c756a76287bf912b4c9d013
+  bytes: 33073
   supersedes: null
   note: entrega paso1
   is_reference_asset: false
@@ -1174,8 +1174,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 627a834d85164238babad01c7527eb59a91c42447b69834d8ac95515c3497e26
-  bytes: 256393
+  sha256: fa10594043c3cccaf087a18cb132ce04cd1b269d604b4bdbc5c27c394b20d676
+  bytes: 17742
   supersedes: null
   note: entrega paso2 MTC no disponible
   is_reference_asset: false
@@ -1198,8 +1198,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 154ae3277fe6a6e984d574e687c414e0da9658ffae9472703c9ac10af6878fd5
-  bytes: 417512
+  sha256: d659a93c591a3c42824d1735b0f0dfeccb1639196579d7bb314b28db78695ee7
+  bytes: 31015
   supersedes: null
   note: entrega paso2 validaciones+alcoholimetro (incluye ALQ-05)
   is_reference_asset: false
@@ -1222,8 +1222,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: bea0ffa5660a9d0e77f5ac3be1286f2fb6e7edcb2712a7699eecef7f386a99f4
-  bytes: 524705
+  sha256: bbfdeed33c8bcc07142fad20362fa708d0e6e04262dd25e4e72a32be60a483c5
+  bytes: 47533
   supersedes: null
   note: entrega paso3 excepcion gerencia
   is_reference_asset: false
@@ -1246,8 +1246,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 699a6472991e2e621739e895de688bbb449f3bbe8a49cd7f3f7e7302c8b5fecd
-  bytes: 593215
+  sha256: 34fcb086cf5831642ccad808ae258623bab88ea0e7a11d2449d00dfe37309a68
+  bytes: 40843
   supersedes: null
   note: entrega paso3 garantia y contrato
   is_reference_asset: false
@@ -1270,8 +1270,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 21697d3f8770be60f1bbcccc0a7450459712046430ced0ac548aded43961091b
-  bytes: 471357
+  sha256: 1adbec451d81c3bb3eb7756f5d7c9502356ea454e341a7ac0492db0873f78c9b
+  bytes: 20529
   supersedes: null
   note: checklist confirmado por servidor movil
   is_reference_asset: false
@@ -1294,8 +1294,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 4b66c69538753d215d9a1aa04d9a0fc058bf9369a6be28d27c1231a5473ee7f8
-  bytes: 687195
+  sha256: 8581afffb734385141812437afe3247bd00e7dde80e2eacfcb94dea3754f0c60
+  bytes: 19326
   supersedes: null
   note: checklist sin conexion movil
   is_reference_asset: false
@@ -1318,8 +1318,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: bafb5a21ce1e974f15064a3c0d43f2a636f60ac97f044693a8058c1c8b31b6f7
-  bytes: 600408
+  sha256: 0463655f5cef91b1426f88e44dec1b71813dbb1ff4e0df8120447fa523b4689b
+  bytes: 20592
   supersedes: null
   note: checklist sincronizando movil
   is_reference_asset: false
@@ -1342,8 +1342,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 5be447f2cfdc49c61ad8ce606b477139ea2cf83b3536acca1cea6fb822b43c25
-  bytes: 276779
+  sha256: ba673d4907a886f43938eb352e6a9df2dd6ecda4a3ae133b07bebc3edf58ee18
+  bytes: 29875
   supersedes: null
   note: checklist zona interior movil 390px
   is_reference_asset: false
@@ -1366,8 +1366,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 3e047caa4d89265d9d2283d87563fb0f09064bb679e92209d2c81fe74a0abd57
-  bytes: 654024
+  sha256: de4024fcd3fb9f9d84e5ad77502a3ecddd0a3b1af194b92e9ec0a9875f8eddc8
+  bytes: 18708
   supersedes: null
   note: checklist zona interior movil
   is_reference_asset: false
@@ -1390,8 +1390,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: c1faedc14770f55875344b9d4663672f2f03c1e5a160e3c235d1deda65203bdd
-  bytes: 725033
+  sha256: 6f801f8ce786f6b06aad5a6ea2b0bf0a1f36f9658e12642a17194f5c67092c0f
+  bytes: 24508
   supersedes: null
   note: checklist zona interior tablet 768px
   is_reference_asset: false
@@ -1414,8 +1414,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 2cc0aa3f5a6618575344f256970c2d0dd3f2281d949c764036cd97cfebee7bcf
-  bytes: 1265884
+  sha256: b6c322fa209582274a32d942da81bde713949f25e7d62a8cba72d113dd0042a2
+  bytes: 41247
   supersedes: null
   note: checklist revision
   is_reference_asset: false
@@ -1438,8 +1438,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 4831e49999fddc1945c0b791ebdb962a733f593f29b0a68e18eed5aaf7661198
-  bytes: 564320
+  sha256: 16ff159a58145cf1195306c1941123f0194c2208d8e8c75acbb90b1086ba47e2
+  bytes: 34851
   supersedes: null
   note: confirmar entrega paso5
   is_reference_asset: false
@@ -1462,8 +1462,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 22a4088c86ad9068a03f5eb75ea0906ff8d2e9ad00f0d6ca593bcc33d27f6f5a
-  bytes: 446353
+  sha256: f09fc7ce967d32315e495574b9b6493a13319a3cb2c0ae02d0b183c1d3eb81aa
+  bytes: 21369
   supersedes: null
   note: entrevista
   is_reference_asset: false
@@ -1486,8 +1486,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 9c714be644f1b552eebdd1bab6722435b73585575d837422629019a25e2c010f
-  bytes: 610581
+  sha256: 7e60b016bf45834a766217eff4d40a2d5a8f8df3a27e79df8eb1c06b8c78b047
+  bytes: 19353
   supersedes: null
   note: vehiculo no disponible
   is_reference_asset: false
@@ -1510,8 +1510,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: e333f70206a41cdeb3ba1a4a82316d0ae060c47a9b29067bd7298456723f3ccd
-  bytes: 1030491
+  sha256: c9f9a4cea88995d529f614e640cd50a8b095353f2811225ff55ba3455ad9e5d5
+  bytes: 28749
   supersedes: null
   note: evaluacion de dano DEV-0456
   is_reference_asset: false
@@ -1534,8 +1534,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 989ce26b321f7483661f7c4aa5acbfbe85d8fcb0eca295a3b116ff61a6aeb7b1
-  bytes: 618466
+  sha256: 22df54dc055e155b881b74e0f6481760befa734bc81ea6ee1b0bf99fd5e62506
+  bytes: 33853
   supersedes: null
   note: modal dano grave lista roja BR-DEV-008
   is_reference_asset: false
@@ -1558,8 +1558,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: a79852e95ea3e9ba9ddb3e044209ac7ce1e7bc38b96eebbb22e28494552530c0
-  bytes: 438686
+  sha256: c9915d2255b7624b866b031a90b2eb98a343723870d296cd50cd2416470c17b9
+  bytes: 22553
   supersedes: null
   note: falta
   is_reference_asset: false
@@ -1582,8 +1582,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 005475916bc80aef91a127e3517680b679f953655b56030785852e3fefec7d2c
-  bytes: 377543
+  sha256: 897b47244a258e1ef74adb8843b65c27afaa1d5f480f23a95f4b102bdfa80cba
+  bytes: 45660
   supersedes: null
   note: ficha 360 cliente
   is_reference_asset: false
@@ -1606,8 +1606,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 53e73b086d1fd1666d3e3cea528cd6532b22fed07299b1290ce0c9138148bd9c
-  bytes: 552144
+  sha256: ed142d6b21b8fb05ae5b43a0881fb7d9cb815ab7645c54c34d6d23a94a372ab6
+  bytes: 35068
   supersedes: null
   note: ficha datos restringidos
   is_reference_asset: false
@@ -1630,8 +1630,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 0c67a222477dab484f1070729e757d4f4f467aea0e16e0d00e36e60756080ad0
-  bytes: 622264
+  sha256: 73ac3ae71b71f4c7d41231a8f50e7a77e6b21b753d26dabd5ccafbff166bd48c
+  bytes: 37924
   supersedes: null
   note: ficha y negociacion
   is_reference_asset: false
@@ -1654,8 +1654,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: e6a1bc5dd8dca3ffd638012d335cd0db738a3f5e6bcd95492d0594ed651bf710
-  bytes: 1169269
+  sha256: bfde1ff8f396fc2813e08b424dacd8994d906985e4411ffcf0d805364c9e85d3
+  bytes: 48301
   supersedes: null
   note: catalogo disponibilidad flota
   is_reference_asset: false
@@ -1678,8 +1678,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 4524006ed0630058796b7023aebfc70746bfe555369940d9c8a88510cfe043ca
-  bytes: 641774
+  sha256: 4576b77eeee423a0d1849e5f06e989f9f53295669ae9cec3fffa886c9d30a521
+  bytes: 31447
   supersedes: null
   note: detalle incidencia INC-0234
   is_reference_asset: false
@@ -1702,8 +1702,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 52873113f46a0265c03da1255e826d41acb2650ee17bae55cdb1fbd3959da731
-  bytes: 815530
+  sha256: 9a921a6f8c3f77b56fbde0cf5d4bea8cdac187d5dd81b2ff72ec7c520f5119f5
+  bytes: 38324
   supersedes: null
   note: bandeja
   is_reference_asset: false
@@ -1726,8 +1726,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 60dca52e106c3d42487f3d803855ec8ee4b1dfa39fc18c21939b22eb002b9902
-  bytes: 432354
+  sha256: afc3876959dc2509ffa16e2a936a0611c7090a96787ab4e44105168c21f0bd01
+  bytes: 25142
   supersedes: null
   note: incorporacion
   is_reference_asset: false
@@ -1750,8 +1750,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: fc3fd4075d069fb4223282a62e8891d081b88616b6774c032ca302ccd70e3f06
-  bytes: 29794
+  sha256: cafd57a522fe9474c032daec43da207ce8cfb2303a6358d41d17bcfb82c1f6b0
+  bytes: 3498
   supersedes: null
   note: cuenta bloqueada
   is_reference_asset: false
@@ -1774,8 +1774,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 3b7d7c97896ff4d733a3f651ebaf32f6391e8f2c659f1c4a5b249e76cc2cf140
-  bytes: 47405
+  sha256: 96146fda80857a824c58e52c16f16bd6fc879c5c151c36c4c231685ff114947c
+  bytes: 6227
   supersedes: null
   note: credenciales invalidas
   is_reference_asset: false
@@ -1798,8 +1798,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: c977e92ee4c7a0e114b4a69315e294fc7ea93a8cb7d9ff99a73ae6f6a1d4fd28
-  bytes: 5527
+  sha256: 88b15071d1118f1f6fd19e099d0fc74360acd3ec9255ba43a74db507ab555a00
+  bytes: 5841
   supersedes: null
   note: login movil
   is_reference_asset: false
@@ -1822,10 +1822,12 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-15'
-  sha256: a5122fa35c268bae094329f5015210eff137824024af76879e5c5bf434e041ba
-  bytes: 38842
+  sha256: 689f77650e37401f1ada4c05d93dca6611c6bfb7f6cf38f494118f6ee624767f
+  bytes: 4202
   supersedes: null
-  note: "login desktop READY, provisto y confirmado por el usuario en conversacion (registrado via prototype-intake); reemplaza el hueco previo de baseline READY desktop"
+  note: login desktop READY, provisto y confirmado por el usuario en conversacion
+    (registrado via prototype-intake); reemplaza el hueco previo de baseline READY
+    desktop
   is_reference_asset: false
 - proto_id: PROTO-ASSET-interior-car-cabin-photo-showing-dashboard-steerin
   ux_id: null
@@ -1870,8 +1872,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: bee68a29edc0d294952d6b5c3291395b5ca1c3841b1b8953fd11d615299410ac
-  bytes: 183001
+  sha256: 2bae1897a4d90cee1ae95a0a79e63c14c826cc236f6d8f8d91c19197fd9d95b8
+  bytes: 11951
   supersedes: null
   note: modal cerrar sesion con formularios pendientes
   is_reference_asset: false
@@ -1894,8 +1896,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 814fbb5e7e2e9390f3987e6037c3c3fa78e00f40a30475cd27b552d654f861b1
-  bytes: 498931
+  sha256: 3707e87418fd84d49c95b903e2f8138f4bc404193adf772e0bbc2f19567a5abd
+  bytes: 28285
   supersedes: null
   note: modal confirmar contratacion
   is_reference_asset: false
@@ -1918,8 +1920,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: e52b93d73e6078227b491d3e907478db3c727837e2e806d1e09b0cc8bd6a730e
-  bytes: 258108
+  sha256: 0ecda7ddcde30bf7473a1bff540be822dfbcaaa10cb45e7b427436b901c63634
+  bytes: 14233
   supersedes: null
   note: modal confirmar termino
   is_reference_asset: false
@@ -1942,8 +1944,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: f32ca2ef6b466e81f10747806d59ba6de8c759fdfca80b036505193f333c4a00
-  bytes: 209891
+  sha256: 936f24e7964a6a8c839a899096b0d1ae5a5da4ea89f8ba33dc943c61399525fa
+  bytes: 13260
   supersedes: null
   note: modal excepcion tiempo insuficiente
   is_reference_asset: false
@@ -2038,8 +2040,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 74b016efd0764ca7235f22f40b0562581f3dc0bff9b97237b14b73418839b92c
-  bytes: 181596
+  sha256: 63bf64c43e3475787767498c0cfac7594a1d719d83b60d9c0fbed5f863dfef87
+  bytes: 14842
   supersedes: null
   note: centro notificaciones movil
   is_reference_asset: false
@@ -2062,8 +2064,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 57fd58429e5fc50466b83b57ed28be33c4dcf0ae5f84cd61cf2a5cd2439b1bce
-  bytes: 453089
+  sha256: 6cfdd57767ff250733e96bc8e5fceb3044638a91207d5c1b5f5d9acd102236e9
+  bytes: 50868
   supersedes: null
   note: plantilla notificacion reserva confirmada
   is_reference_asset: false
@@ -2086,8 +2088,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: b6a478b1ebdffd4f4fa8e4b86c74db510152b65e9dc25e830581bf3020b0f241
-  bytes: 212379
+  sha256: 532640f36a6bcd2f0f2bb26e12fa11014fe5747b5252e56c059c17d3a040ca65
+  bytes: 22013
   supersedes: null
   note: advertencia ruta trocha
   is_reference_asset: false
@@ -2110,8 +2112,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: a2f0b8f01848ecdad020edfbf46df724aabc796925876a9d8cf3e2b88420f732
-  bytes: 194501
+  sha256: 1daf273722ab3942d69ecbf4d87083d4b184a91eb6c4debda2788b431ce22ef1
+  bytes: 21323
   supersedes: null
   note: registro de consulta
   is_reference_asset: false
@@ -2134,8 +2136,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: b5f18fe1c3af4b9451a79a64757edbbcf1053f7f196c3ef9b7d617494b8a0c3f
-  bytes: 326961
+  sha256: 1550fab00d2cc7b404e37c5fa6b88888fa995223f509dbc8a605d66d54a414df
+  bytes: 24880
   supersedes: null
   note: modal nueva necesidad
   is_reference_asset: false
@@ -2158,8 +2160,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 0fa37f07bae896450ca60ca4088c9caee09992a663b1d9ccd8207297e23e803a
-  bytes: 429836
+  sha256: 1cceca47863d842c45955cbffaaf70f045b3b933c4bf1473272869c8fa550b51
+  bytes: 22512
   supersedes: null
   note: inicio conversion desde reserva RES-2291
   is_reference_asset: false
@@ -2182,8 +2184,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 4da7fb38933323c1dd814efc003e7994e4ae270098d234acbbde25d74fa8799a
-  bytes: 617694
+  sha256: 1e60c9ef515fac0b72c615ec484a965f5020970b41af124f5130e614792c887f
+  bytes: 22426
   supersedes: null
   note: validacion PAG-0891
   is_reference_asset: false
@@ -2206,8 +2208,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: cab97453e18ffba0147ca88081a24be69414a0dab482e85be08057968016b997
-  bytes: 832430
+  sha256: d354ae3d00bf39f1a8397390ff6f4970c6e7c1e341680e2ba2373bd594f78057
+  bytes: 37496
   supersedes: null
   note: bandeja
   is_reference_asset: false
@@ -2230,8 +2232,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: fc9b921f451ca64691b6027d467d16f601e3d1c0214ccc7e5983e6c03123ff10
-  bytes: 112321
+  sha256: f9f3651b84046e43d09d8a513ba3cde7c0de97bf2398568eeb22f9fa9dde5ccb
+  bytes: 7950
   supersedes: null
   note: centro notificaciones vacio
   is_reference_asset: false
@@ -2254,8 +2256,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 9143498987bf99874dab084468fe7d407fcae6b59ab28739262a1289ff8acc0c
-  bytes: 185996
+  sha256: fa4ec26e5455519129fd3dc36102df3036bfd2bc6cb3d3bcb10015079cc42f75
+  bytes: 19910
   supersedes: null
   note: centro notificaciones
   is_reference_asset: false
@@ -2278,8 +2280,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 195570d6794f37f1af7020f785fdadea412ccffbcc3934fc97b5d6a720e345ec
-  bytes: 553084
+  sha256: 42807fad0c3606dd69dc7b2ab94d9c85783b2467b33b941a3b62450d37b8bd72
+  bytes: 23082
   supersedes: null
   note: perfil y publicacion vacante mecanico
   is_reference_asset: false
@@ -2302,8 +2304,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 6ee89e097c0d9290f32534d707164b321ec6b32f7c33c3392b1c6e5c529a078d
-  bytes: 165037
+  sha256: 5b938318f3d7f5cb23208a53cbf4ac62501a701e2974079aad979e912607cf3c
+  bytes: 12281
   supersedes: null
   note: menu perfil y sesion
   is_reference_asset: false
@@ -2326,8 +2328,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 358f892fdaf4a7603e32084d1d453f0652dc82ddd5631a6017a63db8852b2df1
-  bytes: 589777
+  sha256: a2a2a5cc91f11acf43d883e6c6cd966bbefeabba02e9864d2697d064c0b5fc2d
+  bytes: 24055
   supersedes: null
   note: periodo de prueba
   is_reference_asset: false
@@ -2350,8 +2352,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: e4381bda2d277d9a512114a51651ae10e9a4b5396b7d01fc215a76e47583011f
-  bytes: 603413
+  sha256: e7496c8141e390f4849e2b3c61a1ff4331b2493d44ca44b0dc2c4e973bd99e31
+  bytes: 20474
   supersedes: null
   note: evaluacion mes 3 aprobada
   is_reference_asset: false
@@ -2374,8 +2376,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 70dca562d1bc46a05d78e908b632e33ca80e195c50924b2f13af5a1e35c556cc
-  bytes: 516357
+  sha256: b1e4487640c81799630c10a49a00239cde015c4c0391c390ec03815bc263ed44
+  bytes: 24929
   supersedes: null
   note: solicitud/resolucion permiso
   is_reference_asset: false
@@ -2398,8 +2400,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: ba70c5fdb0610d2289fe29973a26e4e04a84b0c8985d8948ae2744075e639b5d
-  bytes: 594064
+  sha256: eacc085ccb950aeee6536cafce35605fd7a9f3052890a1a57cf7d2ccfd15725e
+  bytes: 32630
   supersedes: null
   note: bandeja/ficha de personal
   is_reference_asset: false
@@ -2446,8 +2448,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: f2f3208219d821efaf27c01bb60a8f65b2ad18b23f3c8ed4436f75e7c8839258
-  bytes: 437361
+  sha256: 8bc94930597d48558af54d518b04d5d784c15ac5189c8295ec5a86f801eb4b89
+  bytes: 28223
   supersedes: null
   note: modal confirmar perdida de reserva
   is_reference_asset: false
@@ -2470,8 +2472,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 8ddda053004de2093ecc338f21ed0fcd7dd6abaeee17204d391436125e89bbe1
-  bytes: 428143
+  sha256: 37afce75eb7d61505d60cfb12038f70dd3719610151b58adf1f4cbcb82dd1147
+  bytes: 21286
   supersedes: null
   note: protocolo no-show
   is_reference_asset: false
@@ -2518,8 +2520,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 83d771ca690b2a252f75bd4a32d9b040049826b8780f2740fdc69b90e26b1a5e
-  bytes: 184789
+  sha256: a764f96ea4bab403090ac8eb291066ee05b7d92490b79954d82f3fea9f10870e
+  bytes: 49358
   supersedes: null
   note: checklist recepcion confirmado por servidor movil
   is_reference_asset: false
@@ -2542,8 +2544,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 0004a1aa72f37cf8615a5bed22e5f08d76644367db236f3bfb21238742dd2fff
-  bytes: 522918
+  sha256: 5473adc7603e7033dc8b92dace397c3c1045ca124155fde3bda6a2a10affe491
+  bytes: 64606
   supersedes: null
   note: checklist recepcion confirmado por servidor
   is_reference_asset: false
@@ -2566,8 +2568,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 7f227f8376e09f81cb6df6e32f3b8fec5b2f5e371b109ab6207c4149824163e0
-  bytes: 442091
+  sha256: 45d02834560913e7b061d680e883e7e5adc79c65585cc7cdbbedfc03f96e59e8
+  bytes: 22850
   supersedes: null
   note: recepcion por tercero
   is_reference_asset: false
@@ -2590,8 +2592,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 77c28fc07049c19dd5739246a3ed4e129afb288f70d64580f42fe24f76aeb377
-  bytes: 409857
+  sha256: 5f05849151842f54c5422e7b3418c46706b2e025086244f9b57f80ef1c5a08ee
+  bytes: 21871
   supersedes: null
   note: recordatorio y recepcion
   is_reference_asset: false
@@ -2614,8 +2616,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 4b49deb0e2d9283a5a1f3b694f312553bff0cb868d039105c830e82aaa3e5133
-  bytes: 189324
+  sha256: c149303cb9950efd1e756ab0aa08e03ab205a732961e1b78536dfcd83c4c0fb3
+  bytes: 49347
   supersedes: null
   note: checklist recepcion sin conexion movil
   is_reference_asset: false
@@ -2638,8 +2640,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: dc1a0cffe7211a7040ef89d09cd495482978027fb33656f1514252250cacb0b4
-  bytes: 6500
+  sha256: c46fdff2587248e5e5a8200a326893c11d1cc114fc250a6148fa0be12a9cbcc6
+  bytes: 64682
   supersedes: null
   note: checklist recepcion movil
   is_reference_asset: false
@@ -2662,8 +2664,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: e08d8d77ee02007783d97a864c0577eece4678a244e0083ff16d0ef96efbf20b
-  bytes: 506867
+  sha256: faf6f89a1c2d86c534f9a24cb6e40b75e217808e1a5f0693ea6a3cdf5a48d5a9
+  bytes: 65982
   supersedes: null
   note: checklist recepcion
   is_reference_asset: false
@@ -2686,8 +2688,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 0733903007d2cf77ee84243ed0ff96d83cae22381605a4a13cf7bb94c8812b65
-  bytes: 348907
+  sha256: b8d26f9ac9e307947de4050b8af1a1d87f0d352a90f54536450282085ca1455c
+  bytes: 25205
   supersedes: null
   note: capacitacion interna
   is_reference_asset: false
@@ -2710,8 +2712,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 47e8af437c75c0e0cc669e77bdd2eef4e00db3bcc3308a6b4c56247daadcb559
-  bytes: 439054
+  sha256: 4178032b35eb53411bf04b7ce7861405dca5b5ffc829b63259a310edee38dac3
+  bytes: 29664
   supersedes: null
   note: renuncia/despido
   is_reference_asset: false
@@ -2734,8 +2736,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: fbfa25300cc43b52141e446544c6e3f93014cb6ea87e3fa0fac758c01974fbdb
-  bytes: 443827
+  sha256: 624a0f4a623112b71d957406392d678a7815cfa2f6522ccdeabd188408cbfa98
+  bytes: 28635
   supersedes: null
   note: centro de reportes
   is_reference_asset: false
@@ -2758,8 +2760,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 54c66d59456d1763998912fabcba3a2a9e61931110bf1fea6ff910a58bd997ef
-  bytes: 376833
+  sha256: b4f30feac1c3b8cd8bd4b7f55e3250854f775e1b283023f0af21ccd91afa0597
+  bytes: 18268
   supersedes: null
   note: borrador no confirmada RES-2291
   is_reference_asset: false
@@ -2782,8 +2784,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 7f42c7519bfb8489d23eea2502b0f653977dc745dbbc7c7aa19d579c365a1a52
-  bytes: 242334
+  sha256: a0defe5dc41ba159b53dac217c7322610a0cc04a40f57ad41dbc3c23e5d16964
+  bytes: 19995
   supersedes: null
   note: detalle confirmada RES-2291 1
   is_reference_asset: false
@@ -2806,8 +2808,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: be2fe667f11d73e2b2d36d77ca7114d2123de8771dda373324d36d0c5c6a5a88
-  bytes: 268152
+  sha256: 0b1adecc349201ee4d4a38f4eae06c9cfeeb1ab2a72b17186fa71387c3ccb45c
+  bytes: 17670
   supersedes: null
   note: detalle confirmada RES-2291 2
   is_reference_asset: false
@@ -2830,8 +2832,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 23ef43532a3ea9caad218e1d75fed149149dceda23d8817785db2d78af1f3212
-  bytes: 272861
+  sha256: 567ca23b35138fa9544165ca134d40daf3339c310f1c04735b9d9f78fe6da557
+  bytes: 17799
   supersedes: null
   note: continuar con alquiler deshabilitado
   is_reference_asset: false
@@ -2854,8 +2856,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 77d9d12e14d613a1284d731337c7a36597e578b3e5d1d8d0ff4fdc50c245700a
-  bytes: 271624
+  sha256: e98fbde9b8bec7a60ee3ec82594edba9562ed53625646918e0899abe75acbd5c
+  bytes: 21744
   supersedes: null
   note: modal cancelar reserva
   is_reference_asset: false
@@ -2878,8 +2880,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 28c1b6e7ea53ffba1bb7dd99200af73e6606aa4109c55bcf74dd16106a30cd8f
-  bytes: 8954
+  sha256: 7993a0d2ffe2a71172254d28a00675e4a28a60a726e29a0f25fa3134d91c18a2
+  bytes: 20697
   supersedes: null
   note: bandeja
   is_reference_asset: false
@@ -2902,8 +2904,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 9080500d51d3e7bcd57abb98d3f7ab271f05f6e9fbf8728a8ff98764ee16dd12
-  bytes: 734522
+  sha256: 146e4f5c41b5303355091cf10aeb314e937712acbe3e11a6e7a6483ac25fd9ba
+  bytes: 17792
   supersedes: null
   note: resolucion de conflicto sync entrega 1
   is_reference_asset: false
@@ -2926,8 +2928,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: e71c97a69a8e6aaa4ec18d4c506860ed1253ae46570c5ae09ee5ae2f2e67958c
-  bytes: 298762
+  sha256: dd7e4e3b029504ce93e0ec893289a42c00f76274e70a84600a0ccc5f04b63100
+  bytes: 25850
   supersedes: null
   note: resolucion de conflicto sync entrega 2
   is_reference_asset: false
@@ -2950,8 +2952,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: fee2a8df1e264eb2864ce2c6866fe5bd1eff6cdbc00b01bcaa0a5f68423919a2
-  bytes: 459663
+  sha256: e6aeeed308a43ba36a536918b3222b7936124307717f013c236740a6801f2746
+  bytes: 18714
   supersedes: null
   note: resolucion de garantia ALQ-1187
   is_reference_asset: false
@@ -2974,8 +2976,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 0fecd1a1eba29529e5e7c1fa2ff33ca66de362e2ab32f08a9b718f5062794439
-  bytes: 439159
+  sha256: 6590bb79050a633d4c5e575b05191905ba2ad42eb9c19f03149986f0f39e22e0
+  bytes: 18604
   supersedes: null
   note: bloqueada por incidencia INC-0234
   is_reference_asset: false
@@ -2998,8 +3000,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 38d26b0c99b93468c2e678beaabc27365befd6b4b080c9d6054b024530fae04d
-  bytes: 430251
+  sha256: c5539ad374dd2fea32e61c56e5105c6b401c1e6a610c88ed31871a6159f02eea
+  bytes: 21829
   supersedes: null
   note: resolucion de garantia DEV-0456
   is_reference_asset: false
@@ -3022,8 +3024,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 762222655e17c32df1b7e45de890aaa3fa86a81e8da6eba044e0f442374528e1
-  bytes: 189379
+  sha256: 904d11b06607d3f0289f55ba3ca7d0f895ffaf48327bf7f27b4f1da7a2dada58
+  bytes: 27951
   supersedes: null
   note: resultado tras checklist
   is_reference_asset: false
@@ -3046,8 +3048,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: e03b531baf1fea30830f07758ee93cbd6348dc7d3303ce361ca7aaf47e9cc713
-  bytes: 733950
+  sha256: 0a0286d9abb3ef57bcd58734a137927cd3d463a886207bcfd7d7c7a0e8a3373f
+  bytes: 29062
   supersedes: null
   note: resultado dano zona 3
   is_reference_asset: false
@@ -3070,8 +3072,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: bd7d39727ea15e5350192ff71487deac5739cba33206c8de3e46ecc455ef685d
-  bytes: 1081393
+  sha256: 0a0915052ac568ec70648c6a8b4bcc8c24fb04e028e6f3f58951f6f15fa85356
+  bytes: 37321
   supersedes: null
   note: resultado zona 1 exterior
   is_reference_asset: false
@@ -3094,8 +3096,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: dd67f95684d1e6244f26fcc2cd305e15726d3baa2140991ab9521819a8b2ca32
-  bytes: 48360
+  sha256: 9e4a223c608e0d55ae9b9f0f043f6dbba9d51b641c51c3fa4f46590c69c5942c
+  bytes: 2603
   supersedes: null
   note: recuperacion de acceso
   is_reference_asset: false
@@ -3118,8 +3120,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 15319f9adec2e0976ba2fe219cad75bbeb71e996ed0555ae27b0fd15df41e14d
-  bytes: 529227
+  sha256: 238e5a1607c206b8bd851f4c2842422e15dd908a6e43f3f4a017775b38bd0f8f
+  bytes: 44313
   supersedes: null
   note: roles y permisos
   is_reference_asset: false
@@ -3142,8 +3144,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 96c9e43434a8c864f77872d10a649a5f15080f22eda75812c6063f19920751fb
-  bytes: 527976
+  sha256: 3cafa5a93a9fcd80ae2106422e1a6c399c3c4a68b63ab915ae837c7b8b5f1809
+  bytes: 38452
   supersedes: null
   note: conflicto SoD
   is_reference_asset: false
@@ -3166,8 +3168,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 63b5bfbeccf13d74dd834477f54b7bcbf4238ac703d7b61eeabe1bf2006c66e8
-  bytes: 623328
+  sha256: ea0770f38f300ea6dede31228f2a39f8808e22b14c6ce4314d0c0c1f39e42edd
+  bytes: 15714
   supersedes: null
   note: seguimiento de regreso
   is_reference_asset: false
@@ -3190,8 +3192,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 95a4f5ec7f0a517344092fd162a2572bb67c599aa5a64a637962e93202ccf234
-  bytes: 475141
+  sha256: 214d714ad19b3bc71e63d6eb129346eee5e295c7e0bbe91f12ca0383f0350628
+  bytes: 16150
   supersedes: null
   note: no autorizada
   is_reference_asset: false
@@ -3214,8 +3216,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: bcec70fc7adce7809b614c32a422640b55706513bdba7bd435dcca176f28faf7
-  bytes: 340840
+  sha256: 99c4517aa86432b02ab6b56d2ebbd1919b83154a9c9deda6a520df8c4a56a277
+  bytes: 16367
   supersedes: null
   note: lista de procesos
   is_reference_asset: false
@@ -3238,8 +3240,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: a27f929aec9720c7ebafcb43b4fd6833f9812560a93311086115ed5b866b788b
-  bytes: 555375
+  sha256: 3a3d90eb37719b7abbc738aebf087d44ea941bb93731b533dcecc668bb227f42
+  bytes: 17361
   supersedes: null
   note: centro de sincronizacion
   is_reference_asset: false
@@ -3262,8 +3264,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: fcb8cc3efbe4b9270ce31f4dd68d84d57b2b9e6c25f17e77d39a29d3c3a7fbc0
-  bytes: 477620
+  sha256: 31e67e90e4f34821a5f27a00a86874ffadb3b13225e5fabf3fffaf0764fb06a1
+  bytes: 26520
   supersedes: null
   note: solicitar ampliacion ALQ-1187
   is_reference_asset: false
@@ -3286,8 +3288,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: d911228245b6d9cbfb18cc6031924a0805bdfe43e60111da933690cdcc050b05
-  bytes: 533226
+  sha256: e500aebaa9bca6ee694bf3c9fd6ca2366e30c7eaa714fe0231452c0f7742c21a
+  bytes: 23808
   supersedes: null
   note: aviso no cumplido 12h
   is_reference_asset: false
@@ -3310,8 +3312,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: ceab9746d57bef895247692c0361396497acb04ab1573588f22d722bf4c86e36
-  bytes: 119167
+  sha256: d8f9bb5496c65dc291293f53c564aaafe2ff486183bffb3f2d4449d1c6645376
+  bytes: 8738
   supersedes: null
   note: solicitud salida a campo movil
   is_reference_asset: false
@@ -3334,8 +3336,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 593ccea43efcde6009ed224bead91a6882907a2527d0727cf882e549dcefdee8
-  bytes: 232505
+  sha256: 1285b9d0dc92ef646836036a6f0531f5dee5cabcfa36334ac901bdc33f34f39d
+  bytes: 10466
   supersedes: null
   note: solicitud salida a campo sin conexion
   is_reference_asset: false
@@ -3358,8 +3360,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 30327b265f50bf37dc8462c1a034bbc89229d9c813799993954a4f77c14520bb
-  bytes: 313413
+  sha256: 1b1a6a72d9259f044d725e4928db7eaf9fc726ac1b859cccfc067f0a2f43fae7
+  bytes: 15386
   supersedes: null
   note: solicitud salida a campo
   is_reference_asset: false
@@ -3382,8 +3384,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: b8b889bf239ed3143903a901333b16f3029861be9386b00de442457688436f40
-  bytes: 660370
+  sha256: e13787f8949cb5be6f5aeb0b8d1c1007298c6483d2d62387af9e7af1e136c50f
+  bytes: 14561
   supersedes: null
   note: conflicto de fechas BR-ADP-002
   is_reference_asset: false
@@ -3406,8 +3408,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 5f58e4f3725e07c7e4142a4fe3bc138a25df34c286cac7d9fd99cc25284179af
-  bytes: 333310
+  sha256: 76ae21e7abc92d4db716dbeec5e8acc275f923f56575dc074519915e5847b1c6
+  bytes: 15101
   supersedes: null
   note: calendario y solicitud vacaciones
   is_reference_asset: false
@@ -3430,8 +3432,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 0929fc70ce0865af37f26ea9cfc6195d5275808777181e9c65ca929120e4ea3a
-  bytes: 115685
+  sha256: 925f09ef8b0961b0853dd95b5db1842d876f455acf8ae973e660143f68fc4ec1
+  bytes: 10999
   supersedes: null
   note: dashboard rol administracion
   is_reference_asset: false
@@ -3454,8 +3456,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 7734819a640eb984ee5540891d77a1676a029d5c52615c99509f20aeef984a1d
-  bytes: 120798
+  sha256: 081f4c75cb5c8760fbaa9b550fa7e851f461cc1f6ca5b0a4c754311b9a69d740
+  bytes: 8808
   supersedes: null
   note: dashboard rol auditoria
   is_reference_asset: false
@@ -3478,8 +3480,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 3d3a874f6bb0aee33b8a7cda5b75477e964fdbf05639a7e29cd2e8d1dafee0fe
-  bytes: 215838
+  sha256: d3afd39c9a507b0185eedab9d77c4e5a0a2059b66f1250c9310976152453b8cf
+  bytes: 16850
   supersedes: null
   note: dashboard rol campo
   is_reference_asset: false
@@ -3502,8 +3504,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 2d1eeb67c6ddd468d69b946bf2ac424edb959340419baecccac423d2d6976484
-  bytes: 163304
+  sha256: af74d753203e7ff7bd5ba06720207aa6f815613c41843704d08224a37e802d2e
+  bytes: 7688
   supersedes: null
   note: dashboard rol finanzas
   is_reference_asset: false
@@ -3526,8 +3528,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 9f9393e30b35a649ebd971397db15bbaae857bb25db7a7e7eac4f74a433be7ef
-  bytes: 487048
+  sha256: b5c8c86701e55340b7ddb307be3b0e62a22e1f285147bbbf4301eb69ef92980f
+  bytes: 26880
   supersedes: null
   note: dashboard rol front office
   is_reference_asset: false
@@ -3550,8 +3552,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: a4038f77c913fed4c365f9a912307e71e6329da7e71ef3874e910aa74772fb59
-  bytes: 140247
+  sha256: ae31488cb236a243ada9e47e29467ac0f63f584ce118a2b9dd0fd5e79d2bf584
+  bytes: 10028
   supersedes: null
   note: dashboard rol gerencia movil
   is_reference_asset: false
@@ -3574,8 +3576,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 061f26e74750dfd8903393eca8e75a01629633d5d28b7191fb41195c68a9bb4a
-  bytes: 150669
+  sha256: 3a3ec9d44f15820cf1ab2af2dc59c89782b7e8e227317d4d2f0f53b22e98ea63
+  bytes: 7506
   supersedes: null
   note: dashboard rol gerencia
   is_reference_asset: false
@@ -3598,8 +3600,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 95ec1b32c7977024ccdf0b1b884b1d82d8583ec25b2838e5f17ed98471c7ccea
-  bytes: 257366
+  sha256: 8b453e8f0cccd6ba6dfff343505272abd4565765a195dd9e3a9675bac11eb752
+  bytes: 10634
   supersedes: null
   note: dashboard rol RRHH
   is_reference_asset: false
@@ -3622,8 +3624,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 72a8122a33ac4c293846b542e48044de27959a12950fd4a06693fa420bce7640
-  bytes: 649574
+  sha256: 3b14b32f78611b8ce46cf43f74f741d94363092f7455ab3fda33affe7b4ac956
+  bytes: 35253
   supersedes: null
   note: detalle/mantenimiento vehiculo
   is_reference_asset: false
@@ -3646,8 +3648,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: e429647cb419dd254e3711dd2037f03b3a46a4ef0cd657ff594b9ea40644bbac
-  bytes: 729808
+  sha256: 54196a3bf3cf62fa9903c744e0ca5bb218469ec58be370c74817da7398885533
+  bytes: 30871
   supersedes: null
   note: usuarios y asignaciones
   is_reference_asset: false
@@ -3670,8 +3672,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 9fda7989e56862d1f9d6df8b6a2748a8582275f5bab8fa8bf4c99caccd32155e
-  bytes: 545693
+  sha256: 3e9b5d9f9bdfc252ecee3fb74d1a73fca6e2692d9b40970b5e88bdea9dbbd333
+  bytes: 22993
   supersedes: null
   note: vacantes/necesidades
   is_reference_asset: false
@@ -3694,8 +3696,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 05ba2d40decbb63d0cb76333bfaf707fa09978259eebe3a0aec59819fa01f0ee
-  bytes: 420070
+  sha256: d94213474dbeb01bafa2ccf0d6db4957a7171454a19178984a3b137aa4347b4f
+  bytes: 21432
   supersedes: null
   note: vehiculo nuevo sin GPS activo
   is_reference_asset: false
@@ -3718,8 +3720,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: aec02c47ed9ecae9b5a537b778d86c1b2c1029de08ad9e4cd72161326b581284
-  bytes: 759753
+  sha256: 9fd554c3e5cc9feda36bf4759305e1892cfeefa14964adf30b18c777f582ca40
+  bytes: 21626
   supersedes: null
   note: venta de vehiculo reservado
   is_reference_asset: false
@@ -3742,8 +3744,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 9932d455d64cba0f5142efac1ed6b3a7e8c98448ff703d0de15f1b295718c35c
-  bytes: 924871
+  sha256: a6764e70ad6f6817c0ae77f2f653d9285f5d159a7165b20111fa32cc47a7606e
+  bytes: 21790
   supersedes: null
   note: advertencia actualizacion 1
   is_reference_asset: false
@@ -3766,8 +3768,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: eba80336aa39fdf507fe40469eae32e58ddb87eab4cbd596bde54607664087cd
-  bytes: 834456
+  sha256: aa258ebcfb49e72bc8cf6cf3bed9dd84337152f6157d9a7d6d10c037dd9cbf48
+  bytes: 22667
   supersedes: null
   note: advertencia actualizacion 2
   is_reference_asset: false
@@ -3790,8 +3792,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: 9b5242ea0838135912a118c13ff931552b93097bc9dfe61bef5aaf46d404f382
-  bytes: 7822
+  sha256: 1413141ee9b8794708fbc5b1219969f9aac2240def339d74667d142b9f8c2b16
+  bytes: 24286
   supersedes: null
   note: ayacucho 04-07 sep 1
   is_reference_asset: false
@@ -3814,8 +3816,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: b1a522a1605ddbe560f247f550094db53e060ac87c1bd8d9f34af6976e884277
-  bytes: 916980
+  sha256: 360f2174f4e556a0d8e4372456e3a40b7d5c8276b34b52c91dd7b0f0b16a527a
+  bytes: 21817
   supersedes: null
   note: ayacucho 04-07 sep 2
   is_reference_asset: false
@@ -3838,8 +3840,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-14'
-  sha256: bff6ea4bcb0d1b265564e493601ea51b38ec7c86a7a44f0dbeb9e5356e55ce2b
-  bytes: 539141
+  sha256: cbc1a38a3a9aa6224eb1481365db6a9769647a6f76f462c22df8a3efbd98d12a
+  bytes: 19869
   supersedes: null
   note: catalogo disponibilidad movil
   is_reference_asset: false
