@@ -49,7 +49,11 @@ export function useLogin() {
           values.emailOrUsername,
           values.password,
         );
-        await recordLoginAttempt(values.emailOrUsername, 'SUCCESS', null);
+        // El registro de auditoria nunca debe bloquear la navegacion del
+        // usuario que ya se autentico correctamente (fire-and-forget) - si
+        // el endpoint esta lento o no responde, no debe dejar el boton en
+        // VALIDATING indefinidamente.
+        void recordLoginAttempt(values.emailOrUsername, 'SUCCESS', null);
         // TR-02 (primer acceso) y TR-03 (MFA) dependen de flags de perfil
         // que todavia no existen en el backend (HU-21/HU-22, siguientes en
         // el plan) - por ahora todo login exitoso va directo a TR-06.
@@ -58,7 +62,7 @@ export function useLogin() {
         const authError = error as AuthError;
         const nextState = mapFirebaseErrorToState(authError);
         setState(nextState);
-        await recordLoginAttempt(values.emailOrUsername, 'FAILURE', authError.code ?? 'unknown');
+        void recordLoginAttempt(values.emailOrUsername, 'FAILURE', authError.code ?? 'unknown');
       }
     },
     [navigate],
