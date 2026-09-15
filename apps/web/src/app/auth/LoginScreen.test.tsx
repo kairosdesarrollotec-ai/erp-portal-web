@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { LoginScreen } from './LoginScreen';
 
@@ -10,7 +10,7 @@ vi.mock('firebase/auth', () => ({
 }));
 
 vi.mock('../providers/firebase', () => ({
-  firebaseAuth: {},
+  getFirebaseAuth: () => ({}),
 }));
 
 vi.mock('./audit-client', () => ({
@@ -30,37 +30,36 @@ describe('LoginScreen (TR-01)', () => {
     signInMock.mockReset();
   });
 
-  it('muestra "Credenciales invalidas" (RECOVERABLE_ERROR) sin revelar si el correo existe', async () => {
+  it('muestra el banner "Correo o contraseña incorrectos" (RECOVERABLE_ERROR) sin revelar si el correo existe, y conserva los campos', async () => {
     signInMock.mockRejectedValue({ code: 'auth/invalid-credential' });
     renderScreen();
 
     fireEvent.change(screen.getByLabelText('Correo o usuario'), {
       target: { value: 'user@veloxrent.pe' },
     });
-    fireEvent.change(screen.getByLabelText('Contrasena'), {
+    fireEvent.change(screen.getByLabelText('Contraseña'), {
       target: { value: 'wrong-password' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Credenciales invalidas');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Correo o contraseña incorrectos');
+    expect(screen.getByLabelText('Correo o usuario')).toHaveValue('user@veloxrent.pe');
   });
 
-  it('muestra "Cuenta bloqueada" (BLOCKING_ERROR) y deshabilita el formulario', async () => {
+  it('reemplaza el formulario por la pantalla completa de cuenta bloqueada (BLOCKING_ERROR)', async () => {
     signInMock.mockRejectedValue({ code: 'auth/user-disabled' });
     renderScreen();
 
     fireEvent.change(screen.getByLabelText('Correo o usuario'), {
       target: { value: 'user@veloxrent.pe' },
     });
-    fireEvent.change(screen.getByLabelText('Contrasena'), { target: { value: 'x' } });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'x' } });
     fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Cuenta bloqueada, contacta a tu administrador',
-    );
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Ingresar' })).toBeDisabled();
-    });
+    expect(await screen.findByText('Tu cuenta está bloqueada')).toBeInTheDocument();
+    expect(screen.getByText('Contacta a tu administrador para reactivarla')).toBeInTheDocument();
+    // El formulario ya no existe en este estado (pantalla completa, no un mensaje inline).
+    expect(screen.queryByLabelText('Correo o usuario')).not.toBeInTheDocument();
   });
 
   it('valida campos obligatorios sin llamar a Firebase', async () => {
@@ -70,5 +69,12 @@ describe('LoginScreen (TR-01)', () => {
 
     expect(await screen.findByText('Ingresa tu correo o usuario')).toBeInTheDocument();
     expect(signInMock).not.toHaveBeenCalled();
+  });
+
+  it('muestra el icono para alternar visibilidad de la contraseña', () => {
+    renderScreen();
+    expect(screen.getByLabelText('Mostrar contraseña')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Mostrar contraseña'));
+    expect(screen.getByLabelText('Ocultar contraseña')).toBeInTheDocument();
   });
 });

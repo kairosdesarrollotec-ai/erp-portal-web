@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircle, Eye, EyeOff, Lock, WifiOff } from 'lucide-react';
 import { loginSchema, type LoginFormValues } from './login.schema';
 import { useLogin } from './useLogin';
 import styles from './LoginScreen.module.css';
@@ -8,15 +9,15 @@ import styles from './LoginScreen.module.css';
 /**
  * TR-01 - Inicio de sesion.
  * Fuente: PANTALLAS-V2-B-TRANSVERSAL.md, prototipos aprobados
- * PROTO-TR-01-LOGIN-MOVIL (READY, movil), PROTO-TR-01-CREDENCIALES-INVALIDAS
- * (ERROR, desktop), PROTO-TR-01-CUENTA-BLOQUEADA (BLOCKED, desktop).
+ * PROTO-TR-01-LOGIN-DESKTOP (READY, desktop), PROTO-TR-01-CREDENCIALES-INVALIDAS
+ * (RECOVERABLE_ERROR, desktop) y PROTO-TR-01-CUENTA-BLOQUEADA (BLOCKING_ERROR,
+ * desktop) - releidos directamente de los screen.png/screen.jpeg aprobados
+ * para esta version.
  *
- * NOTA de trazabilidad: no existe un prototipo aprobado READY en desktop
- * (solo movil) - el layout desktop de esta implementacion sigue el
- * contrato escrito de la tabla TR-01 (punto 12: "mismo layout en los 3
- * breakpoints, ancho maximo 380px"), validado cruzando los prototipos
- * ERROR/BLOCKED de desktop que comparten esa misma base. Pendiente:
- * solicitar el prototipo READY desktop para cerrar este hueco.
+ * NOTA: el campo del prototipo se llama "Correo o usuario", pero Firebase
+ * Authentication (TDD-KAIROS-TRANSVERSAL 8.1/8.4) solo soporta email.
+ * Mientras no exista una resolucion de usuario->email en el backend, este
+ * campo se trata siempre como email.
  */
 export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
@@ -28,7 +29,36 @@ export function LoginScreen() {
   } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
 
   const isValidating = state === 'VALIDATING';
-  const isBlocked = state === 'BLOCKING_ERROR';
+
+  // BLOCKING_ERROR y EXTERNAL_DEPENDENCY_PENDING reemplazan el formulario
+  // por completo (tabla TR-01: EXTERNAL_DEPENDENCY_PENDING sigue "el mismo
+  // patron que BLOCKING_ERROR") - PROTO-TR-01-CUENTA-BLOQUEADA.
+  if (state === 'BLOCKING_ERROR' || state === 'EXTERNAL_DEPENDENCY_PENDING') {
+    const isBlocked = state === 'BLOCKING_ERROR';
+    return (
+      <main className={styles.wrapper}>
+        <div className={styles.card}>
+          <p className={styles.brand}>VeloxRent</p>
+          <div className={styles.fullScreenNotice}>
+            <div className={styles.noticeIcon}>
+              {isBlocked ? <Lock size={40} /> : <WifiOff size={40} />}
+            </div>
+            <h1 className={styles.noticeTitle}>
+              {isBlocked ? 'Tu cuenta está bloqueada' : 'Servicio no disponible'}
+            </h1>
+            <p className={styles.noticeSubtitle}>
+              {isBlocked
+                ? 'Contacta a tu administrador para reactivarla'
+                : 'Intenta en unos minutos'}
+            </p>
+            <button type="button" className={styles.noticeAction} onClick={() => window.location.reload()}>
+              Volver
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className={styles.wrapper}>
@@ -45,8 +75,10 @@ export function LoginScreen() {
               id="emailOrUsername"
               type="text"
               autoComplete="username"
+              placeholder="nombre@veloxrent.pe o usuario"
               className={styles.input}
-              disabled={isValidating || isBlocked}
+              disabled={isValidating}
+              autoFocus
               {...register('emailOrUsername')}
             />
             {errors.emailOrUsername && (
@@ -56,52 +88,44 @@ export function LoginScreen() {
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="password">
-              Contrasena
+              Contraseña
             </label>
             <div className={styles.passwordRow}>
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
+                placeholder="••••••••••••"
                 className={styles.input}
-                disabled={isValidating || isBlocked}
+                disabled={isValidating}
                 {...register('password')}
               />
               <button
                 type="button"
                 className={styles.toggleVisibility}
                 onClick={() => setShowPassword((v) => !v)}
-                aria-label={showPassword ? 'Ocultar contrasena' : 'Mostrar contrasena'}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
-                {showPassword ? 'Ocultar' : 'Mostrar'}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
             {errors.password && <p className={styles.fieldError}>{errors.password.message}</p>}
           </div>
 
-          <button type="submit" className={styles.submit} disabled={isValidating || isBlocked}>
+          {state === 'RECOVERABLE_ERROR' && (
+            <div role="alert" className={styles.alertBanner}>
+              <AlertCircle size={18} />
+              <span>Correo o contraseña incorrectos</span>
+            </div>
+          )}
+
+          <button type="submit" className={styles.submit} disabled={isValidating}>
             {isValidating ? 'Ingresando...' : 'Ingresar'}
           </button>
-
-          {state === 'RECOVERABLE_ERROR' && (
-            <p role="alert" className={styles.recoverableError}>
-              Credenciales invalidas
-            </p>
-          )}
-          {state === 'BLOCKING_ERROR' && (
-            <p role="alert" className={styles.blockingError}>
-              Cuenta bloqueada, contacta a tu administrador
-            </p>
-          )}
-          {state === 'EXTERNAL_DEPENDENCY_PENDING' && (
-            <p role="alert" className={styles.externalDependencyError}>
-              Servicio no disponible, intenta en unos minutos
-            </p>
-          )}
         </form>
 
         <button type="button" className={styles.forgotPassword}>
-          ¿Olvidaste tu contrasena?
+          ¿Olvidaste tu contraseña?
         </button>
       </div>
     </main>

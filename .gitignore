@@ -10,6 +10,7 @@ coverage/
 .turbo/
 apps/web/dist/
 apps/api/dist/
+*.tsbuildinfo
 
 # Framework interno de agentes/skills/reglas: vive en repo aparte, no en este
 .claude/
