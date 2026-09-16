@@ -32,6 +32,11 @@ vi.mock('./activation-client', () => ({
   getActivationStatus: vi.fn().mockRejectedValue(new Error('offline')),
 }));
 
+const getWorkContextAssignmentsMock = vi.fn().mockRejectedValue(new Error('offline'));
+vi.mock('./work-context-client', () => ({
+  getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
+}));
+
 function renderScreen() {
   return render(
     <MemoryRouter>
@@ -45,6 +50,7 @@ describe('LoginScreen (TR-01)', () => {
     signInMock.mockReset();
     resolveSignInMock.mockReset();
     assertionForSignInMock.mockClear();
+    getWorkContextAssignmentsMock.mockReset().mockRejectedValue(new Error('offline'));
   });
 
   it('muestra el banner "Correo o contraseña incorrectos" (RECOVERABLE_ERROR) sin revelar si el correo existe, y conserva los campos', async () => {
@@ -171,5 +177,23 @@ describe('LoginScreen (TR-01)', () => {
       await screen.findAllByText(/Código incorrecto o expirado/),
     ).not.toHaveLength(0);
     expect(screen.getByRole('dialog', { name: 'Confirma tu identidad' })).toBeInTheDocument();
+  });
+
+  it('TR-05: consulta las asignaciones de empresa/sede tras un login exitoso, con el token recien obtenido', async () => {
+    signInMock.mockResolvedValue({
+      user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
+    });
+    getWorkContextAssignmentsMock.mockReset().mockResolvedValue([]);
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    await waitFor(() => {
+      expect(getWorkContextAssignmentsMock).toHaveBeenCalledWith('fake-id-token');
+    });
   });
 });

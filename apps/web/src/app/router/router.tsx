@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { LoginScreen } from '../auth/LoginScreen';
 import { ActivationScreen } from '../auth/ActivationScreen';
+import { WorkContextScreen } from '../auth/WorkContextScreen';
 import { HealthCheckScreen } from './HealthCheckScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
@@ -16,6 +17,12 @@ export const router = createBrowserRouter([
     // TR-02 - HU-21. Login exitoso navega aqui si el usuario esta en
     // "primer acceso" (ver useLogin.ts).
     element: <ActivationScreen />,
+  },
+  {
+    path: '/seleccion-empresa-sede',
+    // TR-05 - HU-23. useLogin.ts navega aqui si el usuario tiene mas de 1
+    // asignacion empresa/sede (BR-ORG-002).
+    element: <WorkContextScreen />,
   },
   {
     path: '/tablero',

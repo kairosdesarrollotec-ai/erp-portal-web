@@ -12,6 +12,7 @@ import {
 import { getFirebaseAuth } from '../providers/firebase';
 import { recordLoginAttempt } from './audit-client';
 import { getActivationStatus } from './activation-client';
+import { getWorkContextAssignments } from './work-context-client';
 import type { LoginFormValues } from './login.schema';
 import type { MfaChallengeState } from './MfaChallengeModal';
 
@@ -56,7 +57,8 @@ export function useLogin() {
 
   // Compartido entre el login directo (sin MFA) y el paso final tras
   // resolver el reto MFA (TR-03) - ambos terminan igual: registrar la
-  // auditoria de exito, chequear si requiere activacion (TR-02/HU-21) y
+  // auditoria de exito, chequear si requiere activacion (TR-02/HU-21),
+  // chequear si requiere elegir contexto de trabajo (TR-05/HU-23) y
   // navegar.
   const completeSuccessfulLogin = useCallback(
     async (credential: UserCredential, email: string) => {
@@ -66,23 +68,46 @@ export function useLogin() {
       // VALIDATING indefinidamente.
       void recordLoginAttempt(email, 'SUCCESS', null);
 
-      // TR-02 (HU-21): si el usuario esta en "primer acceso" (contrasena
-      // temporal sin cambiar y/o MFA sin enrolar), se redirige a la
-      // pantalla de activacion en lugar de ir directo al tablero. Si el
-      // chequeo falla (backend caido, usuario sin UserProfile todavia -
-      // ver PROP-001 en docs/decision-log.md del repo backend) se asume
-      // que NO requiere activacion, para no bloquear el acceso de un
-      // usuario ya autenticado correctamente por una falla de este
-      // chequeo adicional.
+      let idToken: string | null = null;
       try {
-        const idToken = await credential.user.getIdToken();
-        const activationStatus = await getActivationStatus(idToken);
-        if (activationStatus.requiresPasswordChange || activationStatus.requiresMfaEnrollment) {
-          navigate('/activar-cuenta');
-          return;
-        }
+        idToken = await credential.user.getIdToken();
       } catch {
-        // Ver nota arriba.
+        idToken = null;
+      }
+
+      if (idToken) {
+        // TR-02 (HU-21): si el usuario esta en "primer acceso" (contrasena
+        // temporal sin cambiar y/o MFA sin enrolar), se redirige a la
+        // pantalla de activacion en lugar de ir directo al tablero. Si el
+        // chequeo falla (backend caido, usuario sin UserProfile todavia -
+        // ver PROP-001 en docs/decision-log.md del repo backend) se asume
+        // que NO requiere activacion, para no bloquear el acceso de un
+        // usuario ya autenticado correctamente por una falla de este
+        // chequeo adicional.
+        try {
+          const activationStatus = await getActivationStatus(idToken);
+          if (activationStatus.requiresPasswordChange || activationStatus.requiresMfaEnrollment) {
+            navigate('/activar-cuenta');
+            return;
+          }
+        } catch {
+          // Ver nota arriba.
+        }
+
+        // TR-05 (HU-23): si el usuario tiene mas de 1 asignacion
+        // empresa/sede, elige el contexto de trabajo antes de llegar al
+        // tablero (BR-ORG-002). Con 0 o 1 asignacion, o si el chequeo
+        // falla, se va directo al tablero - mismo criterio de no bloquear
+        // el acceso que el chequeo de activacion.
+        try {
+          const assignments = await getWorkContextAssignments(idToken);
+          if (assignments.length > 1) {
+            navigate('/seleccion-empresa-sede');
+            return;
+          }
+        } catch {
+          // Ver nota arriba.
+        }
       }
 
       navigate('/tablero');
