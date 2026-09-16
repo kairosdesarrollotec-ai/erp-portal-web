@@ -1,0 +1,333 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* ===== Desktop - PROTO-TR-03-DESAFIO-MFA-MODAL ===== */
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.closeButton {
+  position: absolute;
+  top: 1.1rem;
+  right: 1.1rem;
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  border-radius: 4px;
+}
+
+.closeButton:hover {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-ink);
+  margin: 0 0 0.375rem;
+  padding-right: 1.5rem;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin: 0 0 1.5rem;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+.digitInputs {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.digitBox {
+  width: 44px;
+  height: 48px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 4px;
+  background: #ffffff;
+  font-family: 'Space Grotesk', monospace, sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-ink);
+  text-align: center;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.digitBox:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(198, 96, 10, 0.15);
+}
+
+.digitBoxError {
+  border-color: var(--color-error);
+}
+
+.mfaError {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-error);
+  margin: 0.625rem 0 0;
+}
+
+.submit {
+  width: 100%;
+  height: 44px;
+  background: var(--color-ink);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Temporizador de reenvio - decorativo, siempre deshabilitado (TOTP no
+   tiene concepto de reenvio - ver nota en MfaChallengeModal.tsx). */
+.resendStatic {
+  display: block;
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-accent);
+  opacity: 0.8;
+  cursor: not-allowed;
+  user-select: none;
+}
+
+/* Visibilidad por viewport */
+.mobileOnly {
+  display: none;
+}
+
+.desktopOnly {
+  display: block;
+}
+
+/* ===== Mobile (<= 480px) - PROTO-TR-03-DESAFIO-MFA-MOVIL-1, hoja
+   completa (regla v3.0 8.2: modales criticos en movil no flotan). ===== */
+@media (max-width: 480px) {
+  .overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .mobileOnly {
+    display: flex;
+  }
+
+  .desktopOnly {
+    display: none;
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: 390px;
+    margin: 0 auto;
+    background: #ffffff;
+    flex-direction: column;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+
+  .sheetHeader {
+    height: 56px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    border-bottom: 1px solid #efede7;
+  }
+
+  .sheetClose {
+    width: 40px;
+    height: 40px;
+    margin-left: -0.5rem;
+    background: none;
+    border: none;
+    color: var(--color-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .sheetHeaderTag {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .sheetHeaderSpacer {
+    width: 32px;
+  }
+
+  .sheetMain {
+    flex: 1;
+    padding: 1.5rem 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sheetTitle {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 1.2;
+    color: var(--color-ink);
+    margin: 0 0 0.625rem;
+  }
+
+  .sheetDescription {
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--color-muted);
+    margin: 0 0 2rem;
+  }
+
+  .sheetFieldLabelRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+
+  .sheetFieldLabel {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .syncBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-success);
+  }
+
+  .syncDot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-success);
+  }
+
+  .sheetMain .digitInputs {
+    max-width: 342px;
+    margin: 0 auto;
+  }
+
+  .sheetMain .digitBox {
+    width: 46px;
+    height: 52px;
+    font-size: 22px;
+  }
+
+  .resendRow {
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-muted);
+    margin: 1rem 0 0;
+  }
+
+  .resendRow .resendStatic {
+    display: inline;
+    margin-top: 0;
+  }
+
+  .mfaErrorMobile {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--color-error);
+    text-align: center;
+    margin: 1rem 0 0;
+  }
+
+  .infoCard {
+    margin-top: 1.5rem;
+    background: #f6f4ee;
+    border: 1px solid #efede7;
+    border-radius: 4px;
+    padding: 0.875rem;
+  }
+
+  .infoCardText {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-muted);
+    margin: 0;
+  }
+
+  .sheetFooter {
+    margin-top: auto;
+    padding-top: 1.5rem;
+  }
+
+  .sheetFooter .submit {
+    height: 52px;
+    margin-top: 0;
+  }
+
+  .cancelLink {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 0.625rem;
+    padding: 0.25rem;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+}

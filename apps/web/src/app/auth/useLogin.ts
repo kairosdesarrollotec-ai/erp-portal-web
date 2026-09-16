@@ -1,10 +1,19 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, type AuthError } from 'firebase/auth';
+import {
+  getMultiFactorResolver,
+  signInWithEmailAndPassword,
+  TotpMultiFactorGenerator,
+  type AuthError,
+  type MultiFactorError,
+  type MultiFactorResolver,
+  type UserCredential,
+} from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
 import { recordLoginAttempt } from './audit-client';
 import { getActivationStatus } from './activation-client';
 import type { LoginFormValues } from './login.schema';
+import type { MfaChallengeState } from './MfaChallengeModal';
 
 /**
  * TR-01 - Inicio de sesion. Estados segun PANTALLAS-V2-B-TRANSVERSAL.md:
@@ -28,6 +37,7 @@ const EXTERNAL_DEPENDENCY_CODES = new Set([
   'auth/network-request-failed',
   'auth/too-many-requests',
 ]);
+const MFA_REQUIRED_CODE = 'auth/multi-factor-auth-required';
 
 function mapFirebaseErrorToState(error: AuthError): LoginScreenState {
   if (BLOCKING_ERROR_CODES.has(error.code)) return 'BLOCKING_ERROR';
@@ -39,7 +49,46 @@ function mapFirebaseErrorToState(error: AuthError): LoginScreenState {
 
 export function useLogin() {
   const [state, setState] = useState<LoginScreenState>('READY');
+  const [mfaResolver, setMfaResolver] = useState<MultiFactorResolver | null>(null);
+  const [mfaState, setMfaState] = useState<MfaChallengeState>('READY');
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  // Compartido entre el login directo (sin MFA) y el paso final tras
+  // resolver el reto MFA (TR-03) - ambos terminan igual: registrar la
+  // auditoria de exito, chequear si requiere activacion (TR-02/HU-21) y
+  // navegar.
+  const completeSuccessfulLogin = useCallback(
+    async (credential: UserCredential, email: string) => {
+      // El registro de auditoria nunca debe bloquear la navegacion del
+      // usuario que ya se autentico correctamente (fire-and-forget) - si
+      // el endpoint esta lento o no responde, no debe dejar el boton en
+      // VALIDATING indefinidamente.
+      void recordLoginAttempt(email, 'SUCCESS', null);
+
+      // TR-02 (HU-21): si el usuario esta en "primer acceso" (contrasena
+      // temporal sin cambiar y/o MFA sin enrolar), se redirige a la
+      // pantalla de activacion en lugar de ir directo al tablero. Si el
+      // chequeo falla (backend caido, usuario sin UserProfile todavia -
+      // ver PROP-001 en docs/decision-log.md del repo backend) se asume
+      // que NO requiere activacion, para no bloquear el acceso de un
+      // usuario ya autenticado correctamente por una falla de este
+      // chequeo adicional.
+      try {
+        const idToken = await credential.user.getIdToken();
+        const activationStatus = await getActivationStatus(idToken);
+        if (activationStatus.requiresPasswordChange || activationStatus.requiresMfaEnrollment) {
+          navigate('/activar-cuenta');
+          return;
+        }
+      } catch {
+        // Ver nota arriba.
+      }
+
+      navigate('/tablero');
+    },
+    [navigate],
+  );
 
   const submit = useCallback(
     async (values: LoginFormValues) => {
@@ -50,41 +99,70 @@ export function useLogin() {
           values.emailOrUsername,
           values.password,
         );
-        // El registro de auditoria nunca debe bloquear la navegacion del
-        // usuario que ya se autentico correctamente (fire-and-forget) - si
-        // el endpoint esta lento o no responde, no debe dejar el boton en
-        // VALIDATING indefinidamente.
-        void recordLoginAttempt(values.emailOrUsername, 'SUCCESS', null);
-
-        // TR-02 (HU-21): si el usuario esta en "primer acceso" (contrasena
-        // temporal sin cambiar y/o MFA sin enrolar), se redirige a la
-        // pantalla de activacion en lugar de ir directo al tablero. Si el
-        // chequeo falla (backend caido, usuario sin UserProfile todavia -
-        // ver PROP-001 en docs/decision-log.md del repo backend) se asume
-        // que NO requiere activacion, para no bloquear el acceso de un
-        // usuario ya autenticado correctamente por una falla de este
-        // chequeo adicional.
-        try {
-          const idToken = await credential.user.getIdToken();
-          const activationStatus = await getActivationStatus(idToken);
-          if (activationStatus.requiresPasswordChange || activationStatus.requiresMfaEnrollment) {
-            navigate('/activar-cuenta');
-            return;
-          }
-        } catch {
-          // Ver nota arriba.
-        }
-
-        navigate('/tablero');
+        await completeSuccessfulLogin(credential, values.emailOrUsername);
       } catch (error) {
         const authError = error as AuthError;
+
+        // TR-03 - Desafio MFA: la cuenta tiene el segundo factor (TOTP)
+        // enrolado (TR-02/HU-21). No es un error de credenciales - abre el
+        // modal/hoja de verificacion en vez de RECOVERABLE_ERROR.
+        if (authError.code === MFA_REQUIRED_CODE) {
+          const resolver = getMultiFactorResolver(
+            getFirebaseAuth(),
+            authError as unknown as MultiFactorError,
+          );
+          setMfaResolver(resolver);
+          setMfaState('READY');
+          setPendingEmail(values.emailOrUsername);
+          setState('READY');
+          return;
+        }
+
         const nextState = mapFirebaseErrorToState(authError);
         setState(nextState);
         void recordLoginAttempt(values.emailOrUsername, 'FAILURE', authError.code ?? 'unknown');
       }
     },
-    [navigate],
+    [completeSuccessfulLogin],
   );
 
-  return { state, submit };
+  const confirmMfa = useCallback(
+    async (code: string) => {
+      if (!mfaResolver) return;
+      const hint = mfaResolver.hints[0];
+      setMfaState('VALIDATING');
+      try {
+        const assertion = TotpMultiFactorGenerator.assertionForSignIn(hint.uid, code);
+        const credential = await mfaResolver.resolveSignIn(assertion);
+        setMfaResolver(null);
+        const email = pendingEmail ?? credential.user.email ?? '';
+        setPendingEmail(null);
+        await completeSuccessfulLogin(credential, email);
+      } catch {
+        // Codigo TOTP incorrecto o expirado - "RECOVERABLE_ERROR" del reto
+        // MFA (punto 9 del contrato), nunca revela mas detalle que eso.
+        setMfaState('RECOVERABLE_ERROR');
+        void recordLoginAttempt(pendingEmail ?? 'unknown', 'FAILURE', 'mfa/invalid-code');
+      }
+    },
+    [mfaResolver, pendingEmail, completeSuccessfulLogin],
+  );
+
+  const cancelMfa = useCallback(() => {
+    setMfaResolver(null);
+    setMfaState('READY');
+    setPendingEmail(null);
+    setState('READY');
+  }, []);
+
+  return {
+    state,
+    submit,
+    mfaChallenge: {
+      isOpen: mfaResolver !== null,
+      state: mfaState,
+      onConfirm: confirmMfa,
+      onCancel: cancelMfa,
+    },
+  };
 }

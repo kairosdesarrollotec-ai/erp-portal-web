@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Eye, EyeOff, Lock, WifiOff } from 'lucide-react';
 import { loginSchema, type LoginFormValues } from './login.schema';
 import { useLogin } from './useLogin';
+import { MfaChallengeModal } from './MfaChallengeModal';
 import styles from './LoginScreen.module.css';
 
 /**
@@ -18,10 +19,16 @@ import styles from './LoginScreen.module.css';
  * Authentication (TDD-KAIROS-TRANSVERSAL 8.1/8.4) solo soporta email.
  * Mientras no exista una resolucion de usuario->email en el backend, este
  * campo se trata siempre como email.
+ *
+ * TR-03 (HU-22) - Desafio MFA: cuando la cuenta tiene el segundo factor
+ * (TOTP) enrolado, useLogin abre mfaChallenge en vez de autenticar de una
+ * vez. Ver MfaChallengeModal.tsx para el detalle de los prototipos y las
+ * notas pendientes para Producto (variante mobile duplicada, "Reenviar
+ * codigo" incompatible con TOTP).
  */
 export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
-  const { state, submit } = useLogin();
+  const { state, submit, mfaChallenge } = useLogin();
   const {
     register,
     handleSubmit,
@@ -128,6 +135,13 @@ export function LoginScreen() {
           ¿Olvidaste tu contraseña?
         </button>
       </div>
+
+      <MfaChallengeModal
+        isOpen={mfaChallenge.isOpen}
+        state={mfaChallenge.state}
+        onConfirm={mfaChallenge.onConfirm}
+        onCancel={mfaChallenge.onCancel}
+      />
     </main>
   );
 }
