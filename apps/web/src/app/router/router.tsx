@@ -4,6 +4,8 @@ import { ActivationScreen } from '../auth/ActivationScreen';
 import { WorkContextScreen } from '../auth/WorkContextScreen';
 import { DashboardScreen } from '../dashboard/DashboardScreen';
 import { HealthCheckScreen } from './HealthCheckScreen';
+import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
+import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -30,6 +32,16 @@ export const router = createBrowserRouter([
     // TR-06 - HU-24. Login exitoso (0/1 asignacion) o TR-05 (tras elegir
     // empresa/sede) navegan aqui con el contexto ya resuelto.
     element: <DashboardScreen />,
+  },
+  {
+    path: '/reservas',
+    // RES-01 - HU-27. Bandeja de reservas.
+    element: <ReservationsListScreen />,
+  },
+  {
+    path: '/reservas/:id',
+    // RES-04/RES-05 - HU-27. Confirmar/detalle de una reserva.
+    element: <ReservationDetailScreen />,
   },
   {
     path: '/health',
