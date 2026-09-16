@@ -65,7 +65,14 @@ export function useWorkContext() {
       try {
         const idToken = await user.getIdToken();
         await selectWorkContext(idToken, assignment.companyId, assignment.branchId);
-        navigate('/tablero');
+        navigate('/tablero', {
+          state: {
+            companyId: assignment.companyId,
+            companyName: assignment.companyName,
+            branchId: assignment.branchId,
+            branchName: assignment.branchName,
+          },
+        });
       } catch {
         // El backend rechazo la combinacion (403, BR-ORG-002) o fallo de
         // red - se vuelve a mostrar la lista, nunca se avanza al tablero

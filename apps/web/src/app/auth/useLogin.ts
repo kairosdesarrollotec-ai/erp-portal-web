@@ -105,6 +105,18 @@ export function useLogin() {
             navigate('/seleccion-empresa-sede');
             return;
           }
+          if (assignments.length === 1) {
+            const only = assignments[0];
+            navigate('/tablero', {
+              state: {
+                companyId: only.companyId,
+                companyName: only.companyName,
+                branchId: only.branchId,
+                branchName: only.branchName,
+              },
+            });
+            return;
+          }
         } catch {
           // Ver nota arriba.
         }

@@ -1,3 +1,5 @@
+import type { WorkerRole } from '../dashboard/worker-role';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 export interface WorkContextAssignment {
@@ -5,6 +7,7 @@ export interface WorkContextAssignment {
   companyName: string;
   branchId: string;
   branchName: string;
+  role: WorkerRole;
 }
 
 /**
