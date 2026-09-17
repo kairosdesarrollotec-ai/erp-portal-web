@@ -1,0 +1,119 @@
+import { useNavigate } from 'react-router-dom';
+import { useInquiriesList } from './useInquiriesList';
+import { INQUIRY_CHANNEL_LABELS, INQUIRY_STATUS_GROUP, INQUIRY_STATUS_GROUP_LABELS } from './inquiry-status';
+import styles from './InquiriesListScreen.module.css';
+
+/**
+ * CON-01 - Bandeja de Consultas. Fuente: PANTALLAS-V3-B-CONSULTA.md.
+ * Estados: READY, LOADING, EMPTY, RECOVERABLE_ERROR, FORBIDDEN (contrato
+ * punto 9). Filtros persistentes en sesion (punto 6/15, ver
+ * useInquiriesList.ts).
+ */
+export function InquiriesListScreen() {
+  const { state, inquiries, context, filters, setFilters } = useInquiriesList();
+  const navigate = useNavigate();
+
+  return (
+    <main className={styles.wrapper}>
+      <header className={styles.header}>
+        <span className={styles.brand}>VeloxRent</span>
+        <h1 className={styles.title}>Consultas</h1>
+        <button
+          type="button"
+          className={styles.newButton}
+          onClick={() => navigate('/consultas/nueva', { state: context ?? undefined })}
+        >
+          Nueva Consulta
+        </button>
+      </header>
+
+      <div className={styles.content}>
+        <div className={styles.filters}>
+          <input
+            type="text"
+            className={styles.filterInput}
+            placeholder="Buscar por cliente"
+            value={filters.customerId}
+            onChange={(event) => setFilters({ ...filters, customerId: event.target.value })}
+            aria-label="Filtrar por cliente"
+          />
+          <select
+            className={styles.filterInput}
+            value={filters.channel}
+            onChange={(event) => setFilters({ ...filters, channel: event.target.value as typeof filters.channel })}
+            aria-label="Filtrar por canal"
+          >
+            <option value="">Todos los canales</option>
+            {Object.entries(INQUIRY_CHANNEL_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <select
+            className={styles.filterInput}
+            value={filters.status}
+            onChange={(event) => setFilters({ ...filters, status: event.target.value as typeof filters.status })}
+            aria-label="Filtrar por estado"
+          >
+            <option value="">Todos los estados</option>
+            <option value="REGISTRADA">Registrada</option>
+            <option value="COTIZADA">Cotizada</option>
+            <option value="CONVERTIDA">Convertida</option>
+            <option value="CERRADA_SIN_CONVERSION">Cerrada sin conversión</option>
+          </select>
+        </div>
+
+        {state === 'LOADING' && <p className={styles.statusText}>Cargando consultas…</p>}
+
+        {state === 'FORBIDDEN' && (
+          <p className={styles.statusText}>No tienes permisos para ver la bandeja de consultas de esta sede.</p>
+        )}
+
+        {state === 'RECOVERABLE_ERROR' && (
+          <p className={styles.statusText}>
+            No pudimos cargar la bandeja de consultas. Intenta de nuevo en unos segundos.
+          </p>
+        )}
+
+        {state === 'EMPTY' && <p className={styles.statusText}>Todavía no hay consultas registradas.</p>}
+
+        {state === 'READY' && (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Canal</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Empresa</th>
+              </tr>
+            </thead>
+            <tbody>
+              {inquiries.map((inquiry) => {
+                const group = INQUIRY_STATUS_GROUP[inquiry.status];
+                return (
+                  <tr
+                    key={inquiry.id}
+                    className={styles.row}
+                    onClick={() => navigate(`/consultas/${inquiry.id}`, { state: context ?? undefined })}
+                  >
+                    <td>{inquiry.customer?.name ?? 'Sin cliente registrado'}</td>
+                    <td>{inquiry.channel}</td>
+                    <td>
+                      <span className={`${styles.badge} ${styles[`badge_${group}`]}`}>
+                        {INQUIRY_STATUS_GROUP_LABELS[group]}
+                      </span>
+                    </td>
+                    <td>{new Date(inquiry.createdAt).toLocaleDateString('es-PE')}</td>
+                    <td>{context?.companyName ?? '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </main>
+  );
+}

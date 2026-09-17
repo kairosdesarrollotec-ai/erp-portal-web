@@ -1,0 +1,152 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.header {
+  width: 100%;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #E5E2DC;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-ink);
+}
+
+.title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-ink);
+  margin: 0;
+  flex: 1;
+}
+
+.newButton {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.625rem 1.25rem;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.filterInput {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 13px;
+  color: var(--color-ink);
+  font-family: inherit;
+  background: #fff;
+}
+
+.statusText {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  border-bottom: 1px solid #E5E2DC;
+}
+
+.table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #F0EEE9;
+  color: var(--color-ink);
+  vertical-align: middle;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.row:hover {
+  background: #FAF9F6;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* PANTALLAS-V3-B-CONSULTA.md CON-01: Abierta info #2166B0, Convertida
+   exito #1E7D4B, Cerrada neutro #EFEDE7. */
+.badge_ABIERTA {
+  background: #E4EEF9;
+  color: #2166B0;
+}
+
+.badge_CONVERTIDA {
+  background: #E7F5EC;
+  color: var(--color-success);
+}
+
+.badge_CERRADA {
+  background: #EFEDE7;
+  color: #4E4A45;
+}
+
+@media (max-width: 720px) {
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tr {
+    border: 1px solid #E5E2DC;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .table td {
+    border: none;
+    padding: 0.25rem 0;
+  }
+}
