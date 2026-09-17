@@ -1,0 +1,187 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.header {
+  width: 100%;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #E5E2DC;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-ink);
+}
+
+.title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.staleBanner {
+  background: #FDF1DE;
+  color: var(--color-warning);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.refreshButton {
+  background: none;
+  border: 1px solid var(--color-warning);
+  color: var(--color-warning);
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.errorText {
+  color: var(--color-error);
+  font-size: 13px;
+  margin: 0 0 1rem;
+}
+
+.statusText {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+.card {
+  border: 1px solid #E5E2DC;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: opacity 150ms ease;
+}
+
+.cardStale {
+  opacity: 0.6;
+}
+
+.photo {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+  background: #EFEDE7;
+}
+
+.cardBody {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.model {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.rate {
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
+.rateTotal {
+  color: var(--color-muted);
+}
+
+.badge {
+  display: inline-block;
+  width: fit-content;
+  padding: 0.2rem 0.625rem;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #E7F5EC;
+  color: var(--color-success);
+}
+
+.reserveButton {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.875rem 1rem;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 0.25rem;
+}
+
+.reserveButton:disabled {
+  background: var(--color-border);
+  cursor: default;
+}
+
+.detailLink {
+  font-size: 12px;
+  color: #4E4A45;
+  text-decoration: none;
+  align-self: center;
+}
+
+.detailLink:hover {
+  text-decoration: underline;
+}
+
+.secondaryButton {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-ink);
+  border-radius: 6px;
+  padding: 0.625rem 1rem;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (min-width: 720px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
