@@ -1,0 +1,8 @@
+# Gobernanza del manifiesto de prototipos aprobados (GOV-02).
+#
+# TODO: reemplazar @kairosdesarrollotec-ai/product-design por los usuarios o
+# equipo de GitHub reales que deben aprobar cambios de baseline (Producto/
+# Diseno) - un handle que no existe como colaborador del repo no bloquea
+# nada, GitHub simplemente lo ignora.
+docs/prototype-manifest.yaml          @kairosdesarrollotec-ai/product-design
+docs/prototypes/approved/**           @kairosdesarrollotec-ai/product-design

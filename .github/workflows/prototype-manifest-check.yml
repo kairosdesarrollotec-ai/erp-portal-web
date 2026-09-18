@@ -1,0 +1,39 @@
+name: Prototype manifest check
+
+# Corre siempre que un PR (o un push directo) toque el manifiesto de
+# prototipos aprobados o los archivos de prototipos en si, para evitar
+# que un sha256/bytes desalineado llegue a main sin que nadie lo note
+# (GOV-02: el manifiesto es la fuente de verdad para las skills de
+# frontend-screen, y GitHub no valida su contenido por si solo).
+on:
+  pull_request:
+    paths:
+      - 'docs/prototype-manifest.yaml'
+      - 'docs/prototypes/approved/**'
+      - 'scripts/verify-prototype-manifest.mjs'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/prototype-manifest.yaml'
+      - 'docs/prototypes/approved/**'
+      - 'scripts/verify-prototype-manifest.mjs'
+
+jobs:
+  verify-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias (solo lo necesario para el script)
+        run: npm install --no-save js-yaml@^5.4.2
+
+      - name: Verificar manifiesto de prototipos
+        run: |
+          BASE_REF="${{ github.event.pull_request.base.sha || 'HEAD~1' }}"
+          node scripts/verify-prototype-manifest.mjs --base "$BASE_REF"

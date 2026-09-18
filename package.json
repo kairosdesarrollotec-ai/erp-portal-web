@@ -13,6 +13,10 @@
     "dev:web": "npm run dev --workspace apps/web",
     "build:web": "npm run build --workspace apps/web",
     "test:web": "npm run test --workspace apps/web",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "verify:manifest": "node scripts/verify-prototype-manifest.mjs"
+  },
+  "devDependencies": {
+    "js-yaml": "^5.4.2"
   }
 }
