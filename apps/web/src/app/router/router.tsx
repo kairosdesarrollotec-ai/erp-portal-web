@@ -4,6 +4,7 @@ import { ActivationScreen } from '../auth/ActivationScreen';
 import { WorkContextScreen } from '../auth/WorkContextScreen';
 import { DashboardScreen } from '../dashboard/DashboardScreen';
 import { HealthCheckScreen } from './HealthCheckScreen';
+import { RequireAuth } from './RequireAuth';
 import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
 import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
 
@@ -34,14 +35,22 @@ export const router = createBrowserRouter([
     element: <DashboardScreen />,
   },
   {
-    path: '/reservas',
-    // RES-01 - HU-27. Bandeja de reservas.
-    element: <ReservationsListScreen />,
-  },
-  {
-    path: '/reservas/:id',
-    // RES-04/RES-05 - HU-27. Confirmar/detalle de una reserva.
-    element: <ReservationDetailScreen />,
+    // Hallazgo de revision PR#10 (finding #8): las rutas de reservas ahora
+    // exigen sesion de Firebase valida (ver RequireAuth.tsx) - antes se
+    // podia navegar directo a /reservas o /reservas/:id sin autenticarse.
+    element: <RequireAuth />,
+    children: [
+      {
+        path: '/reservas',
+        // RES-01 - HU-27. Bandeja de reservas.
+        element: <ReservationsListScreen />,
+      },
+      {
+        path: '/reservas/:id',
+        // RES-04/RES-05 - HU-27. Confirmar/detalle de una reserva.
+        element: <ReservationDetailScreen />,
+      },
+    ],
   },
   {
     path: '/health',

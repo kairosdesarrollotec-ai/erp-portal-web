@@ -11,11 +11,20 @@ export interface ReservationsWorkContext {
 }
 
 /**
- * Resuelve companyId/branchId igual que useDashboard.ts (TR-06): si la
- * navegacion trae el contexto en location.state lo usa directo; si no
- * (recarga directa de /reservas), lo resuelve por asignaciones - 1 sola
- * se usa directo, mas de 1 vuelve a TR-05, 0/error queda sin resolver
- * (nunca bloquea con un error duro).
+ * Resuelve companyId/branchId (RES-01/RES-04/RES-05).
+ *
+ * Hallazgo de revision (finding #8): antes, si la navegacion traia el
+ * contexto en `location.state`, se usaba directo sin validarlo - un
+ * `state` viejo, manipulado, o de otra cuenta se aceptaba tal cual, y con
+ * eso se filtraba la bandeja y se ejecutaban comandos de mutacion sobre
+ * una reserva. Ahora `location.state` es apenas un candidato: siempre se
+ * confirma contra la lista real de asignaciones del backend
+ * (getWorkContextAssignments, la misma fuente que TR-05/TR-06) antes de
+ * usarlo. Si no coincide con ninguna asignacion real, se ignora y se
+ * resuelve igual que sin estado de navegacion: 1 sola asignacion se usa
+ * directo, mas de 1 vuelve a TR-05, 0/error queda sin resolver (nunca
+ * bloquea con un error duro - la pantalla que llama a este hook decide
+ * como mostrar "sin contexto").
  */
 export function useWorkContextForReservations(): {
   context: ReservationsWorkContext | null;
@@ -30,15 +39,6 @@ export function useWorkContextForReservations(): {
     let cancelled = false;
 
     async function resolve() {
-      const navState = location.state as ReservationsWorkContext | null;
-      if (navState?.companyId && navState?.branchId) {
-        if (!cancelled) {
-          setContext(navState);
-          setLoading(false);
-        }
-        return;
-      }
-
       const user = getFirebaseAuth().currentUser;
       if (!user) {
         if (!cancelled) setLoading(false);
@@ -48,14 +48,22 @@ export function useWorkContextForReservations(): {
         const idToken = await user.getIdToken();
         const assignments = await getWorkContextAssignments(idToken);
         if (cancelled) return;
+
+        const navState = location.state as ReservationsWorkContext | null;
+        if (navState?.companyId && navState?.branchId) {
+          const confirmed = assignments.find(
+            (a) => a.companyId === navState.companyId && a.branchId === navState.branchId,
+          );
+          if (confirmed) {
+            setContext(confirmed);
+            return;
+          }
+          // No coincide con ninguna asignacion real - cae al mismo
+          // criterio de 0/1/N de abajo.
+        }
+
         if (assignments.length === 1) {
-          const only = assignments[0];
-          setContext({
-            companyId: only.companyId,
-            companyName: only.companyName,
-            branchId: only.branchId,
-            branchName: only.branchName,
-          });
+          setContext(assignments[0]);
         } else if (assignments.length > 1) {
           navigate('/seleccion-empresa-sede', { replace: true });
         }
