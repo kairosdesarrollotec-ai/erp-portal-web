@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { LogOut } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -24,14 +25,24 @@ import styles from './DashboardScreen.module.css';
  * READY aprobado.
  */
 export function DashboardScreen() {
-  const { state, role, branchName } = useDashboard();
+  const { state, role, branchName, retry } = useDashboard();
   const navigate = useNavigate();
   const email = getFirebaseAuth().currentUser?.email ?? '';
   const initial = email.charAt(0).toUpperCase();
+  // Hallazgo de revision (finding #4, segunda parte): antes un fallo de
+  // signOut() (red, Firebase caido) quedaba sin manejar - el boton no
+  // hacia nada visible y el usuario quedaba con una sesion en un estado
+  // ambiguo, sin saber si cerro sesion o no.
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   async function handleSignOut() {
-    await signOut(getFirebaseAuth());
-    navigate('/');
+    setSignOutError(null);
+    try {
+      await signOut(getFirebaseAuth());
+      navigate('/');
+    } catch {
+      setSignOutError('No pudimos cerrar tu sesión por un problema de conexión. Intenta de nuevo.');
+    }
   }
 
   return (
@@ -57,11 +68,22 @@ export function DashboardScreen() {
               </div>
             </div>
           )}
-          <button type="button" className={styles.signOutButton} onClick={() => void handleSignOut()}>
+          <button
+            type="button"
+            className={styles.signOutButton}
+            onClick={() => void handleSignOut()}
+            aria-label="Cerrar sesión"
+          >
             <LogOut size={16} />
           </button>
         </div>
       </header>
+
+      {signOutError && (
+        <p role="alert" className={styles.signOutError}>
+          {signOutError}
+        </p>
+      )}
 
       <div className={styles.content}>
         {state === 'LOADING' && <p className={styles.loadingText}>Cargando tu tablero…</p>}
@@ -78,6 +100,15 @@ export function DashboardScreen() {
           <p className={styles.emptyMessage}>
             No pudimos determinar tu contexto de trabajo. Vuelve a iniciar sesión para continuar.
           </p>
+        )}
+
+        {state === 'RECOVERABLE_ERROR' && (
+          <div role="alert" className={styles.emptyMessage}>
+            <p>No pudimos cargar tu tablero por un problema de conexión.</p>
+            <button type="button" className={styles.signOutButton} onClick={retry}>
+              Reintentar
+            </button>
+          </div>
         )}
       </div>
     </main>

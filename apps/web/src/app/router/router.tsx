@@ -3,6 +3,7 @@ import { LoginScreen } from '../auth/LoginScreen';
 import { ActivationScreen } from '../auth/ActivationScreen';
 import { WorkContextScreen } from '../auth/WorkContextScreen';
 import { DashboardScreen } from '../dashboard/DashboardScreen';
+import { RequireDashboardAccess } from '../dashboard/RequireDashboardAccess';
 import { HealthCheckScreen } from './HealthCheckScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
@@ -29,7 +30,14 @@ export const router = createBrowserRouter([
     path: '/tablero',
     // TR-06 - HU-24. Login exitoso (0/1 asignacion) o TR-05 (tras elegir
     // empresa/sede) navegan aqui con el contexto ya resuelto.
-    element: <DashboardScreen />,
+    // RequireDashboardAccess (hallazgo de revision): antes no tenia
+    // ningun guard, se podia entrar por URL directa sin sesion ni
+    // activacion completa.
+    element: (
+      <RequireDashboardAccess>
+        <DashboardScreen />
+      </RequireDashboardAccess>
+    ),
   },
   {
     path: '/health',
