@@ -1,5 +1,6 @@
 .wrapper {
-  min-height: 100vh;
+  min-height: 100vh; /* fallback para navegadores sin soporte de unidades dv* */
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -197,8 +198,12 @@
     padding: 1.5rem 1.5rem 1rem;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    min-height: 100vh;
+    /* Sin justify-content: space-between - con contenido dinamico (banner de
+       error, mensajes de validacion) eso separa los hijos de forma impredecible.
+       Solo el pie de pagina se empuja al fondo, via margin-top: auto en
+       .mobileFooter (ver mas abajo). */
+    min-height: 100vh; /* fallback para navegadores sin soporte de unidades dv* */
+    min-height: 100dvh;
     box-sizing: border-box;
   }
 
@@ -255,12 +260,15 @@
     height: 48px;
   }
 
-  /* Pie de pagina fijo al fondo de la pantalla - PROTO-TR-01-LOGIN-MOVIL */
+  /* Pie de pagina fijo al fondo de la pantalla - PROTO-TR-01-LOGIN-MOVIL.
+     margin-top: auto (en vez de justify-content: space-between en .card)
+     empuja solo este bloque al fondo, sin afectar el espaciado entre el
+     encabezado, el subtitulo y el formulario. */
   .mobileFooter {
     text-align: center;
     font-size: 12px;
     color: var(--color-muted);
-    margin: 1.5rem 0 0;
+    margin: auto 0 0;
     padding-top: 1rem;
   }
 }
