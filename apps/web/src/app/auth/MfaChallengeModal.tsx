@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Lock, ShieldCheck, X } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { AlertCircle, Lock, ShieldCheck, WifiOff, X } from 'lucide-react';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import styles from './MfaChallengeModal.module.css';
 
 /**
@@ -22,23 +24,47 @@ import styles from './MfaChallengeModal.module.css';
  * indica explicitamente reusar "el mismo patron visual que TR-02 paso 2"
  * (casillas en rojo + mensaje debajo), igual que aqui.
  *
- * "Reenviar codigo (0:45)" aparece en ambos prototipos, pero el segundo
- * factor es TOTP (Google Authenticator/Authy - PROP-002), que no tiene
- * concepto de reenvio: el codigo lo genera la app cada 30s, nadie lo
- * envia. Se implementa tal como esta dibujado - un temporizador
- * decorativo, siempre deshabilitado - en vez de inventar una accion de
- * reenvio que no existe para TOTP. Pendiente de que Producto confirme o
- * quite este elemento del contrato.
- *
  * Este componente es intencionalmente generico (no depende de login):
  * quien lo dispare decide que pasa en onConfirm/onCancel. Hoy solo se usa
  * desde el reto de MFA recurrente en el login (HU-22); el contrato lo
  * define tambien para "cualquier accion critica", lo que queda como
  * trabajo futuro cuando exista un segundo disparador real.
+ *
+ * Hallazgos de revision corregidos en esta version:
+ * - Foco: se delega a @radix-ui/react-dialog (ya era dependencia del
+ *   proyecto, sin usar) en vez de reimplementar focus trap/Escape/
+ *   restauracion de foco a mano - Dialog.Content ya hace las tres cosas.
+ *   El cierre por click en el overlay queda deshabilitado a proposito
+ *   (onPointerDownOutside/onInteractOutside) para no cambiar el
+ *   comportamiento existente: solo "Cancelar"/cerrar cierran el reto.
+ * - Una sola variante montada a la vez (useMediaQuery), no desktop+mobile
+ *   simultaneos ocultos con CSS - evita doble autoFocus, doble formulario
+ *   para el lector de pantalla y autocomplete ambiguo.
+ * - "Reenviar codigo" (decorativo, TOTP no tiene reenvio) se retira. En su
+ *   lugar, una nota correcta sobre la renovacion periodica del codigo.
+ * - Casillas de codigo con aria-invalid/aria-describedby, mensaje de error
+ *   con role="alert".
+ * - Estados SESSION_EXPIRED / UNSUPPORTED_FACTOR / VERIFICATION_UNAVAILABLE
+ *   (ver useLogin.ts) con su propio mensaje - nunca se le dice al usuario
+ *   "código incorrecto" para un problema que no es el código.
+ *
+ * Restauracion de foco (nota tecnica): Dialog.Content de Radix solo
+ * restaura el foco automaticamente al elemento que abrio el dialogo cuando
+ * ese elemento es un <Dialog.Trigger>. Este componente es generico (ver
+ * arriba) y quien lo dispara vive en otro componente (el boton "Ingresar"
+ * de LoginScreen), asi que no hay un Dialog.Trigger que envolver aqui. Por
+ * eso se guarda manualmente el elemento con foco al abrirse (triggerRef) y
+ * se restaura a mano en onCloseAutoFocus - sin esto, Radix llama
+ * preventDefault() internamente para el caso modal y el foco queda perdido
+ * en document.body al cerrar (hallazgo de revision).
  */
-export type MfaChallengeState = 'READY' | 'VALIDATING' | 'RECOVERABLE_ERROR';
-
-const RESEND_COUNTDOWN_SECONDS = 45;
+export type MfaChallengeState =
+  | 'READY'
+  | 'VALIDATING'
+  | 'RECOVERABLE_ERROR'
+  | 'VERIFICATION_UNAVAILABLE'
+  | 'SESSION_EXPIRED'
+  | 'UNSUPPORTED_FACTOR';
 
 interface MfaChallengeModalProps {
   isOpen: boolean;
@@ -47,40 +73,40 @@ interface MfaChallengeModalProps {
   onCancel: () => void;
 }
 
+const ERROR_MESSAGE_ID = 'mfa-challenge-error';
+
 export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaChallengeModalProps) {
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''));
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_COUNTDOWN_SECONDS);
-  // Refs independientes por variante (desktop/mobile): ambas copias existen
-  // simultaneamente en el DOM (visibilidad por CSS, patron TR-01/TR-02), asi
-  // que NO pueden compartir un unico array de refs - solo una copia es
-  // visible/interactuable a la vez segun el viewport real, y cada una debe
-  // navegar (auto-avance, backspace, paste) dentro de si misma.
-  const desktopRefs = useRef<Array<HTMLInputElement | null>>([]);
-  const mobileRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
+  const isMobile = useMediaQuery('(max-width: 480px)');
+  // Elemento que tenia el foco justo antes de abrirse (normalmente el
+  // boton "Ingresar" de LoginScreen) - ver nota de "Restauracion de foco"
+  // arriba del componente.
+  const triggerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      triggerRef.current = document.activeElement as HTMLElement | null;
+    }
+  }, [isOpen]);
+
   const isValidating = state === 'VALIDATING';
-  const hasError = state === 'RECOVERABLE_ERROR';
+  // RECOVERABLE_ERROR (codigo invalido) y VERIFICATION_UNAVAILABLE (no se
+  // pudo verificar - red/backend) permiten reintentar con el mismo u otro
+  // codigo, asi que ambas muestran las casillas en rojo. SESSION_EXPIRED y
+  // UNSUPPORTED_FACTOR son bloqueantes - ningun codigo puede resolverlos,
+  // asi que ni siquiera se muestran las casillas (ver `isBlocked` abajo).
+  const hasRetryableError = state === 'RECOVERABLE_ERROR' || state === 'VERIFICATION_UNAVAILABLE';
+  const isBlocked = state === 'SESSION_EXPIRED' || state === 'UNSUPPORTED_FACTOR';
 
   useEffect(() => {
     if (!isOpen) return;
     setDigits(Array(6).fill(''));
-    setSecondsLeft(RESEND_COUNTDOWN_SECONDS);
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen || secondsLeft <= 0) return;
-    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [isOpen, secondsLeft]);
 
   if (!isOpen) return null;
 
-  const resendLabel = `Reenviar código (0:${String(secondsLeft).padStart(2, '0')})`;
-
-  function handleDigitChange(
-    refs: React.MutableRefObject<Array<HTMLInputElement | null>>,
-    index: number,
-    value: string,
-  ) {
+  function handleDigitChange(index: number, value: string) {
     const clean = value.replace(/\D/g, '').slice(-1);
     setDigits((prev) => {
       const next = [...prev];
@@ -92,20 +118,13 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
     }
   }
 
-  function handleKeyDown(
-    refs: React.MutableRefObject<Array<HTMLInputElement | null>>,
-    index: number,
-    event: React.KeyboardEvent<HTMLInputElement>,
-  ) {
+  function handleKeyDown(index: number, event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === 'Backspace' && !digits[index] && index > 0) {
       refs.current[index - 1]?.focus();
     }
   }
 
-  function handlePaste(
-    refs: React.MutableRefObject<Array<HTMLInputElement | null>>,
-    event: React.ClipboardEvent<HTMLInputElement>,
-  ) {
+  function handlePaste(event: React.ClipboardEvent<HTMLInputElement>) {
     event.preventDefault();
     const pasted = event.clipboardData.getData('text').trim();
     if (!/^\d+$/.test(pasted)) return;
@@ -128,127 +147,208 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
     if (isComplete) void onConfirm(code);
   }
 
-  // `variant` distingue las dos copias (desktop/mobile) solo para
-  // data-testid - ambas comparten el mismo aria-label ("Dígito N") porque
-  // para un usuario real solo una copia es visible/alcanzable a la vez.
-  function renderDigitInputs(
-    refs: React.MutableRefObject<Array<HTMLInputElement | null>>,
-    variant: 'desktop' | 'mobile',
-  ) {
-    return (
-      <div className={styles.digitInputs}>
-        {digits.map((digit, index) => (
-          <input
-            key={index}
-            ref={(el) => {
-              refs.current[index] = el;
-            }}
-            type="text"
-            inputMode="numeric"
-            maxLength={1}
-            autoComplete={index === 0 ? 'one-time-code' : 'off'}
-            autoFocus={index === 0}
-            aria-label={`Dígito ${index + 1}`}
-            data-testid={`mfa-digit-${variant}-${index}`}
-            className={`${styles.digitBox} ${hasError ? styles.digitBoxError : ''}`}
-            value={digit}
-            disabled={isValidating}
-            onChange={(event) => handleDigitChange(refs, index, event.target.value)}
-            onKeyDown={(event) => handleKeyDown(refs, index, event)}
-            onPaste={(event) => handlePaste(refs, event)}
-          />
-        ))}
-      </div>
-    );
+  function handleOpenChange(open: boolean) {
+    if (!open) onCancel();
   }
 
-  return (
-    <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="Confirma tu identidad">
-      {/* ===== Desktop - PROTO-TR-03-DESAFIO-MFA-MODAL ===== */}
-      <div className={`${styles.modal} ${styles.desktopOnly}`}>
-        <button type="button" className={styles.closeButton} aria-label="Cerrar" onClick={onCancel}>
-          <X size={16} />
-        </button>
-        <h2 className={styles.title}>Confirma tu identidad</h2>
-        <p className={styles.subtitle}>Esta acción requiere verificación adicional</p>
+  const errorMessage =
+    state === 'RECOVERABLE_ERROR'
+      ? 'Código incorrecto o expirado — genera uno nuevo en tu app e intenta de nuevo'
+      : state === 'VERIFICATION_UNAVAILABLE'
+        ? 'No pudimos verificar el código por un problema de conexión. Intenta de nuevo.'
+        : null;
 
-        <form onSubmit={handleSubmit} noValidate>
-          <div className={styles.field}>{renderDigitInputs(desktopRefs, 'desktop')}</div>
-
-          {hasError && (
-            <p className={styles.mfaError}>
-              Código incorrecto o expirado — genera uno nuevo en tu app e intenta de nuevo
-            </p>
-          )}
-
-          <button type="submit" className={styles.submit} disabled={!isComplete || isValidating}>
-            {isValidating ? 'Confirmando...' : 'Confirmar'}
-          </button>
-
-          {!hasError && <span className={styles.resendStatic}>{resendLabel}</span>}
-        </form>
-      </div>
-
-      {/* ===== Mobile - PROTO-TR-03-DESAFIO-MFA-MOVIL-1 (hoja completa) ===== */}
-      <div className={`${styles.sheet} ${styles.mobileOnly}`}>
-        <header className={styles.sheetHeader}>
-          <button type="button" className={styles.sheetClose} aria-label="Cerrar" onClick={onCancel}>
-            <X size={20} />
-          </button>
-          <span className={styles.sheetHeaderTag}>
-            <Lock size={13} />
-            Verificación 2FA
-          </span>
-          <span className={styles.sheetHeaderSpacer} />
-        </header>
-
-        <main className={styles.sheetMain}>
-          <h1 className={styles.sheetTitle}>Confirma tu identidad</h1>
-          <p className={styles.sheetDescription}>
-            Esta acción requiere verificación adicional. Ingresa el código de 6 dígitos generado por tu
-            aplicación autenticadora.
-          </p>
-
-          <form onSubmit={handleSubmit} noValidate>
-            <div className={styles.sheetFieldLabelRow}>
-              <span className={styles.sheetFieldLabel}>Código de seguridad</span>
-              <span className={styles.syncBadge}>
-                <span className={styles.syncDot} />
-                Sincronizado
-              </span>
-            </div>
-
-            {renderDigitInputs(mobileRefs, 'mobile')}
-
-            {hasError ? (
-              <p className={styles.mfaErrorMobile}>
-                Código incorrecto o expirado — genera uno nuevo en tu app e intenta de nuevo
-              </p>
-            ) : (
-              <p className={styles.resendRow}>
-                ¿No recibes el código? <span className={styles.resendStatic}>{resendLabel}</span>
-              </p>
-            )}
-
-            <div className={styles.infoCard}>
-              <p className={styles.infoCardText}>
-                Protocolo de seguridad operativa. Esta verificación caduca en 60 segundos por normatividad
-                interna de VeloxRent ERP.
-              </p>
-            </div>
-
-            <div className={styles.sheetFooter}>
-              <button type="submit" className={styles.submit} disabled={!isComplete || isValidating}>
-                <ShieldCheck size={16} />
-                {isValidating ? 'Confirmando...' : 'Confirmar'}
-              </button>
-              <button type="button" className={styles.cancelLink} onClick={onCancel}>
-                Cancelar y regresar
-              </button>
-            </div>
-          </form>
-        </main>
-      </div>
+  const digitInputs = (
+    <div className={styles.digitInputs}>
+      {digits.map((digit, index) => (
+        <input
+          key={index}
+          ref={(el) => {
+            refs.current[index] = el;
+          }}
+          type="text"
+          inputMode="numeric"
+          maxLength={1}
+          autoComplete={index === 0 ? 'one-time-code' : 'off'}
+          autoFocus={index === 0}
+          aria-label={`Dígito ${index + 1}`}
+          aria-invalid={hasRetryableError}
+          aria-describedby={hasRetryableError ? ERROR_MESSAGE_ID : undefined}
+          data-testid={`mfa-digit-${index}`}
+          className={`${styles.digitBox} ${hasRetryableError ? styles.digitBoxError : ''}`}
+          value={digit}
+          disabled={isValidating}
+          onChange={(event) => handleDigitChange(index, event.target.value)}
+          onKeyDown={(event) => handleKeyDown(index, event)}
+          onPaste={handlePaste}
+        />
+      ))}
     </div>
+  );
+
+  // Nota correcta de renovacion (reemplaza el "Reenviar código" decorativo
+  // - TOTP no tiene reenvio, lo genera la app cada 30s).
+  const renewalHint = 'El código cambia automáticamente cada 30 segundos en tu app autenticadora.';
+
+  const blockedMessage =
+    state === 'SESSION_EXPIRED'
+      ? {
+          icon: <WifiOff size={32} />,
+          title: 'Tu sesión de verificación expiró',
+          body: 'Cierra esta ventana e inicia sesión de nuevo para generar un nuevo reto de verificación.',
+        }
+      : {
+          // UNSUPPORTED_FACTOR
+          icon: <AlertCircle size={32} />,
+          title: 'No podemos verificar este método desde aquí',
+          body: 'Tu cuenta no tiene un código de aplicación autenticadora (TOTP) disponible. Contacta a tu administrador.',
+        };
+
+  return (
+    <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
+      <Dialog.Portal>
+        <div className={styles.overlay}>
+          <Dialog.Content
+            asChild
+            // El reto de MFA no se cierra por click fuera / Escape en
+            // silencio - solo "Cancelar"/cerrar explicito, mismo
+            // comportamiento que tenia antes de agregar Dialog. Escape SI
+            // sigue funcionando (dispara onOpenChange(false) -> onCancel),
+            // que es justamente el hallazgo que pedia la revision.
+            onPointerDownOutside={(event) => event.preventDefault()}
+            onInteractOutside={(event) => event.preventDefault()}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              triggerRef.current?.focus();
+            }}
+          >
+            <div className={isMobile ? styles.sheet : styles.modal}>
+              {isMobile ? (
+                <>
+                  <header className={styles.sheetHeader}>
+                    <Dialog.Close asChild>
+                      <button type="button" className={styles.sheetClose} aria-label="Cerrar" onClick={onCancel}>
+                        <X size={20} />
+                      </button>
+                    </Dialog.Close>
+                    <span className={styles.sheetHeaderTag}>
+                      <Lock size={13} />
+                      Verificación 2FA
+                    </span>
+                    <span className={styles.sheetHeaderSpacer} />
+                  </header>
+
+                  <main className={styles.sheetMain}>
+                    <Dialog.Title asChild>
+                      <h1 className={styles.sheetTitle}>Confirma tu identidad</h1>
+                    </Dialog.Title>
+
+                    {isBlocked ? (
+                      <div className={styles.blockedNotice} role="alert">
+                        <div className={styles.blockedIcon}>{blockedMessage.icon}</div>
+                        <p className={styles.blockedTitle}>{blockedMessage.title}</p>
+                        <p className={styles.blockedBody}>{blockedMessage.body}</p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className={styles.sheetDescription}>
+                          Esta acción requiere verificación adicional. Ingresa el código de 6 dígitos generado
+                          por tu aplicación autenticadora.
+                        </p>
+
+                        <form onSubmit={handleSubmit} noValidate>
+                          <div className={styles.sheetFieldLabelRow}>
+                            <span className={styles.sheetFieldLabel}>Código de seguridad</span>
+                            <span className={styles.syncBadge}>
+                              <span className={styles.syncDot} />
+                              Sincronizado
+                            </span>
+                          </div>
+
+                          {digitInputs}
+
+                          {errorMessage ? (
+                            <p id={ERROR_MESSAGE_ID} role="alert" className={styles.mfaErrorMobile}>
+                              {errorMessage}
+                            </p>
+                          ) : (
+                            <p className={styles.resendRow}>{renewalHint}</p>
+                          )}
+
+                          <div className={styles.infoCard}>
+                            <p className={styles.infoCardText}>
+                              Protocolo de seguridad operativa. Esta verificación caduca en 60 segundos por
+                              normatividad interna de VeloxRent ERP.
+                            </p>
+                          </div>
+
+                          <div className={styles.sheetFooter}>
+                            <button type="submit" className={styles.submit} disabled={!isComplete || isValidating}>
+                              <ShieldCheck size={16} />
+                              {isValidating ? 'Confirmando...' : 'Confirmar'}
+                            </button>
+                            <button type="button" className={styles.cancelLink} onClick={onCancel}>
+                              Cancelar y regresar
+                            </button>
+                          </div>
+                        </form>
+                      </>
+                    )}
+
+                    {isBlocked && (
+                      <button type="button" className={`${styles.submit} ${styles.blockedAction}`} onClick={onCancel}>
+                        Cerrar
+                      </button>
+                    )}
+                  </main>
+                </>
+              ) : (
+                <>
+                  <Dialog.Close asChild>
+                    <button type="button" className={styles.closeButton} aria-label="Cerrar" onClick={onCancel}>
+                      <X size={16} />
+                    </button>
+                  </Dialog.Close>
+                  <Dialog.Title asChild>
+                    <h2 className={styles.title}>Confirma tu identidad</h2>
+                  </Dialog.Title>
+
+                  {isBlocked ? (
+                    <div className={styles.blockedNotice} role="alert">
+                      <div className={styles.blockedIcon}>{blockedMessage.icon}</div>
+                      <p className={styles.blockedTitle}>{blockedMessage.title}</p>
+                      <p className={styles.blockedBody}>{blockedMessage.body}</p>
+                      <button type="button" className={styles.submit} onClick={onCancel}>
+                        Cerrar
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className={styles.subtitle}>Esta acción requiere verificación adicional</p>
+
+                      <form onSubmit={handleSubmit} noValidate>
+                        <div className={styles.field}>{digitInputs}</div>
+
+                        {errorMessage && (
+                          <p id={ERROR_MESSAGE_ID} role="alert" className={styles.mfaError}>
+                            {errorMessage}
+                          </p>
+                        )}
+
+                        <button type="submit" className={styles.submit} disabled={!isComplete || isValidating}>
+                          {isValidating ? 'Confirmando...' : 'Confirmar'}
+                        </button>
+
+                        {!errorMessage && <span className={styles.resendStatic}>{renewalHint}</span>}
+                      </form>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </Dialog.Content>
+        </div>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
