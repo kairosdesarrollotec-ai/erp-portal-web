@@ -20,9 +20,21 @@ vi.mock('../providers/firebase', () => ({
   }),
 }));
 
+const { WorkContextApiError } = vi.hoisted(() => {
+  class WorkContextApiError extends Error {
+    status: number;
+    constructor(message: string, status: number) {
+      super(message);
+      this.status = status;
+    }
+  }
+  return { WorkContextApiError };
+});
+
 vi.mock('./work-context-client', () => ({
   getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
   selectWorkContext: (...args: unknown[]) => selectWorkContextMock(...args),
+  WorkContextApiError,
 }));
 
 function renderScreen() {
@@ -77,9 +89,9 @@ describe('WorkContextScreen (TR-05)', () => {
     ).toBeInTheDocument();
   });
 
-  it('si el backend rechaza la seleccion, se queda en la lista sin avanzar', async () => {
+  it('si el backend rechaza la seleccion, se queda en la lista sin avanzar y explica que paso (hallazgo de revision)', async () => {
     getWorkContextAssignmentsMock.mockResolvedValue(assignments);
-    selectWorkContextMock.mockRejectedValue(new Error('403'));
+    selectWorkContextMock.mockRejectedValue(new WorkContextApiError('403', 403));
     renderScreen();
 
     const card = await screen.findByRole('button', { name: /Ingresar a VeloxRent, Ayacucho/ });
@@ -89,5 +101,49 @@ describe('WorkContextScreen (TR-05)', () => {
       expect(selectWorkContextMock).toHaveBeenCalled();
     });
     expect(await screen.findByText('¿Dónde vas a trabajar hoy?')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/ya no está disponible/);
+  });
+
+  it('si la seleccion falla por red, muestra un mensaje de reintentar distinto del rechazo 403', async () => {
+    getWorkContextAssignmentsMock.mockResolvedValue(assignments);
+    selectWorkContextMock.mockRejectedValue(new Error('network offline'));
+    renderScreen();
+
+    const card = await screen.findByRole('button', { name: /Ingresar a VeloxRent, Ayacucho/ });
+    fireEvent.click(card);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/problema de conexión/);
+  });
+
+  // Hallazgo de revision (finding #1): un fallo tecnico (401/403/5xx, red,
+  // respuesta invalida) nunca debe presentarse como "no tienes ninguna
+  // asignacion" (EMPTY) - es un estado distinto, reintentable.
+  it.each([
+    ['401 (token invalido/expirado)', new WorkContextApiError('401', 401)],
+    ['403 (sin permiso)', new WorkContextApiError('403', 403)],
+    ['500 (backend caido)', new WorkContextApiError('500', 500)],
+    ['fallo de red', new Error('network offline')],
+    ['respuesta con forma invalida', new WorkContextApiError('respuesta invalida', 200)],
+  ])('RECOVERABLE_ERROR: %s nunca se presenta como "sin asignaciones"', async (_label, error) => {
+    getWorkContextAssignmentsMock.mockRejectedValue(error);
+    renderScreen();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/No pudimos cargar/);
+    expect(screen.queryByText(/No tienes ninguna empresa o sede asignada/)).not.toBeInTheDocument();
+  });
+
+  it('RECOVERABLE_ERROR: "Reintentar" vuelve a consultar las asignaciones', async () => {
+    getWorkContextAssignmentsMock.mockRejectedValueOnce(new WorkContextApiError('500', 500));
+    renderScreen();
+
+    const retryButton = await screen.findByRole('button', { name: 'Reintentar' });
+    getWorkContextAssignmentsMock.mockResolvedValueOnce(assignments);
+    fireEvent.click(retryButton);
+
+    expect(await screen.findByText('¿Dónde vas a trabajar hoy?')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Ingresar a VeloxRent, Ayacucho/ }),
+    ).toBeInTheDocument();
+    expect(getWorkContextAssignmentsMock).toHaveBeenCalledTimes(2);
   });
 });

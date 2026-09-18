@@ -17,9 +17,15 @@ import styles from './WorkContextScreen.module.css';
  * 2.2 AA del design system (#C6600A) - aqui se usa el token actual
  * --color-accent (#9E4C08, corregido 11 sep 2026 en colors.css) en su
  * lugar, para no reintroducir un color ya descartado por accesibilidad.
+ *
+ * NOTA (hallazgo de revision, PR #8): ni EMPTY ni RECOVERABLE_ERROR tienen
+ * un prototipo aprobado propio (solo existe PROTO-TR-05-SELECCION-EMPRESA-SEDE
+ * para el estado READY desktop) - ambos mensajes son deliberadamente
+ * minimos/defensivos, no se presentan como UX final. Pendiente que
+ * Producto apruebe sus propios prototipos (incluida la variante mobile).
  */
 export function WorkContextScreen() {
-  const { state, assignments, selectContext } = useWorkContext();
+  const { state, assignments, selectionError, selectContext, retry } = useWorkContext();
   const navigate = useNavigate();
   const isSelecting = state === 'SELECTING';
 
@@ -44,8 +50,20 @@ export function WorkContextScreen() {
           <p className={styles.emptyMessage}>
             No tienes ninguna empresa o sede asignada todavía. Contacta a tu administrador.
           </p>
+        ) : state === 'RECOVERABLE_ERROR' ? (
+          <div role="alert" className={styles.emptyMessage}>
+            <p>No pudimos cargar tus empresas y sedes asignadas por un problema de conexión.</p>
+            <button type="button" className={styles.signOutLink} onClick={() => void retry()}>
+              Reintentar
+            </button>
+          </div>
         ) : (
           <div className={styles.grid}>
+            {selectionError && (
+              <p role="alert" className={styles.selectionError}>
+                {selectionError}
+              </p>
+            )}
             {assignments.map((assignment) => (
               <WorkplaceCard
                 key={`${assignment.companyId}-${assignment.branchId}`}

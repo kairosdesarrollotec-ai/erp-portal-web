@@ -12,7 +12,7 @@ import {
 import { getFirebaseAuth } from '../providers/firebase';
 import { recordLoginAttempt } from './audit-client';
 import { getActivationStatus } from './activation-client';
-import { getWorkContextAssignments } from './work-context-client';
+import { getWorkContextAssignments, selectWorkContext } from './work-context-client';
 import type { LoginFormValues } from './login.schema';
 import type { MfaChallengeState } from './MfaChallengeModal';
 
@@ -94,19 +94,38 @@ export function useLogin() {
           // Ver nota arriba.
         }
 
-        // TR-05 (HU-23): si el usuario tiene mas de 1 asignacion
-        // empresa/sede, elige el contexto de trabajo antes de llegar al
-        // tablero (BR-ORG-002). Con 0 o 1 asignacion, o si el chequeo
-        // falla, se va directo al tablero - mismo criterio de no bloquear
-        // el acceso que el chequeo de activacion.
+        // TR-05 (HU-23): decide a donde navegar segun cuantas asignaciones
+        // empresa/sede tiene el usuario (BR-ORG-002). Hallazgo de revision:
+        // antes, 0 asignaciones caia silenciosamente al mismo `navigate
+        // ('/tablero')` de mas abajo que el caso de 1 asignacion, como si
+        // el usuario hubiera elegido un contexto que nunca eligio. Ahora:
+        // - 0: no hay contexto que fijar - va a /seleccion-empresa-sede,
+        //   que renderiza su propio estado EMPTY (bloqueante).
+        // - 1: unica opcion, pero se fija/valida en el backend antes de ir
+        //   al tablero (antes NUNCA se llamaba a selectWorkContext para
+        //   este caso) - si el backend no puede confirmarla, no se asume
+        //   valida, se manda a elegir contexto manualmente.
+        // - >1: el usuario elige, sin cambios.
+        // Si el chequeo en si (la lista) falla por red/backend, se sigue
+        // sin bloquear el acceso de un usuario ya autenticado - mismo
+        // criterio que el chequeo de activacion.
         try {
           const assignments = await getWorkContextAssignments(idToken);
-          if (assignments.length > 1) {
-            navigate('/seleccion-empresa-sede');
-            return;
+          if (assignments.length === 1) {
+            const [only] = assignments;
+            try {
+              await selectWorkContext(idToken, only.companyId, only.branchId);
+              navigate('/tablero');
+              return;
+            } catch {
+              navigate('/seleccion-empresa-sede');
+              return;
+            }
           }
+          navigate('/seleccion-empresa-sede');
+          return;
         } catch {
-          // Ver nota arriba.
+          // Ver nota arriba - el chequeo de asignaciones en si fallo.
         }
       }
 

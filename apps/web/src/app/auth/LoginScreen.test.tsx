@@ -3,6 +3,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { LoginScreen } from './LoginScreen';
 
+const navigateMock = vi.fn();
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return { ...actual, useNavigate: () => navigateMock };
+});
+
 const signInMock = vi.fn();
 const resolveSignInMock = vi.fn();
 const assertionForSignInMock = vi.fn((..._args: unknown[]) => 'mock-assertion');
@@ -33,8 +39,10 @@ vi.mock('./activation-client', () => ({
 }));
 
 const getWorkContextAssignmentsMock = vi.fn().mockRejectedValue(new Error('offline'));
+const selectWorkContextMock = vi.fn().mockResolvedValue(undefined);
 vi.mock('./work-context-client', () => ({
   getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
+  selectWorkContext: (...args: unknown[]) => selectWorkContextMock(...args),
 }));
 
 function renderScreen() {
@@ -50,7 +58,9 @@ describe('LoginScreen (TR-01)', () => {
     signInMock.mockReset();
     resolveSignInMock.mockReset();
     assertionForSignInMock.mockClear();
+    navigateMock.mockReset();
     getWorkContextAssignmentsMock.mockReset().mockRejectedValue(new Error('offline'));
+    selectWorkContextMock.mockReset().mockResolvedValue(undefined);
   });
 
   it('muestra el banner "Correo o contraseña incorrectos" (RECOVERABLE_ERROR) sin revelar si el correo existe, y conserva los campos', async () => {
@@ -195,5 +205,95 @@ describe('LoginScreen (TR-01)', () => {
     await waitFor(() => {
       expect(getWorkContextAssignmentsMock).toHaveBeenCalledWith('fake-id-token');
     });
+  });
+
+  // Hallazgo de revision (PR #8, finding #2): antes, 0 asignaciones caia
+  // en el mismo navigate('/tablero') que 1 asignacion, como si el usuario
+  // hubiera elegido un contexto que nunca existio.
+  it('TR-05: con 0 asignaciones, navega a /seleccion-empresa-sede (nunca directo a /tablero)', async () => {
+    signInMock.mockResolvedValue({
+      user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
+    });
+    getWorkContextAssignmentsMock.mockReset().mockResolvedValue([]);
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/seleccion-empresa-sede');
+    });
+    expect(navigateMock).not.toHaveBeenCalledWith('/tablero');
+    expect(selectWorkContextMock).not.toHaveBeenCalled();
+  });
+
+  it('TR-05: con exactamente 1 asignacion, la fija en el backend antes de navegar a /tablero', async () => {
+    signInMock.mockResolvedValue({
+      user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
+    });
+    getWorkContextAssignmentsMock
+      .mockReset()
+      .mockResolvedValue([{ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' }]);
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    await waitFor(() => {
+      expect(selectWorkContextMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1');
+    });
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/tablero');
+    });
+  });
+
+  it('TR-05: con 1 asignacion, si el backend no puede confirmarla, no navega al tablero a ciegas', async () => {
+    signInMock.mockResolvedValue({
+      user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
+    });
+    getWorkContextAssignmentsMock
+      .mockReset()
+      .mockResolvedValue([{ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' }]);
+    selectWorkContextMock.mockReset().mockRejectedValue(new Error('403'));
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/seleccion-empresa-sede');
+    });
+    expect(navigateMock).not.toHaveBeenCalledWith('/tablero');
+  });
+
+  it('TR-05: con mas de 1 asignacion, navega a /seleccion-empresa-sede sin fijar ninguna', async () => {
+    signInMock.mockResolvedValue({
+      user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
+    });
+    getWorkContextAssignmentsMock.mockReset().mockResolvedValue([
+      { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' },
+      { companyId: 'c2', companyName: 'Casa del Auto', branchId: 'b2', branchName: 'Sede Norte' },
+    ]);
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/seleccion-empresa-sede');
+    });
+    expect(selectWorkContextMock).not.toHaveBeenCalled();
   });
 });
