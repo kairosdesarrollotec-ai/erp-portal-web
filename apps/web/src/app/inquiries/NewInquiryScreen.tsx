@@ -9,9 +9,14 @@ import styles from './NewInquiryScreen.module.css';
  * progresivo: documento de hospedaje solo si nacionalidad = Extranjero
  * (punto 17). Si el uso turistico se rechaza, ofrece cierre inmediato en
  * vez de "Continuar" (caso de prueba obligatorio del TDD-CON-001).
+ *
+ * Hallazgo de revision PR#11 (Critico #2): el indicador ya no dice
+ * "Guardado" a secas (podia leerse como "guardado en el servidor", que es
+ * falso en este corte de HU-26) - dice "Guardado en este dispositivo",
+ * que es lo que realmente ocurre (ver useNewInquiry.ts).
  */
 export function NewInquiryScreen() {
-  const { form, state, autosave, error, updateForm, submit, closeWithoutTouristUse } = useNewInquiry();
+  const { form, state, autosave, error, fieldErrors, updateForm, submit, closeWithoutTouristUse } = useNewInquiry();
   const navigate = useNavigate();
 
   const rejectsTouristUse = form.touristUse === false;
@@ -23,12 +28,18 @@ export function NewInquiryScreen() {
         <span className={styles.brand}>VeloxRent</span>
         <h1 className={styles.title}>Nueva Consulta</h1>
         {autosave !== 'idle' && (
-          <span className={styles.autosave}>{autosave === 'saving' ? 'Guardando…' : 'Guardado'}</span>
+          <span className={styles.autosave}>
+            {autosave === 'saving' ? 'Guardando…' : 'Guardado en este dispositivo'}
+          </span>
         )}
       </header>
 
       <div className={styles.content}>
         {error && <p className={styles.errorText}>{error}</p>}
+        <p className={styles.helperNote}>
+          El nombre, documento, nacionalidad, destino, fecha, personas y días se guardan en este dispositivo, pero
+          todavía no se envían al servidor: el backend de este corte solo registra canal y uso turístico.
+        </p>
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Modalidad</h2>
@@ -71,7 +82,9 @@ export function NewInquiryScreen() {
               type="text"
               value={form.customerName}
               onChange={(event) => updateForm({ customerName: event.target.value })}
+              aria-invalid={Boolean(fieldErrors.customerName)}
             />
+            {fieldErrors.customerName && <span className={styles.fieldError}>{fieldErrors.customerName}</span>}
           </label>
           <label className={styles.field}>
             <span>Documento</span>
@@ -81,7 +94,9 @@ export function NewInquiryScreen() {
               inputMode="numeric"
               value={form.document}
               onChange={(event) => updateForm({ document: event.target.value })}
+              aria-invalid={Boolean(fieldErrors.document)}
             />
+            {fieldErrors.document && <span className={styles.fieldError}>{fieldErrors.document}</span>}
           </label>
           <label className={styles.field}>
             <span>Nacionalidad</span>
@@ -103,7 +118,11 @@ export function NewInquiryScreen() {
                 type="text"
                 value={form.hospedajeDocument}
                 onChange={(event) => updateForm({ hospedajeDocument: event.target.value })}
+                aria-invalid={Boolean(fieldErrors.hospedajeDocument)}
               />
+              {fieldErrors.hospedajeDocument && (
+                <span className={styles.fieldError}>{fieldErrors.hospedajeDocument}</span>
+              )}
             </label>
           )}
         </section>
@@ -117,7 +136,9 @@ export function NewInquiryScreen() {
               type="text"
               value={form.destination}
               onChange={(event) => updateForm({ destination: event.target.value })}
+              aria-invalid={Boolean(fieldErrors.destination)}
             />
+            {fieldErrors.destination && <span className={styles.fieldError}>{fieldErrors.destination}</span>}
           </label>
           <label className={styles.field}>
             <span>Fecha</span>
@@ -126,7 +147,9 @@ export function NewInquiryScreen() {
               type="date"
               value={form.travelDate}
               onChange={(event) => updateForm({ travelDate: event.target.value })}
+              aria-invalid={Boolean(fieldErrors.travelDate)}
             />
+            {fieldErrors.travelDate && <span className={styles.fieldError}>{fieldErrors.travelDate}</span>}
           </label>
           <label className={styles.field}>
             <span>Número de personas</span>

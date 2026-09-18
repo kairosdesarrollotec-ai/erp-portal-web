@@ -6,13 +6,17 @@ import type { InquiriesWorkContext } from './inquiries-nav-state';
 
 /**
  * Resuelve companyId/branchId igual que useWorkContextForReservations.ts
- * (TR-06): si la navegacion trae el contexto en location.state lo usa
- * directo (incluye el caso en que ese state trae ademas datos propios de
- * la Consulta - `InquiryNavState` extiende `InquiriesWorkContext`, asi que
- * los campos adicionales simplemente se ignoran aqui); si no (recarga
- * directa de /consultas), lo resuelve por asignaciones - 1 sola se usa
- * directo, mas de 1 vuelve a TR-05, 0/error queda sin resolver (nunca
- * bloquea con un error duro).
+ * (TR-06, corregido en la revision de PR#10, hallazgo #8).
+ *
+ * Hallazgo de revision PR#11 (mismo patron que el finding #8 de PR#10,
+ * cubierto aqui bajo "Contexto incompleto"/"aislamiento multiempresa" de
+ * la lista de verificacion): antes esta funcion confiaba directo en
+ * `location.state` sin validarlo contra el backend - un state manipulado
+ * o desactualizado (por ejemplo, tras perder una asignacion) se usaba tal
+ * cual. Ahora siempre reconsulta `getWorkContextAssignments` primero, y
+ * solo usa `location.state` si coincide con una asignacion real
+ * confirmada; si no coincide, se ignora y se resuelve igual que si no
+ * hubiera state (1 asignacion -> directo, >1 -> TR-05).
  */
 export function useWorkContextForInquiries(): {
   context: InquiriesWorkContext | null;
@@ -27,15 +31,6 @@ export function useWorkContextForInquiries(): {
     let cancelled = false;
 
     async function resolve() {
-      const navState = location.state as InquiriesWorkContext | null;
-      if (navState?.companyId && navState?.branchId) {
-        if (!cancelled) {
-          setContext(navState);
-          setLoading(false);
-        }
-        return;
-      }
-
       const user = getFirebaseAuth().currentUser;
       if (!user) {
         if (!cancelled) setLoading(false);
@@ -45,6 +40,18 @@ export function useWorkContextForInquiries(): {
         const idToken = await user.getIdToken();
         const assignments = await getWorkContextAssignments(idToken);
         if (cancelled) return;
+
+        const navState = location.state as InquiriesWorkContext | null;
+        if (navState?.companyId && navState?.branchId) {
+          const confirmed = assignments.find(
+            (a) => a.companyId === navState.companyId && a.branchId === navState.branchId,
+          );
+          if (confirmed) {
+            setContext(navState);
+            return;
+          }
+        }
+
         if (assignments.length === 1) {
           const only = assignments[0];
           setContext({

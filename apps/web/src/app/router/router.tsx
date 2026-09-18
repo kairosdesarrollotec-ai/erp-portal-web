@@ -4,6 +4,7 @@ import { ActivationScreen } from '../auth/ActivationScreen';
 import { WorkContextScreen } from '../auth/WorkContextScreen';
 import { DashboardScreen } from '../dashboard/DashboardScreen';
 import { HealthCheckScreen } from './HealthCheckScreen';
+import { RequireAuth } from './RequireAuth';
 import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
 import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
 import { InquiriesListScreen } from '../inquiries/InquiriesListScreen';
@@ -48,24 +49,33 @@ export const router = createBrowserRouter([
     element: <ReservationDetailScreen />,
   },
   {
-    path: '/consultas',
-    // CON-01 - HU-26. Bandeja de consultas.
-    element: <InquiriesListScreen />,
-  },
-  {
-    path: '/consultas/nueva',
-    // CON-02 - HU-26. Registro de una nueva consulta.
-    element: <NewInquiryScreen />,
-  },
-  {
-    path: '/consultas/:id/vehiculos',
-    // CON-03 - HU-26. Exhibicion y cotizacion de vehiculos elegibles.
-    element: <InquiryVehiclesScreen />,
-  },
-  {
-    path: '/consultas/:id',
-    // CON-04 - HU-26. Detalle, cierre sin conversion o conversion a reserva.
-    element: <InquiryDetailScreen />,
+    // Hallazgo de revision PR#11: las rutas de Consulta ahora exigen
+    // sesion de Firebase valida (ver RequireAuth.tsx) - antes se podia
+    // navegar directo a cualquiera de ellas sin autenticarse.
+    element: <RequireAuth />,
+    children: [
+      {
+        path: '/consultas',
+        // CON-01 - HU-26. Bandeja de consultas.
+        element: <InquiriesListScreen />,
+      },
+      {
+        path: '/consultas/nueva',
+        // CON-02 - HU-26. Registro de una nueva consulta.
+        element: <NewInquiryScreen />,
+      },
+      {
+        path: '/consultas/:id/vehiculos',
+        // CON-03 - HU-26. Exhibicion y cotizacion de vehiculos elegibles.
+        element: <InquiryVehiclesScreen />,
+      },
+      {
+        path: '/consultas/:id',
+        // CON-04 - HU-26. Detalle, cierre sin conversion (conversion a
+        // reserva pendiente - ver InquiryDetailScreen.tsx).
+        element: <InquiryDetailScreen />,
+      },
+    ],
   },
   {
     path: '/health',

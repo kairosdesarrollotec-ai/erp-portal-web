@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useInquiriesList } from './useInquiriesList';
 import { INQUIRY_CHANNEL_LABELS, INQUIRY_STATUS_GROUP, INQUIRY_STATUS_GROUP_LABELS } from './inquiry-status';
 import styles from './InquiriesListScreen.module.css';
@@ -7,7 +7,12 @@ import styles from './InquiriesListScreen.module.css';
  * CON-01 - Bandeja de Consultas. Fuente: PANTALLAS-V3-B-CONSULTA.md.
  * Estados: READY, LOADING, EMPTY, RECOVERABLE_ERROR, FORBIDDEN (contrato
  * punto 9). Filtros persistentes en sesion (punto 6/15, ver
- * useInquiriesList.ts).
+ * useInquiriesList.ts, con debounce - hallazgo de revision PR#11).
+ *
+ * Hallazgo de revision PR#11 (finding "filas clicables inaccesibles"):
+ * las filas ya no usan `<tr onClick>` - cada fila tiene un `<Link>` real
+ * "estirado" con nombre accesible propio, navegable con Tab/Enter (mismo
+ * patron que ReservationsListScreen.tsx, PR#10 finding #3).
  */
 export function InquiriesListScreen() {
   const { state, inquiries, context, filters, setFilters } = useInquiriesList();
@@ -92,13 +97,18 @@ export function InquiriesListScreen() {
             <tbody>
               {inquiries.map((inquiry) => {
                 const group = INQUIRY_STATUS_GROUP[inquiry.status];
+                const customerName = inquiry.customer?.name ?? 'Sin cliente registrado';
                 return (
-                  <tr
-                    key={inquiry.id}
-                    className={styles.row}
-                    onClick={() => navigate(`/consultas/${inquiry.id}`, { state: context ?? undefined })}
-                  >
-                    <td>{inquiry.customer?.name ?? 'Sin cliente registrado'}</td>
+                  <tr key={inquiry.id} className={styles.row}>
+                    <td>
+                      <Link
+                        to={`/consultas/${inquiry.id}`}
+                        state={context ?? undefined}
+                        className={styles.rowLink}
+                        aria-label={`Ver detalle de la consulta de ${customerName}`}
+                      />
+                      {customerName}
+                    </td>
                     <td>{inquiry.channel}</td>
                     <td>
                       <span className={`${styles.badge} ${styles[`badge_${group}`]}`}>

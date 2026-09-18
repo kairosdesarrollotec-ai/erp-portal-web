@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { NewInquiryScreen } from './NewInquiryScreen';
 
 const createInquiryMock = vi.fn();
 const closeInquiryMock = vi.fn();
+const getWorkContextAssignmentsMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -20,6 +21,12 @@ vi.mock('./inquiries-client', async () => {
     closeInquiry: (...args: unknown[]) => closeInquiryMock(...args),
   };
 });
+
+vi.mock('../auth/work-context-client', () => ({
+  getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
+}));
+
+const oneAssignment = [{ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' }];
 
 function renderScreen() {
   return render(
@@ -37,10 +44,39 @@ function renderScreen() {
   );
 }
 
+async function waitForContext() {
+  await waitFor(() => expect(getWorkContextAssignmentsMock).toHaveBeenCalled());
+  // Deja que la promesa de getWorkContextAssignments resuelva y el estado
+  // `context` se actualice antes de interactuar - la resolucion del
+  // contexto es asincrona (useWorkContextForInquiries.ts).
+  await waitFor(() => expect(getWorkContextAssignmentsMock).toHaveResolvedTimes(1));
+}
+
+function fillRequiredFields() {
+  fireEvent.change(screen.getByText('Nombre').closest('label')!.querySelector('input')!, {
+    target: { value: 'Maria Quispe' },
+  });
+  fireEvent.change(screen.getByText('Documento').closest('label')!.querySelector('input')!, {
+    target: { value: '12345678' },
+  });
+  fireEvent.change(screen.getByText('Destino').closest('label')!.querySelector('input')!, {
+    target: { value: 'Ayacucho' },
+  });
+  fireEvent.change(screen.getByText('Fecha').closest('label')!.querySelector('input')!, {
+    target: { value: '2099-01-01' },
+  });
+}
+
 describe('NewInquiryScreen (CON-02)', () => {
   beforeEach(() => {
     createInquiryMock.mockReset();
     closeInquiryMock.mockReset();
+    getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
+    try {
+      sessionStorage.clear();
+    } catch {
+      // ignore
+    }
   });
 
   it('revela el documento de hospedaje solo cuando la nacionalidad es Extranjero', () => {
@@ -55,7 +91,20 @@ describe('NewInquiryScreen (CON-02)', () => {
     expect(screen.getByText('Documento de hospedaje')).toBeInTheDocument();
   });
 
-  it('continua a CON-03 al crear la consulta con uso turistico afirmativo', async () => {
+  // Finding "Sin validacion funcional": no se puede continuar con campos vacios.
+  it('bloquea "Continuar" si nombre, documento, destino o fecha estan vacios', async () => {
+    renderScreen();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(await screen.findByText('Ingresa el nombre del cliente.')).toBeInTheDocument();
+    expect(screen.getByText('Ingresa el documento del cliente.')).toBeInTheDocument();
+    expect(screen.getByText('Ingresa el destino del viaje.')).toBeInTheDocument();
+    expect(createInquiryMock).not.toHaveBeenCalled();
+  });
+
+  it('continua a CON-03 al crear la consulta con uso turistico afirmativo y el formulario completo', async () => {
     createInquiryMock.mockResolvedValue({
       id: 'con-1',
       status: 'REGISTRADA',
@@ -67,7 +116,9 @@ describe('NewInquiryScreen (CON-02)', () => {
       createdAt: '2026-09-16T00:00:00Z',
     });
     renderScreen();
+    await waitForContext();
 
+    fillRequiredFields();
     fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 
@@ -97,6 +148,7 @@ describe('NewInquiryScreen (CON-02)', () => {
       createdAt: '2026-09-16T00:00:00Z',
     });
     renderScreen();
+    await waitForContext();
 
     fireEvent.click(screen.getByRole('button', { name: 'No' }));
 
@@ -106,5 +158,27 @@ describe('NewInquiryScreen (CON-02)', () => {
 
     expect(await screen.findByText('bandeja')).toBeInTheDocument();
     expect(closeInquiryMock).toHaveBeenCalledWith('fake-id-token', 'con-2', 1, 'SIN_USO_TURISTICO', expect.any(String));
+  });
+
+  // Findings Critico #1/#2: el autoguardado ya no dice "Guardado" a secas
+  // (podia leerse como guardado en servidor) y persiste de verdad en este
+  // dispositivo, sobreviviendo a un remount de la pantalla (equivalente a
+  // un refresh).
+  it('el indicador de autoguardado es honesto y el borrador sobrevive a un refresh', async () => {
+    const { unmount } = renderScreen();
+
+    fireEvent.change(screen.getByText('Nombre').closest('label')!.querySelector('input')!, {
+      target: { value: 'Maria Quispe' },
+    });
+
+    expect(await screen.findByText('Guardado en este dispositivo')).toBeInTheDocument();
+    expect(screen.queryByText('Guardado', { exact: true })).not.toBeInTheDocument();
+
+    unmount();
+    renderScreen();
+
+    expect((screen.getByText('Nombre').closest('label')!.querySelector('input') as HTMLInputElement).value).toBe(
+      'Maria Quispe',
+    );
   });
 });

@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
-import {
-  closeInquiry,
-  convertInquiryToReservation,
-  getInquiry,
-  InquiryCommandError,
-  InquiryDetail,
-} from './inquiries-client';
+import { closeInquiry, getInquiry, InquiryCommandError, InquiryDetail } from './inquiries-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
 import type { InquiryNavState } from './inquiries-nav-state';
 
@@ -61,34 +55,14 @@ export function useInquiryDetail() {
       const updated = await closeInquiry(idToken, inquiry.id, inquiry.version, 'CIERRE_MANUAL', reason);
       setInquiry({ ...inquiry, ...updated });
     } catch (error) {
-      if (error instanceof InquiryCommandError && error.status === 409) {
+      // TDD-CON-001.md 10.1: una version distinta a la esperada devuelve
+      // 412 INQUIRY_VERSION_CONFLICT (no 409 - ese codigo esta reservado a
+      // conflictos de regla de negocio en otros modulos, ver TDD-RES-001.md).
+      if (error instanceof InquiryCommandError && (error.status === 412 || error.status === 409)) {
         setState('SYNC_CONFLICT');
       } else {
         setActionError(error instanceof Error ? error.message : 'No se pudo cerrar la consulta.');
       }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function convertToReservation() {
-    if (!inquiry) return null;
-    setSaving(true);
-    setActionError(null);
-    try {
-      const user = getFirebaseAuth().currentUser;
-      if (!user) throw new Error('Sesión no disponible.');
-      const idToken = await user.getIdToken();
-      const updated = await convertInquiryToReservation(idToken, inquiry.id, inquiry.version);
-      setInquiry({ ...inquiry, ...updated });
-      return updated;
-    } catch (error) {
-      if (error instanceof InquiryCommandError && error.status === 409) {
-        setState('SYNC_CONFLICT');
-      } else {
-        setActionError(error instanceof Error ? error.message : 'No se pudo convertir la consulta.');
-      }
-      return null;
     } finally {
       setSaving(false);
     }
@@ -103,7 +77,6 @@ export function useInquiryDetail() {
     saving,
     actionError,
     closeWithoutConversion,
-    convertToReservation,
     reload,
   };
 }

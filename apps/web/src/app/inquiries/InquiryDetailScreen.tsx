@@ -6,15 +6,26 @@ import styles from './InquiryDetailScreen.module.css';
 
 /**
  * CON-04 - Detalle, cierre o conversión. Fuente: PANTALLAS-V3-B-CONSULTA.md.
- * Ya no es paso obligatorio del camino feliz (CON-03 reserva directo) -
- * aqui se usa para reabrir una consulta desde la bandeja, o para cerrarla
- * sin conversion (motivo obligatorio, BR-CON-003). Timeline: interactions
- * + quotations combinadas y ordenadas por fecha; desktop lateral,
- * tablet/movil en acordeon "Ver historial".
+ * Aqui se usa para reabrir una consulta desde la bandeja, ver su
+ * cotización, o cerrarla sin conversión (motivo obligatorio, BR-CON-003).
+ * Timeline: interactions + quotations combinadas y ordenadas por fecha;
+ * desktop lateral, tablet/móvil en acordeón "Ver historial".
+ *
+ * Hallazgo de revision PR#11 (Critico #4, "conversión/reserva
+ * incompleta"): antes "Reservar este vehículo" llamaba al comando
+ * `convert-to-reservation` (que deja la consulta en CONVERTIDA, un estado
+ * TERMINAL) y navegaba a /reservas como si la reserva ya existiera - sin
+ * crear ninguna Reservation real (ese comando exige `customerId`,
+ * fechas y `branchId` que este frontend no captura en ningún flujo
+ * todavía, ver inquiries-client.ts). Convertir la consulta sin una
+ * reserva asociada es una pérdida de integridad de datos irreversible.
+ * Ahora la acción se muestra deshabilitada con una explicación honesta -
+ * la consulta se queda en COTIZADA, que es su estado real, hasta que
+ * exista una pantalla de creación de Reserva que junte los datos que
+ * faltan.
  */
 export function InquiryDetailScreen() {
-  const { navState, state, inquiry, saving, actionError, closeWithoutConversion, convertToReservation, reload } =
-    useInquiryDetail();
+  const { navState, state, inquiry, saving, actionError, closeWithoutConversion, reload } = useInquiryDetail();
   const navigate = useNavigate();
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [closeReason, setCloseReason] = useState('');
@@ -56,15 +67,6 @@ export function InquiryDetailScreen() {
       at: item.createdAt,
     })),
   ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
-
-  async function handleReserve() {
-    const updated = await convertToReservation();
-    if (updated) {
-      navigate('/reservas', {
-        state: { ...(navState ?? {}), inquiryId: inquiry!.id, vehicleId: latestQuotation?.vehicleId },
-      });
-    }
-  }
 
   return (
     <main className={styles.wrapper}>
@@ -119,9 +121,21 @@ export function InquiryDetailScreen() {
           {actionError && <p className={styles.errorText}>{actionError}</p>}
 
           {canReserve && (
-            <button type="button" className={styles.primaryButton} disabled={saving} onClick={() => void handleReserve()}>
-              {saving ? 'Procesando…' : 'Reservar este vehículo'}
-            </button>
+            <>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                disabled
+                title="Disponible cuando exista la pantalla de creación de Reserva (captura de cliente y fechas)"
+              >
+                Crear reserva — no disponible todavía
+              </button>
+              <p className={styles.helperText}>
+                Esta consulta ya tiene una cotización, pero crear la reserva requiere datos que esta pantalla
+                todavía no captura (cliente formal y fechas de recojo/devolución). La consulta se mantiene en
+                Cotizada hasta que ese flujo exista.
+              </p>
+            </>
           )}
 
           {!isClosed && !showCloseForm && (

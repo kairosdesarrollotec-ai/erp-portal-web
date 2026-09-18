@@ -5,7 +5,7 @@ import { InquiryDetailScreen } from './InquiryDetailScreen';
 
 const getInquiryMock = vi.fn();
 const closeInquiryMock = vi.fn();
-const convertInquiryToReservationMock = vi.fn();
+const getWorkContextAssignmentsMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -19,9 +19,14 @@ vi.mock('./inquiries-client', async () => {
     ...actual,
     getInquiry: (...args: unknown[]) => getInquiryMock(...args),
     closeInquiry: (...args: unknown[]) => closeInquiryMock(...args),
-    convertInquiryToReservation: (...args: unknown[]) => convertInquiryToReservationMock(...args),
   };
 });
+
+vi.mock('../auth/work-context-client', () => ({
+  getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
+}));
+
+const oneAssignment = [{ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' }];
 
 function buildInquiry(overrides: Record<string, unknown> = {}) {
   return {
@@ -61,16 +66,29 @@ describe('InquiryDetailScreen (CON-04)', () => {
   beforeEach(() => {
     getInquiryMock.mockReset();
     closeInquiryMock.mockReset();
-    convertInquiryToReservationMock.mockReset();
+    getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
-  it('muestra el resumen y el boton "Reservar este vehiculo" cuando hay cotizacion', async () => {
+  it('muestra el resumen y la cotizacion', async () => {
     getInquiryMock.mockResolvedValue(buildInquiry());
     renderScreen();
 
     expect(await screen.findByText('Maria Quispe')).toBeInTheDocument();
-    expect(screen.getByText('Reservar este vehículo')).toBeInTheDocument();
     expect(screen.getByText('veh-mock-hilux')).toBeInTheDocument();
+  });
+
+  // Hallazgo Critico #4: ya no existe un boton que "reserve" de verdad -
+  // se muestra deshabilitado con una explicacion honesta, y la consulta
+  // permanece Cotizada (nunca se llama a convert-to-reservation).
+  it('cuando hay cotizacion, muestra "Crear reserva" deshabilitado con una explicacion, sin convertir la consulta', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry());
+    renderScreen();
+
+    await screen.findByText('Maria Quispe');
+    const createButton = screen.getByText('Crear reserva — no disponible todavía');
+    expect(createButton.closest('button')).toBeDisabled();
+    expect(screen.getByText(/requiere datos que esta pantalla todavía no captura/)).toBeInTheDocument();
+    expect(screen.getByText('Cotizada')).toBeInTheDocument();
   });
 
   it('no permite confirmar el cierre sin motivo', async () => {
@@ -99,17 +117,5 @@ describe('InquiryDetailScreen (CON-04)', () => {
       'CIERRE_MANUAL',
       'El cliente ya no requiere el vehículo.',
     );
-  });
-
-  it('al reservar, convierte la consulta y navega a /reservas', async () => {
-    getInquiryMock.mockResolvedValue(buildInquiry());
-    convertInquiryToReservationMock.mockResolvedValue(buildInquiry({ status: 'CONVERTIDA', version: 2 }));
-    renderScreen();
-
-    await screen.findByText('Maria Quispe');
-    fireEvent.click(screen.getByText('Reservar este vehículo'));
-
-    expect(await screen.findByText('reservas')).toBeInTheDocument();
-    expect(convertInquiryToReservationMock).toHaveBeenCalledWith('fake-id-token', 'con-1', 1);
   });
 });

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getFirebaseAuth } from '../providers/firebase';
-import { listInquiries, InquirySummary } from './inquiries-client';
+import { listInquiries, InquirySummary, InquiryApiError } from './inquiries-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
 import type { InquiryChannel, InquiryStatus } from './inquiry-status';
 
@@ -17,6 +17,19 @@ const EMPTY_FILTERS: InquiriesFilters = { customerId: '', channel: '', status: '
 
 /** CON-01 punto 6 y 15: los filtros se conservan durante la sesion. */
 const FILTERS_SESSION_KEY = 'kairos.consultas.filtros';
+
+/**
+ * Hallazgo de revision PR#11 ("Filtro por cliente dispara una peticion
+ * por tecla"): antes cada `setFilters` disparaba `reload()` de inmediato
+ * via el `useEffect` que depende de `filters` - escribir "Maria" en el
+ * buscador de cliente mandaba 5 peticiones HTTP, una por letra, y sin
+ * ningun control de orden una respuesta lenta de una letra anterior podia
+ * pisar el resultado de la ultima letra escrita (respuesta fuera de
+ * orden). Se agrega debounce (400ms) sobre el disparo del `reload()`, mas
+ * un contador de generacion que descarta cualquier respuesta que no sea
+ * la de la peticion mas reciente.
+ */
+const FILTER_DEBOUNCE_MS = 400;
 
 function loadStoredFilters(): InquiriesFilters {
   try {
@@ -41,6 +54,7 @@ export function useInquiriesList() {
   const [state, setState] = useState<InquiriesListState>('LOADING');
   const [inquiries, setInquiries] = useState<InquirySummary[]>([]);
   const [filters, setFiltersState] = useState<InquiriesFilters>(() => loadStoredFilters());
+  const requestIdRef = useRef(0);
 
   const setFilters = useCallback((next: InquiriesFilters) => {
     setFiltersState(next);
@@ -49,23 +63,29 @@ export function useInquiriesList() {
 
   const reload = useCallback(async () => {
     if (!context) return;
+    const requestId = ++requestIdRef.current;
     setState('LOADING');
     try {
       const user = getFirebaseAuth().currentUser;
       if (!user) {
-        setState('RECOVERABLE_ERROR');
+        if (requestId === requestIdRef.current) setState('RECOVERABLE_ERROR');
         return;
       }
       const idToken = await user.getIdToken();
-      const results = await listInquiries(idToken, context.companyId, {
+      const results = await listInquiries(idToken, context.companyId, context.branchId, {
         customerId: filters.customerId || undefined,
         channel: filters.channel || undefined,
         status: filters.status || undefined,
       });
+      // Proteccion contra respuestas fuera de orden: si mientras esta
+      // peticion estaba en vuelo se disparo otra mas reciente (nuevo
+      // filtro), esta respuesta llega tarde y se descarta.
+      if (requestId !== requestIdRef.current) return;
       setInquiries(results);
       setState(results.length === 0 ? 'EMPTY' : 'READY');
     } catch (error) {
-      if (error instanceof Error && error.message.includes('(403)')) {
+      if (requestId !== requestIdRef.current) return;
+      if (error instanceof InquiryApiError && (error.status === 401 || error.status === 403)) {
         setState('FORBIDDEN');
       } else {
         setState('RECOVERABLE_ERROR');
@@ -74,11 +94,13 @@ export function useInquiriesList() {
   }, [context, filters]);
 
   useEffect(() => {
-    if (!contextLoading && context) {
-      void reload();
-    } else if (!contextLoading && !context) {
+    if (contextLoading) return;
+    if (!context) {
       setState('RECOVERABLE_ERROR');
+      return;
     }
+    const timer = setTimeout(() => void reload(), FILTER_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
     // reload ya depende de `filters`, no hace falta duplicarlo aqui
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context, contextLoading, filters]);

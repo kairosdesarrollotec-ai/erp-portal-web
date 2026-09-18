@@ -93,11 +93,27 @@
 }
 
 .row {
+  position: relative;
   cursor: pointer;
 }
 
 .row:hover {
   background: #FAF9F6;
+}
+
+/* Fila accesible por teclado (hallazgo de revision PR#11, mismo patron
+   que ReservationsListScreen.module.css/PR#10 finding #3): en vez de
+   <tr onClick> (inalcanzable por teclado/lector de pantalla), un <Link>
+   real "estirado" (position: absolute; inset: 0) cubre toda la fila. */
+.rowLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.rowLink:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 .badge {

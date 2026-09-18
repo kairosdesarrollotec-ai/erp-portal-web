@@ -38,10 +38,35 @@ function authHeaders(idToken: string): HeadersInit {
   return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
 }
 
-/** CON-01 - bandeja de consultas (PANTALLAS-V3-B-CONSULTA.md, GET /inquiries). */
+/** Igual patron que ReservationApiError (reservations-client.ts) - permite
+ * distinguir un fallo tecnico (401/403/404/5xx) de datos validos en
+ * listInquiries/getInquiry, en vez de la comprobacion fragil por texto
+ * (`error.message.includes('(403)')`) que usaba useInquiriesList.ts antes
+ * de esta revision (hallazgo "Verificacion requerida: 401/403/409/422/5xx"). */
+export class InquiryApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'InquiryApiError';
+    this.status = status;
+  }
+}
+
+/**
+ * CON-01 - bandeja de consultas (PANTALLAS-V3-B-CONSULTA.md, GET /inquiries).
+ *
+ * Hallazgo de revision PR#11 ("Contexto incompleto"): igual que RES-01
+ * (finding #1 de la revision de PR#10), el listado filtraba solo por
+ * companyId - una empresa puede tener varias sedes, y sin branchId la
+ * bandeja de una sede podia mezclar consultas de otras sedes de la misma
+ * empresa. branchId es ahora obligatorio, igual que en getInquiry. El
+ * aislamiento real sigue siendo responsabilidad del backend.
+ */
 export async function listInquiries(
   idToken: string,
   companyId: string,
+  branchId: string,
   filters?: {
     customerId?: string;
     channel?: string;
@@ -49,8 +74,9 @@ export async function listInquiries(
     createdFrom?: string;
     createdTo?: string;
   },
+  signal?: AbortSignal,
 ): Promise<InquirySummary[]> {
-  const params = new URLSearchParams({ companyId });
+  const params = new URLSearchParams({ companyId, branchId });
   if (filters?.customerId) params.set('customerId', filters.customerId);
   if (filters?.channel) params.set('channel', filters.channel);
   if (filters?.status) params.set('status', filters.status);
@@ -58,9 +84,10 @@ export async function listInquiries(
   if (filters?.createdTo) params.set('createdTo', filters.createdTo);
   const response = await fetch(`${API_BASE_URL}/inquiries?${params.toString()}`, {
     headers: authHeaders(idToken),
+    signal,
   });
   if (!response.ok) {
-    throw new Error(`No se pudo obtener la bandeja de consultas (${response.status})`);
+    throw new InquiryApiError(`No se pudo obtener la bandeja de consultas (${response.status})`, response.status);
   }
   return (await response.json()) as InquirySummary[];
 }
@@ -77,12 +104,12 @@ export async function getInquiry(
     headers: authHeaders(idToken),
   });
   if (!response.ok) {
-    throw new Error(`No se pudo obtener la consulta (${response.status})`);
+    throw new InquiryApiError(`No se pudo obtener la consulta (${response.status})`, response.status);
   }
   return (await response.json()) as InquiryDetail;
 }
 
-/** Cuerpo `problem+json` que el backend devuelve en 409/422 (mismo contrato que reservations-client.ts). */
+/** Cuerpo `problem+json` que el backend devuelve en 409/412/422 (mismo contrato que reservations-client.ts). */
 export class InquiryCommandError extends Error {
   constructor(
     public readonly status: number,
@@ -92,14 +119,29 @@ export class InquiryCommandError extends Error {
   }
 }
 
-/** CON-02 - crea la Consulta en REGISTRADA. */
+/**
+ * CON-02 - crea la Consulta en REGISTRADA (TDD-CON-001.md 11.1).
+ *
+ * Hallazgo de revision PR#11 (Critico #1, "los datos capturados no se
+ * envian"): verificado contra TDD-CON-001.md 11.1 - el backend de este
+ * corte de HU-26 SOLO acepta `channel`, `customerId` (opcional) y
+ * `touristUse` en el body de creacion. No existe todavia un campo
+ * server-side para nombre/documento/nacionalidad/destino/fecha/personas -
+ * no es un DTO mal armado del lado del cliente, es una limitacion real y
+ * documentada del contrato (ver tambien inquiries-nav-state.ts). `customerId`
+ * se omite aqui porque el frontend no tiene ningun flujo de busqueda/alta de
+ * cliente (`CustomerLookupPort` no esta expuesto via UI todavia) - inventar
+ * un id seria peor que no mandarlo. El resto de campos capturados en CON-02
+ * ahora se preservan con un borrador local real (ver useNewInquiry.ts) en
+ * vez de perderse silenciosamente si el usuario recarga la pagina.
+ */
 export async function createInquiry(
   idToken: string,
   body: { channel: string; customerId?: string; touristUse: boolean },
 ): Promise<InquirySummary> {
   const response = await fetch(`${API_BASE_URL}/inquiries`, {
     method: 'POST',
-    headers: authHeaders(idToken),
+    headers: { ...authHeaders(idToken), 'Idempotency-Key': crypto.randomUUID() },
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -118,7 +160,13 @@ async function postCommand(
 ): Promise<InquirySummary> {
   const response = await fetch(`${API_BASE_URL}/inquiries/${id}/commands/${command}`, {
     method: 'POST',
-    headers: { ...authHeaders(idToken), 'If-Match': `"${version}"` },
+    headers: {
+      ...authHeaders(idToken),
+      'If-Match': `"${version}"`,
+      // TDD-CON-001.md 15: la idempotencia aplica a register/quote/close -
+      // antes el cliente no mandaba este header en ningun comando mutable.
+      'Idempotency-Key': crypto.randomUUID(),
+    },
     body: JSON.stringify(body),
   });
   if (!response.ok) {
@@ -151,9 +199,22 @@ export function closeInquiry(
   return postCommand(idToken, id, 'close', version, { reason, note });
 }
 
-/** CON-03/CON-04 - pasa a CONVERTIDA. No crea la Reservation: eso lo hace
- * el flujo de Reserva (HU-27) llamando a `POST /reservations` con
- * `inquiryId` despues de esta navegacion. */
+/**
+ * CON-03/CON-04 - pasa a CONVERTIDA (estado terminal). No crea la
+ * Reservation: ese comando (`POST /reservations`, TDD-RES-001.md 11.1)
+ * exige `customerId`, `startAt`/`endAt` y `branchId` que este frontend
+ * todavia no captura en ningun flujo (no hay alta/busqueda de cliente ni
+ * seleccion de fechas de recojo/devolucion en Consulta).
+ *
+ * Hallazgo de revision PR#11 (Critico #4, "conversion/reserva
+ * incompleta"): antes se llamaba este comando y se navegaba a /reservas
+ * como si la conversion hubiera completado el flujo, dejando la Consulta
+ * en CONVERTIDA (estado TERMINAL, sin retorno) sin ninguna Reservation
+ * asociada - perdida de integridad de datos real. Por eso esta funcion ya
+ * NO se invoca desde la UI (ver useInquiryDetail.ts) hasta que exista una
+ * pantalla real de creacion de Reserva que junte los datos que faltan; se
+ * mantiene exportada para cuando ese flujo se construya.
+ */
 export function convertInquiryToReservation(idToken: string, id: string, version: number): Promise<InquirySummary> {
   return postCommand(idToken, id, 'convert-to-reservation', version, {});
 }

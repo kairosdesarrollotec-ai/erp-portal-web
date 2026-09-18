@@ -53,6 +53,20 @@
   margin: 0;
 }
 
+.helperNote {
+  color: var(--color-muted);
+  font-size: 12px;
+  margin: 0;
+  background: #F5F3EE;
+  border-radius: 6px;
+  padding: 0.625rem 0.75rem;
+}
+
+.fieldError {
+  color: var(--color-error);
+  font-size: 12px;
+}
+
 .section {
   display: flex;
   flex-direction: column;
