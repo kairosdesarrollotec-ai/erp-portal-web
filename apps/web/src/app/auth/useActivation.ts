@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { multiFactor, TotpMultiFactorGenerator, updatePassword, type TotpSecret } from 'firebase/auth';
+import { multiFactor, TotpMultiFactorGenerator, updatePassword, type TotpSecret, type User } from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
 import { completeActivation } from './activation-client';
 import type { ActivationPasswordFormValues } from './activation.schema';
@@ -62,6 +62,23 @@ function errorCode(error: unknown): string | undefined {
     : undefined;
 }
 
+/**
+ * Hallazgo alto de revision PR#4 ("el flujo acepta cualquier factor MFA
+ * como si fuera TOTP"): `enrolledFactors.length > 0` trataba CUALQUIER
+ * factor multi-factor como equivalente a "ya tiene TOTP enrolado" (tanto
+ * al reanudar el flujo como al confirmar el codigo). Una cuenta con un
+ * factor no-TOTP (p. ej. telefono, si Firebase lo tuviera habilitado)
+ * podria saltarse el enrolamiento de TOTP exigido por PROP-002 y de
+ * todas formas llamar `completeActivation`, dejando el backend marcado
+ * como activado sin el factor requerido. Se compara explicitamente
+ * `factor.factorId` contra `TotpMultiFactorGenerator.FACTOR_ID`.
+ */
+function hasTotpFactor(user: User): boolean {
+  return multiFactor(user).enrolledFactors.some(
+    (factor) => factor.factorId === TotpMultiFactorGenerator.FACTOR_ID,
+  );
+}
+
 export function useActivation() {
   const [step, setStep] = useState<ActivationStep>('PASSWORD');
   const [state, setState] = useState<ActivationScreenState>('LOADING');
@@ -85,7 +102,7 @@ export function useActivation() {
         return;
       }
 
-      const alreadyEnrolled = multiFactor(user).enrolledFactors.length > 0;
+      const alreadyEnrolled = hasTotpFactor(user);
       if (!alreadyEnrolled) {
         if (!cancelled) setState('READY');
         return;
@@ -156,7 +173,7 @@ export function useActivation() {
           return;
         }
 
-        const alreadyEnrolled = multiFactor(user).enrolledFactors.length > 0;
+        const alreadyEnrolled = hasTotpFactor(user);
         if (!alreadyEnrolled) {
           if (!totpSecret) {
             setState('REAUTH_REQUIRED');

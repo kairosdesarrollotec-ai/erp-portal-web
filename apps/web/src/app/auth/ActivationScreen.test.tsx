@@ -27,6 +27,10 @@ vi.mock('firebase/auth', () => ({
   TotpMultiFactorGenerator: {
     generateSecret: (...args: unknown[]) => generateSecretMock(...args),
     assertionForEnrollment: (...args: unknown[]) => assertionForEnrollmentMock(...args),
+    // Hallazgo alto de revision PR#4: el mock necesita este estatico real
+    // para que hasTotpFactor() (useActivation.ts) pueda compararlo contra
+    // factorId, igual que en produccion.
+    FACTOR_ID: 'totp',
   },
 }));
 
@@ -191,5 +195,49 @@ describe('ActivationScreen (TR-02)', () => {
     renderScreen();
 
     await waitFor(() => expect(completeActivationMock).toHaveBeenCalledTimes(1));
+  });
+
+  /**
+   * Hallazgo alto de revision PR#4 ("el flujo acepta cualquier factor MFA
+   * como si fuera TOTP"): con 0 factores enrolados, retoma en el paso de
+   * contraseña (READY), nunca salta directo a completeActivation.
+   */
+  it('con 0 factores enrolados, retoma en READY (paso contraseña) sin llamar completeActivation', async () => {
+    enrolledFactors = [];
+    renderScreen();
+
+    await screen.findByLabelText('Nueva contraseña');
+    expect(completeActivationMock).not.toHaveBeenCalled();
+  });
+
+  it('con un factor MFA no-TOTP enrolado, NO lo trata como TOTP ya enrolado y retoma en READY', async () => {
+    enrolledFactors = [{ factorId: 'phone' }];
+    renderScreen();
+
+    await screen.findByLabelText('Nueva contraseña');
+    expect(completeActivationMock).not.toHaveBeenCalled();
+  });
+
+  it('al confirmar el codigo, si el unico factor enrolado no es TOTP, igual enrola TOTP (no lo salta)', async () => {
+    enrolledFactors = [{ factorId: 'phone' }];
+    await goToPasswordStep();
+
+    fireEvent.change(screen.getByLabelText('Nueva contraseña'), {
+      target: { value: 'Abcdefg1' },
+    });
+    fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
+      target: { value: 'Abcdefg1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+    await screen.findByText('Protege tu cuenta');
+
+    const digitInputs = screen.getAllByRole('textbox');
+    digitInputs.forEach((input, i) => {
+      fireEvent.change(input, { target: { value: String((i + 1) % 10) } });
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Activar cuenta' }));
+
+    await waitFor(() => expect(enrollMock).toHaveBeenCalledTimes(1));
+    expect(completeActivationMock).toHaveBeenCalledTimes(1);
   });
 });
