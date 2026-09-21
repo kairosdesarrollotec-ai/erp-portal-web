@@ -1,23 +1,37 @@
 #!/usr/bin/env node
 /**
  * Verifica docs/prototype-manifest.yaml contra los archivos reales en disco,
- * y (cuando corre en un PR) contra el manifiesto de la rama base.
+ * y (cuando corre en un PR, con --base) contra el manifiesto de la rama base.
  *
  * Falla (exit 1) si:
  *   - falta el archivo de screenshot referenciado por una entrada
  *   - el sha256 o los bytes declarados no coinciden con el archivo real
  *   - hay proto_id duplicados
+ *   - (solo con --base) algun campo protegido (status/approved_at/
+ *     approved_by_role/proto_id) cambio respecto a la rama base
  *
- * Nunca falla solo por diferencias en status/approved_at/approved_by_role/
- * proto_id respecto a la rama base - esas se listan aparte en el resumen
- * como "requieren aprobacion explicita", porque bloquearlas es
- * responsabilidad de la revision obligatoria (CODEOWNERS), no de este script.
+ * Hallazgo alto de revalidacion de seguimiento de PR#6 (6317d84): "los
+ * campos protegidos solo generan un aviso... sin CODEOWNER efectivo no
+ * existe el gate solicitado". Antes, un cambio en campos protegidos SOLO
+ * se listaba en el resumen como "requiere aprobacion explicita" pero
+ * nunca hacia fallar el script - el gate real dependia por completo de
+ * que CODEOWNERS + "Require review from Code Owners" estuvieran
+ * configurados en GitHub (branch protection), algo que este script no
+ * puede verificar ni garantizar por si solo. Ahora el script mismo
+ * bloquea (exit 1) cualquier cambio en un campo protegido cuando corre
+ * con --base (es decir, en CI contra la rama base de un PR) - es una
+ * segunda linea de defensa que no depende de que la configuracion de
+ * GitHub este correcta. Sigue siendo necesario, ademas, que CODEOWNERS
+ * apunte a un revisor real y que branch protection lo exija (ver
+ * .github/CODEOWNERS) - este script no reemplaza esa revision humana,
+ * solo evita que un cambio de baseline pase CI sin que nadie lo note.
  *
  * Uso:
  *   node scripts/verify-prototype-manifest.mjs [--base <ref>] [--repo-root <path>]
  *
  * Con --base, compara ademas contra `git show <ref>:docs/prototype-manifest.yaml`
- * para clasificar entradas como agregadas / eliminadas / modificadas.
+ * para clasificar entradas como agregadas / eliminadas / modificadas, y
+ * para aplicar el gate de campos protegidos descrito arriba.
  */
 import { createHash } from 'node:crypto';
 import { readFileSync, statSync, existsSync } from 'node:fs';
@@ -147,7 +161,7 @@ function main() {
     summaryLines.push(`- Agregadas respecto a \`${base}\`: ${added.length}`);
     summaryLines.push(`- Eliminadas respecto a \`${base}\`: ${removed.length}`);
     summaryLines.push(
-      `- Con cambios en campos protegidos (status/approved_at/approved_by_role/proto_id) - **requieren aprobacion explicita de un CODEOWNER**: ${modifiedProtected.length}`,
+      `- Con cambios en campos protegidos (status/approved_at/approved_by_role/proto_id) - **bloquean el check, requieren revision de un CODEOWNER real**: ${modifiedProtected.length}`,
     );
   }
   summaryLines.push('');
@@ -175,7 +189,7 @@ function main() {
   }
 
   if (base && modifiedProtected.length) {
-    summaryLines.push('## Cambios en campos protegidos (requieren aprobacion explicita)');
+    summaryLines.push('## Cambios en campos protegidos (BLOQUEANTE - requieren revision de un CODEOWNER real)');
     for (const m of modifiedProtected) {
       summaryLines.push(`- \`${m.proto_id}\`: ${m.changedFields.join(', ')}`);
     }
@@ -201,9 +215,21 @@ function main() {
     execFileSync('sh', ['-c', `cat >> "$GITHUB_STEP_SUMMARY"`], { input: summary });
   }
 
-  const hasBlockingIssues = missing.length > 0 || mismatched.length > 0 || duplicates.length > 0;
+  const hasProtectedFieldChanges = Boolean(base) && modifiedProtected.length > 0;
+  const hasBlockingIssues =
+    missing.length > 0 || mismatched.length > 0 || duplicates.length > 0 || hasProtectedFieldChanges;
+
   if (hasBlockingIssues) {
-    console.error('\nFALLO: hay archivos faltantes, sha256/bytes desalineados o proto_id duplicados.');
+    const reasons = [];
+    if (missing.length) reasons.push('archivos faltantes');
+    if (mismatched.length) reasons.push('sha256/bytes desalineados');
+    if (duplicates.length) reasons.push('proto_id duplicados');
+    if (hasProtectedFieldChanges) {
+      reasons.push(
+        `cambios en campos protegidos sin aprobacion explicita (${modifiedProtected.length} entrada(s) - requiere revision de un CODEOWNER real, ver .github/CODEOWNERS)`,
+      );
+    }
+    console.error(`\nFALLO: ${reasons.join(', ')}.`);
     process.exit(1);
   }
 
