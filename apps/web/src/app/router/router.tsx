@@ -15,6 +15,7 @@ import { AdminUsersScreen } from '../admin/AdminUsersScreen';
 import { AuditEventsScreen } from '../admin/AuditEventsScreen';
 import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
 import { RolePermissionMatrixScreen } from '../admin/RolePermissionMatrixScreen';
+import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -107,6 +108,14 @@ export const router = createBrowserRouter([
         // (contrato UX punto 12). El backend re-valida server-side
         // MANAGE_PERMISSIONS (admin-role-policy.ts).
         element: <RolePermissionMatrixScreen />,
+      },
+      {
+        path: '/admin/notificaciones',
+        // ADM-05. Configuracion de plantillas de notificacion. El
+        // backend re-valida server-side MANAGE_NOTIFICATIONS
+        // (admin-role-policy.ts). Alcance real: guarda texto/canal,
+        // no envia ninguna notificacion todavia (TR-07 pendiente).
+        element: <NotificationTemplatesScreen />,
       },
     ],
   },
