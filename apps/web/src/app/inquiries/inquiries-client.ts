@@ -120,24 +120,50 @@ export class InquiryCommandError extends Error {
 }
 
 /**
- * CON-02 - crea la Consulta en REGISTRADA (TDD-CON-001.md 11.1).
+ * CON-02 - crea la Consulta en REGISTRADA con el snapshot completo
+ * (TDD-CON-001.md 11.1 + RegisterInquiryDto, backend PR#7 d7a6124).
  *
- * Hallazgo de revision PR#11 (Critico #1, "los datos capturados no se
- * envian"): verificado contra TDD-CON-001.md 11.1 - el backend de este
- * corte de HU-26 SOLO acepta `channel`, `customerId` (opcional) y
- * `touristUse` en el body de creacion. No existe todavia un campo
- * server-side para nombre/documento/nacionalidad/destino/fecha/personas -
- * no es un DTO mal armado del lado del cliente, es una limitacion real y
- * documentada del contrato (ver tambien inquiries-nav-state.ts). `customerId`
- * se omite aqui porque el frontend no tiene ningun flujo de busqueda/alta de
- * cliente (`CustomerLookupPort` no esta expuesto via UI todavia) - inventar
- * un id seria peor que no mandarlo. El resto de campos capturados en CON-02
- * ahora se preservan con un borrador local real (ver useNewInquiry.ts) en
- * vez de perderse silenciosamente si el usuario recarga la pagina.
+ * Actualizado tras el cierre de PR#7 backend (revalidacion de seguimiento,
+ * hallazgo ALTO "brecha contractual con CON-02"): el backend ahora exige
+ * `companyId`, `branchId`, `nationality`, `destination` y `estimatedDays`
+ * como obligatorios (antes el body de este cliente ni siquiera los
+ * mandaba - una llamada real habria fallado con 400). Se agregan tambien
+ * los campos opcionales del snapshot (`prospectName`/`prospectDocumentType`/
+ * `prospectDocumentNumber`, `travelStartDate`, `partySize`,
+ * `countryEntryDate`) que el formulario de CON-02 ya capturaba localmente
+ * pero nunca enviaba.
+ *
+ * `customerId` se sigue omitiendo: el frontend no tiene ningun flujo de
+ * busqueda/alta de cliente (`CustomerLookupPort` no esta expuesto via UI
+ * todavia) - inventar un id seria peor que no mandarlo; por eso
+ * `prospectName` es obligatorio en su lugar (CON-P02, validado por el
+ * handler).
+ *
+ * `countryEntryDate` (fecha de ingreso al pais, solo EXTRANJERO,
+ * SC-CON-001.03) queda sin mandar: el formulario captura "Documento de
+ * hospedaje" para el cliente extranjero, que es un campo distinto (no una
+ * fecha) y no tiene equivalente en este DTO - no se inventa una fecha a
+ * partir de un dato que no lo es. Documentado como brecha pendiente, no
+ * corregido silenciosamente.
  */
 export async function createInquiry(
   idToken: string,
-  body: { channel: string; customerId?: string; touristUse: boolean },
+  body: {
+    companyId: string;
+    branchId: string;
+    channel: string;
+    customerId?: string;
+    touristUse: boolean;
+    prospectName?: string;
+    prospectDocumentType?: string;
+    prospectDocumentNumber?: string;
+    nationality: 'PERUANO' | 'EXTRANJERO';
+    destination: string;
+    estimatedDays: number;
+    travelStartDate?: string;
+    partySize?: number;
+    countryEntryDate?: string;
+  },
 ): Promise<InquirySummary> {
   const response = await fetch(`${API_BASE_URL}/inquiries`, {
     method: 'POST',

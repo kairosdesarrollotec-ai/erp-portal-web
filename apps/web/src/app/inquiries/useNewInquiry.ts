@@ -133,8 +133,17 @@ export function useNewInquiry() {
       if (!user) throw new Error('Sesión no disponible.');
       const idToken = await user.getIdToken();
       const created = await createInquiry(idToken, {
+        companyId: context.companyId,
+        branchId: context.branchId,
         channel: form.channel,
         touristUse: form.touristUse ?? false,
+        prospectName: form.customerName.trim(),
+        prospectDocumentNumber: form.document.trim() || undefined,
+        nationality: form.nationality,
+        destination: form.destination.trim(),
+        estimatedDays: form.travelDays,
+        travelStartDate: form.travelDate || undefined,
+        partySize: form.travelers,
       });
       clearStoredDraft();
       navigate(`/consultas/${created.id}/vehiculos`, {
@@ -164,15 +173,43 @@ export function useNewInquiry() {
    * No se exige la validacion completa del formulario aqui: es una salida
    * temprana, no el camino que llega a CON-03.
    */
+  /**
+   * Actualizado junto con submit() (ver comentario de createInquiry en
+   * inquiries-client.ts): el backend exige el mismo snapshot minimo
+   * (nombre del prospecto, nacionalidad, destino, dias) incluso para el
+   * cierre inmediato por rechazo de uso turistico - no es un atajo que
+   * pueda saltarse la validacion. Se reutiliza `validateNewInquiryForm`
+   * para no duplicar las reglas ni dejar pasar un `destination` vacio que
+   * el backend rechazaria con 400.
+   */
   async function closeWithoutTouristUse() {
     if (!context) return;
+    setSubmitAttempted(true);
+    const errors = validateNewInquiryForm(form);
+    setFieldErrors(errors);
+    if (hasInquiryFormErrors(errors)) {
+      setError('Revisa los campos marcados antes de continuar.');
+      return;
+    }
     setState('SAVING');
     setError(null);
     try {
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesión no disponible.');
       const idToken = await user.getIdToken();
-      const created = await createInquiry(idToken, { channel: form.channel, touristUse: false });
+      const created = await createInquiry(idToken, {
+        companyId: context.companyId,
+        branchId: context.branchId,
+        channel: form.channel,
+        touristUse: false,
+        prospectName: form.customerName.trim(),
+        prospectDocumentNumber: form.document.trim() || undefined,
+        nationality: form.nationality,
+        destination: form.destination.trim(),
+        estimatedDays: form.travelDays,
+        travelStartDate: form.travelDate || undefined,
+        partySize: form.travelers,
+      });
       await closeInquiry(idToken, created.id, created.version, 'SIN_USO_TURISTICO', 'El cliente no confirma uso turístico.');
       clearStoredDraft();
       navigate('/consultas', { state: context });

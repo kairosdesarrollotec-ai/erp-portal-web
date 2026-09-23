@@ -49,15 +49,39 @@ describe('inquiries-client', () => {
     await expect(getInquiry('token', 'con-1', 'c1', 'b1')).rejects.toBeInstanceOf(InquiryApiError);
   });
 
-  it('createInquiry manda solo channel/customerId/touristUse, con Idempotency-Key (contrato TDD-CON-001.md 11.1)', async () => {
+  it('createInquiry manda el snapshot completo de CON-02, con Idempotency-Key (RegisterInquiryDto, backend PR#7 d7a6124)', async () => {
     const fetchMock = mockFetchOnce(201, { id: 'con-1' });
     vi.stubGlobal('fetch', fetchMock);
 
-    await createInquiry('token', { channel: 'WHATSAPP', touristUse: true });
+    await createInquiry('token', {
+      companyId: 'c1',
+      branchId: 'b1',
+      channel: 'WHATSAPP',
+      touristUse: true,
+      prospectName: 'Maria Quispe',
+      prospectDocumentNumber: '12345678',
+      nationality: 'PERUANO',
+      destination: 'Ayacucho',
+      estimatedDays: 3,
+      travelStartDate: '2099-01-01',
+      partySize: 2,
+    });
 
     const [, init] = fetchMock.mock.calls[0];
     const body = JSON.parse(init.body as string);
-    expect(body).toEqual({ channel: 'WHATSAPP', touristUse: true });
+    expect(body).toEqual({
+      companyId: 'c1',
+      branchId: 'b1',
+      channel: 'WHATSAPP',
+      touristUse: true,
+      prospectName: 'Maria Quispe',
+      prospectDocumentNumber: '12345678',
+      nationality: 'PERUANO',
+      destination: 'Ayacucho',
+      estimatedDays: 3,
+      travelStartDate: '2099-01-01',
+      partySize: 2,
+    });
     expect((init.headers as Record<string, string>)['Idempotency-Key']).toBeTruthy();
   });
 

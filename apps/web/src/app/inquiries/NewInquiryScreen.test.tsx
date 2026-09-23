@@ -123,7 +123,19 @@ describe('NewInquiryScreen (CON-02)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(await screen.findByText('vehiculos')).toBeInTheDocument();
-    expect(createInquiryMock).toHaveBeenCalledWith('fake-id-token', { channel: 'WHATSAPP', touristUse: true });
+    expect(createInquiryMock).toHaveBeenCalledWith('fake-id-token', {
+      companyId: 'c1',
+      branchId: 'b1',
+      channel: 'WHATSAPP',
+      touristUse: true,
+      prospectName: 'Maria Quispe',
+      prospectDocumentNumber: '12345678',
+      nationality: 'PERUANO',
+      destination: 'Ayacucho',
+      estimatedDays: 1,
+      travelStartDate: '2099-01-01',
+      partySize: 1,
+    });
   });
 
   it('cuando el cliente rechaza el uso turistico, ofrece cierre inmediato en vez de Continuar', async () => {
@@ -149,6 +161,7 @@ describe('NewInquiryScreen (CON-02)', () => {
     });
     renderScreen();
     await waitForContext();
+    fillRequiredFields();
 
     fireEvent.click(screen.getByRole('button', { name: 'No' }));
 
@@ -158,6 +171,23 @@ describe('NewInquiryScreen (CON-02)', () => {
 
     expect(await screen.findByText('bandeja')).toBeInTheDocument();
     expect(closeInquiryMock).toHaveBeenCalledWith('fake-id-token', 'con-2', 1, 'SIN_USO_TURISTICO', expect.any(String));
+  });
+
+  // Hallazgo propio (revision de PR#7 backend): closeWithoutTouristUse
+  // llamaba a createInquiry sin los campos que el backend ahora exige
+  // (nationality/destination/estimatedDays/prospectName) - un destination
+  // vacio habria sido rechazado con 400. Ahora valida antes, igual que
+  // submit().
+  it('bloquea "Cerrar consulta" si el formulario no tiene los campos obligatorios del backend', async () => {
+    renderScreen();
+    await waitForContext();
+
+    fireEvent.click(screen.getByRole('button', { name: 'No' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar consulta' }));
+
+    expect(await screen.findByText('Ingresa el nombre del cliente.')).toBeInTheDocument();
+    expect(createInquiryMock).not.toHaveBeenCalled();
+    expect(closeInquiryMock).not.toHaveBeenCalled();
   });
 
   // Findings Critico #1/#2: el autoguardado ya no dice "Guardado" a secas

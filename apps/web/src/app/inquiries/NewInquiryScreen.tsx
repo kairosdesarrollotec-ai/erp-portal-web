@@ -37,8 +37,8 @@ export function NewInquiryScreen() {
       <div className={styles.content}>
         {error && <p className={styles.errorText}>{error}</p>}
         <p className={styles.helperNote}>
-          El nombre, documento, nacionalidad, destino, fecha, personas y días se guardan en este dispositivo, pero
-          todavía no se envían al servidor: el backend de este corte solo registra canal y uso turístico.
+          El nombre, documento, nacionalidad, destino, fecha y personas se envían al registrar la consulta. La fecha
+          de ingreso al país (clientes extranjeros) todavía no tiene un campo propio en este formulario.
         </p>
 
         <section className={styles.section}>
