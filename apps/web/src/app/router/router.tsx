@@ -13,6 +13,7 @@ import { InquiryVehiclesScreen } from '../inquiries/InquiryVehiclesScreen';
 import { InquiryDetailScreen } from '../inquiries/InquiryDetailScreen';
 import { AdminUsersScreen } from '../admin/AdminUsersScreen';
 import { AuditEventsScreen } from '../admin/AuditEventsScreen';
+import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -91,6 +92,13 @@ export const router = createBrowserRouter([
         // re-valida server-side VIEW_AUDIT (Administracion o Auditoria,
         // admin-role-policy.ts).
         element: <AuditEventsScreen />,
+      },
+      {
+        path: '/admin/parametros',
+        // ADM-03. Catalogos y parametros - primer parametro real: monto
+        // de reserva (el unico con dato/consumidor real hoy). El backend
+        // re-valida server-side MANAGE_PARAMETERS (admin-role-policy.ts).
+        element: <ReservationDepositPolicyScreen />,
       },
     ],
   },
