@@ -109,6 +109,36 @@
   color: #78716A;
 }
 
+.bellButton {
+  position: relative;
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.bellButton:hover {
+  color: var(--color-ink);
+}
+
+.bellBadge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--color-error, #d92d20);
+  color: #fff;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+}
+
 .signOutButton {
   background: none;
   border: none;

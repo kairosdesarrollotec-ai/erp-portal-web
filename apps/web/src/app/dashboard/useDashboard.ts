@@ -35,6 +35,8 @@ export function useDashboard() {
   const [branchName, setBranchName] = useState<string | null>(null);
   const [dashboardState, setDashboardState] = useState<DashboardDataState>('EMPTY');
   const [tasks, setTasks] = useState<DashboardTaskItem[]>([]);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [branchId, setBranchId] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -94,6 +96,8 @@ export function useDashboard() {
         if (cancelled) return;
         setRole(result.role);
         setBranchName(`${context.companyName} — ${context.branchName}`);
+        setCompanyId(context.companyId);
+        setBranchId(context.branchId);
         setDashboardState(result.state);
         setTasks(result.state === 'READY' ? result.tasks : []);
         setState('READY');
@@ -108,5 +112,5 @@ export function useDashboard() {
     };
   }, [location.state, navigate]);
 
-  return { state, role, branchName, dashboardState, tasks };
+  return { state, role, branchName, dashboardState, tasks, companyId, branchId };
 }
