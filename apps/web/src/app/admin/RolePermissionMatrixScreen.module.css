@@ -1,0 +1,156 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.header {
+  width: 100%;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #E5E2DC;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-ink);
+}
+
+.title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.mobileNotice {
+  display: none;
+  background: #FFF4E5;
+  color: #7A4B00;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #F0D9A8;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.scopeNote {
+  font-size: 13px;
+  color: var(--color-muted);
+  background: #F5F3EE;
+  border: 1px solid #E5E2DC;
+  border-radius: 8px;
+  padding: 0.875rem 1.125rem;
+  margin: 0;
+}
+
+.statusText {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.errorText {
+  font-size: 13px;
+  color: var(--color-error);
+  margin: 0;
+}
+
+.tableScroll {
+  overflow-x: auto;
+  border: 1px solid #E5E2DC;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  border-bottom: 1px solid #E5E2DC;
+  white-space: nowrap;
+}
+
+.roleCell {
+  font-weight: 600;
+  color: var(--color-ink);
+  white-space: nowrap;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #F0EEE9;
+}
+
+.cell,
+.conflictCell {
+  text-align: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #F0EEE9;
+}
+
+.conflictCell {
+  border: 2px solid var(--color-error);
+  border-radius: 4px;
+  position: relative;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.primaryButton {
+  background: var(--color-ink);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.625rem 1.25rem;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+@media (max-width: 900px) {
+  .mobileNotice {
+    display: block;
+  }
+
+  .content {
+    display: none;
+  }
+}
