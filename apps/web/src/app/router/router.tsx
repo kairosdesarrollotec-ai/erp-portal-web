@@ -11,6 +11,7 @@ import { InquiriesListScreen } from '../inquiries/InquiriesListScreen';
 import { NewInquiryScreen } from '../inquiries/NewInquiryScreen';
 import { InquiryVehiclesScreen } from '../inquiries/InquiryVehiclesScreen';
 import { InquiryDetailScreen } from '../inquiries/InquiryDetailScreen';
+import { AdminUsersScreen } from '../admin/AdminUsersScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -74,6 +75,14 @@ export const router = createBrowserRouter([
         // CON-04 - HU-26. Detalle, cierre sin conversion (conversion a
         // reserva pendiente - ver InquiryDetailScreen.tsx).
         element: <InquiryDetailScreen />,
+      },
+      {
+        path: '/admin/usuarios',
+        // ADM-01. Bandeja de usuarios y asignaciones (empresa/sede/rol).
+        // El backend re-valida server-side que el rol autorizado sea
+        // ADMINISTRACION (admin-role-policy.ts) - esta ruta solo exige
+        // sesion valida, igual que /consultas*.
+        element: <AdminUsersScreen />,
       },
     ],
   },
