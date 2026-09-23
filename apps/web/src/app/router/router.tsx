@@ -12,6 +12,7 @@ import { NewInquiryScreen } from '../inquiries/NewInquiryScreen';
 import { InquiryVehiclesScreen } from '../inquiries/InquiryVehiclesScreen';
 import { InquiryDetailScreen } from '../inquiries/InquiryDetailScreen';
 import { AdminUsersScreen } from '../admin/AdminUsersScreen';
+import { AuditEventsScreen } from '../admin/AuditEventsScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -83,6 +84,13 @@ export const router = createBrowserRouter([
         // ADMINISTRACION (admin-role-policy.ts) - esta ruta solo exige
         // sesion valida, igual que /consultas*.
         element: <AdminUsersScreen />,
+      },
+      {
+        path: '/admin/auditoria',
+        // ADM-04. Auditoria administrativa, solo lectura. El backend
+        // re-valida server-side VIEW_AUDIT (Administracion o Auditoria,
+        // admin-role-policy.ts).
+        element: <AuditEventsScreen />,
       },
     ],
   },
