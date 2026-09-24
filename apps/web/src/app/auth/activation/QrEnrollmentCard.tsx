@@ -22,6 +22,18 @@ export function QrEnrollmentCard({
   const [showSecret, setShowSecret] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // regla de eslint react-hooks/set-state-in-effect: "ajustar estado
+  // cuando cambia una prop" se hace durante el render (patron oficial de
+  // React: https://react.dev/learn/you-might-not-need-an-effect), no
+  // dentro del cuerpo del efecto - evita el round-trip de render extra
+  // que produce un setState sincrono al inicio de un useEffect.
+  const [trackedCodeUrl, setTrackedCodeUrl] = useState(qrCodeUrl);
+  if (qrCodeUrl !== trackedCodeUrl) {
+    setTrackedCodeUrl(qrCodeUrl);
+    setQrDataUrl(null);
+    setQrError(false);
+  }
+
   // Hallazgo medio de revalidacion PR#4 ("fallo al generar el QR bloquea
   // activacion en desktop"): antes, si QRCode.toDataURL() rechazaba, se
   // dejaba qrDataUrl=null y la alternativa de clave manual estaba
@@ -32,15 +44,15 @@ export function QrEnrollmentCard({
   // un mensaje accesible y un boton de reintento.
   useEffect(() => {
     if (!qrCodeUrl) {
-      setQrDataUrl(null);
-      setQrError(false);
       return;
     }
     let cancelled = false;
-    setQrError(false);
     QRCode.toDataURL(qrCodeUrl, { width: 148, margin: 0 })
       .then((dataUrl) => {
-        if (!cancelled) setQrDataUrl(dataUrl);
+        if (!cancelled) {
+          setQrDataUrl(dataUrl);
+          setQrError(false);
+        }
       })
       .catch(() => {
         if (!cancelled) {

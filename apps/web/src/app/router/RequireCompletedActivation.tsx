@@ -25,7 +25,6 @@ export function RequireCompletedActivation() {
 
   useEffect(() => {
     let cancelled = false;
-    setState('CHECKING');
 
     async function check() {
       const user = getFirebaseAuth().currentUser;
@@ -62,7 +61,18 @@ export function RequireCompletedActivation() {
   }
 
   if (state === 'ERROR') {
-    return <GuardBlockingScreen onRetry={() => setAttempt((n) => n + 1)} />;
+    return (
+      <GuardBlockingScreen
+        onRetry={() => {
+          // Regla de eslint react-hooks/set-state-in-effect: el reset a
+          // CHECKING se hace aqui, en el handler que dispara el reintento,
+          // no dentro del cuerpo del efecto - el efecto solo reacciona al
+          // cambio de `attempt` y hace la consulta.
+          setState('CHECKING');
+          setAttempt((n) => n + 1);
+        }}
+      />
+    );
   }
 
   return <Outlet />;
