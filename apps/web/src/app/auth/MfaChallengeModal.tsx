@@ -99,10 +99,19 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
   const hasRetryableError = state === 'RECOVERABLE_ERROR' || state === 'VERIFICATION_UNAVAILABLE';
   const isBlocked = state === 'SESSION_EXPIRED' || state === 'UNSUPPORTED_FACTOR';
 
-  useEffect(() => {
-    if (!isOpen) return;
-    setDigits(Array(6).fill(''));
-  }, [isOpen]);
+  // Hallazgo de lint (react-hooks/set-state-in-effect, PR#4 Bloque 2):
+  // resetear las casillas de forma sincronica en un efecto disparaba un
+  // render en cascada evitable. Se ajusta durante el render, comparando
+  // contra el ultimo `isOpen` visto (patron oficial de React:
+  // https://react.dev/learn/you-might-not-need-an-effect), en vez de
+  // esperar al efecto para sincronizarlo.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) {
+      setDigits(Array(6).fill(''));
+    }
+  }
 
   if (!isOpen) return null;
 

@@ -142,6 +142,10 @@ export function useLogin() {
           values.password,
         );
         void recordLoginAttempt(values.emailOrUsername, 'SUCCESS', null);
+
+        // TR-02 (HU-21): si el usuario esta en "primer acceso" (contrasena
+        // temporal sin cambiar y/o MFA sin enrolar), se redirige a la
+        // pantalla de activacion en lugar de ir directo al tablero.
         await resolveActivation(credential.user);
       } catch (error) {
         const authError = error as AuthError;

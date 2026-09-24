@@ -6,6 +6,8 @@ import { LoginScreen } from './LoginScreen';
 const signInMock = vi.fn();
 const resolveSignInMock = vi.fn();
 const assertionForSignInMock = vi.fn((..._args: unknown[]) => 'mock-assertion');
+const getActivationStatusMock = vi.fn();
+const navigateMock = vi.fn();
 
 // Mutable a proposito: distintos tests necesitan simular hints distintos
 // (ausencia de TOTP, multiples factores) - ver hallazgo "no asumir
@@ -13,6 +15,11 @@ const assertionForSignInMock = vi.fn((..._args: unknown[]) => 'mock-assertion');
 let mfaHints: Array<{ uid: string; factorId: string }> = [
   { uid: 'totp-factor-uid', factorId: 'totp' },
 ];
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return { ...actual, useNavigate: () => navigateMock };
+});
 
 vi.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: (...args: unknown[]) => signInMock(...args),
@@ -38,8 +45,14 @@ vi.mock('./audit-client', () => ({
 }));
 
 vi.mock('./activation-client', () => ({
-  getActivationStatus: vi.fn().mockRejectedValue(new Error('offline')),
+  getActivationStatus: (...args: unknown[]) => getActivationStatusMock(...args),
 }));
+
+function mockSuccessfulSignIn() {
+  signInMock.mockResolvedValue({
+    user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
+  });
+}
 
 function renderScreen() {
   return render(
@@ -54,7 +67,15 @@ describe('LoginScreen (TR-01)', () => {
     signInMock.mockReset();
     resolveSignInMock.mockReset();
     assertionForSignInMock.mockClear();
+    getActivationStatusMock.mockReset();
+    navigateMock.mockReset();
     mfaHints = [{ uid: 'totp-factor-uid', factorId: 'totp' }];
+    // Por defecto, sin activacion pendiente - los tests que necesitan
+    // simular el chequeo caido lo sobreescriben explicitamente.
+    getActivationStatusMock.mockResolvedValue({
+      requiresPasswordChange: false,
+      requiresMfaEnrollment: false,
+    });
   });
 
   async function openMfaChallenge() {
@@ -73,6 +94,12 @@ describe('LoginScreen (TR-01)', () => {
     fireEvent.click(submitButton);
     await screen.findByRole('dialog', { name: 'Confirma tu identidad' });
     return submitButton;
+  }
+
+  function typeCode(code: string) {
+    code.split('').forEach((digit, index) => {
+      fireEvent.change(screen.getByTestId(`mfa-digit-${index}`), { target: { value: digit } });
+    });
   }
 
   it('muestra el banner "Correo o contraseña incorrectos" (RECOVERABLE_ERROR) sin revelar si el correo existe, y conserva los campos', async () => {
@@ -129,12 +156,6 @@ describe('LoginScreen (TR-01)', () => {
     expect(screen.getByRole('dialog', { name: 'Confirma tu identidad' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
-
-  function typeCode(code: string) {
-    code.split('').forEach((digit, index) => {
-      fireEvent.change(screen.getByTestId(`mfa-digit-${index}`), { target: { value: digit } });
-    });
-  }
 
   it('TR-03: confirma el codigo TOTP y completa el segundo factor del login', async () => {
     await openMfaChallenge();
@@ -241,22 +262,19 @@ describe('LoginScreen (TR-01)', () => {
   });
 
   it('TR-03: fail-secure - si el chequeo de activacion falla tras un login por MFA, NO navega al tablero', async () => {
+    getActivationStatusMock.mockRejectedValue(new Error('offline'));
     await openMfaChallenge();
     resolveSignInMock.mockResolvedValue({ user: { email: 'user@veloxrent.pe' } });
     typeCode('123456');
     fireEvent.click(screen.getByRole('button', { name: /Confirmar/ }));
 
-    // getActivationStatus esta mockeado para fallar siempre en este archivo
-    // (linea 33) - el hallazgo "se hereda el fail-open de activacion" pedia
-    // exactamente que este caso NUNCA navegue al tablero.
     expect(await screen.findByText('No pudimos verificar tu cuenta')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('fail-secure: un login directo (sin MFA) tampoco navega al tablero si el chequeo de activacion falla', async () => {
-    signInMock.mockResolvedValue({
-      user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
-    });
+    getActivationStatusMock.mockRejectedValue(new Error('offline'));
+    mockSuccessfulSignIn();
     renderScreen();
 
     fireEvent.change(screen.getByLabelText('Correo o usuario'), {
@@ -267,5 +285,47 @@ describe('LoginScreen (TR-01)', () => {
 
     expect(await screen.findByText('No pudimos verificar tu cuenta')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument();
+  });
+
+  it('navega al tablero solo cuando el backend confirma de forma expresa que no hay activacion pendiente', async () => {
+    mockSuccessfulSignIn();
+    getActivationStatusMock.mockResolvedValue({
+      requiresPasswordChange: false,
+      requiresMfaEnrollment: false,
+    });
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Abcdefg1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/tablero'));
+  });
+
+  it('NO navega al tablero (fail-closed) si el chequeo de activacion falla - muestra un estado bloqueante y reintentable', async () => {
+    mockSuccessfulSignIn();
+    getActivationStatusMock.mockRejectedValueOnce(new Error('servicio de perfiles caido'));
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Abcdefg1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    expect(await screen.findByText('No pudimos verificar tu cuenta')).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalledWith('/tablero');
+
+    getActivationStatusMock.mockResolvedValueOnce({
+      requiresPasswordChange: false,
+      requiresMfaEnrollment: false,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/tablero'));
+    // El reintento reutiliza la sesion ya autenticada - no vuelve a llamar a Firebase.
+    expect(signInMock).toHaveBeenCalledTimes(1);
   });
 });
