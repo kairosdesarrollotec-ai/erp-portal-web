@@ -86,6 +86,45 @@ export function useActivation() {
   const [totpSecret, setTotpSecret] = useState<TotpSecret | null>(null);
   const navigate = useNavigate();
 
+  // Hallazgo alto de revalidacion PR#4 ("el reintento puede volver a omitir
+  // el cambio obligatorio de contrasena"): antes, el catch de la reanudacion
+  // cubria tanto el fallo de getActivationStatus() como el de
+  // completeActivation() y mandaba ambos a BACKEND_UNAVAILABLE, pero el
+  // boton "Reintentar" (retryCompleteActivation) solo volvia a llamar
+  // completeActivation() directamente - si lo que habia fallado era la
+  // CONSULTA del estado (no la confirmacion), el reintento se saltaba por
+  // completo la verificacion de requiresPasswordChange y podia completar
+  // la activacion de una cuenta a la que le sigue faltando el cambio de
+  // contrasena. La correccion: extraer la secuencia autoritativa completa
+  // (consultar backend -> decidir PASSWORD o completar) a una funcion
+  // compartida que usan tanto la reanudacion inicial como el reintento, de
+  // modo que un reintento SIEMPRE vuelve a consultar el estado en vez de
+  // asumir que ya se verifico.
+  const resolveActivationForEnrolledUser = useCallback(
+    async (user: User, isCancelled: () => boolean) => {
+      try {
+        const idToken = await user.getIdToken(true);
+        const status = await getActivationStatus(idToken);
+        if (status.requiresPasswordChange) {
+          if (!isCancelled()) {
+            setStep('PASSWORD');
+            setState('READY');
+          }
+          return;
+        }
+
+        await completeActivation(idToken);
+        if (!isCancelled()) navigate('/tablero');
+      } catch {
+        if (!isCancelled()) {
+          setStep('MFA');
+          setState('BACKEND_UNAVAILABLE');
+        }
+      }
+    },
+    [navigate],
+  );
+
   // Al entrar (o recargar la pagina a mitad del flujo) se retoma el paso
   // pendiente real en vez de asumir 'PASSWORD'. Si Firebase ya tiene un
   // factor TOTP enrolado, la contrasena y el MFA ya se resolvieron en un
@@ -108,35 +147,12 @@ export function useActivation() {
         return;
       }
 
-      // Hallazgo alto de revalidacion PR#4 ("la reanudacion puede omitir
-      // el cambio obligatorio de contrasena"): que Firebase ya tenga un
-      // factor TOTP NO demuestra que el cambio de contrasena obligatorio
-      // se haya completado (por ejemplo, una cuenta con TOTP enrolado
-      // previamente y luego restablecida a contrasena temporal). El
-      // estado autoritativo es el backend (`requiresPasswordChange`), no
-      // la sola presencia de TOTP en Firebase. Si el backend todavia
-      // exige el cambio de contrasena, se permanece en el paso PASSWORD
-      // aunque exista TOTP; solo se completa la activacion cuando el
-      // backend confirma que el cambio ya no esta pendiente.
-      try {
-        const idToken = await user.getIdToken(true);
-        const status = await getActivationStatus(idToken);
-        if (status.requiresPasswordChange) {
-          if (!cancelled) {
-            setStep('PASSWORD');
-            setState('READY');
-          }
-          return;
-        }
-
-        await completeActivation(idToken);
-        if (!cancelled) navigate('/tablero');
-      } catch {
-        if (!cancelled) {
-          setStep('MFA');
-          setState('BACKEND_UNAVAILABLE');
-        }
-      }
+      // Hallazgo alto de revalidacion PR#4 (version anterior): que Firebase
+      // ya tenga un factor TOTP NO demuestra que el cambio de contrasena
+      // obligatorio se haya completado - el estado autoritativo es el
+      // backend (requiresPasswordChange), no la sola presencia de TOTP en
+      // Firebase. Ver resolveActivationForEnrolledUser.
+      await resolveActivationForEnrolledUser(user, () => cancelled);
     }
 
     void resume();
@@ -231,23 +247,21 @@ export function useActivation() {
     [navigate, totpSecret],
   );
 
-  // Reintento dedicado cuando lo unico que fallo fue completeActivation
-  // (BACKEND_UNAVAILABLE) - no repite el enrolamiento MFA.
+  // Reintento cuando BACKEND_UNAVAILABLE vino de la reanudacion con TOTP
+  // ya enrolado (fallo getActivationStatus() o completeActivation()) - no
+  // repite el enrolamiento MFA. Vuelve a ejecutar la secuencia completa
+  // (resolveActivationForEnrolledUser), nunca solo completeActivation(),
+  // para no saltarse la verificacion de requiresPasswordChange si lo que
+  // fallo la vez anterior fue justamente la consulta de ese estado.
   const retryCompleteActivation = useCallback(async () => {
     setState('VALIDATING');
-    try {
-      const user = getFirebaseAuth().currentUser;
-      if (!user) {
-        setState('REAUTH_REQUIRED');
-        return;
-      }
-      const idToken = await user.getIdToken(true);
-      await completeActivation(idToken);
-      navigate('/tablero');
-    } catch {
-      setState('BACKEND_UNAVAILABLE');
+    const user = getFirebaseAuth().currentUser;
+    if (!user) {
+      setState('REAUTH_REQUIRED');
+      return;
     }
-  }, [navigate]);
+    await resolveActivationForEnrolledUser(user, () => false);
+  }, [resolveActivationForEnrolledUser]);
 
   const qrCodeUrl = totpSecret
     ? totpSecret.generateQrCodeUrl(getFirebaseAuth().currentUser?.email ?? undefined, 'VeloxRent')

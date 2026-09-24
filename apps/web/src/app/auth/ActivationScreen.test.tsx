@@ -247,6 +247,49 @@ describe('ActivationScreen (TR-02)', () => {
   });
 
   /**
+   * Hallazgo alto de revalidacion PR#4 sobre `c8e7dd6` ("el reintento puede
+   * volver a omitir el cambio obligatorio de contrasena"): si lo que fallo
+   * fue la CONSULTA de getActivationStatus() (no completeActivation()), el
+   * boton "Reintentar" debe volver a consultar el estado en vez de saltar
+   * directo a completeActivation() - si el backend responde que sigue
+   * pendiente el cambio de contrasena, el reintento nunca debe completar la
+   * activacion.
+   */
+  it('reintentar tras fallo de getActivationStatus vuelve a consultarlo y no completa si requiresPasswordChange sigue true', async () => {
+    enrolledFactors = [{ factorId: 'totp' }];
+    getActivationStatusMock.mockRejectedValueOnce(new Error('backend caido'));
+    renderScreen();
+
+    await screen.findByText(/no pudimos confirmarlo con el servidor/i);
+    expect(completeActivationMock).not.toHaveBeenCalled();
+
+    getActivationStatusMock.mockResolvedValueOnce({
+      requiresPasswordChange: true,
+      requiresMfaEnrollment: false,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    await screen.findByLabelText('Nueva contraseña');
+    expect(completeActivationMock).not.toHaveBeenCalled();
+  });
+
+  it('reintentar tras fallo de getActivationStatus, si ya no se requiere cambio de contraseña, completa la activacion', async () => {
+    enrolledFactors = [{ factorId: 'totp' }];
+    getActivationStatusMock.mockRejectedValueOnce(new Error('backend caido'));
+    renderScreen();
+
+    await screen.findByText(/no pudimos confirmarlo con el servidor/i);
+
+    getActivationStatusMock.mockResolvedValueOnce({
+      requiresPasswordChange: false,
+      requiresMfaEnrollment: false,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    await waitFor(() => expect(completeActivationMock).toHaveBeenCalledTimes(1));
+  });
+
+  /**
    * Hallazgo alto de revision PR#4 ("el flujo acepta cualquier factor MFA
    * como si fuera TOTP"): con 0 factores enrolados, retoma en el paso de
    * contraseña (READY), nunca salta directo a completeActivation.
