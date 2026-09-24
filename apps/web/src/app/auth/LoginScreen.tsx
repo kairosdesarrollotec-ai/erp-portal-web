@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Eye, EyeOff, Lock, WifiOff } from 'lucide-react';
 import { loginSchema, type LoginFormValues } from './login.schema';
 import { useLogin } from './useLogin';
+import { MfaChallengeModal } from './MfaChallengeModal';
 import styles from './LoginScreen.module.css';
 
 /**
@@ -18,10 +19,16 @@ import styles from './LoginScreen.module.css';
  * Authentication (TDD-KAIROS-TRANSVERSAL 8.1/8.4) solo soporta email.
  * Mientras no exista una resolucion de usuario->email en el backend, este
  * campo se trata siempre como email.
+ *
+ * TR-03 (HU-22) - Desafio MFA: cuando la cuenta tiene el segundo factor
+ * (TOTP) enrolado, useLogin abre mfaChallenge en vez de autenticar de una
+ * vez. Ver MfaChallengeModal.tsx para el detalle de los prototipos y las
+ * notas pendientes para Producto ("Reenviar codigo" incompatible con TOTP,
+ * segundo prototipo mobile sin marcar superseded).
  */
 export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
-  const { state, submit, retryActivationCheck } = useLogin();
+  const { state, submit, retryActivationCheck, mfaChallenge } = useLogin();
   const {
     register,
     handleSubmit,
@@ -60,11 +67,11 @@ export function LoginScreen() {
     );
   }
 
-  // ACTIVATION_CHECK_FAILED (hallazgo de revision): el usuario ya se
-  // autentico en Firebase correctamente, pero no se pudo confirmar con el
-  // backend si tiene una activacion pendiente (cambio de contrasena/MFA
-  // obligatorio) - no se navega al tablero "a ciegas". Se ofrece reintentar
-  // sin pedir credenciales de nuevo (la sesion de Firebase ya existe).
+  // ACTIVATION_CHECK_FAILED (hallazgo de revision, portado del fix
+  // fail-closed de HU-21): el usuario ya se autentico en Firebase (login
+  // directo o via reto MFA de TR-03) pero no se pudo confirmar con el
+  // backend si tiene una activacion pendiente - no se navega al tablero "a
+  // ciegas". Se ofrece reintentar sin pedir credenciales de nuevo.
   if (state === 'ACTIVATION_CHECK_FAILED') {
     return (
       <main className={styles.wrapper}>
@@ -76,14 +83,9 @@ export function LoginScreen() {
             </div>
             <h1 className={styles.noticeTitle}>No pudimos verificar tu cuenta</h1>
             <p className={styles.noticeSubtitle}>
-              Intenta de nuevo en unos minutos. Si el problema continúa, contacta a tu
-              administrador.
+              Intenta de nuevo en unos minutos. Si el problema continúa, contacta a tu administrador.
             </p>
-            <button
-              type="button"
-              className={styles.noticeAction}
-              onClick={() => void retryActivationCheck()}
-            >
+            <button type="button" className={styles.noticeAction} onClick={() => void retryActivationCheck()}>
               Reintentar
             </button>
           </div>
@@ -160,6 +162,13 @@ export function LoginScreen() {
           ¿Olvidaste tu contraseña?
         </button>
       </div>
+
+      <MfaChallengeModal
+        isOpen={mfaChallenge.isOpen}
+        state={mfaChallenge.state}
+        onConfirm={mfaChallenge.onConfirm}
+        onCancel={mfaChallenge.onCancel}
+      />
     </main>
   );
 }
