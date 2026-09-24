@@ -37,6 +37,36 @@
   display: none;
 }
 
+/* Hallazgo medio de revalidacion PR#4: cuando falla la generacion del QR,
+   la clave manual se fuerza a visible en cualquier breakpoint (no solo
+   mobile), ver QrEnrollmentCard.tsx (qrError). */
+.manualSecretForced {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.qrErrorText {
+  color: var(--color-error);
+  font-size: 13px;
+  line-height: 1.45;
+  max-width: 340px;
+  margin: 0 0 0.75rem;
+}
+
+.qrRetryButton {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
 .manualSecretToggle {
   display: inline-flex;
   align-items: center;

@@ -76,6 +76,7 @@ export function OtpInput({
             className={`${styles.digitBox} ${hasError ? styles.digitBoxError : ''}`}
             value={digit}
             disabled={disabled}
+            aria-label={`Dígito ${index + 1} de 6`}
             aria-invalid={hasError}
             aria-describedby={hasError ? ERROR_MESSAGE_ID : undefined}
             onChange={(event) => handleDigitChange(index, event.target.value)}

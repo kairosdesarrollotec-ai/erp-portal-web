@@ -10,6 +10,7 @@ const generateSecretMock = vi.fn();
 const assertionForEnrollmentMock = vi.fn();
 const generateQrCodeUrlMock = vi.fn(() => 'otpauth://totp/VeloxRent:user@veloxrent.pe');
 const completeActivationMock = vi.fn();
+const getActivationStatusMock = vi.fn();
 
 // enrolledFactors es mutable entre tests para poder simular el escenario de
 // "reanudar" con MFA ya enrolado en Firebase (BACKEND_UNAVAILABLE).
@@ -45,6 +46,7 @@ vi.mock('../providers/firebase', () => ({
 
 vi.mock('./activation-client', () => ({
   completeActivation: (...args: unknown[]) => completeActivationMock(...args),
+  getActivationStatus: (...args: unknown[]) => getActivationStatusMock(...args),
 }));
 
 vi.mock('qrcode', () => ({
@@ -75,6 +77,13 @@ describe('ActivationScreen (TR-02)', () => {
     });
     assertionForEnrollmentMock.mockReset().mockReturnValue({});
     completeActivationMock.mockReset().mockResolvedValue(undefined);
+    // Por defecto, el backend ya no exige cambio de contrasena - preserva
+    // el comportamiento de los tests preexistentes que reanudan directo a
+    // completeActivation cuando ya hay TOTP enrolado.
+    getActivationStatusMock.mockReset().mockResolvedValue({
+      requiresPasswordChange: false,
+      requiresMfaEnrollment: false,
+    });
   });
 
   it('paso 1: mantiene "Continuar" deshabilitado hasta cumplir los 3 requisitos de contraseña', async () => {
@@ -195,6 +204,46 @@ describe('ActivationScreen (TR-02)', () => {
     renderScreen();
 
     await waitFor(() => expect(completeActivationMock).toHaveBeenCalledTimes(1));
+  });
+
+  /**
+   * Hallazgo alto de revalidacion PR#4 ("la reanudacion puede omitir el
+   * cambio obligatorio de contrasena"): TOTP ya enrolado en Firebase +
+   * backend todavia exigiendo cambio de contrasena -> se queda en
+   * PASSWORD, nunca llama completeActivation.
+   */
+  it('con TOTP ya enrolado pero requiresPasswordChange=true, permanece en el paso de contraseña sin completar la activacion', async () => {
+    enrolledFactors = [{ factorId: 'totp' }];
+    getActivationStatusMock.mockResolvedValue({
+      requiresPasswordChange: true,
+      requiresMfaEnrollment: false,
+    });
+    renderScreen();
+
+    await screen.findByLabelText('Nueva contraseña');
+    expect(completeActivationMock).not.toHaveBeenCalled();
+  });
+
+  it('con TOTP ya enrolado y requiresPasswordChange=false, completa la activacion y navega', async () => {
+    enrolledFactors = [{ factorId: 'totp' }];
+    getActivationStatusMock.mockResolvedValue({
+      requiresPasswordChange: false,
+      requiresMfaEnrollment: false,
+    });
+    renderScreen();
+
+    await waitFor(() => expect(completeActivationMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('si consultar el estado de activacion falla (backend caido) con TOTP ya enrolado, muestra el panel de reintento', async () => {
+    enrolledFactors = [{ factorId: 'totp' }];
+    getActivationStatusMock.mockRejectedValue(new Error('backend caido'));
+    renderScreen();
+
+    expect(
+      await screen.findByText(/no pudimos confirmarlo con el servidor/i),
+    ).toBeInTheDocument();
+    expect(completeActivationMock).not.toHaveBeenCalled();
   });
 
   /**

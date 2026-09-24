@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { multiFactor, TotpMultiFactorGenerator, updatePassword, type TotpSecret, type User } from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
-import { completeActivation } from './activation-client';
+import { completeActivation, getActivationStatus } from './activation-client';
 import type { ActivationPasswordFormValues } from './activation.schema';
 
 /**
@@ -108,8 +108,27 @@ export function useActivation() {
         return;
       }
 
+      // Hallazgo alto de revalidacion PR#4 ("la reanudacion puede omitir
+      // el cambio obligatorio de contrasena"): que Firebase ya tenga un
+      // factor TOTP NO demuestra que el cambio de contrasena obligatorio
+      // se haya completado (por ejemplo, una cuenta con TOTP enrolado
+      // previamente y luego restablecida a contrasena temporal). El
+      // estado autoritativo es el backend (`requiresPasswordChange`), no
+      // la sola presencia de TOTP en Firebase. Si el backend todavia
+      // exige el cambio de contrasena, se permanece en el paso PASSWORD
+      // aunque exista TOTP; solo se completa la activacion cuando el
+      // backend confirma que el cambio ya no esta pendiente.
       try {
         const idToken = await user.getIdToken(true);
+        const status = await getActivationStatus(idToken);
+        if (status.requiresPasswordChange) {
+          if (!cancelled) {
+            setStep('PASSWORD');
+            setState('READY');
+          }
+          return;
+        }
+
         await completeActivation(idToken);
         if (!cancelled) navigate('/tablero');
       } catch {

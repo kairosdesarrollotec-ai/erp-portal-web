@@ -17,18 +17,41 @@ export function QrEnrollmentCard({
   secretKey: string | null;
 }) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrError, setQrError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [showSecret, setShowSecret] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Hallazgo medio de revalidacion PR#4 ("fallo al generar el QR bloquea
+  // activacion en desktop"): antes, si QRCode.toDataURL() rechazaba, se
+  // dejaba qrDataUrl=null y la alternativa de clave manual estaba
+  // restringida a mobileOnly (oculta en desktop via CSS) - un usuario de
+  // escritorio se quedaba con un recuadro vacio sin alternativa ni forma
+  // de reintentar. Ahora se rastrea el error explicitamente y, cuando
+  // ocurre, la clave manual se muestra en cualquier breakpoint junto con
+  // un mensaje accesible y un boton de reintento.
   useEffect(() => {
     if (!qrCodeUrl) {
       setQrDataUrl(null);
+      setQrError(false);
       return;
     }
+    let cancelled = false;
+    setQrError(false);
     QRCode.toDataURL(qrCodeUrl, { width: 148, margin: 0 })
-      .then(setQrDataUrl)
-      .catch(() => setQrDataUrl(null));
-  }, [qrCodeUrl]);
+      .then((dataUrl) => {
+        if (!cancelled) setQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setQrDataUrl(null);
+          setQrError(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [qrCodeUrl, retryCount]);
 
   const formattedSecret = secretKey ? secretKey.replace(/(.{4})/g, '$1-').replace(/-$/, '') : '';
 
@@ -49,7 +72,17 @@ export function QrEnrollmentCard({
         Escanea este código con tu app de autenticación (Google Authenticator, Authy, etc.)
       </p>
 
-      <div className={`${styles.manualSecret} ${shared.mobileOnly}`}>
+      {qrError && (
+        <p role="alert" className={styles.qrErrorText}>
+          No pudimos generar el código QR. Usa la clave manual o vuelve a
+          intentarlo.{' '}
+          <button type="button" className={styles.qrRetryButton} onClick={() => setRetryCount((c) => c + 1)}>
+            Reintentar
+          </button>
+        </p>
+      )}
+
+      <div className={`${styles.manualSecret} ${qrError ? styles.manualSecretForced : shared.mobileOnly}`}>
         <button
           type="button"
           className={styles.manualSecretToggle}
