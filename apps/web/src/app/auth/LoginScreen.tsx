@@ -21,7 +21,7 @@ import styles from './LoginScreen.module.css';
  */
 export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
-  const { state, submit } = useLogin();
+  const { state, submit, retryActivationCheck } = useLogin();
   const {
     register,
     handleSubmit,
@@ -53,6 +53,38 @@ export function LoginScreen() {
             </p>
             <button type="button" className={styles.noticeAction} onClick={() => window.location.reload()}>
               Volver
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ACTIVATION_CHECK_FAILED (hallazgo de revision): el usuario ya se
+  // autentico en Firebase correctamente, pero no se pudo confirmar con el
+  // backend si tiene una activacion pendiente (cambio de contrasena/MFA
+  // obligatorio) - no se navega al tablero "a ciegas". Se ofrece reintentar
+  // sin pedir credenciales de nuevo (la sesion de Firebase ya existe).
+  if (state === 'ACTIVATION_CHECK_FAILED') {
+    return (
+      <main className={styles.wrapper}>
+        <div className={styles.card}>
+          <p className={styles.brand}>VeloxRent</p>
+          <div className={styles.fullScreenNotice} role="alert">
+            <div className={styles.noticeIcon}>
+              <WifiOff size={40} />
+            </div>
+            <h1 className={styles.noticeTitle}>No pudimos verificar tu cuenta</h1>
+            <p className={styles.noticeSubtitle}>
+              Intenta de nuevo en unos minutos. Si el problema continúa, contacta a tu
+              administrador.
+            </p>
+            <button
+              type="button"
+              className={styles.noticeAction}
+              onClick={() => void retryActivationCheck()}
+            >
+              Reintentar
             </button>
           </div>
         </div>

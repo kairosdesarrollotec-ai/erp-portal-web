@@ -1,9 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { LoginScreen } from './LoginScreen';
 
 const signInMock = vi.fn();
+const getActivationStatusMock = vi.fn();
+const navigateMock = vi.fn();
+
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return { ...actual, useNavigate: () => navigateMock };
+});
 
 vi.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: (...args: unknown[]) => signInMock(...args),
@@ -17,6 +24,16 @@ vi.mock('./audit-client', () => ({
   recordLoginAttempt: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('./activation-client', () => ({
+  getActivationStatus: (...args: unknown[]) => getActivationStatusMock(...args),
+}));
+
+function mockSuccessfulSignIn() {
+  signInMock.mockResolvedValue({
+    user: { getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
+  });
+}
+
 function renderScreen() {
   return render(
     <MemoryRouter>
@@ -28,6 +45,8 @@ function renderScreen() {
 describe('LoginScreen (TR-01)', () => {
   beforeEach(() => {
     signInMock.mockReset();
+    getActivationStatusMock.mockReset();
+    navigateMock.mockReset();
   });
 
   it('muestra el banner "Correo o contraseña incorrectos" (RECOVERABLE_ERROR) sin revelar si el correo existe, y conserva los campos', async () => {
@@ -76,5 +95,47 @@ describe('LoginScreen (TR-01)', () => {
     expect(screen.getByLabelText('Mostrar contraseña')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Mostrar contraseña'));
     expect(screen.getByLabelText('Ocultar contraseña')).toBeInTheDocument();
+  });
+
+  it('navega al tablero solo cuando el backend confirma de forma expresa que no hay activacion pendiente', async () => {
+    mockSuccessfulSignIn();
+    getActivationStatusMock.mockResolvedValue({
+      requiresPasswordChange: false,
+      requiresMfaEnrollment: false,
+    });
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Abcdefg1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/tablero'));
+  });
+
+  it('NO navega al tablero (fail-closed) si el chequeo de activacion falla - muestra un estado bloqueante y reintentable', async () => {
+    mockSuccessfulSignIn();
+    getActivationStatusMock.mockRejectedValueOnce(new Error('servicio de perfiles caido'));
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Abcdefg1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    expect(await screen.findByText('No pudimos verificar tu cuenta')).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalledWith('/tablero');
+
+    getActivationStatusMock.mockResolvedValueOnce({
+      requiresPasswordChange: false,
+      requiresMfaEnrollment: false,
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/tablero'));
+    // El reintento reutiliza la sesion ya autenticada - no vuelve a llamar a Firebase.
+    expect(signInMock).toHaveBeenCalledTimes(1);
   });
 });

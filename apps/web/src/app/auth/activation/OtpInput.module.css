@@ -1,0 +1,85 @@
+.fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.legend {
+  display: block;
+  font-size: 13px;
+  color: var(--color-muted);
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+  padding: 0;
+}
+
+.digitInputs {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.digitBox {
+  width: 52px;
+  height: 52px;
+  border: 1.5px solid #a39c90;
+  border-radius: 2px;
+  background-color: #ffffff;
+  font-family: 'Space Grotesk', monospace, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+  text-align: center;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.digitBox:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.digitBoxError {
+  border-color: var(--color-error);
+}
+
+.mfaError {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--color-error);
+  margin-top: 0.625rem;
+}
+
+.mfaHint {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .mfaHint {
+    display: block;
+    font-size: 12px;
+    color: var(--color-muted);
+    margin-top: 0.375rem;
+  }
+
+  /* Casillas de codigo mas grandes - PROTO-TR-02-ACTIVACION-PASO-2-MOVIL */
+  .digitBox {
+    width: 48px;
+    height: 52px;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+
+  .digitBox:focus {
+    box-shadow: 0 0 0 2px var(--color-accent);
+  }
+
+  .digitBoxError {
+    background-color: #fbe9e9;
+    color: var(--color-error);
+    box-shadow: 0 0 0 2px var(--color-error);
+  }
+}
