@@ -1,0 +1,110 @@
+/*
+ * Button — tokens del Design System
+ * Fuente: veloxrent_erp_design_system/DESIGN.md — Components > Buttons
+ */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: 0 var(--space-base);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--text-label-md);
+  font-weight: var(--fw-medium);
+  line-height: var(--leading-label-md);
+  letter-spacing: var(--tracking-label-md);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* --- Tamaños --- */
+/* sm: 36px height — DESIGN.md "Height 36px (compact)" */
+.sm {
+  height: 36px;
+}
+
+/* md: 40px height — DESIGN.md "Height 40px (standard)" */
+.md {
+  height: 40px;
+}
+
+/* --- Variante: primary --- */
+/* DESIGN.md: Background #1F2A33, text #FFFFFF, border #1F2A33. Hover: #121A20 */
+.primary {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+}
+
+.primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+/* --- Variante: accent --- */
+/* DESIGN.md: Background #C6600A -> WCAG #9E4C08, text #FFFFFF, hover: #874107 */
+.accent {
+  background-color: var(--color-accent);
+  color: #FFFFFF;
+  border-color: var(--color-accent);
+}
+
+.accent:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+/* --- Variante: secondary --- */
+/* DESIGN.md: Background #FFFFFF, text #1F2A33, border #E5E2DC. Hover: bg #FAF9F5, border #1F2A33 */
+.secondary {
+  background-color: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-surface-border);
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-primary);
+}
+
+/* --- Variante: destructive --- */
+/* DESIGN.md: Background #FFFFFF, text #C22B2B, border #FBE9E9. Hover: bg #FBE9E9, border #C22B2B */
+.destructive {
+  background-color: var(--color-surface);
+  color: var(--color-error);
+  border-color: var(--color-error-bg);
+}
+
+.destructive:hover:not(:disabled) {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error);
+}
+
+/* --- Loading spinner --- */
+.spinner {
+  width: 14px;
+  height: 14px;
+  animation: spin 700ms linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

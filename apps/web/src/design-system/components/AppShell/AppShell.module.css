@@ -1,0 +1,171 @@
+/*
+ * AppShell — layout del shell de aplicacion VeloxRent
+ * Fuente visual primaria: alquileres_bandeja_veloxrent/code.html (PROTO-ALQ-01-BANDEJA, APPROVED)
+ * Fuente de diseno: veloxrent_erp_design_system/DESIGN.md
+ *
+ * Estructura: top-nav fija + area de contenido scrollable.
+ * NOTA: El DESIGN.md menciona side-nav (260px/64px); los prototipos APPROVED
+ * muestran exclusivamente top-nav. Se sigue la autoridad visual del prototipo.
+ * Ver Open Questions en el reporte de implementacion.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Root shell                                                           */
+/* ------------------------------------------------------------------ */
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans);
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/* ------------------------------------------------------------------ */
+/* Header                                                               */
+/* Prototipo: border-b #E5E2DC, bg #FFFFFF, sticky top-0, z-30, h-16  */
+/* ------------------------------------------------------------------ */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: var(--header-height);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-surface-border);
+  flex-shrink: 0;
+}
+
+.headerInner {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--content-padding);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xl);
+}
+
+/* --- Lado izquierdo: logotipo + separador + breadcrumbs --- */
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  min-width: 0;
+}
+
+.logoMark {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  text-decoration: none;
+  user-select: none;
+}
+
+/*
+ * Logotipo "VeloxRent"
+ * Prototipo (APPROVED): Velox = #1F2A33, Rent = acento
+ * Task brief: Velox = #9E4C08, Rent = #1F2A33
+ * Se sigue el prototipo como autoridad visual; ver Open Questions.
+ */
+.logoVelox {
+  font-family: var(--font-code);
+  font-weight: var(--fw-bold);
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-primary);
+}
+
+.logoRent {
+  color: var(--color-accent);
+}
+
+.headerDivider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--color-surface-border);
+  flex-shrink: 0;
+}
+
+/* --- Lado derecho: slots de contexto, notif, perfil --- */
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-base);
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Main                                                                 */
+/* Prototipo: max-w-[1440px] mx-auto px-6 py-8 flex-1 w-full          */
+/* ------------------------------------------------------------------ */
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--content-padding);
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------ */
+/* Breadcrumbs                                                          */
+/* ------------------------------------------------------------------ */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.breadcrumbItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-body-sm);
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+
+.breadcrumbLink {
+  font-size: var(--text-body-sm);
+  font-weight: var(--fw-medium);
+  color: var(--color-ink-muted);
+  text-decoration: none;
+  padding: 2px var(--space-xs);
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.breadcrumbLink:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-ink);
+}
+
+.breadcrumbLink:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* El ultimo item de breadcrumb es el activo */
+.breadcrumbCurrent {
+  font-size: var(--text-body-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.breadcrumbSeparator {
+  color: var(--color-surface-border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
