@@ -37,6 +37,32 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
         continue-on-error: true
 
+  e2e:
+    name: E2E Playwright
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Instalar navegadores Playwright (solo Chromium)
+        run: npx playwright install --with-deps chromium
+
+      # Build con variables Firebase simuladas (las llamadas reales son
+      # interceptadas por page.route() -- estos valores son placeholders).
+      - name: Build E2E (app con variables Firebase simuladas)
+        run: npm run build:web:e2e
+
+      - name: Tests E2E Playwright
+        # El reporter 'github' (playwright.config.ts) anota los fallos
+        # directamente en el PR sin necesidad de subir artefactos.
+        run: npm run test:e2e
+
   security:
     name: Secret scanning
     runs-on: ubuntu-latest
