@@ -1,0 +1,116 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 20, 0.35);
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.panel {
+  width: 360px;
+  max-width: 100%;
+  height: 100%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 640px) {
+  .panel {
+    width: 100%;
+  }
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #e5e5ea;
+}
+
+.panelTitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  color: var(--color-ink, #16161a);
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-ink, #16161a);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.markAllButton {
+  margin: 12px 16px 0;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--color-accent, #2f6fed);
+  font-family: 'Public Sans', sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.panelBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+.statusText {
+  padding: 16px;
+  font-family: 'Public Sans', sans-serif;
+  color: #6b6b76;
+  font-size: 14px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f0f0f3;
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'Public Sans', sans-serif;
+}
+
+.item:hover {
+  background: #fafafc;
+}
+
+.unread {
+  background: #f4f8ff;
+}
+
+.escalated {
+  border-left: 3px solid var(--color-error, #d92d20);
+}
+
+.itemTitle {
+  font-size: 14px;
+  color: var(--color-ink, #16161a);
+}
+
+.itemDate {
+  font-size: 12px;
+  color: #8a8a94;
+}

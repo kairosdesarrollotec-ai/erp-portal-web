@@ -20,3 +20,9 @@ Cada entrada: `ID | Fecha | Fuentes en conflicto | Decision | Aprobado por | Alc
 | BOOT-002 | 2026-09-14 | El catalogo completo de las 148 pantallas se genero mediante mapeo automatico nombre-de-carpeta -> UX-ID cruzando contra la seccion 5 de la especificacion UX/UI v3.1, no mediante lectura manual de cada `code.html`. | Bootstrap Claude Code (accion tecnica, no de negocio) | Precision del campo `ux_id`/`module` en `docs/prototype-manifest.yaml`; requiere verificacion humana puntual, especialmente en las pantallas del wizard "entrega_etapa_X_de_5" mapeadas a ALQ-03..ALQ-09 por inferencia de contenido. |
 | BOOT-003 | 2026-09-14 | La arquitectura de indexacion del blueprint (Zoekt, SCIP/LSP, Tree-sitter, pgvector, Sourcegraph) no se implementa en este bootstrap. Se usa exclusivamente filesystem + `rg` + manifiestos + indices IDE/LSP disponibles. | Instruccion explicita del usuario (principios obligatorios del bootstrap) | `.claude/rules`, busqueda/recuperacion de contexto de todos los agentes y skills. |
 
+## Decisiones provisionales de implementación (post-bootstrap)
+
+| ID | Fecha | Decision | Aprobado por | Alcance afectado |
+|---|---|---|---|---|
+| PROV-TR-11-001 | 2026-09-23 | TR-11 (hub de modulos) no tenia contrato UX/UI previo. Se redacto el contrato post-hoc y se aprobaron provisionalmente los prototipos PROTO-TR-11-MENU-MODULOS y PROTO-TR-11-MENU-MODULOS-MOVIL para desbloquear HU-25. La implementacion puede proceder usando los prototipos PROVISIONAL APPROVED como unica autoridad visual. Reglas de visibilidad por rol son provisionales (inferidas del prototipo, reemplazar con ADM-02). Ver `docs/conflicts/MISSING_TR11_UXUI_CONTRACT.md`. | Usuario (PR#12, 23-sep-2026) | `apps/web/src/app/modules/ModuleHubScreen.tsx` y ruta `/modulos` |
+

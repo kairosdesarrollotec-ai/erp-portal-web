@@ -4,7 +4,7 @@ generated_note: Generado por bootstrap Claude Code a partir del encabezado real 
   cambia, este manifiesto debe regenerarse via el agente index-maintainer.
 sources:
 - id: BDD-KAIROS-MVP-002-TRANSVERSAL
-  path: docs/sources/bdd/BDD — 00 Transversal.md
+  path: docs/sources/bdd/bdd-00-transversal.md
   type: BDD
   module: Transversal
   version: '1.18'
@@ -16,7 +16,7 @@ sources:
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-CON
-  path: docs/sources/bdd/BDD — 01 Consulta.md
+  path: docs/sources/bdd/bdd-01-consulta.md
   type: BDD
   module: Consulta
   version: '1.8'
@@ -27,7 +27,7 @@ sources:
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-RES
-  path: docs/sources/bdd/BDD — 02 Reserva.md
+  path: docs/sources/bdd/bdd-02-reserva.md
   type: BDD
   module: Reserva
   version: '1.9'
@@ -38,7 +38,7 @@ sources:
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-ALQ
-  path: docs/sources/bdd/BDD — 03 Alquiler.md
+  path: docs/sources/bdd/bdd-03-alquiler.md
   type: BDD
   module: Alquiler
   version: '1.7'
@@ -49,7 +49,7 @@ sources:
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-DEV
-  path: docs/sources/bdd/BDD — 04 Devolución.md
+  path: docs/sources/bdd/bdd-04-devolucion.md
   type: BDD
   module: Devolución
   version: '1.9'
@@ -60,7 +60,7 @@ sources:
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-REC
-  path: docs/sources/bdd/BDD — 05 Reclutamiento y Selección.md
+  path: docs/sources/bdd/bdd-05-reclutamiento-y-seleccion.md
   type: BDD
   module: Reclutamiento y Selección
   version: '1.7'
@@ -71,7 +71,7 @@ sources:
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-ADP
-  path: docs/sources/bdd/BDD — 06 Administración de Personal.md
+  path: docs/sources/bdd/bdd-06-administracion-de-personal.md
   type: BDD
   module: Administración de Personal
   version: '1.9'
@@ -82,7 +82,7 @@ sources:
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-TRACEABILITY
-  path: docs/sources/bdd/BDD — 07 Trazabilidad.md
+  path: docs/sources/bdd/bdd-07-trazabilidad.md
   type: BDD
   module: Trazabilidad
   version: '1.11'
@@ -93,7 +93,7 @@ sources:
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-EXECUTIVE-SUMMARY
-  path: docs/sources/bdd/BDD — 08 Resumen ejecutivo.md
+  path: docs/sources/bdd/bdd-08-resumen-ejecutivo.md
   type: BDD
   module: Resumen ejecutivo
   version: '1.19'
@@ -104,7 +104,7 @@ sources:
   authority: business
   supersedes: null
 - id: SDD-KAIROS-MVP-002-TRANSVERSAL
-  path: docs/sources/sdd/SDD — 00 Transversal.md
+  path: docs/sources/sdd/sdd-00-transversal.md
   type: SDD
   module: Transversal
   version: '3.6'
@@ -115,7 +115,7 @@ sources:
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-CON
-  path: docs/sources/sdd/SDD — 01 Consulta.md
+  path: docs/sources/sdd/sdd-01-consulta.md
   type: SDD
   module: Consulta
   version: '2.1'
@@ -126,7 +126,7 @@ sources:
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-RES
-  path: docs/sources/sdd/SDD — 02 Reserva.md
+  path: docs/sources/sdd/sdd-02-reserva.md
   type: SDD
   module: Reserva
   version: '2.2'
@@ -137,7 +137,7 @@ sources:
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-ALQ
-  path: docs/sources/sdd/SDD — 03 Alquiler.md
+  path: docs/sources/sdd/sdd-03-alquiler.md
   type: SDD
   module: Alquiler
   version: '2.1'
@@ -148,7 +148,7 @@ sources:
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-DEV
-  path: docs/sources/sdd/SDD — 04 Devolución.md
+  path: docs/sources/sdd/sdd-04-devolucion.md
   type: SDD
   module: Devolución
   version: '2.2'
@@ -159,7 +159,7 @@ sources:
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-REC
-  path: docs/sources/sdd/SDD — 05 Reclutamiento y Selección.md
+  path: docs/sources/sdd/sdd-05-reclutamiento-y-seleccion.md
   type: SDD
   module: Reclutamiento y Selección
   version: '2.0'
@@ -170,7 +170,7 @@ sources:
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-ADP
-  path: docs/sources/sdd/SDD — 06 Administración de Personal.md
+  path: docs/sources/sdd/sdd-06-administracion-de-personal.md
   type: SDD
   module: Administración de Personal
   version: '2.1'
@@ -181,7 +181,7 @@ sources:
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-TRACEABILITY
-  path: docs/sources/sdd/SDD — 07 Trazabilidad.md
+  path: docs/sources/sdd/sdd-07-trazabilidad.md
   type: SDD
   module: Trazabilidad
   version: '2.1'
@@ -192,7 +192,7 @@ sources:
   authority: functional
   supersedes: null
 - id: TDD-KAIROS-MVP-002-TRANSVERSAL
-  path: docs/sources/tdd/TDD — 00 Transversal.md
+  path: docs/sources/tdd/tdd-00-transversal.md
   type: TDD
   module: Transversal
   version: '3.4'
@@ -203,7 +203,7 @@ sources:
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-CON
-  path: docs/sources/tdd/TDD — 01 Consulta.md
+  path: docs/sources/tdd/tdd-01-consulta.md
   type: TDD
   module: Consulta
   version: '2.0'
@@ -214,7 +214,7 @@ sources:
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-RES
-  path: docs/sources/tdd/TDD — 02 Reserva.md
+  path: docs/sources/tdd/tdd-02-reserva.md
   type: TDD
   module: Reserva
   version: '2.2'
@@ -225,7 +225,7 @@ sources:
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-ALQ
-  path: docs/sources/tdd/TDD — 03 Alquiler.md
+  path: docs/sources/tdd/tdd-03-alquiler.md
   type: TDD
   module: Alquiler
   version: '2.1'
@@ -236,7 +236,7 @@ sources:
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-DEV
-  path: docs/sources/tdd/TDD — 04 Devolución.md
+  path: docs/sources/tdd/tdd-04-devolucion.md
   type: TDD
   module: Devolución
   version: '2.1'
@@ -247,7 +247,7 @@ sources:
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-REC
-  path: docs/sources/tdd/TDD — 05 Reclutamiento y Selección.md
+  path: docs/sources/tdd/tdd-05-reclutamiento-y-seleccion.md
   type: TDD
   module: Reclutamiento y Selección
   version: '2.0'
@@ -258,7 +258,7 @@ sources:
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-ADP
-  path: docs/sources/tdd/TDD — 06 Administración de Personal.md
+  path: docs/sources/tdd/tdd-06-administracion-de-personal.md
   type: TDD
   module: Administración de Personal
   version: '2.1'
@@ -269,7 +269,7 @@ sources:
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-TRACEABILITY
-  path: docs/sources/tdd/TDD — 07 Trazabilidad.md
+  path: docs/sources/tdd/tdd-07-trazabilidad.md
   type: TDD
   module: Trazabilidad
   version: '2.1'
@@ -280,7 +280,7 @@ sources:
   authority: technical
   supersedes: null
 - id: UX-UI-V3.1-KAIROS
-  path: docs/sources/ux-ui/Especificación UX-UI v3.1 para Prototipado del ERP KAIROS.md
+  path: docs/sources/ux-ui/especificacion-ux-ui-v3.1-para-prototipado-del-erp-kairos.md
   type: UX
   module: transversal-ux
   version: '3.1'

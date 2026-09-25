@@ -1,0 +1,85 @@
+/*
+ * Input — tokens del Design System
+ * Fuente: veloxrent_erp_design_system/DESIGN.md — Components > Form Inputs
+ */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: var(--text-label-md);
+  font-weight: var(--fw-medium);
+  line-height: var(--leading-label-md);
+  letter-spacing: var(--tracking-label-md);
+  color: var(--color-ink);
+}
+
+.required {
+  color: var(--color-error);
+  margin-left: 2px;
+}
+
+/* DESIGN.md: height 36px, padding horizontal 12px, border #E5E2DC, radius 4px */
+.input {
+  height: 36px;
+  padding: 0 var(--space-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--text-body-base);
+  font-weight: var(--fw-regular);
+  line-height: var(--leading-body-base);
+  color: var(--color-ink);
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-ink-subtle);
+}
+
+/* DESIGN.md: Focus: border #1F2A33, box-shadow 0 0 0 1px #1F2A33 */
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+/* DESIGN.md: Error: border #C22B2B */
+.inputError {
+  border-color: var(--color-error);
+}
+
+.inputError:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 1px var(--color-error);
+}
+
+.input:disabled {
+  background-color: var(--color-surface-low);
+  color: var(--color-ink-subtle);
+  cursor: not-allowed;
+}
+
+/* DESIGN.md: error caption font body-sm in #C22B2B */
+.errorText {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  font-weight: var(--fw-regular);
+  line-height: var(--leading-body-sm);
+  color: var(--color-error);
+}
+
+.hintText {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  font-weight: var(--fw-regular);
+  line-height: var(--leading-body-sm);
+  color: var(--color-ink-muted);
+}

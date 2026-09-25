@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="es"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;min-height:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"tertiary-container":"#002951","primary-fixed":"#d8e4f0","surface-bright":"#fcf9f3","inverse-surface":"#31302d","on-secondary-container":"#662d00","error-container":"#ffdad6","on-tertiary":"#ffffff","on-primary-fixed":"#121d25","on-secondary":"#ffffff","on-surface":"#1c1c18","on-secondary-fixed":"#321300","secondary":"#994700","inverse-primary":"#bcc8d4","tertiary":"#00142d","outline-variant":"#c4c7cb","tertiary-fixed-dim":"#a5c8ff","tertiary-fixed":"#d4e3ff","secondary-fixed":"#ffdbc8","error":"#ba1a1a","secondary-fixed-dim":"#ffb68a","on-error":"#ffffff","surface-container-highest":"#e5e2dc","inverse-on-surface":"#f4f0ea","on-surface-variant":"#44474b","surface-container-low":"#f6f3ed","surface-container-lowest":"#ffffff","on-tertiary-fixed-variant":"#004785","on-primary-fixed-variant":"#3d4852","on-background":"#1c1c18","on-error-container":"#93000a","surface-variant":"#e5e2dc","on-primary-container":"#86919c","surface-container-high":"#ebe8e2","primary-container":"#1f2a33","surface-tint":"#54606a","primary-fixed-dim":"#bcc8d4","primary":"#0a161e","surface":"#fcf9f3","surface-container":"#f1ede7","surface-dim":"#dddad4","on-tertiary-fixed":"#001c3a","on-secondary-fixed-variant":"#743400","secondary-container":"#fd8a38","on-tertiary-container":"#5692df","outline":"#74777b","background":"#fcf9f3","on-primary":"#ffffff"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"spacing-3xl":"3rem","gutter-mobile":"0.5rem","margin-desktop":"1.5rem","gutter-desktop":"1rem","spacing-2xl":"2rem","spacing-xl":"1.5rem","spacing-lg":"1.25rem","spacing-sm":"0.5rem","spacing-2xs":"0.125rem","spacing-md":"0.75rem","spacing-base":"1rem","gutter-tablet":"0.75rem","margin-mobile":"0.75rem","margin-tablet":"1rem","spacing-xs":"0.25rem"},"fontFamily":{"body-sm":["Public Sans"],"label-md":["Public Sans"],"code-operational-sm":["Space Grotesk"],"headline-lg":["Public Sans"],"headline-xl-mobile":["Public Sans"],"code-operational":["Space Grotesk"],"body-base":["Public Sans"],"headline-xl":["Public Sans"],"headline-sm":["Public Sans"],"body-lg":["Public Sans"],"label-sm":["Public Sans"]},"fontSize":{"body-sm":["0.75rem",{"lineHeight":"1rem","fontWeight":"400"}],"label-md":["0.8125rem",{"lineHeight":"1rem","letterSpacing":"0.01em","fontWeight":"500"}],"code-operational-sm":["0.75rem",{"lineHeight":"1rem","letterSpacing":"0.03em","fontWeight":"600"}],"headline-lg":["1.5rem",{"lineHeight":"2rem","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-xl-mobile":["1.5rem",{"lineHeight":"2rem","letterSpacing":"-0.01em","fontWeight":"700"}],"code-operational":["0.875rem",{"lineHeight":"1.25rem","letterSpacing":"0.02em","fontWeight":"500"}],"body-base":["0.875rem",{"lineHeight":"1.25rem","fontWeight":"400"}],"headline-xl":["2rem",{"lineHeight":"2.5rem","letterSpacing":"-0.02em","fontWeight":"700"}],"headline-sm":["1.125rem",{"lineHeight":"1.5rem","letterSpacing":"-0.01em","fontWeight":"600"}],"body-lg":["1rem",{"lineHeight":"1.5rem","fontWeight":"400"}],"label-sm":["0.6875rem",{"lineHeight":"0.875rem","letterSpacing":"0.04em","fontWeight":"600"}]}}}};</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head><body class="bg-surface-container-lowest text-on-surface font-body-base text-body-base min-h-screen flex flex-col selection:bg-primary-fixed"><header class="fixed top-0 inset-x-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl pt-safe shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-14 max-w-[390px] mx-auto px-margin-mobile flex items-center justify-between"><button aria-label="Volver" class="w-11 h-11 flex items-center justify-start text-on-surface-variant hover:text-on-surface transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[20px]">arrow_back</span></button><div class="flex items-center gap-spacing-xs"><span class="w-2 h-2 rounded-full bg-secondary"></span><span class="font-code-operational-sm text-code-operational-sm text-on-surface uppercase tracking-wider">Verificacion 2Fa</span></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="flex-1 flex flex-col relative w-full max-w-[390px] mx-auto pt-14 pb-safe bg-surface-container-lowest"><div class="flex flex-col w-full px-margin-mobile pb-28 pt-2">
+<!-- Stepper de Activación -->
+<div class="flex flex-col gap-spacing-xs mb-spacing-md">
+<div class="flex items-center justify-between mb-spacing-2xs">
+<div class="flex items-center gap-1.5">
+<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-container text-on-primary font-code-operational-sm text-[10px]">
+<span class="material-symbols-outlined text-[13px] leading-none">check</span>
+</span>
+<div class="w-12 h-1 bg-primary-container rounded-full"></div>
+<span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary-container text-on-primary font-code-operational-sm text-[11px] font-semibold">
+          2
+        </span>
+</div>
+<span class="font-code-operational-sm text-code-operational-sm text-on-surface-variant uppercase tracking-wider">
+        Paso 2 de 2 · 2FA
+      </span>
+</div>
+<div class="h-1 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary-container w-full rounded-full transition-all duration-300"></div>
+</div>
+</div>
+<!-- Encabezado y Contexto Operativo -->
+<div class="flex flex-col gap-spacing-xs mb-spacing-lg">
+<h1 class="font-code-operational text-[20px] leading-[24px] font-semibold text-primary-container tracking-tight">
+      Configura tu autenticador
+    </h1>
+<p class="font-body-base text-body-base text-on-surface-variant leading-relaxed">
+      Escanea el código QR con tu aplicación autenticadora (Google Authenticator, Microsoft Authenticator o similar) e ingresa el código de 6 dígitos generado.
+    </p>
+</div>
+<!-- Contenedor QR Vectorial -->
+<div class="flex flex-col items-center justify-center bg-surface-container-low rounded-xl p-spacing-lg mb-spacing-md shadow-sm">
+<div class="bg-surface-container-lowest p-3 rounded-lg shadow-sm flex items-center justify-center">
+<!-- QR SVG Vectorial Estructurado 220x220px -->
+<svg aria-label="Código QR de autenticación TOTP VeloxRent" class="w-[220px] h-[220px]" fill="none" viewbox="0 0 174 174" xmlns="http://www.w3.org/2000/svg">
+<rect fill="#FFFFFF" height="174" width="174"></rect>
+<!-- Finder Superior Izquierdo -->
+<rect fill="#1F2A33" height="42" width="42" x="12" y="12"></rect>
+<rect fill="#FFFFFF" height="30" width="30" x="18" y="18"></rect>
+<rect fill="#1F2A33" height="18" width="18" x="24" y="24"></rect>
+<!-- Finder Superior Derecho -->
+<rect fill="#1F2A33" height="42" width="42" x="120" y="12"></rect>
+<rect fill="#FFFFFF" height="30" width="30" x="126" y="18"></rect>
+<rect fill="#1F2A33" height="18" width="18" x="132" y="24"></rect>
+<!-- Finder Inferior Izquierdo -->
+<rect fill="#1F2A33" height="42" width="42" x="12" y="120"></rect>
+<rect fill="#FFFFFF" height="30" width="30" x="18" y="126"></rect>
+<rect fill="#1F2A33" height="18" width="18" x="24" y="132"></rect>
+<!-- Módulos de Sincronización y Timing -->
+<rect fill="#1F2A33" height="6" width="6" x="12" y="60"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="12" y="72"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="12" y="84"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="12" y="96"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="12" y="108"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="60" y="12"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="72" y="12"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="84" y="12"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="96" y="12"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="108" y="12"></rect>
+<!-- Módulos de Datos Representativos TOTP -->
+<rect fill="#1F2A33" height="6" width="6" x="60" y="24"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="72" y="24"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="96" y="24"></rect>
+<rect fill="#1F2A33" height="12" width="6" x="66" y="36"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="84" y="36"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="60" y="48"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="78" y="48"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="96" y="48"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="24" y="66"></rect>
+<rect fill="#1F2A33" height="12" width="6" x="48" y="66"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="66" y="66"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="84" y="66"></rect>
+<rect fill="#1F2A33" height="12" width="12" x="96" y="66"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="114" y="66"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="126" y="66"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="144" y="66"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="18" y="78"></rect>
+<rect fill="#1F2A33" height="12" width="6" x="30" y="78"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="60" y="78"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="72" y="78"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="114" y="78"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="138" y="78"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="150" y="78"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="42" y="90"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="60" y="90"></rect>
+<rect fill="#1F2A33" height="12" width="6" x="84" y="90"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="108" y="90"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="126" y="90"></rect>
+<rect fill="#1F2A33" height="12" width="6" x="156" y="90"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="24" y="102"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="36" y="102"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="66" y="102"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="96" y="102"></rect>
+<rect fill="#1F2A33" height="12" width="6" x="120" y="102"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="138" y="102"></rect>
+<!-- Cuadrante Inferior Derecho -->
+<rect fill="#1F2A33" height="6" width="12" x="60" y="114"></rect>
+<rect fill="#1F2A33" height="18" width="6" x="78" y="114"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="90" y="114"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="114" y="114"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="132" y="114"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="156" y="114"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="60" y="126"></rect>
+<rect fill="#1F2A33" height="12" width="6" x="96" y="126"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="108" y="126"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="126" y="126"></rect>
+<rect fill="#1F2A33" height="12" width="12" x="144" y="126"></rect>
+<rect fill="#1F2A33" height="12" width="6" x="66" y="138"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="84" y="138"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="102" y="138"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="126" y="138"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="60" y="150"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="90" y="150"></rect>
+<rect fill="#1F2A33" height="6" width="12" x="108" y="150"></rect>
+<rect fill="#1F2A33" height="6" width="6" x="126" y="150"></rect>
+<rect fill="#1F2A33" height="6" width="18" x="138" y="150"></rect>
+<!-- Emblema de marca VeloxRent central -->
+<rect fill="#FFFFFF" height="28" rx="4" width="28" x="73" y="73"></rect>
+<rect fill="#1F2A33" height="20" rx="3" width="20" x="77" y="77"></rect>
+<path d="M82 82L87 92L92 82" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+</svg>
+</div>
+<!-- Toggle de Clave Manual -->
+<div class="mt-spacing-sm w-full flex flex-col items-center">
+<button class="inline-flex items-center gap-1.5 text-secondary hover:text-on-secondary-container font-label-md text-label-md transition-colors py-1 px-2 rounded" id="toggle-secret-btn" onclick="toggleSecretKey()" type="button">
+<span class="material-symbols-outlined text-[16px]">key</span>
+<span>¿No puedes escanear el código? Ingresar clave manual</span>
+</button>
+<!-- Panel desplegable clave manual -->
+<div class="hidden w-full mt-spacing-xs bg-surface-container-lowest rounded-lg p-spacing-sm shadow-sm" id="manual-secret-panel">
+<div class="flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Clave secreta segura</span>
+<span class="font-code-operational text-code-operational font-semibold text-primary-container select-all tracking-widest" id="secret-text">
+              VLX7-4892-KQ91-Z8XP
+            </span>
+</div>
+<button aria-label="Copiar clave secreta" class="flex items-center gap-1 px-2.5 py-1.5 bg-surface-container-high hover:bg-surface-container-highest text-primary-container rounded font-label-md text-label-md transition-colors" id="copy-btn" onclick="copySecretKey()" type="button">
+<span class="material-symbols-outlined text-[15px]" id="copy-icon">content_copy</span>
+<span id="copy-label">Copiar</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Formulario Código de 6 Dígitos -->
+<form class="flex flex-col gap-spacing-xs" id="totp-form" onsubmit="handleActivation(event)">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md font-medium text-primary-container">
+        Código de verificación (6 dígitos)
+      </label>
+<span class="inline-flex items-center gap-1 font-code-operational-sm text-code-operational-sm text-secondary font-medium">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+        Sincronizado
+      </span>
+</div>
+<!-- Inputs 6 casillas numéricas -->
+<div class="flex items-center justify-between gap-1.5 py-1" id="otp-container"><input aria-label="Dígito 1 del código" autocomplete="one-time-code" class="otp-digit w-[48px] h-[52px] bg-[#FBE9E9] text-[#C22B2B] font-code-operational text-[22px] font-bold text-center rounded border-2 border-[#C22B2B] shadow-sm focus:outline-none transition-all" data-index="0" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="tel" value="8"/><input aria-label="Dígito 2 del código" class="otp-digit w-[48px] h-[52px] bg-[#FBE9E9] text-[#C22B2B] font-code-operational text-[22px] font-bold text-center rounded border-2 border-[#C22B2B] shadow-sm focus:outline-none transition-all" data-index="1" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="tel" value="4"/><input aria-label="Dígito 3 del código" class="otp-digit w-[48px] h-[52px] bg-[#FBE9E9] text-[#C22B2B] font-code-operational text-[22px] font-bold text-center rounded border-2 border-[#C22B2B] shadow-sm focus:outline-none transition-all" data-index="2" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="tel" value="1"/><input aria-label="Dígito 4 del código" class="otp-digit w-[48px] h-[52px] bg-[#FBE9E9] text-[#C22B2B] font-code-operational text-[22px] font-bold text-center rounded border-2 border-[#C22B2B] shadow-sm focus:outline-none transition-all" data-index="3" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="tel" value="9"/><input aria-label="Dígito 5 del código" class="otp-digit w-[48px] h-[52px] bg-[#FBE9E9] text-[#C22B2B] font-code-operational text-[22px] font-bold text-center rounded border-2 border-[#C22B2B] shadow-sm focus:outline-none transition-all" data-index="4" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="tel" value="2"/><input aria-label="Dígito 6 del código" class="otp-digit w-[48px] h-[52px] bg-[#FBE9E9] text-[#C22B2B] font-code-operational text-[22px] font-bold text-center rounded border-2 border-[#C22B2B] shadow-sm focus:outline-none transition-all" data-index="5" inputmode="numeric" maxlength="1" pattern="[0-9]*" type="tel" value="0"/></div>
+<!-- Mensaje de ayuda contextual -->
+<div class="flex items-center gap-1.5 mt-0.5"><span class="material-symbols-outlined text-[16px] text-[#C22B2B]">error</span><span class="font-body-base text-[13px] leading-tight text-[#C22B2B] font-medium">Código incorrecto o expirado — genera uno nuevo en tu app e intenta de nuevo</span></div>
+</form>
+<!-- Notificación de validación inline (oculta inicialmente) -->
+<div class="hidden mt-spacing-md p-spacing-sm bg-surface-container-low rounded-lg items-center gap-2 transition-opacity duration-200" id="activation-toast">
+<span class="material-symbols-outlined text-secondary text-[18px]">verified_user</span>
+<span class="font-label-md text-label-md text-on-surface">Validando credenciales corporativas...</span>
+</div>
+</div>
+<!-- Barra de Acción Inferior Fija -->
+<div class="fixed bottom-0 inset-x-0 z-40 bg-surface-container-lowest shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+<div class="w-full max-w-[390px] mx-auto p-4 flex flex-col">
+<button class="w-full h-[52px] bg-[#D4D0C8] text-[#78716C] font-body-base text-[15px] font-medium rounded-[4px] flex items-center justify-center gap-2 cursor-not-allowed shadow-none" disabled="true" id="submit-activation-btn" onclick="handleActivation(event)" type="button"><span class="material-symbols-outlined text-[18px] text-[#78716C]">lock</span><span>Activar cuenta</span></button>
+</div>
+</div>
+<script>
+  // Lógica de auto-avance, navegación por teclado y copiado
+  document.addEventListener('DOMContentLoaded', () => {
+    const inputs = Array.from(document.querySelectorAll('.otp-digit'));
+    
+    // Enfocar automáticamente el primer input
+    if (inputs.length > 0) {
+      setTimeout(() => inputs[0].focus(), 300);
+    }
+
+    inputs.forEach((input, index) => {
+      // Manejar input de caracteres y auto-avance
+      input.addEventListener('input', (e) => {
+        const val = e.target.value;
+
+        // Soporte de pegado directo de 6 dígitos en cualquier celda
+        if (val.length > 1) {
+          const numbers = val.replace(/\D/g, '').slice(0, 6).split('');
+          numbers.forEach((digit, i) => {
+            if (inputs[i]) inputs[i].value = digit;
+          });
+          const targetIndex = Math.min(numbers.length, inputs.length - 1);
+          inputs[targetIndex].focus();
+          validateCompleteOtp();
+          return;
+        }
+
+        // Sanitización para admitir exclusivamente dígitos numéricos
+        if (!/^[0-9]$/.test(val)) {
+          e.target.value = '';
+          return;
+        }
+
+        // Avance hacia el siguiente dígito
+        if (val && index < inputs.length - 1) {
+          inputs[index + 1].focus();
+        }
+
+        validateCompleteOtp();
+      });
+
+      // Manejo de retroceso (Backspace) y navegación por flechas
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace') {
+          if (!input.value && index > 0) {
+            inputs[index - 1].focus();
+            inputs[index - 1].value = '';
+            e.preventDefault();
+          }
+        } else if (e.key === 'ArrowLeft' && index > 0) {
+          inputs[index - 1].focus();
+        } else if (e.key === 'ArrowRight' && index < inputs.length - 1) {
+          inputs[index + 1].focus();
+        }
+      });
+
+      // Selección de texto al enfocar para reescritura ágil
+      input.addEventListener('focus', () => {
+        input.select();
+      });
+    });
+  });
+
+  function validateCompleteOtp() {
+    const inputs = Array.from(document.querySelectorAll('.otp-digit'));
+    const fullCode = inputs.map(i => i.value).join('');
+    const submitBtn = document.getElementById('submit-activation-btn');
+    if (fullCode.length === 6) {
+      submitBtn.classList.add('bg-secondary', 'text-on-secondary');
+      submitBtn.classList.remove('bg-primary-container', 'text-on-primary');
+    } else {
+      submitBtn.classList.remove('bg-secondary', 'text-on-secondary');
+      submitBtn.classList.add('bg-primary-container', 'text-on-primary');
+    }
+  }
+
+  function toggleSecretKey() {
+    const panel = document.getElementById('manual-secret-panel');
+    panel.classList.toggle('hidden');
+  }
+
+  function copySecretKey() {
+    const secret = "VLX74892KQ91Z8XP";
+    navigator.clipboard.writeText(secret).then(() => {
+      const copyLabel = document.getElementById('copy-label');
+      const copyIcon = document.getElementById('copy-icon');
+      copyLabel.textContent = '¡Copiado!';
+      copyIcon.textContent = 'check';
+      setTimeout(() => {
+        copyLabel.textContent = 'Copiar';
+        copyIcon.textContent = 'content_copy';
+      }, 2000);
+    });
+  }
+
+  function handleActivation(e) {
+    if (e) e.preventDefault();
+    const inputs = Array.from(document.querySelectorAll('.otp-digit'));
+    const fullCode = inputs.map(i => i.value).join('');
+    const toast = document.getElementById('activation-toast');
+    
+    if (fullCode.length < 6) {
+      const firstEmpty = inputs.find(i => !i.value) || inputs[0];
+      firstEmpty.focus();
+      return;
+    }
+
+    toast.classList.remove('hidden');
+    toast.classList.add('flex');
+    const submitBtn = document.getElementById('submit-activation-btn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span><span>Verificando...</span>';
+
+    setTimeout(() => {
+      toast.innerHTML = '<span class="material-symbols-outlined text-[#1E7D4B] text-[18px]">check_circle</span><span class="font-label-md text-label-md text-primary-container font-semibold">Cuenta 2FA verificada. Redirigiendo a terminal...</span>';
+      submitBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span><span>Cuenta Activada</span>';
+      submitBtn.classList.replace('bg-secondary', 'bg-[#1E7D4B]');
+    }, 1200);
+  }
+</script></main></body></html>
