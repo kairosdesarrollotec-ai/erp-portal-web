@@ -52,11 +52,10 @@ test.describe('Bandeja de Reservas (RES-01)', () => {
     await interceptReservations(page);
     await loginViaUI(page);
 
-    await page.goto(`/reservas/${RESERVATION_FIXTURE.id}`, {
-      state: { companyId: 'company-001', branchId: 'branch-001' },
-    });
+    await page.waitForURL('**/tablero', { timeout: 10_000 });
+    await page.goto(`/reservas/${RESERVATION_FIXTURE.id}`);
 
     await expect(page.getByText('Carlos López')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText('ABC-123')).toBeVisible();
+    await expect(page.getByText('Toyota Corolla 2022')).toBeVisible();
   });
 });

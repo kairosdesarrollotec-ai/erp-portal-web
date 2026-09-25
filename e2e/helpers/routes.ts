@@ -70,9 +70,28 @@ export async function interceptFirebaseAuth(page: Page, email = 'agente@veloxren
   const idToken = makeFakeJwt(email);
 
   // 1. Catch-all para otras llamadas de inicializacion del SDK (baja prioridad).
-  await page.route('**/identitytoolkit.googleapis.com/**', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }),
-  );
+  // accounts:lookup requiere users[] — el SDK falla si el array esta ausente.
+  await page.route('**/identitytoolkit.googleapis.com/**', (route) => {
+    if (route.request().url().includes('accounts:lookup')) {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          kind: 'identitytoolkit#GetAccountInfoResponse',
+          users: [{
+            localId: 'fake-uid-e2e',
+            email,
+            emailVerified: true,
+            lastLoginAt: '1000000000000',
+            createdAt: '1000000000000',
+            validSince: '1000000000',
+          }],
+        }),
+      });
+    } else {
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) });
+    }
+  });
 
   // 2. Refresco de token (securetoken).
   await page.route('**/securetoken.googleapis.com/**', (route) =>
