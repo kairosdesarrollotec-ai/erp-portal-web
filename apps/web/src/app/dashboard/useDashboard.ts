@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
-import { getDashboard } from './dashboard-client';
+import { getDashboard, DashboardTaskItem } from './dashboard-client';
 import { getWorkContextAssignments } from '../auth/work-context-client';
 import type { WorkerRole } from './worker-role';
 
@@ -14,6 +14,14 @@ import type { WorkerRole } from './worker-role';
  */
 export type DashboardScreenState = 'LOADING' | 'READY' | 'UNRESOLVED';
 
+/**
+ * Estado del TABLERO devuelto por el backend (distinto de
+ * DashboardScreenState, que es el ciclo de vida de ESTA pantalla:
+ * resolver contexto + pedir el tablero). 'EMPTY' o 'READY' con
+ * `tasks` (ver dashboard-client.ts).
+ */
+export type DashboardDataState = 'EMPTY' | 'READY';
+
 interface WorkContextNavigationState {
   companyId: string;
   companyName: string;
@@ -25,6 +33,10 @@ export function useDashboard() {
   const [state, setState] = useState<DashboardScreenState>('LOADING');
   const [role, setRole] = useState<WorkerRole | null>(null);
   const [branchName, setBranchName] = useState<string | null>(null);
+  const [dashboardState, setDashboardState] = useState<DashboardDataState>('EMPTY');
+  const [tasks, setTasks] = useState<DashboardTaskItem[]>([]);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [branchId, setBranchId] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -84,6 +96,10 @@ export function useDashboard() {
         if (cancelled) return;
         setRole(result.role);
         setBranchName(`${context.companyName} — ${context.branchName}`);
+        setCompanyId(context.companyId);
+        setBranchId(context.branchId);
+        setDashboardState(result.state);
+        setTasks(result.state === 'READY' ? result.tasks : []);
         setState('READY');
       } catch {
         if (!cancelled) setState('UNRESOLVED');
@@ -96,5 +112,5 @@ export function useDashboard() {
     };
   }, [location.state, navigate]);
 
-  return { state, role, branchName };
+  return { state, role, branchName, dashboardState, tasks, companyId, branchId };
 }

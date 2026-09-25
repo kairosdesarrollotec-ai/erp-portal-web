@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { DashboardScreen } from './DashboardScreen';
 
@@ -28,6 +28,13 @@ vi.mock('../auth/work-context-client', () => ({
   getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
 }));
 
+const getMyNotificationsMock = vi.fn();
+
+vi.mock('../notifications/notifications-client', () => ({
+  getMyNotifications: (...args: unknown[]) => getMyNotificationsMock(...args),
+  markAllNotificationsRead: vi.fn().mockResolvedValue(undefined),
+}));
+
 function renderScreen(state?: Record<string, unknown>) {
   return render(
     <MemoryRouter initialEntries={[{ pathname: '/tablero', state }]}>
@@ -44,6 +51,7 @@ describe('DashboardScreen (TR-06)', () => {
     getDashboardMock.mockReset();
     getWorkContextAssignmentsMock.mockReset();
     signOutMock.mockReset().mockResolvedValue(undefined);
+    getMyNotificationsMock.mockReset().mockResolvedValue([]);
   });
 
   it('con contexto por navegacion, muestra el rol resuelto y el estado EMPTY', async () => {
@@ -89,5 +97,53 @@ describe('DashboardScreen (TR-06)', () => {
     expect(
       await screen.findByText(/No pudimos determinar tu contexto de trabajo/),
     ).toBeInTheDocument();
+  });
+
+
+  it('con tareas reales (Front-office), las muestra ordenadas y enlazadas a su deepLink', async () => {
+    getDashboardMock.mockResolvedValue({
+      role: 'FRONT_OFFICE',
+      state: 'READY',
+      tasks: [
+        { id: 't1', itemType: 'TASK', priority: 10, title: 'Reserva pendiente de pago/documentos', detail: 'Vehiculo veh-1', deepLink: '/reservas/res-1' },
+      ],
+    });
+    renderScreen({
+      companyId: 'c1',
+      companyName: 'VeloxRent',
+      branchId: 'b1',
+      branchName: 'Ayacucho — Sede Central',
+    });
+
+    const link = await screen.findByRole('link', { name: /Reserva pendiente de pago\/documentos/ });
+    expect(link).toHaveAttribute('href', '/reservas/res-1');
+    expect(screen.getByText('Vehiculo veh-1')).toBeInTheDocument();
+    expect(screen.queryByText('No tienes pendientes por ahora.')).not.toBeInTheDocument();
+  });
+
+  it('muestra el contador de notificaciones no leidas y abre el panel al hacer clic en la campana', async () => {
+    getDashboardMock.mockResolvedValue({ role: 'GERENCIA', state: 'EMPTY' });
+    getMyNotificationsMock.mockResolvedValue([
+      {
+        id: 'n1',
+        notificationType: 'ReservationCreated',
+        isEscalated: false,
+        title: 'Nueva reserva creada',
+        deepLink: '/reservas/r1',
+        readAt: null,
+        createdAt: '2026-09-23T10:00:00.000Z',
+      },
+    ]);
+    renderScreen({
+      companyId: 'c1',
+      companyName: 'VeloxRent',
+      branchId: 'b1',
+      branchName: 'Ayacucho — Sede Central',
+    });
+
+    expect(await screen.findByText('1')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Notificaciones'));
+    expect(await screen.findByText('Nueva reserva creada')).toBeInTheDocument();
   });
 });

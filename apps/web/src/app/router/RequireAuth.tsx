@@ -4,22 +4,17 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
 
 /**
- * Hallazgo de revision PR#10 (finding #8, parte "guard de
- * autenticacion/contexto"): las rutas `/reservas` y `/reservas/:id` no
- * tenian ningun guard - se podia navegar directo a la URL sin sesion, y la
- * pantalla solo mostraba un error generico de carga (RECOVERABLE_ERROR) en
- * vez de mandar al usuario a iniciar sesion. La revalidacion de
- * empresa+sede (no confiar en `location.state`) ya se resuelve en
- * useWorkContextForReservations.ts, que siempre reconsulta
- * getWorkContextAssignments contra el backend; este guard cubre la otra
- * mitad: que exista una sesion de Firebase valida antes de renderizar
- * cualquier pantalla de reservas.
+ * Hallazgo de revision PR#11 (cubierto por "Contexto incompleto" /
+ * "aislamiento multiempresa" en la lista de verificación): las rutas de
+ * Consulta (`/consultas*`) no tenían ningún guard - se podía navegar
+ * directo a la URL sin sesión. Mismo componente que el introducido en la
+ * revisión de PR#10 para las rutas de Reserva.
  *
  * Se usa `onAuthStateChanged` (no solo `auth.currentUser`) porque, justo
- * despues de recargar la pagina, Firebase todavia no termino de
- * rehidratar la sesion desde el storage local - leer `currentUser` de
- * forma sincrona en ese momento puede dar `null` aunque el usuario si
- * tenga sesion, mandandolo al login por error.
+ * después de recargar la página, Firebase todavía no terminó de
+ * rehidratar la sesión desde el storage local - leer `currentUser` de
+ * forma síncrona en ese momento puede dar `null` aunque el usuario sí
+ * tenga sesión, mandándolo al login por error.
  */
 export function RequireAuth() {
   const [status, setStatus] = useState<'CHECKING' | 'AUTHENTICATED' | 'ANONYMOUS'>('CHECKING');

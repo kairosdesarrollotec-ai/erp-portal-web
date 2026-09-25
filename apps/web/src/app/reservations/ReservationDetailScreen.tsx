@@ -15,29 +15,17 @@ import styles from './ReservationDetailScreen.module.css';
  * inventada): el backend de este primer corte (HU-27, ver PROP-005 en
  * docs/decision-log.md) modela 2 requisitos consolidados
  * (payment_validated_at, documents_completed_at), no 4 documentos
- * separados con carga de archivo individual.
- *
- * Hallazgo de revision (finding #2): el control del checklist NUNCA sube
- * ni guarda ningun archivo - el backend (TDD-RES-001.md 11.2/11.3) solo
- * marca un timestamp de validacion, no existe almacenamiento de evidencia
- * todavia. El texto "Subir"/"Subiendo…" comunicaba una accion que no
- * ocurre realmente; ahora dice "Marcar como validado"/"Guardando…" y hay
- * una nota explicita de que no se guarda ningun archivo.
- *
- * Hallazgo de revision (finding #4): ya no existe un boton manual
- * "Confirmar reserva" - ver el comentario en useReservationDetail.ts
- * (maybeAutoConfirm). Aqui solo se refleja el estado que produce el hook:
- * mientras faltan requisitos se explica que la confirmacion es
- * automatica, y mientras esta en curso (isMutating con
- * savingRequirement === 'CONFIRM') se muestra "Confirmando…".
+ * separados con carga de archivo individual - "Subir" aqui marca el
+ * requisito como completo (no hay almacenamiento de archivos todavia).
+ * "Continuar con alquiler" (RES-05) queda deshabilitado: el modulo
+ * Alquiler (ALQ-02, HU-28) todavia no existe.
  */
 export function ReservationDetailScreen() {
-  const { state, reservation, savingRequirement, isMutating, actionError, uploadPaymentVoucher, uploadDocuments, cancel, reload } =
+  const { state, reservation, savingRequirement, actionError, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
     useReservationDetail();
   const navigate = useNavigate();
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelNote, setCancelNote] = useState('');
-  const [cancelNoteTouched, setCancelNoteTouched] = useState(false);
 
   if (state === 'LOADING') {
     return (
@@ -61,21 +49,6 @@ export function ReservationDetailScreen() {
   const isConfirmed = reservation.status === 'CONFIRMED';
   const paymentDone = Boolean(reservation.requirements.paymentValidatedAt);
   const documentsDone = Boolean(reservation.requirements.documentsCompletedAt);
-  const isConfirming = savingRequirement === 'CONFIRM';
-
-  // Hallazgo de revision (finding #5): el motivo de cancelacion no puede
-  // enviarse vacio - la UI lo pide explicitamente ("Motivo del cambio
-  // solicitado") pero antes se podia enviar sin escribir nada.
-  const cancelNoteTrimmed = cancelNote.trim();
-  const cancelNoteInvalid = cancelNoteTouched && cancelNoteTrimmed.length === 0;
-
-  function handleCancelSubmit() {
-    if (cancelNoteTrimmed.length === 0) {
-      setCancelNoteTouched(true);
-      return;
-    }
-    void cancel('CUSTOMER_REQUESTED_CHANGE', cancelNoteTrimmed);
-  }
 
   return (
     <main className={styles.wrapper}>
@@ -132,8 +105,7 @@ export function ReservationDetailScreen() {
                   detail={`S/ ${reservation.requiredPayment.amount}`}
                   done={paymentDone}
                   saving={savingRequirement === 'PAYMENT_VALIDATION'}
-                  disabled={isMutating}
-                  onMark={() => void uploadPaymentVoucher()}
+                  onUpload={() => void uploadPaymentVoucher()}
                 />
                 <ChecklistItem
                   label="Documentos / contrato"
@@ -144,16 +116,19 @@ export function ReservationDetailScreen() {
                   }
                   done={documentsDone}
                   saving={savingRequirement === 'DOCUMENTS_COMPLETE'}
-                  disabled={isMutating}
-                  onMark={() => void uploadDocuments()}
+                  onUpload={() => void uploadDocuments()}
                 />
               </ul>
-              <p className={styles.helperText}>
-                No se sube ni se guarda ningún archivo todavía: cada requisito solo se marca como validado.
-              </p>
 
-              {isConfirming ? (
-                <p className={styles.helperText}>Confirmando…</p>
+              {paymentDone && documentsDone ? (
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  disabled={savingRequirement === 'CONFIRM'}
+                  onClick={() => void confirm()}
+                >
+                  {savingRequirement === 'CONFIRM' ? 'Confirmando…' : 'Confirmar reserva'}
+                </button>
               ) : (
                 <p className={styles.helperText}>
                   La reserva se confirma automáticamente al completar los 2 requisitos.
@@ -177,7 +152,7 @@ export function ReservationDetailScreen() {
               </p>
 
               {!showCancelForm ? (
-                <button type="button" className={styles.dangerLink} disabled={isMutating} onClick={() => setShowCancelForm(true)}>
+                <button type="button" className={styles.dangerLink} onClick={() => setShowCancelForm(true)}>
                   Cancelar por cambio solicitado
                 </button>
               ) : (
@@ -189,26 +164,18 @@ export function ReservationDetailScreen() {
                     className={styles.cancelNote}
                     placeholder="Motivo del cambio solicitado"
                     value={cancelNote}
-                    disabled={isMutating}
-                    onChange={(event) => {
-                      setCancelNote(event.target.value);
-                      if (cancelNoteTouched) setCancelNoteTouched(false);
-                    }}
-                    onBlur={() => setCancelNoteTouched(true)}
+                    onChange={(event) => setCancelNote(event.target.value)}
                   />
-                  {cancelNoteInvalid && (
-                    <p className={styles.errorText}>Escribe el motivo del cambio solicitado antes de continuar.</p>
-                  )}
                   <div className={styles.cancelActions}>
                     <button
                       type="button"
                       className={styles.dangerButton}
-                      disabled={isMutating || cancelNoteTrimmed.length === 0}
-                      onClick={handleCancelSubmit}
+                      disabled={savingRequirement === 'CANCEL'}
+                      onClick={() => void cancel('CUSTOMER_REQUESTED_CHANGE', cancelNote || undefined)}
                     >
                       {savingRequirement === 'CANCEL' ? 'Cancelando…' : 'Confirmar cancelación'}
                     </button>
-                    <button type="button" className={styles.linkButton} disabled={isMutating} onClick={() => setShowCancelForm(false)}>
+                    <button type="button" className={styles.linkButton} onClick={() => setShowCancelForm(false)}>
                       Volver
                     </button>
                   </div>
@@ -227,15 +194,13 @@ function ChecklistItem({
   detail,
   done,
   saving,
-  disabled,
-  onMark,
+  onUpload,
 }: {
   label: string;
   detail?: string;
   done: boolean;
   saving: boolean;
-  disabled: boolean;
-  onMark: () => void;
+  onUpload: () => void;
 }) {
   return (
     <li className={styles.checklistItem}>
@@ -245,8 +210,8 @@ function ChecklistItem({
         {detail && <span className={styles.checklistDetail}>{detail}</span>}
       </div>
       {!done && (
-        <button type="button" className={styles.uploadButton} disabled={disabled} onClick={onMark}>
-          {saving ? 'Guardando…' : 'Marcar como validado'}
+        <button type="button" className={styles.uploadButton} disabled={saving} onClick={onUpload}>
+          {saving ? 'Subiendo…' : 'Subir'}
         </button>
       )}
     </li>

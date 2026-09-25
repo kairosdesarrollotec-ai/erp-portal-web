@@ -64,29 +64,11 @@
 }
 
 .row {
-  position: relative;
   cursor: pointer;
 }
 
 .row:hover {
   background: #FAF9F6;
-}
-
-/* Fila accesible por teclado (hallazgo de revision, finding #3): en vez de
-   <tr onClick> (inalcanzable por teclado/lector de pantalla), el nombre
-   del cliente es un <Link> real "estirado" (position: absolute; inset: 0)
-   para cubrir toda la fila visualmente sin cambiar el layout de la tabla.
-   Los demas controles interactivos de la fila (el badge "Continuar") se
-   quedan arriba en el z-index para seguir siendo clicables por separado. */
-.rowLink {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-.rowLink:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
 }
 
 .badge {
@@ -123,8 +105,6 @@
 }
 
 .continueButton {
-  position: relative;
-  z-index: 1;
   margin-left: 0.75rem;
   display: inline-block;
   padding: 0.25rem 0.625rem;

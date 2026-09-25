@@ -1,9 +1,12 @@
-import { LogOut } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { useDashboard } from './useDashboard';
 import { WORKER_ROLE_LABELS } from './worker-role';
+import { NotificationsPanel } from '../notifications/NotificationsPanel';
+import { useNotifications } from '../notifications/useNotifications';
 import styles from './DashboardScreen.module.css';
 
 /**
@@ -11,23 +14,30 @@ import styles from './DashboardScreen.module.css';
  * (rediseno v3.0). Prototipos aprobados: 7 vistas desktop READY (una por
  * rol) + 1 mobile READY (Gerencia) en docs/prototype-manifest.yaml.
  *
- * PROVISIONAL (HU-24, ver docs/decision-log.md PROP-004 en el backend):
- * los modulos de dominio (Consulta, Reserva, Alquiler, Devolucion,
- * Reclutamiento, Administracion de Personal) todavia no existen, asi que
- * no hay tareas/alertas/borradores reales que mostrar. El backend
- * siempre devuelve `state: EMPTY` - esta pantalla implementa unicamente
- * el shell comun a los 7 prototipos (header con marca, sede y usuario) +
- * el estado EMPTY (contrato TR-06 punto 9: "EMPTY, sin pendientes, por
- * rol"), sin inventar el contenido de los widgets por rol que ningun
- * prototipo EMPTY respalda todavia. Cuando existan datos reales, cada
- * rol gana su composicion de widgets propia siguiendo su prototipo
- * READY aprobado.
+ * ALCANCE REAL (no sobre-declarado): el backend hoy solo proyecta
+ * tareas reales para el rol Front-office, a partir del ciclo de vida de
+ * Reserva (ver reservation-event.projector.ts) - los otros 6 roles
+ * siguen recibiendo siempre `state: EMPTY` porque sus modulos de
+ * dominio (Alquiler, Devolucion, Reclutamiento, RR.HH.) todavia no
+ * proyectan eventos. Por eso esta pantalla NO implementa las 7
+ * composiciones visuales distintas del contrato v3.0 (esas dependen de
+ * datos que hoy no existen para 6 de los 7 roles) - implementa un unico
+ * widget de lista de tareas, genérico por diseño, que ya funciona con
+ * datos reales para Front-office y respeta el criterio "un widget sin
+ * datos no ocupa espacio" (contrato punto 14) para el resto. Cuando
+ * Alquiler/Devolucion/Reclutamiento/RR.HH. existan como modulos reales
+ * y generen sus propios eventos, cada rol puede ganar su composicion de
+ * widgets propia sobre esta misma base.
  */
 export function DashboardScreen() {
-  const { state, role, branchName } = useDashboard();
+  const { state, role, branchName, dashboardState, tasks, companyId, branchId } = useDashboard();
   const navigate = useNavigate();
   const email = getFirebaseAuth().currentUser?.email ?? '';
   const initial = email.charAt(0).toUpperCase();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  // TR-07 - solo se usa para el contador del badge; el panel al abrirse
+  // hace su propia carga a traves de otra instancia del hook.
+  const { unreadCount } = useNotifications(companyId, branchId);
 
   async function handleSignOut() {
     await signOut(getFirebaseAuth());
@@ -57,11 +67,32 @@ export function DashboardScreen() {
               </div>
             </div>
           )}
+          <button
+            type="button"
+            className={styles.bellButton}
+            onClick={() => setNotificationsOpen(true)}
+            aria-label="Notificaciones"
+          >
+            <Bell size={18} />
+            {unreadCount > 0 && <span className={styles.bellBadge}>{unreadCount}</span>}
+          </button>
           <button type="button" className={styles.signOutButton} onClick={() => void handleSignOut()}>
             <LogOut size={16} />
           </button>
         </div>
       </header>
+
+      {notificationsOpen && (
+        <NotificationsPanel
+          companyId={companyId}
+          branchId={branchId}
+          onClose={() => setNotificationsOpen(false)}
+          onNavigate={(deepLink) => {
+            setNotificationsOpen(false);
+            navigate(deepLink);
+          }}
+        />
+      )}
 
       <div className={styles.content}>
         {state === 'LOADING' && <p className={styles.loadingText}>Cargando tu tablero…</p>}
@@ -70,7 +101,23 @@ export function DashboardScreen() {
           <>
             <h1 className={styles.greeting}>Hola</h1>
             {role && <p className={styles.roleSubtitle}>{WORKER_ROLE_LABELS[role]}</p>}
-            <p className={styles.emptyMessage}>No tienes pendientes por ahora.</p>
+
+            {dashboardState === 'EMPTY' && (
+              <p className={styles.emptyMessage}>No tienes pendientes por ahora.</p>
+            )}
+
+            {dashboardState === 'READY' && tasks.length > 0 && (
+              <ul className={styles.taskList}>
+                {tasks.map((task) => (
+                  <li key={task.id}>
+                    <Link to={task.deepLink} className={styles.taskCard}>
+                      <span className={styles.taskTitle}>{task.title}</span>
+                      {task.detail && <span className={styles.taskDetail}>{task.detail}</span>}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </>
         )}
 

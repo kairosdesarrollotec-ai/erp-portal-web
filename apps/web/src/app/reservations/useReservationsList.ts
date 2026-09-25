@@ -21,9 +21,6 @@ export function useReservationsList() {
         return;
       }
       const idToken = await user.getIdToken();
-      // Finding #1 (ALTO): branchId es obligatorio - antes solo se filtraba
-      // por companyId, con riesgo de mezclar/exponer reservas de otras
-      // sedes de la misma empresa.
       const results = await listReservations(idToken, context.companyId, context.branchId);
       setReservations(results);
       setState(results.length === 0 ? 'EMPTY' : 'READY');

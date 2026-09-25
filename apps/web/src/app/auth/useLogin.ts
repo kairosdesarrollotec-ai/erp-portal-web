@@ -106,9 +106,6 @@ export function useLogin() {
         idToken = await user.getIdToken();
         activationStatus = await getActivationStatus(idToken);
       } catch {
-        // No se pudo confirmar el estado de activacion - fail-closed: se
-        // bloquea el paso al tablero en lugar de asumir que no requiere
-        // activacion.
         setPendingUser(user);
         setState('ACTIVATION_CHECK_FAILED');
         return;
@@ -123,10 +120,6 @@ export function useLogin() {
         activationStatus.requiresPasswordChange === false &&
         activationStatus.requiresMfaEnrollment === false
       ) {
-        // TR-05 (HU-23): decide a donde navegar segun cuantas asignaciones
-        // empresa/sede tiene el usuario (BR-ORG-002).
-        // Fail-open: si el chequeo de asignaciones falla, navegar al tablero
-        // sin contexto fijo (no es un control de seguridad).
         try {
           const assignments = await getWorkContextAssignments(idToken);
           if (assignments.length === 1) {
@@ -148,9 +141,6 @@ export function useLogin() {
         }
       }
 
-      // Respuesta inesperada (ni true ni false de forma explicita en algun
-      // campo) - no se confirma "sin activacion pendiente", asi que tampoco
-      // se navega directo al tablero.
       setPendingUser(user);
       setState('ACTIVATION_CHECK_FAILED');
     },

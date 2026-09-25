@@ -8,6 +8,15 @@ import { RequireAuthenticatedUser } from './RequireAuthenticatedUser';
 import { RequireCompletedActivation } from './RequireCompletedActivation';
 import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
 import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
+import { InquiriesListScreen } from '../inquiries/InquiriesListScreen';
+import { NewInquiryScreen } from '../inquiries/NewInquiryScreen';
+import { InquiryVehiclesScreen } from '../inquiries/InquiryVehiclesScreen';
+import { InquiryDetailScreen } from '../inquiries/InquiryDetailScreen';
+import { AdminUsersScreen } from '../admin/AdminUsersScreen';
+import { AuditEventsScreen } from '../admin/AuditEventsScreen';
+import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
+import { RolePermissionMatrixScreen } from '../admin/RolePermissionMatrixScreen';
+import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -19,8 +28,7 @@ export const router = createBrowserRouter([
   },
   {
     // Hallazgo de revision (HU-21): ninguna ruta que asuma un usuario
-    // autenticado debe ser accesible directo por URL sin guard central -
-    // no basta con que el login navegue aqui.
+    // autenticado debe ser accesible directo por URL sin guard central.
     element: <RequireAuthenticatedUser />,
     children: [
       {
@@ -29,32 +37,24 @@ export const router = createBrowserRouter([
         element: <ActivationScreen />,
       },
       {
-        // Ademas de la sesion, las rutas de negocio exigen que la activacion
-        // (cambio de contrasena + MFA) este confirmada. Las rutas de reservas
-        // estaban protegidas por RequireAuth (HU-27 PR#10); se eleva aqui a
-        // RequireCompletedActivation que es mas riguroso.
+        // Todas las rutas de negocio exigen activacion completa. Las rutas de
+        // Consulta y Admin estaban bajo RequireAuth (HU-26 PR#11); se eleva
+        // aqui a RequireCompletedActivation.
         element: <RequireCompletedActivation />,
         children: [
-          {
-            path: '/seleccion-empresa-sede',
-            // TR-05 - HU-23.
-            element: <WorkContextScreen />,
-          },
-          {
-            path: '/tablero',
-            // TR-06 - HU-24.
-            element: <DashboardScreen />,
-          },
-          {
-            path: '/reservas',
-            // RES-01 - HU-27.
-            element: <ReservationsListScreen />,
-          },
-          {
-            path: '/reservas/:id',
-            // RES-04/RES-05 - HU-27.
-            element: <ReservationDetailScreen />,
-          },
+          { path: '/seleccion-empresa-sede', element: <WorkContextScreen /> },
+          { path: '/tablero', element: <DashboardScreen /> },
+          { path: '/reservas', element: <ReservationsListScreen /> },
+          { path: '/reservas/:id', element: <ReservationDetailScreen /> },
+          { path: '/consultas', element: <InquiriesListScreen /> },
+          { path: '/consultas/nueva', element: <NewInquiryScreen /> },
+          { path: '/consultas/:id/vehiculos', element: <InquiryVehiclesScreen /> },
+          { path: '/consultas/:id', element: <InquiryDetailScreen /> },
+          { path: '/admin/usuarios', element: <AdminUsersScreen /> },
+          { path: '/admin/auditoria', element: <AuditEventsScreen /> },
+          { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
+          { path: '/admin/permisos', element: <RolePermissionMatrixScreen /> },
+          { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
         ],
       },
     ],

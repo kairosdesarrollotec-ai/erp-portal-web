@@ -15,10 +15,10 @@ vi.mock('firebase/auth', () => ({
 
 function renderGuard() {
   return render(
-    <MemoryRouter initialEntries={['/reservas']}>
+    <MemoryRouter initialEntries={['/consultas']}>
       <Routes>
         <Route element={<RequireAuth />}>
-          <Route path="/reservas" element={<div>pantalla protegida</div>} />
+          <Route path="/consultas" element={<div>pantalla protegida</div>} />
         </Route>
         <Route path="/" element={<div>login</div>} />
       </Routes>
@@ -26,7 +26,7 @@ function renderGuard() {
   );
 }
 
-describe('RequireAuth (finding #8, guard de autenticacion)', () => {
+describe('RequireAuth (guard de autenticacion, PR#11)', () => {
   beforeEach(() => {
     onAuthStateChangedMock.mockReset();
   });

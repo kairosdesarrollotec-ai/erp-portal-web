@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useReservationsList } from './useReservationsList';
 import { RESERVATION_STATUS_LABELS } from './reservation-status';
 import styles from './ReservationsListScreen.module.css';
@@ -7,15 +7,10 @@ import styles from './ReservationsListScreen.module.css';
  * RES-01 - Bandeja de Reservas. Fuente: PANTALLAS-V3-B-RESERVA.md,
  * prototipo aprobado PROTO-RES-01-BANDEJA (READY, desktop). Estados:
  * READY, LOADING, EMPTY, RECOVERABLE_ERROR (contrato punto 9).
- *
- * Hallazgo de revision (finding #3): las filas ya no usan `<tr onClick>`
- * (inalcanzable por teclado y sin ningun rol semantico para un lector de
- * pantalla) - cada fila tiene un `<Link>` real "estirado" sobre toda la
- * fila (ver .rowLink en el CSS), navegable con Tab/Enter y con nombre
- * accesible propio.
  */
 export function ReservationsListScreen() {
   const { state, reservations, context } = useReservationsList();
+  const navigate = useNavigate();
 
   return (
     <main className={styles.wrapper}>
@@ -47,16 +42,16 @@ export function ReservationsListScreen() {
             </thead>
             <tbody>
               {reservations.map((reservation) => (
-                <tr key={reservation.id} className={styles.row}>
-                  <td>
-                    <Link
-                      to={`/reservas/${reservation.id}`}
-                      state={context ?? undefined}
-                      className={styles.rowLink}
-                      aria-label={`Ver detalle de la reserva de ${reservation.customer.name}`}
-                    />
-                    {reservation.customer.name}
-                  </td>
+                <tr
+                  key={reservation.id}
+                  className={styles.row}
+                  onClick={() =>
+                    navigate(`/reservas/${reservation.id}`, {
+                      state: context ?? undefined,
+                    })
+                  }
+                >
+                  <td>{reservation.customer.name}</td>
                   <td>{reservation.vehicle.label}</td>
                   <td>
                     {new Date(reservation.startAt).toLocaleDateString('es-PE')} –{' '}
