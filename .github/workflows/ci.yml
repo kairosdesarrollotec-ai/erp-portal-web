@@ -27,12 +27,15 @@ jobs:
       - name: Tests + accesibilidad axe (apps/web)
         run: npm run test:web
 
-      - name: SCA / npm audit (informativo)
-        # No bloqueante: hay vulnerabilidades pre-existentes en dependencias
-        # transitivas de Firebase (undici) que solo se resuelven con un salto
-        # de major de Firebase, fuera de alcance actual. Se deja el reporte
-        # visible en CI para trazabilidad sin bloquear el pipeline.
-        run: npm audit --omit=dev --audit-level=critical || true
+      - name: SCA / npm audit (bloqueante - critical)
+        # Bloquea en severidad CRITICAL. Las vulnerabilidades HIGH conocidas
+        # (undici via Firebase) solo se resuelven con un salto de major de
+        # Firebase, fuera de alcance actual; se reportan sin bloquear (SLA
+        # KAIROS para HIGH: 7 dias).
+        run: npm audit --omit=dev --audit-level=critical
+      - name: SCA / npm audit (informativo - high)
+        run: npm audit --omit=dev --audit-level=high
+        continue-on-error: true
 
   security:
     name: Secret scanning
