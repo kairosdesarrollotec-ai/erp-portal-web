@@ -1,0 +1,4 @@
+# Falsos positivos en archivos de prototipo generados por Stitch.
+# "secret = VLX74892KQ91Z8XP" es un placeholder de la herramienta, no una credencial real.
+35af91c7424083ac95fe80a6e17d525c86916d25:docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_2_de_2_error_m_vil_veloxrent/code.html:generic-api-key:264
+26b8a6f28743599f30a5946c1f49b3d29623bda0:docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_2_de_2_m_vil_veloxrent/code.html:generic-api-key:279
