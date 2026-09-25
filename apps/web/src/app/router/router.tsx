@@ -3,10 +3,11 @@ import { LoginScreen } from '../auth/LoginScreen';
 import { ActivationScreen } from '../auth/ActivationScreen';
 import { WorkContextScreen } from '../auth/WorkContextScreen';
 import { DashboardScreen } from '../dashboard/DashboardScreen';
-import { RequireDashboardAccess } from '../dashboard/RequireDashboardAccess';
 import { HealthCheckScreen } from './HealthCheckScreen';
 import { RequireAuthenticatedUser } from './RequireAuthenticatedUser';
 import { RequireCompletedActivation } from './RequireCompletedActivation';
+import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
+import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -24,32 +25,35 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/activar-cuenta',
-        // TR-02 - HU-21. Login exitoso navega aqui si el usuario esta en
-        // "primer acceso" (ver useLogin.ts).
+        // TR-02 - HU-21.
         element: <ActivationScreen />,
       },
       {
-        // Ademas de la sesion, /tablero y /seleccion-empresa-sede exigen que
-        // la activacion (cambio de contrasena + MFA) este confirmada.
+        // Ademas de la sesion, las rutas de negocio exigen que la activacion
+        // (cambio de contrasena + MFA) este confirmada. Las rutas de reservas
+        // estaban protegidas por RequireAuth (HU-27 PR#10); se eleva aqui a
+        // RequireCompletedActivation que es mas riguroso.
         element: <RequireCompletedActivation />,
         children: [
           {
             path: '/seleccion-empresa-sede',
-            // TR-05 - HU-23. useLogin.ts navega aqui si el usuario tiene 0
-            // o mas de 1 asignacion empresa/sede (BR-ORG-002).
+            // TR-05 - HU-23.
             element: <WorkContextScreen />,
           },
           {
             path: '/tablero',
-            // TR-06 - HU-24. Login exitoso (0/1 asignacion) o TR-05 (tras
-            // elegir empresa/sede) navegan aqui con el contexto ya resuelto.
-            // RequireDashboardAccess: guard adicional del dashboard que valida
-            // que el contexto este completo antes de renderizar.
-            element: (
-              <RequireDashboardAccess>
-                <DashboardScreen />
-              </RequireDashboardAccess>
-            ),
+            // TR-06 - HU-24.
+            element: <DashboardScreen />,
+          },
+          {
+            path: '/reservas',
+            // RES-01 - HU-27.
+            element: <ReservationsListScreen />,
+          },
+          {
+            path: '/reservas/:id',
+            // RES-04/RES-05 - HU-27.
+            element: <ReservationDetailScreen />,
           },
         ],
       },

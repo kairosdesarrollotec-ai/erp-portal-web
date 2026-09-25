@@ -1,0 +1,163 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.header {
+  width: 100%;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #E5E2DC;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-ink);
+}
+
+.title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.statusText {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  border-bottom: 1px solid #E5E2DC;
+}
+
+.table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #F0EEE9;
+  color: var(--color-ink);
+  vertical-align: middle;
+}
+
+.row {
+  position: relative;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: #FAF9F6;
+}
+
+/* Fila accesible por teclado (hallazgo de revision, finding #3): en vez de
+   <tr onClick> (inalcanzable por teclado/lector de pantalla), el nombre
+   del cliente es un <Link> real "estirado" (position: absolute; inset: 0)
+   para cubrir toda la fila visualmente sin cambiar el layout de la tabla.
+   Los demas controles interactivos de la fila (el badge "Continuar") se
+   quedan arriba en el z-index para seguir siendo clicables por separado. */
+.rowLink {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.rowLink:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge_DRAFT {
+  background: #EFEDE7;
+  color: #4E4A45;
+}
+
+.badge_CONFIRMED {
+  background: #E7F5EC;
+  color: var(--color-success);
+}
+
+.badge_PENDING_SALE_RESOLUTION {
+  background: #FBF0DE;
+  color: var(--color-warning);
+}
+
+.badge_CONVERTED {
+  background: #E4EEF9;
+  color: #2166B0;
+}
+
+.badge_CANCELLED {
+  background: #FBE9E9;
+  color: var(--color-error);
+}
+
+.continueButton {
+  position: relative;
+  z-index: 1;
+  margin-left: 0.75rem;
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: 4px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tr {
+    border: 1px solid #E5E2DC;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .table td {
+    border: none;
+    padding: 0.25rem 0;
+  }
+}

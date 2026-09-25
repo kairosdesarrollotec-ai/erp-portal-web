@@ -25,6 +25,11 @@ export default tseslint.config(
       // se deja como warn, no error, para no bloquear ese patron ya
       // documentado en el codebase.
       'react-hooks/exhaustive-deps': 'warn',
+      // Los hooks de data-fetching (useWorkContext, useReservations, etc.)
+      // llaman setState solo despues de awaits dentro de useEffect. La regla
+      // v7 traza la cadena estaticamente y no distingue llamadas sincronas de
+      // asincronas, generando falsos positivos para este patron valido.
+      'react-hooks/set-state-in-effect': 'warn',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     },
   },
