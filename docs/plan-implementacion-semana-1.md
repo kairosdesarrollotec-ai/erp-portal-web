@@ -1,6 +1,6 @@
 # Plan de implementación — Semana 1
 
-Generado 2026-09-14. Ámbito: arrancar la implementación real de producto (frontend+backend) usando el framework `.claude/` ya construido. Basado en `TDD — 00 Transversal.md` §5-7 (arquitectura, estructura de repo, límites de archivo, tablas transversales), no en supuestos nuevos.
+Generado 2026-09-14. Ámbito: arrancar la implementación real de producto (frontend+backend) usando el framework `.claude/` ya construido. Basado en `tdd-00-transversal.md` §5-7 (arquitectura, estructura de repo, límites de archivo, tablas transversales), no en supuestos nuevos.
 
 ## 0. Prerrequisitos antes de escribir la primera línea de código
 
@@ -8,7 +8,7 @@ Sin esto, el Día 1 no puede arrancar en serio:
 
 1. **Infraestructura real de desarrollo**: proyecto Firebase (Authentication/Identity Platform, MFA) y proyecto Supabase/PostgreSQL de desarrollo, o sus emuladores locales. El TDD Transversal ya fija este stack (Google Cloud + Supabase + Firebase, no AWS) — falta que exista el proyecto real y las credenciales.
 2. **Node 22 y gestor de paquetes** disponibles en el entorno donde se va a ejecutar el código (confirmar en tu máquina/CI).
-3. **Scaffolding del monorepo** según `TDD — 00 Transversal.md` §6 (estructura exacta, no inventada):
+3. **Scaffolding del monorepo** según `tdd-00-transversal.md` §6 (estructura exacta, no inventada):
    ```
    apps/web/src/{app,features,offline,design-system}
    apps/api/src/modules/{inquiries,reservations,rentals,returns,recruitment,hr-administration,customers,fleet,payments,evidence,notifications,audit}
@@ -59,7 +59,7 @@ ALQ-09 (checklist offline, Workbox/Dexie) queda deliberadamente para semana 2: i
 
 ## 4. Archivos pequeños y SOLID — ya está definido, no es una preferencia nueva
 
-`TDD — 00 Transversal.md` §6.2 ya fija:
+`tdd-00-transversal.md` §6.2 ya fija:
 - Objetivo ≤300 líneas por archivo, excepción ≤500 con justificación explícita.
 - Un handler por comando.
 - Una política por decisión relevante (ej. `NotarialPolicy`, `RiskSemaphorePolicy`).

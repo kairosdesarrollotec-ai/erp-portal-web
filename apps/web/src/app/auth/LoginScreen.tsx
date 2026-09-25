@@ -23,12 +23,12 @@ import styles from './LoginScreen.module.css';
  * TR-03 (HU-22) - Desafio MFA: cuando la cuenta tiene el segundo factor
  * (TOTP) enrolado, useLogin abre mfaChallenge en vez de autenticar de una
  * vez. Ver MfaChallengeModal.tsx para el detalle de los prototipos y las
- * notas pendientes para Producto (variante mobile duplicada, "Reenviar
- * codigo" incompatible con TOTP).
+ * notas pendientes para Producto ("Reenviar codigo" incompatible con TOTP,
+ * segundo prototipo mobile sin marcar superseded).
  */
 export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
-  const { state, submit, mfaChallenge } = useLogin();
+  const { state, submit, retryActivationCheck, mfaChallenge } = useLogin();
   const {
     register,
     handleSubmit,
@@ -60,6 +60,33 @@ export function LoginScreen() {
             </p>
             <button type="button" className={styles.noticeAction} onClick={() => window.location.reload()}>
               Volver
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ACTIVATION_CHECK_FAILED (hallazgo de revision, portado del fix
+  // fail-closed de HU-21): el usuario ya se autentico en Firebase (login
+  // directo o via reto MFA de TR-03) pero no se pudo confirmar con el
+  // backend si tiene una activacion pendiente - no se navega al tablero "a
+  // ciegas". Se ofrece reintentar sin pedir credenciales de nuevo.
+  if (state === 'ACTIVATION_CHECK_FAILED') {
+    return (
+      <main className={styles.wrapper}>
+        <div className={styles.card}>
+          <p className={styles.brand}>VeloxRent</p>
+          <div className={styles.fullScreenNotice} role="alert">
+            <div className={styles.noticeIcon}>
+              <WifiOff size={40} />
+            </div>
+            <h1 className={styles.noticeTitle}>No pudimos verificar tu cuenta</h1>
+            <p className={styles.noticeSubtitle}>
+              Intenta de nuevo en unos minutos. Si el problema continúa, contacta a tu administrador.
+            </p>
+            <button type="button" className={styles.noticeAction} onClick={() => void retryActivationCheck()}>
+              Reintentar
             </button>
           </div>
         </div>

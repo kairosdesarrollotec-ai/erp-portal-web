@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint (no correctivo)
+        run: npm run lint --workspace apps/web
+
+      - name: Typecheck + build (apps/web)
+        run: npm run build:web
+
+      - name: Tests + accesibilidad axe (apps/web)
+        run: npm run test:web
+
+      - name: SCA / npm audit (informativo)
+        # No bloqueante: hoy hay vulnerabilidades pre-existentes en
+        # dependencias transitivas de Firebase (undici, empaquetado
+        # internamente) que solo se resuelven con un salto de major de
+        # Firebase (v10 -> v11/v12), fuera de alcance de este PR - ver
+        # Bloque 5 del plan de implementacion (backlog). Se deja el
+        # reporte visible en el log de CI para trazabilidad, sin romper
+        # el pipeline por deuda que no se puede resolver aqui sin riesgo
+        # de romper el flujo de Auth/MFA.
+        run: npm audit --omit=dev --audit-level=critical || true

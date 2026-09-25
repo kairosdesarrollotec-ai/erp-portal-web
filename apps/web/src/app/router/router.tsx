@@ -4,7 +4,8 @@ import { ActivationScreen } from '../auth/ActivationScreen';
 import { WorkContextScreen } from '../auth/WorkContextScreen';
 import { DashboardScreen } from '../dashboard/DashboardScreen';
 import { HealthCheckScreen } from './HealthCheckScreen';
-import { RequireAuth } from './RequireAuth';
+import { RequireAuthenticatedUser } from './RequireAuthenticatedUser';
+import { RequireCompletedActivation } from './RequireCompletedActivation';
 import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
 import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
 import { InquiriesListScreen } from '../inquiries/InquiriesListScreen';
@@ -26,96 +27,35 @@ export const router = createBrowserRouter([
     element: <LoginScreen />,
   },
   {
-    path: '/activar-cuenta',
-    // TR-02 - HU-21. Login exitoso navega aqui si el usuario esta en
-    // "primer acceso" (ver useLogin.ts).
-    element: <ActivationScreen />,
-  },
-  {
-    path: '/seleccion-empresa-sede',
-    // TR-05 - HU-23. useLogin.ts navega aqui si el usuario tiene mas de 1
-    // asignacion empresa/sede (BR-ORG-002).
-    element: <WorkContextScreen />,
-  },
-  {
-    path: '/tablero',
-    // TR-06 - HU-24. Login exitoso (0/1 asignacion) o TR-05 (tras elegir
-    // empresa/sede) navegan aqui con el contexto ya resuelto.
-    element: <DashboardScreen />,
-  },
-  {
-    path: '/reservas',
-    // RES-01 - HU-27. Bandeja de reservas.
-    element: <ReservationsListScreen />,
-  },
-  {
-    path: '/reservas/:id',
-    // RES-04/RES-05 - HU-27. Confirmar/detalle de una reserva.
-    element: <ReservationDetailScreen />,
-  },
-  {
-    // Hallazgo de revision PR#11: las rutas de Consulta ahora exigen
-    // sesion de Firebase valida (ver RequireAuth.tsx) - antes se podia
-    // navegar directo a cualquiera de ellas sin autenticarse.
-    element: <RequireAuth />,
+    // Hallazgo de revision (HU-21): ninguna ruta que asuma un usuario
+    // autenticado debe ser accesible directo por URL sin guard central.
+    element: <RequireAuthenticatedUser />,
     children: [
       {
-        path: '/consultas',
-        // CON-01 - HU-26. Bandeja de consultas.
-        element: <InquiriesListScreen />,
+        path: '/activar-cuenta',
+        // TR-02 - HU-21.
+        element: <ActivationScreen />,
       },
       {
-        path: '/consultas/nueva',
-        // CON-02 - HU-26. Registro de una nueva consulta.
-        element: <NewInquiryScreen />,
-      },
-      {
-        path: '/consultas/:id/vehiculos',
-        // CON-03 - HU-26. Exhibicion y cotizacion de vehiculos elegibles.
-        element: <InquiryVehiclesScreen />,
-      },
-      {
-        path: '/consultas/:id',
-        // CON-04 - HU-26. Detalle, cierre sin conversion (conversion a
-        // reserva pendiente - ver InquiryDetailScreen.tsx).
-        element: <InquiryDetailScreen />,
-      },
-      {
-        path: '/admin/usuarios',
-        // ADM-01. Bandeja de usuarios y asignaciones (empresa/sede/rol).
-        // El backend re-valida server-side que el rol autorizado sea
-        // ADMINISTRACION (admin-role-policy.ts) - esta ruta solo exige
-        // sesion valida, igual que /consultas*.
-        element: <AdminUsersScreen />,
-      },
-      {
-        path: '/admin/auditoria',
-        // ADM-04. Auditoria administrativa, solo lectura. El backend
-        // re-valida server-side VIEW_AUDIT (Administracion o Auditoria,
-        // admin-role-policy.ts).
-        element: <AuditEventsScreen />,
-      },
-      {
-        path: '/admin/parametros',
-        // ADM-03. Catalogos y parametros - primer parametro real: monto
-        // de reserva (el unico con dato/consumidor real hoy). El backend
-        // re-valida server-side MANAGE_PARAMETERS (admin-role-policy.ts).
-        element: <ReservationDepositPolicyScreen />,
-      },
-      {
-        path: '/admin/permisos',
-        // ADM-02. Roles y permisos (matriz rol x accion). Solo desktop
-        // (contrato UX punto 12). El backend re-valida server-side
-        // MANAGE_PERMISSIONS (admin-role-policy.ts).
-        element: <RolePermissionMatrixScreen />,
-      },
-      {
-        path: '/admin/notificaciones',
-        // ADM-05. Configuracion de plantillas de notificacion. El
-        // backend re-valida server-side MANAGE_NOTIFICATIONS
-        // (admin-role-policy.ts). Alcance real: guarda texto/canal,
-        // no envia ninguna notificacion todavia (TR-07 pendiente).
-        element: <NotificationTemplatesScreen />,
+        // Todas las rutas de negocio exigen activacion completa. Las rutas de
+        // Consulta y Admin estaban bajo RequireAuth (HU-26 PR#11); se eleva
+        // aqui a RequireCompletedActivation.
+        element: <RequireCompletedActivation />,
+        children: [
+          { path: '/seleccion-empresa-sede', element: <WorkContextScreen /> },
+          { path: '/tablero', element: <DashboardScreen /> },
+          { path: '/reservas', element: <ReservationsListScreen /> },
+          { path: '/reservas/:id', element: <ReservationDetailScreen /> },
+          { path: '/consultas', element: <InquiriesListScreen /> },
+          { path: '/consultas/nueva', element: <NewInquiryScreen /> },
+          { path: '/consultas/:id/vehiculos', element: <InquiryVehiclesScreen /> },
+          { path: '/consultas/:id', element: <InquiryDetailScreen /> },
+          { path: '/admin/usuarios', element: <AdminUsersScreen /> },
+          { path: '/admin/auditoria', element: <AuditEventsScreen /> },
+          { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
+          { path: '/admin/permisos', element: <RolePermissionMatrixScreen /> },
+          { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
+        ],
       },
     ],
   },
