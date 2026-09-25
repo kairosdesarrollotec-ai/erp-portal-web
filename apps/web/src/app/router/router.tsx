@@ -17,6 +17,7 @@ import { AuditEventsScreen } from '../admin/AuditEventsScreen';
 import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
 import { RolePermissionMatrixScreen } from '../admin/RolePermissionMatrixScreen';
 import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
+import { ModuleHubScreen } from '../modules/ModuleHubScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
           { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
           { path: '/admin/permisos', element: <RolePermissionMatrixScreen /> },
           { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
+          { path: '/modulos', element: <ModuleHubScreen /> },
         ],
       },
     ],
