@@ -2,7 +2,9 @@
 
 Consolida todo lo pendiente en `erp-portal-web` detectado en la sesión del 23-24 sep. Orden = orden de ejecución recomendado (cada bloque desbloquea al siguiente).
 
-Documento equivalente para el backend: `erp-api-local/docs/plan-implementacion-pendientes-2026-09-24.md`.
+Documento equivalente para el backend: `../erp-monolithic-api/docs/plan-implementacion-pendientes-2026-09-24.md`.
+
+Última actualización: 25-sep-2026.
 
 ---
 
@@ -16,53 +18,88 @@ Documento equivalente para el backend: `erp-api-local/docs/plan-implementacion-p
 
 ---
 
-## Bloque 2 — Cadena de merges HU-22 → HU-26 — EN PROGRESO
+## Bloque 2 — Cadena de merges HU-22 → HU-26 ✅ CERRADO
 
-Cadena real de commits dependientes (confirmada con `git merge-base`):
+Cadena real de commits dependientes mergeada a `main` en la sesión 24-25 sep:
 
 ```
-main → HU-22_desafio-mfa (PR#7) → HU-23_seleccion-empresa-sede-web
-     → HU-24_tablero-por-rol-web → HU-27_reserva-bandeja-confirmacion-web
-     → HU-26_consulta-bandeja-cotizacion-web  (incluye ADM-01..05, TR-07 y
+main → HU-22_desafio-mfa (PR#7) → HU-23_seleccion-empresa-sede-web (PR#17)
+     → HU-24_tablero-por-rol-web (PR#17) → HU-27_reserva-bandeja-confirmacion-web (PR#18)
+     → HU-26_consulta-bandeja-cotizacion-web (PR#19)  (incluye ADM-01..05, TR-07 y
          el fix de TR-06/outbox)
 ```
 
-- [x] **HU-22 (PR#7)** — retargeteado a `main`, mergeado con conflictos resueltos (ver commit `c4ea87e`: CI, `useLogin.ts`, `LoginScreen.tsx/test.tsx`, `setup.ts`, `package-lock.json`) y 2 hallazgos nuevos de lint corregidos (`MfaChallengeModal.tsx`, `useMediaQuery.ts`).
-- [ ] **HU-23 (`HU-23_seleccion-empresa-sede-web`)** — retargetear a `main`, resolver conflictos, verificar CI, mergear.
-- [ ] **HU-24 (`HU-24_tablero-por-rol-web`)** — idem.
-- [ ] **HU-27 (`HU-27_reserva-bandeja-confirmacion-web`)** — idem.
-- [ ] **HU-26 (`HU-26_consulta-bandeja-cotizacion-web`)** — idem. Incluye Admin (ADM-01..05) y TR-07 (notificaciones) mezclados — no separar en PRs propios (cherry-picks fallan por conflictos reales). Documentar el alcance real en un comentario del PR.
+- [x] **HU-22 (PR#7)** — mergeado con conflictos resueltos.
+- [x] **HU-23 + HU-24 (PR#17)** — mergeado, CI verde.
+- [x] **HU-27 (PR#18)** — mergeado, CI verde.
+- [x] **HU-26 (PR#19)** — mergeado, CI verde. Incluye Admin (ADM-01..05) y TR-07 (notificaciones).
 
-**Pendiente de documentación (no bloquea el merge):** publicar en GitHub los comentarios preparados en PR#7 backend y PR#11 frontend aclarando que incluyen Admin + TR-07.
+**Adicionalmente mergeados en este periodo:**
+- [x] **HU-20 fix móvil (PR#5)** — login layout gap mobile corregido, CI verde.
+- [x] **GOV-02 (PR#6)** — `verify:manifest` incorporado al CI; 2 entradas de sha256/bytes corregidas tras merge de HU-20.
 
-**Resultado esperado:** `main` queda con Consulta, Reserva, Tablero, Selección empresa/sede, Desafío MFA, Administración y Notificaciones (TR-07).
-
----
-
-## Bloque 3 — Construir HU-25 (menú de navegación, 12 módulos)
-
-Base aprobada: prototipo `PROTO-TR-11-MENU-MODULOS` + `-MOVIL` (aprobado provisionalmente por Producto el 23-sep), contrato en `PANTALLAS-V3-B-TRANSVERSAL.md`.
-
-1. Retomar `HU-25_menu-navegacion-modulos` (PR#12), rebasada sobre el `main` ya actualizado del Bloque 2.
-2. Grid 4×3 desktop / lista móvil, deny-by-default por rol usando el contexto de trabajo (`companyId`/`branchId`/rol) ya resuelto por `useDashboard`.
-3. Tests + build limpio, CI verde.
-4. Mergear a `main`.
-
-**Nota:** HU-25 es solo frontend — no requiere endpoint nuevo en backend.
+**Estado:** `main` tiene Consulta, Reserva, Tablero, Selección empresa/sede, Desafío MFA, Administración, Notificaciones (TR-07), login móvil y manifest verificado en CI.
 
 ---
 
-## Bloque 4 — Un PR por HU de ahora en adelante
+## Bloque 3 — HU-25 (menú de navegación, 12 módulos) ✅ CERRADO
 
-Una vez que HU-22→HU-26 esté en `main` (Bloque 2 completo), aplicar la regla real de "un PR por HU" para todo lo nuevo — ya no hay excusa de dependencias encadenadas.
+- [x] `ModuleHubScreen.tsx` + `useModuleHub.ts` + `module-definitions.tsx` + CSS Modules implementados.
+- [x] Grid 4×3 desktop / 2 col móvil, visibilidad por rol (`ADMINISTRACION`), 8 tarjetas "Próximamente".
+- [x] 8 pruebas Vitest — todas verdes.
+- [x] Ruta `/modulos` registrada en `router.tsx`.
+- [x] `MISSING_SOURCE` registrado en `docs/conflicts/MISSING_TR11_UXUI_CONTRACT.md`; decisión provisional `PROV-TR-11-001` en `decision-log.md`.
+- [x] PR#20 mergeado a `main` (25-sep-2026), CI verde.
+
+**Nota:** Prototipo aprobado provisionalmente (PROTO-TR-11-MENU-MODULOS / -MOVIL). Pendiente contrato UX/UI formal (ver conflicto abierto).
 
 ---
 
-## Bloque 5 — Backlog funcional pendiente (frontend, post-merge)
+## Bloque 4 — Dependabot PRs (dependencias) 🔄 EN PROGRESO
 
-1. **TR-04, TR-08, TR-09, TR-10** ("Transversal restante", HU-38) — sin empezar. Revisar contratos en `PANTALLAS-V2-B-TRANSVERSAL.md` / `PANTALLAS-V3-B-TRANSVERSAL.md`.
-2. **ADM-02 (parte frontend)** — una vez el backend extienda el enforcement de roles más allá de Admin (ver plan backend), reflejar los cambios de permisos/UI que correspondan en Reservas/Consultas/Tablero/Notificaciones.
-3. **TR-07 (parte frontend)** — una vez el backend tenga el envío externo real, ajustar la UI de notificaciones si el contrato cambia (estados de entrega, reintentos visibles, etc.).
+Los siguientes PRs de Dependabot están abiertos en ambos repos. Requieren análisis antes de mergear porque algunos bumps implican breaking changes:
+
+### Frontend (`erp-portal-web`) — sin PRs Dependabot abiertos
+
+No hay PRs de Dependabot abiertos en el repo frontend a la fecha.
+
+### Backend (`erp-monolithic-api`) — 7 PRs Dependabot abiertos
+
+| PR | Bump | Riesgo |
+|----|------|--------|
+| #14 | `@nestjs/common` 10.4.22 → 12.0.4 | ⚠️ Major — breaking changes NestJS |
+| #13 | `@nestjs/platform-express` 10.4.22 → 12.0.4 | ⚠️ Major — breaking changes NestJS |
+| #12 | `@nestjs/config` 3.3.0 → 12.0.0 | ⚠️ Major — breaking changes NestJS |
+| #11 | `@nestjs/testing` 10.4.22 → 12.0.4 | ⚠️ Major — solo dev |
+| #10 | `class-validator` 0.14.4 → 0.15.1 | Minor — revisar decoradores |
+| #9  | `actions/setup-node` 4.4.0 → 7.0.0 | ⚠️ Major — revisar CI |
+| #8  | `actions/checkout` 4.2.2 → 7.0.1 | ⚠️ Major — revisar CI |
+
+**Criterio de decisión:** los bumps de NestJS 10→12 requieren una decisión arquitectónica aprobada (ver `CLAUDE.md` sección 7 y regla de no upgrades sin autorización). Los de `actions/` son independientes y pueden evaluarse por separado.
+
+---
+
+## Bloque 5 — Un PR por HU de ahora en adelante ✅ ACTIVO
+
+Desde el cierre del Bloque 2, la regla "un PR por HU" aplica a todo lo nuevo.
+
+---
+
+## Bloque 6 — Backlog funcional pendiente (frontend, post-merge)
+
+1. **TR-04, TR-08, TR-09, TR-10** ("Transversal restante", HU-38) — sin empezar. Revisar contratos en `PANTALLAS-V3-B-TRANSVERSAL.md` y confirmar qué parte es solo frontend vs. requiere endpoint.
+2. **TR-11 — contrato UX/UI formal** — crear `docs/sources/ux-ui/PANTALLAS-V3-B-TRANSVERSAL.md` con especificación completa de TR-11 (estados, responsive, a11y, permisos). Cierra `MISSING_TR11_UXUI_CONTRACT.md`.
+3. **ADM-02 (parte frontend)** — una vez el backend extienda el enforcement de roles más allá de Admin, reflejar los cambios de permisos/UI en Reservas/Consultas/Tablero/Notificaciones.
+4. **TR-07 (parte frontend)** — si el contrato de notificaciones cambia cuando el backend implemente el envío externo real, ajustar la UI (estados de entrega, reintentos visibles, etc.).
+5. **DashboardScreen → `/modulos`** — agregar navegación desde el tablero al hub de módulos (hoy no hay enlace entrante a `/modulos` desde la UI).
+
+---
+
+## Conflictos abiertos
+
+| Archivo | Descripción | Pendiente de |
+|---------|-------------|-------------|
+| `docs/conflicts/MISSING_TR11_UXUI_CONTRACT.md` | TR-11 sin contrato UX/UI formal | Creación de `PANTALLAS-V3-B-TRANSVERSAL.md` |
 
 ---
 
@@ -70,8 +107,9 @@ Una vez que HU-22→HU-26 esté en `main` (Bloque 2 completo), aplicar la regla 
 
 | # | Bloque | Estado | Depende de | Bloquea a |
 |---|--------|--------|-----------|-----------|
-| 1 | Cerrar PR#4 (CI + descripción) | ✅ Cerrado | — | Bloque 2 |
-| 2 | Merge cadena HU-22→HU-26 a main | 🔄 En progreso (HU-22 listo) | Bloque 1 | Bloques 3, 4, 5 |
-| 3 | Construir HU-25 | Pendiente | Bloque 2 | — |
-| 4 | Un PR por HU de ahora en adelante | Pendiente | Bloque 2 | — |
-| 5 | Backlog funcional frontend | Pendiente | Bloque 2 | — |
+| 1 | Cerrar PR#4 (CI + descripción) | ✅ Cerrado | — | — |
+| 2 | Merge cadena HU-22→HU-26 a main | ✅ Cerrado | Bloque 1 | — |
+| 3 | HU-25 hub de módulos | ✅ Cerrado | Bloque 2 | — |
+| 4 | Dependabot PRs | 🔄 En progreso | — | — |
+| 5 | Un PR por HU de ahora en adelante | ✅ Activo | Bloque 2 | — |
+| 6 | Backlog funcional frontend | Pendiente | Bloques 2, 3 | — |
