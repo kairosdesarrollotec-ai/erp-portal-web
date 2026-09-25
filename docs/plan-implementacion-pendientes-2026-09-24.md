@@ -4,7 +4,7 @@ Consolida todo lo pendiente en `erp-portal-web` detectado en la sesión del 23-2
 
 Documento equivalente para el backend: `../erp-monolithic-api/docs/plan-implementacion-pendientes-2026-09-24.md`.
 
-Última actualización: 25-sep-2026 (Bloque CI-A cerrado).
+Última actualización: 25-sep-2026 (Bloques CI-A y CI-B.1 cerrados).
 
 ---
 
@@ -92,6 +92,15 @@ Los PRs NestJS #11–#14 requieren migración coordinada (dual-version en worksp
 
 ---
 
+## Bloque CI-B.1 — Dependabot y npm audit CRITICAL bloqueante ✅ CERRADO
+
+- [x] `.github/dependabot.yml` creado (github-actions + npm, semanal) — paridad con backend.
+- [x] `npm audit --audit-level=critical` bloqueante + paso separado `continue-on-error` para HIGH, igual que el backend.
+- [x] Sin vulnerabilidades CRITICAL (12 conocidas: 11 moderate + 1 high, Firebase/undici, fuera de alcance).
+- [x] PR#22 mergeado a `main` (25-sep-2026), CI verde.
+
+---
+
 ## Bloque 5 — Un PR por HU de ahora en adelante ✅ ACTIVO
 
 Desde el cierre del Bloque 2, la regla "un PR por HU" aplica a todo lo nuevo.
@@ -125,5 +134,6 @@ Desde el cierre del Bloque 2, la regla "un PR por HU" aplica a todo lo nuevo.
 | 3 | HU-25 hub de módulos | ✅ Cerrado | Bloque 2 | — |
 | 4 | Dependabot PRs (#8–#10 mergeados; #11–#14 cerrados → issue #17) | ✅ Cerrado | — | — |
 | CI-A | Supply chain + secret scanning (PR#21) | ✅ Cerrado | — | — |
+| CI-B.1 | Dependabot + npm audit CRITICAL bloqueante (PR#22) | ✅ Cerrado | — | — |
 | 5 | Un PR por HU de ahora en adelante | ✅ Activo | Bloque 2 | — |
 | 6 | Backlog funcional frontend | Pendiente | Bloques 2, 3 | — |
