@@ -1,0 +1,37 @@
+/*
+ * Tokens de elevacion — veloxrent_erp_design_system/DESIGN.md
+ * La profundidad se comunica a traves de bordes estructurales de bajo contraste
+ * y capas tonales; se evitan sombras decorativas pesadas.
+ */
+:root {
+  /* ------------------------------------------------------------------ */
+  /* Nivel 0 — Lienzo plano                                               */
+  /* Fondo: #FFFFFF o #FAF9F5. Borde 1px solido #E5E2DC.                 */
+  /* ------------------------------------------------------------------ */
+  --elevation-0-border: 1px solid var(--color-surface-border);
+  --elevation-0-shadow: none;
+
+  /* ------------------------------------------------------------------ */
+  /* Nivel 1 — Tarjetas interactivas y paneles                            */
+  /* Mismo borde que nivel 0; en hover el borde cambia a ink o acento.   */
+  /* ------------------------------------------------------------------ */
+  --elevation-1-border: 1px solid var(--color-surface-border);
+  --elevation-1-shadow: none;
+  --elevation-1-border-hover: 1px solid var(--color-primary);
+
+  /* ------------------------------------------------------------------ */
+  /* Nivel 2 — Flyouts, menus y tooltips                                  */
+  /* Borde 1px #D1CEC7 + sombra tecnica subdued.                         */
+  /* ------------------------------------------------------------------ */
+  --elevation-2-border: 1px solid #D1CEC7;
+  --elevation-2-shadow:
+    0 2px 4px 0 rgba(31, 42, 51, 0.06),
+    0 1px 2px 0 rgba(31, 42, 51, 0.04);
+
+  /* ------------------------------------------------------------------ */
+  /* Nivel 3 — Modales y drawers                                          */
+  /* Borde institucional #1F2A33 + sombra ambiental profunda.             */
+  /* ------------------------------------------------------------------ */
+  --elevation-3-border: 1px solid var(--color-primary);
+  --elevation-3-shadow: 0 12px 28px -4px rgba(31, 42, 51, 0.16);
+}

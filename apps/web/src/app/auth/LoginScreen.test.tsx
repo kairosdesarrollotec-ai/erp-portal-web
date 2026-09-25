@@ -48,6 +48,13 @@ vi.mock('./activation-client', () => ({
   getActivationStatus: (...args: unknown[]) => getActivationStatusMock(...args),
 }));
 
+const getWorkContextAssignmentsMock = vi.fn().mockRejectedValue(new Error('offline'));
+const selectWorkContextMock = vi.fn().mockResolvedValue(undefined);
+vi.mock('./work-context-client', () => ({
+  getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
+  selectWorkContext: (...args: unknown[]) => selectWorkContextMock(...args),
+}));
+
 function mockSuccessfulSignIn() {
   signInMock.mockResolvedValue({
     user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
@@ -70,6 +77,8 @@ describe('LoginScreen (TR-01)', () => {
     getActivationStatusMock.mockReset();
     navigateMock.mockReset();
     mfaHints = [{ uid: 'totp-factor-uid', factorId: 'totp' }];
+    getWorkContextAssignmentsMock.mockReset().mockRejectedValue(new Error('offline'));
+    selectWorkContextMock.mockReset().mockResolvedValue(undefined);
     // Por defecto, sin activacion pendiente - los tests que necesitan
     // simular el chequeo caido lo sobreescriben explicitamente.
     getActivationStatusMock.mockResolvedValue({
@@ -327,5 +336,23 @@ describe('LoginScreen (TR-01)', () => {
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/tablero'));
     // El reintento reutiliza la sesion ya autenticada - no vuelve a llamar a Firebase.
     expect(signInMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('TR-05: consulta las asignaciones de empresa/sede tras un login exitoso, con el token recien obtenido', async () => {
+    signInMock.mockResolvedValue({
+      user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
+    });
+    getWorkContextAssignmentsMock.mockReset().mockResolvedValue([]);
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    await waitFor(() => {
+      expect(getWorkContextAssignmentsMock).toHaveBeenCalledWith('fake-id-token');
+    });
   });
 });

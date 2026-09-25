@@ -1,6 +1,9 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { LoginScreen } from '../auth/LoginScreen';
 import { ActivationScreen } from '../auth/ActivationScreen';
+import { WorkContextScreen } from '../auth/WorkContextScreen';
+import { DashboardScreen } from '../dashboard/DashboardScreen';
+import { RequireDashboardAccess } from '../dashboard/RequireDashboardAccess';
 import { HealthCheckScreen } from './HealthCheckScreen';
 import { RequireAuthenticatedUser } from './RequireAuthenticatedUser';
 import { RequireCompletedActivation } from './RequireCompletedActivation';
@@ -26,14 +29,27 @@ export const router = createBrowserRouter([
         element: <ActivationScreen />,
       },
       {
-        // Ademas de la sesion, /tablero exige que la activacion (cambio de
-        // contrasena + MFA) este realmente confirmada por el backend.
+        // Ademas de la sesion, /tablero y /seleccion-empresa-sede exigen que
+        // la activacion (cambio de contrasena + MFA) este confirmada.
         element: <RequireCompletedActivation />,
         children: [
           {
+            path: '/seleccion-empresa-sede',
+            // TR-05 - HU-23. useLogin.ts navega aqui si el usuario tiene 0
+            // o mas de 1 asignacion empresa/sede (BR-ORG-002).
+            element: <WorkContextScreen />,
+          },
+          {
             path: '/tablero',
-            // TR-06 - placeholder hasta HU-24. Login exitoso navega aqui por ahora.
-            element: <HealthCheckScreen />,
+            // TR-06 - HU-24. Login exitoso (0/1 asignacion) o TR-05 (tras
+            // elegir empresa/sede) navegan aqui con el contexto ya resuelto.
+            // RequireDashboardAccess: guard adicional del dashboard que valida
+            // que el contexto este completo antes de renderizar.
+            element: (
+              <RequireDashboardAccess>
+                <DashboardScreen />
+              </RequireDashboardAccess>
+            ),
           },
         ],
       },

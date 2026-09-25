@@ -12,6 +12,7 @@ import {
 import { getFirebaseAuth } from '../providers/firebase';
 import { recordLoginAttempt } from './audit-client';
 import { getActivationStatus, type ActivationStatus } from './activation-client';
+import { getWorkContextAssignments, selectWorkContext } from './work-context-client';
 import type { LoginFormValues } from './login.schema';
 import type { MfaChallengeState } from './MfaChallengeModal';
 
@@ -93,13 +94,16 @@ export function useLogin() {
 
   // Compartido entre el login directo (sin MFA) y el paso final tras
   // resolver el reto MFA (TR-03) - ambos terminan igual: registrar la
-  // auditoria de exito y chequear (fail-closed) si requiere activacion
-  // (TR-02/HU-21) antes de navegar.
+  // Compartido entre el login directo (sin MFA) y el paso final tras
+  // resolver el reto MFA (TR-03) - ambos terminan igual: registrar la
+  // auditoria de exito, chequear (fail-closed) si requiere activacion
+  // (TR-02/HU-21), y luego resolver el contexto de trabajo (TR-05/HU-23).
   const resolveActivation = useCallback(
     async (user: User) => {
+      let idToken: string;
       let activationStatus: ActivationStatus;
       try {
-        const idToken = await user.getIdToken();
+        idToken = await user.getIdToken();
         activationStatus = await getActivationStatus(idToken);
       } catch {
         // No se pudo confirmar el estado de activacion - fail-closed: se
@@ -110,17 +114,38 @@ export function useLogin() {
         return;
       }
 
+      if (activationStatus.requiresPasswordChange || activationStatus.requiresMfaEnrollment) {
+        navigate('/activar-cuenta');
+        return;
+      }
+
       if (
         activationStatus.requiresPasswordChange === false &&
         activationStatus.requiresMfaEnrollment === false
       ) {
-        navigate('/tablero');
-        return;
-      }
-
-      if (activationStatus.requiresPasswordChange || activationStatus.requiresMfaEnrollment) {
-        navigate('/activar-cuenta');
-        return;
+        // TR-05 (HU-23): decide a donde navegar segun cuantas asignaciones
+        // empresa/sede tiene el usuario (BR-ORG-002).
+        // Fail-open: si el chequeo de asignaciones falla, navegar al tablero
+        // sin contexto fijo (no es un control de seguridad).
+        try {
+          const assignments = await getWorkContextAssignments(idToken);
+          if (assignments.length === 1) {
+            const [only] = assignments;
+            try {
+              await selectWorkContext(idToken, only.companyId, only.branchId);
+              navigate('/tablero');
+              return;
+            } catch {
+              navigate('/seleccion-empresa-sede');
+              return;
+            }
+          }
+          navigate('/seleccion-empresa-sede');
+          return;
+        } catch {
+          navigate('/tablero');
+          return;
+        }
       }
 
       // Respuesta inesperada (ni true ni false de forma explicita en algun
