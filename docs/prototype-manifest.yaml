@@ -46,8 +46,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-15'
-  sha256: 17089216f6e5cad3a4e52cf22f5fe27d6ab0bf83779fe7ac94b1b129d717e529
-  bytes: 12869
+  sha256: 8bd0333730a6f8c780647ae3d0c834ca8d08c3d6bf159629471af244edd78b31
+  bytes: 185268
   supersedes: null
   note: activacion paso 1 movil
   is_reference_asset: false
@@ -94,8 +94,8 @@ screens:
   status: APPROVED
   approved_by_role: PRODUCTO
   approved_at: '2026-09-15'
-  sha256: 6cfc3065f2d01ab36aadca226fbfc552bce45651c85711a2a1ad440ef273b668
-  bytes: 23094
+  sha256: 4e959419b3d0f37eccdcd1c73bcda30083f9699fa61a6f230546acf1ac4c3b70
+  bytes: 157945
   supersedes: null
   note: activacion paso 2 error movil
   is_reference_asset: false
@@ -2547,7 +2547,7 @@ screens:
   supersedes: null
   note: foto de referencia (voucher), no es pantalla
   is_reference_asset: true
-- proto_id: PROTO-DEV-04-CHECKLIST-RECEPCION-CONFIRMADO-POR-SERVI
+- proto_id: PROTO-DEV-04-CHECKLIST-RECEPCION-CONFIRMADO-POR-SERVIDOR-MOVIL
   ux_id: DEV-04
   module: devolucion
   source: stitch_veloxrent_prototipo_b
@@ -2571,7 +2571,7 @@ screens:
   supersedes: null
   note: checklist recepcion confirmado por servidor movil
   is_reference_asset: false
-- proto_id: PROTO-DEV-04-CHECKLIST-RECEPCION-CONFIRMADO-POR-SERVI
+- proto_id: PROTO-DEV-04-CHECKLIST-RECEPCION-CONFIRMADO-POR-SERVIDOR-DESKTOP
   ux_id: DEV-04
   module: devolucion
   source: stitch_veloxrent_prototipo_b

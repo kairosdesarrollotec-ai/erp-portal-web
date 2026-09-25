@@ -1,0 +1,20 @@
+# Gobernanza del manifiesto de prototipos aprobados (GOV-02).
+#
+# Hallazgo alto de revalidacion de seguimiento de PR#6 (6317d84):
+# @kairosdesarrollotec-ai/product-design era un placeholder documentado
+# como tal en este mismo archivo - un handle sin colaboradores reales en
+# el repo no bloquea nada, GitHub simplemente lo ignora al calcular
+# revisores obligatorios. Se reemplaza por @Falconxtreme2024 (usuario
+# real de GitHub con acceso al repo, confirmado por el usuario), mientras
+# no exista un equipo formal de Producto/Diseno dado de alta en la
+# organizacion de GitHub. Cuando ese equipo exista, reemplazar aqui.
+#
+# IMPORTANTE: CODEOWNERS por si solo NO bloquea el merge - eso requiere
+# ademas activar, en GitHub > Settings > Branches > Branch protection
+# rules (rama main) > "Require a pull request before merging" > "Require
+# review from Code Owners". Esta configuracion vive en GitHub, no en este
+# repo, y no se puede verificar ni activar desde un commit - queda
+# documentada aqui como accion pendiente para quien tenga permisos de
+# administracion del repo.
+docs/prototype-manifest.yaml          @Falconxtreme2024
+docs/prototypes/approved/**           @Falconxtreme2024
