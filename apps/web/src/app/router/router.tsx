@@ -4,7 +4,8 @@ import { ActivationScreen } from '../auth/ActivationScreen';
 import { WorkContextScreen } from '../auth/WorkContextScreen';
 import { DashboardScreen } from '../dashboard/DashboardScreen';
 import { HealthCheckScreen } from './HealthCheckScreen';
-import { RequireAuth } from './RequireAuth';
+import { RequireAuthenticatedUser } from './RequireAuthenticatedUser';
+import { RequireCompletedActivation } from './RequireCompletedActivation';
 import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
 import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
 
@@ -17,38 +18,44 @@ export const router = createBrowserRouter([
     element: <LoginScreen />,
   },
   {
-    path: '/activar-cuenta',
-    // TR-02 - HU-21. Login exitoso navega aqui si el usuario esta en
-    // "primer acceso" (ver useLogin.ts).
-    element: <ActivationScreen />,
-  },
-  {
-    path: '/seleccion-empresa-sede',
-    // TR-05 - HU-23. useLogin.ts navega aqui si el usuario tiene mas de 1
-    // asignacion empresa/sede (BR-ORG-002).
-    element: <WorkContextScreen />,
-  },
-  {
-    path: '/tablero',
-    // TR-06 - HU-24. Login exitoso (0/1 asignacion) o TR-05 (tras elegir
-    // empresa/sede) navegan aqui con el contexto ya resuelto.
-    element: <DashboardScreen />,
-  },
-  {
-    // Hallazgo de revision PR#10 (finding #8): las rutas de reservas ahora
-    // exigen sesion de Firebase valida (ver RequireAuth.tsx) - antes se
-    // podia navegar directo a /reservas o /reservas/:id sin autenticarse.
-    element: <RequireAuth />,
+    // Hallazgo de revision (HU-21): ninguna ruta que asuma un usuario
+    // autenticado debe ser accesible directo por URL sin guard central -
+    // no basta con que el login navegue aqui.
+    element: <RequireAuthenticatedUser />,
     children: [
       {
-        path: '/reservas',
-        // RES-01 - HU-27. Bandeja de reservas.
-        element: <ReservationsListScreen />,
+        path: '/activar-cuenta',
+        // TR-02 - HU-21.
+        element: <ActivationScreen />,
       },
       {
-        path: '/reservas/:id',
-        // RES-04/RES-05 - HU-27. Confirmar/detalle de una reserva.
-        element: <ReservationDetailScreen />,
+        // Ademas de la sesion, las rutas de negocio exigen que la activacion
+        // (cambio de contrasena + MFA) este confirmada. Las rutas de reservas
+        // estaban protegidas por RequireAuth (HU-27 PR#10); se eleva aqui a
+        // RequireCompletedActivation que es mas riguroso.
+        element: <RequireCompletedActivation />,
+        children: [
+          {
+            path: '/seleccion-empresa-sede',
+            // TR-05 - HU-23.
+            element: <WorkContextScreen />,
+          },
+          {
+            path: '/tablero',
+            // TR-06 - HU-24.
+            element: <DashboardScreen />,
+          },
+          {
+            path: '/reservas',
+            // RES-01 - HU-27.
+            element: <ReservationsListScreen />,
+          },
+          {
+            path: '/reservas/:id',
+            // RES-04/RES-05 - HU-27.
+            element: <ReservationDetailScreen />,
+          },
+        ],
       },
     ],
   },
