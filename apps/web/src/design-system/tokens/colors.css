@@ -83,3 +83,10 @@
   --color-border: #A39C90;
   --color-muted: #4E4A45;
 }
+
+/* Sin esto, el margen por defecto del user-agent (8px) en <body> suma 16px
+   de alto extra sobre cualquier layout a 100vh/100dvh, generando scroll
+   vertical espureo - detectado al validar TR-01-LOGIN-MOVIL a 320/375/390px. */
+body {
+  margin: 0;
+}

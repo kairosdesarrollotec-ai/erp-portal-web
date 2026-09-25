@@ -10,10 +10,16 @@ import styles from './LoginScreen.module.css';
 /**
  * TR-01 - Inicio de sesion.
  * Fuente: PANTALLAS-V2-B-TRANSVERSAL.md, prototipos aprobados
- * PROTO-TR-01-LOGIN-DESKTOP (READY, desktop), PROTO-TR-01-CREDENCIALES-INVALIDAS
- * (RECOVERABLE_ERROR, desktop) y PROTO-TR-01-CUENTA-BLOQUEADA (BLOCKING_ERROR,
- * desktop) - releidos directamente de los screen.png/screen.jpeg aprobados
- * para esta version.
+ * PROTO-TR-01-LOGIN-DESKTOP (READY, desktop), PROTO-TR-01-LOGIN-MOVIL (READY,
+ * mobile), PROTO-TR-01-CREDENCIALES-INVALIDAS (RECOVERABLE_ERROR, desktop) y
+ * PROTO-TR-01-CUENTA-BLOQUEADA (BLOCKING_ERROR, desktop).
+ *
+ * El prototipo mobile de READY tiene contenido propio (no es solo un reflow
+ * del desktop): isotipo "VR" + wordmark en vez de solo texto, subtitulo de
+ * contexto bajo el titulo, y pie de pagina con version/uso restringido.
+ * Visibilidad controlada por CSS (.mobileOnly/.desktopOnly via @media), igual
+ * que en TR-02. RECOVERABLE_ERROR y BLOCKING_ERROR no tienen prototipo mobile
+ * propio aprobado, asi que solo reflowan (sin contenido mobile-only nuevo).
  *
  * NOTA: el campo del prototipo se llama "Correo o usuario", pero Firebase
  * Authentication (TDD-KAIROS-TRANSVERSAL 8.1/8.4) solo soporta email.
@@ -97,8 +103,15 @@ export function LoginScreen() {
   return (
     <main className={styles.wrapper}>
       <div className={styles.card}>
-        <p className={styles.brand}>VeloxRent</p>
+        <div className={`${styles.brandRow} ${styles.mobileOnly}`}>
+          <span className={styles.brandMark}>VR</span>
+          <span className={styles.brandWordmark}>VeloxRent</span>
+        </div>
+        <p className={`${styles.brand} ${styles.desktopOnly}`}>VeloxRent</p>
         <h1 className={styles.title}>Ingresa a tu cuenta</h1>
+        <p className={`${styles.subtitle} ${styles.mobileOnly}`}>
+          Acceso al sistema interno de gestión operativa
+        </p>
 
         <form onSubmit={handleSubmit(submit)} noValidate>
           <div className={styles.field}>
@@ -161,6 +174,10 @@ export function LoginScreen() {
         <button type="button" className={styles.forgotPassword}>
           ¿Olvidaste tu contraseña?
         </button>
+
+        <p className={`${styles.mobileFooter} ${styles.mobileOnly}`}>
+          VeloxRent ERP v2.6 · Uso exclusivo para personal autorizado
+        </p>
       </div>
 
       <MfaChallengeModal
