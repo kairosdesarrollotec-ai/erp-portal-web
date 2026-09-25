@@ -4,7 +4,7 @@ Consolida todo lo pendiente en `erp-portal-web` detectado en la sesión del 23-2
 
 Documento equivalente para el backend: `../erp-monolithic-api/docs/plan-implementacion-pendientes-2026-09-24.md`.
 
-Última actualización: 25-sep-2026 (Bloques CI-A, CI-B.1 y CI-B.2 cerrados).
+Última actualización: 25-sep-2026 (Bloques CI-A, CI-B.1, CI-B.2 y CI-B.3 cerrados).
 
 ---
 
@@ -136,5 +136,6 @@ Desde el cierre del Bloque 2, la regla "un PR por HU" aplica a todo lo nuevo.
 | CI-A | Supply chain + secret scanning (PR#21) | ✅ Cerrado | — | — |
 | CI-B.1 | Dependabot + npm audit CRITICAL bloqueante (PR#22) | ✅ Cerrado | — | — |
 | CI-B.2 | E2E Playwright — auth, reservas y consultas (PR#28) | ✅ Cerrado | — | — |
+| CI-B.3 | SBOM CycloneDX en CI (PR#29) | ✅ Cerrado | — | — |
 | 5 | Un PR por HU de ahora en adelante | ✅ Activo | Bloque 2 | — |
 | 6 | Backlog funcional frontend | Pendiente | Bloques 2, 3 | — |
