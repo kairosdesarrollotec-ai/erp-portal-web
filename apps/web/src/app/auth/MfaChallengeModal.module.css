@@ -119,27 +119,49 @@
   cursor: not-allowed;
 }
 
-/* Temporizador de reenvio - decorativo, siempre deshabilitado (TOTP no
-   tiene concepto de reenvio - ver nota en MfaChallengeModal.tsx). */
+/* Nota de renovacion del codigo - texto informativo, no un control (ya no
+   hay "Reenviar codigo": TOTP no tiene reenvio, lo genera la app cada
+   30s - hallazgo de revision). */
 .resendStatic {
   display: block;
   text-align: center;
   margin-top: 1rem;
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-accent);
-  opacity: 0.8;
-  cursor: not-allowed;
-  user-select: none;
+  color: var(--color-muted);
 }
 
-/* Visibilidad por viewport */
-.mobileOnly {
-  display: none;
+/* Estados bloqueantes (SESSION_EXPIRED / UNSUPPORTED_FACTOR) - no hay
+   casillas de codigo que mostrar, ningun codigo puede resolverlos. */
+.blockedNotice {
+  text-align: center;
+  padding: 1rem 0;
 }
 
-.desktopOnly {
-  display: block;
+.blockedIcon {
+  display: flex;
+  justify-content: center;
+  color: var(--color-error);
+  margin-bottom: 1rem;
+}
+
+.blockedTitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--color-ink);
+  margin: 0 0 0.5rem;
+}
+
+.blockedBody {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-muted);
+  margin: 0 0 1.5rem;
+}
+
+.blockedAction {
+  margin-top: 0.5rem;
 }
 
 /* ===== Mobile (<= 480px) - PROTO-TR-03-DESAFIO-MFA-MOVIL-1, hoja
@@ -150,15 +172,8 @@
     align-items: stretch;
   }
 
-  .mobileOnly {
-    display: flex;
-  }
-
-  .desktopOnly {
-    display: none;
-  }
-
   .sheet {
+    display: flex;
     width: 100%;
     max-width: 390px;
     margin: 0 auto;

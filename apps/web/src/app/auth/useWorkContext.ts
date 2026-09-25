@@ -40,7 +40,6 @@ export function useWorkContext() {
   const navigate = useNavigate();
 
   const load = useCallback(async () => {
-    setState('LOADING');
     const user = getFirebaseAuth().currentUser;
     if (!user) {
       navigate('/');
@@ -61,8 +60,18 @@ export function useWorkContext() {
     }
   }, [navigate]);
 
+  // El efecto initial arranca sin setState sincrono (estado inicial ya es
+  // LOADING via useState). Solo setState ocurre tras awaits dentro de load.
   useEffect(() => {
-    void load();
+    load().catch(() => {});
+  }, [load]);
+
+  // retry lo llama un boton (no un efecto), por lo que setState('LOADING')
+  // aqui es una actualizacion de interaccion de usuario, no una actualizacion
+  // sincrona dentro de un efecto.
+  const retry = useCallback(() => {
+    setState('LOADING');
+    load().catch(() => {});
   }, [load]);
 
   const selectContext = useCallback(
@@ -97,5 +106,5 @@ export function useWorkContext() {
     [navigate],
   );
 
-  return { state, assignments, selectionError, selectContext, retry: load };
+  return { state, assignments, selectionError, selectContext, retry };
 }

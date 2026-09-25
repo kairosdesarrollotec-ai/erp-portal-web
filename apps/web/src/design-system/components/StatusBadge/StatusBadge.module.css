@@ -1,0 +1,51 @@
+/*
+ * StatusBadge — tokens del Design System
+ * Fuente: veloxrent_erp_design_system/DESIGN.md — Components > Status Badges & Chips
+ * Tipografia: code-operational-sm (Space Grotesk 0.75rem, 600, 1rem, 0.03em)
+ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius);
+  font-family: var(--font-code);
+  font-size: var(--text-body-sm);
+  font-weight: var(--fw-semibold);
+  line-height: var(--leading-body-sm);
+  letter-spacing: var(--tracking-code-sm);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+/* --- available / Disponible / Inspeccionado --- */
+/* DESIGN.md: Fill #EBF5F0, text #1E7D4B, border rgba(30,125,75,0.2) */
+.available {
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  border-color: var(--color-success-border);
+}
+
+/* --- rented / En renta / En transito --- */
+/* DESIGN.md: Fill #EEF4FB, text #2166B0, border rgba(33,102,176,0.2) */
+.rented {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border-color: var(--color-info-border);
+}
+
+/* --- maintenance / Mantenimiento / Marcado --- */
+/* DESIGN.md: Fill #FDF1DE, text #B5720A -> WCAG #8A5505, border rgba(181,114,10,0.25) */
+.maintenance {
+  background-color: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: var(--color-warning-border);
+}
+
+/* --- grounded / Inmovilizado / Vencido --- */
+/* DESIGN.md: Fill #FBE9E9, text #C22B2B, border rgba(194,43,43,0.2) */
+.grounded {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border-color: var(--color-error-border);
+}
