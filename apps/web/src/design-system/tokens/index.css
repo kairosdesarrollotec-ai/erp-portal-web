@@ -1,0 +1,9 @@
+/*
+ * Design System — barrel de tokens CSS
+ * Importar este archivo es suficiente para acceder a todos los tokens.
+ * Fuente: veloxrent_erp_design_system/DESIGN.md
+ */
+@import './colors.css';
+@import './typography.css';
+@import './spacing.css';
+@import './elevation.css';

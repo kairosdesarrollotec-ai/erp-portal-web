@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Activa tu cuenta — Paso 1 de 2 - VeloxRent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Public Sans', sans-serif;
+      background-color: #FFFFFF;
+      color: #1F2A33;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .font-heading {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    /* Touch optimization */
+    input, button {
+      touch-action: manipulation;
+    }
+  </style>
+</head>
+<body class="bg-white text-[#1F2A33] min-h-screen flex flex-col justify-between antialiased selection:bg-[#9E4C08]/20 selection:text-[#9E4C08]">
+
+  <!-- Main Scrollable Content Container (w-390px bounded) -->
+  <main class="w-full max-w-[390px] mx-auto px-6 pt-7 pb-28 flex-1 flex flex-col">
+
+    <!-- Stepper de 2 puntos superior -->
+    <header class="mb-8">
+      <div class="flex items-center justify-between">
+        <!-- Puntos Stepper -->
+        <div class="flex items-center gap-2.5">
+          <!-- Punto 1 (Relleno en #9E4C08 - Activo) -->
+          <div class="w-3 h-3 rounded-full bg-[#9E4C08] ring-4 ring-[#9E4C08]/15" aria-label="Paso 1 activo"></div>
+          <!-- Línea conectora -->
+          <div class="w-8 h-[2px] bg-[#E2DFD8]"></div>
+          <!-- Punto 2 (Inactivo) -->
+          <div class="w-3 h-3 rounded-full bg-[#D4D0C7]" aria-label="Paso 2 pendiente"></div>
+        </div>
+        <!-- Etiqueta de paso -->
+        <span class="text-[12px] font-semibold text-[#4E4A45] tracking-wide uppercase">
+          Paso 1 de 2
+        </span>
+      </div>
+    </header>
+
+    <!-- Saludo y Encabezados -->
+    <section class="mb-6">
+      <h1 class="font-heading text-[20px] font-bold text-[#1F2A33] tracking-tight leading-snug">
+        Hola, Carlos
+      </h1>
+      <h2 class="font-heading text-[17px] font-semibold text-[#1F2A33] mt-1.5 leading-snug">
+        Crea tu nueva contraseña
+      </h2>
+      <p class="text-[13px] text-[#4E4A45] mt-1 leading-relaxed">
+        Configura tu credencial corporativa para acceder a la plataforma interna.
+      </p>
+    </section>
+
+    <!-- Formulario de Contraseña -->
+    <form id="password-form" class="space-y-4" onsubmit="event.preventDefault();">
+      <!-- Campo 1: Nueva contraseña -->
+      <div>
+        <label for="new-pass" class="block text-[13px] font-medium text-[#1F2A33] mb-1.5">
+          Nueva contraseña
+        </label>
+        <div class="relative flex items-center">
+          <input 
+            type="password" 
+            id="new-pass"
+            placeholder="Ingresa tu contraseña" 
+            autocomplete="new-password"
+            class="w-full h-[48px] px-3.5 pr-11 text-[14px] text-[#1F2A33] bg-white border-[1.5px] border-[#A39C90] rounded-[2px] focus:outline-none focus:border-[#1F2A33] focus:ring-1 focus:ring-[#1F2A33] transition-colors placeholder:text-[#8E877B]"
+          />
+          <button 
+            type="button" 
+            id="toggle-new-pass"
+            aria-label="Mostrar u ocultar nueva contraseña"
+            class="absolute right-0 top-0 h-[48px] w-11 flex items-center justify-center text-[#4E4A45] hover:text-[#1F2A33] focus:outline-none"
+          >
+            <!-- Eye icon -->
+            <svg id="eye-icon-1" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Campo 2: Confirmar contraseña -->
+      <div>
+        <label for="confirm-pass" class="block text-[13px] font-medium text-[#1F2A33] mb-1.5">
+          Confirmar contraseña
+        </label>
+        <div class="relative flex items-center">
+          <input 
+            type="password" 
+            id="confirm-pass"
+            placeholder="Confirma tu contraseña" 
+            autocomplete="new-password"
+            class="w-full h-[48px] px-3.5 pr-11 text-[14px] text-[#1F2A33] bg-white border-[1.5px] border-[#A39C90] rounded-[2px] focus:outline-none focus:border-[#1F2A33] focus:ring-1 focus:ring-[#1F2A33] transition-colors placeholder:text-[#8E877B]"
+          />
+          <button 
+            type="button" 
+            id="toggle-confirm-pass"
+            aria-label="Mostrar u ocultar confirmar contraseña"
+            class="absolute right-0 top-0 h-[48px] w-11 flex items-center justify-center text-[#4E4A45] hover:text-[#1F2A33] focus:outline-none"
+          >
+            <!-- Eye icon -->
+            <svg id="eye-icon-2" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Checklist de Requisitos debajo de los campos -->
+    <section class="mt-6 pt-5 border-t border-[#EFECE6]" aria-labelledby="req-title">
+      <p id="req-title" class="text-[13px] font-semibold text-[#1F2A33] mb-3">
+        Tu contraseña debe incluir:
+      </p>
+      
+      <ul class="space-y-2.5" id="requirements-list">
+        <!-- Requisito 1: Mínimo 8 caracteres -->
+        <li class="flex items-center gap-2.5 text-[13px] text-[#4E4A45] transition-colors" id="req-len">
+          <span class="req-icon flex-shrink-0 flex items-center justify-center w-4 h-4" aria-hidden="true">
+            <span class="w-3.5 h-3.5 rounded-full border-[1.5px] border-[#A39C90] inline-block"></span>
+          </span>
+          <span class="req-text leading-snug">Mínimo 8 caracteres</span>
+        </li>
+
+        <!-- Requisito 2: Al menos una letra mayúscula -->
+        <li class="flex items-center gap-2.5 text-[13px] text-[#4E4A45] transition-colors" id="req-upper">
+          <span class="req-icon flex-shrink-0 flex items-center justify-center w-4 h-4" aria-hidden="true">
+            <span class="w-3.5 h-3.5 rounded-full border-[1.5px] border-[#A39C90] inline-block"></span>
+          </span>
+          <span class="req-text leading-snug">Al menos una letra mayúscula (A-Z)</span>
+        </li>
+
+        <!-- Requisito 3: Al menos un número -->
+        <li class="flex items-center gap-2.5 text-[13px] text-[#4E4A45] transition-colors" id="req-num">
+          <span class="req-icon flex-shrink-0 flex items-center justify-center w-4 h-4" aria-hidden="true">
+            <span class="w-3.5 h-3.5 rounded-full border-[1.5px] border-[#A39C90] inline-block"></span>
+          </span>
+          <span class="req-text leading-snug">Al menos un número (0-9)</span>
+        </li>
+
+        <!-- Requisito 4: Ambas contraseñas son idénticas -->
+        <li class="flex items-center gap-2.5 text-[13px] text-[#4E4A45] transition-colors" id="req-match">
+          <span class="req-icon flex-shrink-0 flex items-center justify-center w-4 h-4" aria-hidden="true">
+            <span class="w-3.5 h-3.5 rounded-full border-[1.5px] border-[#A39C90] inline-block"></span>
+          </span>
+          <span class="req-text leading-snug">Ambas contraseñas son idénticas</span>
+        </li>
+      </ul>
+    </section>
+
+  </main>
+
+  <!-- Botón "Continuar" fijo abajo, ancho completo, altura 52px, fondo #1F2A33, deshabilitado hasta cumplir requisitos -->
+  <footer class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-[#EFECE6] px-6 py-3 z-30">
+    <div class="max-w-[390px] mx-auto">
+      <button 
+        id="submit-btn" 
+        type="button" 
+        disabled
+        class="w-full h-[52px] rounded-[4px] bg-[#A39C90] text-white font-medium text-[15px] flex items-center justify-center cursor-not-allowed transition-all shadow-sm"
+      >
+        <span>Continuar</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Script interactivo en tiempo real para validación y show/hide password -->
+  <script>
+    (function() {
+      const newPassInput = document.getElementById('new-pass');
+      const confirmPassInput = document.getElementById('confirm-pass');
+      const toggleNew = document.getElementById('toggle-new-pass');
+      const toggleConfirm = document.getElementById('toggle-confirm-pass');
+      const submitBtn = document.getElementById('submit-btn');
+
+      const reqLen = document.getElementById('req-len');
+      const reqUpper = document.getElementById('req-upper');
+      const reqNum = document.getElementById('req-num');
+      const reqMatch = document.getElementById('req-match');
+
+      // SVG de Check verde #1E7D4B
+      const checkSvg = `
+        <svg class="w-4 h-4 text-[#1E7D4B]" viewBox="0 0 16 16" fill="currentColor">
+          <path fill-rule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.739a.75.75 0 0 1 1.04-.208z" clip-rule="evenodd"/>
+        </svg>
+      `;
+
+      // Círculo vacío
+      const emptyCircle = `
+        <span class="w-3.5 h-3.5 rounded-full border-[1.5px] border-[#A39C90] inline-block"></span>
+      `;
+
+      function togglePassword(input, iconElem) {
+        if (input.type === 'password') {
+          input.type = 'text';
+          iconElem.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+          `;
+        } else {
+          input.type = 'password';
+          iconElem.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          `;
+        }
+      }
+
+      toggleNew.addEventListener('click', () => {
+        togglePassword(newPassInput, document.getElementById('eye-icon-1'));
+      });
+
+      toggleConfirm.addEventListener('click', () => {
+        togglePassword(confirmPassInput, document.getElementById('eye-icon-2'));
+      });
+
+      function updateItem(el, isValid) {
+        const iconSpan = el.querySelector('.req-icon');
+        const textSpan = el.querySelector('.req-text');
+        if (isValid) {
+          iconSpan.innerHTML = checkSvg;
+          textSpan.classList.add('text-[#1E7D4B]', 'font-medium');
+          textSpan.classList.remove('text-[#4E4A45]');
+        } else {
+          iconSpan.innerHTML = emptyCircle;
+          textSpan.classList.remove('text-[#1E7D4B]', 'font-medium');
+          textSpan.classList.add('text-[#4E4A45]');
+        }
+      }
+
+      function validate() {
+        const p1 = newPassInput.value;
+        const p2 = confirmPassInput.value;
+
+        const isLen = p1.length >= 8;
+        const isUpper = /[A-Z]/.test(p1);
+        const isNum = /[0-9]/.test(p1);
+        const isMatch = p1.length > 0 && p1 === p2;
+
+        updateItem(reqLen, isLen);
+        updateItem(reqUpper, isUpper);
+        updateItem(reqNum, isNum);
+        updateItem(reqMatch, isMatch);
+
+        const allValid = isLen && isUpper && isNum && isMatch;
+
+        if (allValid) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('bg-[#A39C90]', 'cursor-not-allowed');
+          submitBtn.classList.add('bg-[#1F2A33]', 'hover:bg-[#151D24]', 'active:bg-[#0D1217]', 'cursor-pointer');
+        } else {
+          submitBtn.disabled = true;
+          submitBtn.classList.remove('bg-[#1F2A33]', 'hover:bg-[#151D24]', 'active:bg-[#0D1217]', 'cursor-pointer');
+          submitBtn.classList.add('bg-[#A39C90]', 'cursor-not-allowed');
+        }
+      }
+
+      newPassInput.addEventListener('input', validate);
+      confirmPassInput.addEventListener('input', validate);
+
+      // Initial state check
+      validate();
+    })();
+  </script>
+</body>
+</html>

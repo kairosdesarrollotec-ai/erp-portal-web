@@ -27,6 +27,30 @@ screens:
   supersedes: null
   note: activacion paso 1
   is_reference_asset: false
+- proto_id: PROTO-TR-02-ACTIVACION-PASO-1-MOVIL
+  ux_id: TR-02
+  module: transversal
+  source: stitch_veloxrent_prototipo_b
+  folder: activa_tu_cuenta_paso_1_de_2_m_vil_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_1_de_2_m_vil_veloxrent/screen.png
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_1_de_2_m_vil_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 390
+    height: 844
+    dpr: 3
+    label: mobile
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-09-15'
+  sha256: 8bd0333730a6f8c780647ae3d0c834ca8d08c3d6bf159629471af244edd78b31
+  bytes: 185268
+  supersedes: null
+  note: activacion paso 1 movil
+  is_reference_asset: false
 - proto_id: PROTO-TR-02-ACTIVACION-PASO-2-ERROR
   ux_id: TR-02
   module: transversal
@@ -50,6 +74,30 @@ screens:
   bytes: 62103
   supersedes: null
   note: activacion paso 2 error
+  is_reference_asset: false
+- proto_id: PROTO-TR-02-ACTIVACION-PASO-2-ERROR-MOVIL
+  ux_id: TR-02
+  module: transversal
+  source: stitch_veloxrent_prototipo_b
+  folder: activa_tu_cuenta_paso_2_de_2_error_m_vil_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_2_de_2_error_m_vil_veloxrent/screen.png
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_2_de_2_error_m_vil_veloxrent/code.html
+  screen_state: ERROR
+  viewport:
+    width: 390
+    height: 844
+    dpr: 3
+    label: mobile
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-09-15'
+  sha256: 4e959419b3d0f37eccdcd1c73bcda30083f9699fa61a6f230546acf1ac4c3b70
+  bytes: 157945
+  supersedes: null
+  note: activacion paso 2 error movil
   is_reference_asset: false
 - proto_id: PROTO-TR-02-ACTIVACION-PASO-2-MOVIL
   ux_id: TR-02
@@ -3842,4 +3890,52 @@ screens:
   bytes: 539141
   supersedes: null
   note: catalogo disponibilidad movil
+  is_reference_asset: false
+- proto_id: PROTO-TR-11-MENU-MODULOS
+  ux_id: TR-11
+  module: transversal
+  source: stitch_veloxrent_prototipo_b
+  folder: men_principal_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/men_principal_veloxrent/screen.png
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/men_principal_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 1600
+    height: 1000
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-09-23'
+  sha256: ff273503cb6111e8fcd51cca52906449ccd204642aee12b098bfe102275acd08
+  bytes: 175694
+  supersedes: null
+  note: 'PROVISIONAL (23 sep 2026): aprobado para destrabar HU-25 sin contrato UX/UI completo previo. Contrato TR-11 redactado post-hoc en PANTALLAS-V3-B-TRANSVERSAL.md. Sujeto a ajustes cuando se revise contra lineamientos completos (ver Decision_Log).'
+  is_reference_asset: false
+- proto_id: PROTO-TR-11-MENU-MODULOS-MOVIL
+  ux_id: TR-11
+  module: transversal
+  source: stitch_veloxrent_prototipo_b
+  folder: men_principal_m_vil_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/men_principal_m_vil_veloxrent/screen.png
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/men_principal_m_vil_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 390
+    height: 844
+    dpr: 3
+    label: mobile
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-09-23'
+  sha256: 214adaafa9a6c8d6391eedfe81839950f9ddb1e0bad3f5ace5a73c0a1494d61e
+  bytes: 165973
+  supersedes: null
+  note: 'PROVISIONAL (23 sep 2026): aprobado para destrabar HU-25 sin contrato UX/UI completo previo. Contrato TR-11 redactado post-hoc en PANTALLAS-V3-B-TRANSVERSAL.md. Sujeto a ajustes cuando se revise contra lineamientos completos (ver Decision_Log).'
   is_reference_asset: false

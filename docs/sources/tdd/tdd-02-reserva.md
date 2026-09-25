@@ -18,7 +18,7 @@ Ver `TDD-KAIROS-TRANSVERSAL.md`, secciones 1.2-1.3.
 
 | Documento | Relación |
 | --- | --- |
-| `BDD-RES-001` (v1.6) | Fuente funcional autoritativa |
+| `BDD-RES-001` (v1.9) | Fuente funcional autoritativa |
 | `SDD-RES-001` | Fuente arquitectónica |
 | `TDD-KAIROS-TRANSVERSAL.md` | Base técnica común — tabla `vehicle_commitments` (sección 7.4) |
 | `TDD-CON-001` | Módulo del que Reserva recibe la conversión |

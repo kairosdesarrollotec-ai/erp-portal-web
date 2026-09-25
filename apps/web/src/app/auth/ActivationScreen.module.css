@@ -1,0 +1,153 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  padding: 1.5rem;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+}
+
+.brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--color-ink);
+  margin: 0 0 1.5rem;
+}
+
+/* Stepper - PROTO-TR-02-ACTIVACION-PASO-1/2: paso activo #C6600A/#9E4C08,
+   paso pendiente #DDDAD4/#E2DFD8 */
+.stepperContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stepperDots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+}
+
+.dotInactive {
+  width: 8px;
+  height: 8px;
+  background-color: #dddad4;
+}
+
+.stepLine {
+  width: 20px;
+  height: 2px;
+  background-color: #dddad4;
+}
+
+.stepLabel {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.mobileOnly {
+  display: none;
+}
+
+.desktopOnly {
+  display: block;
+}
+
+/* Pantalla de carga (LOADING) mientras se retoma el paso pendiente */
+.loadingNotice {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 0;
+  color: var(--color-muted);
+}
+
+/* ===== Mobile (<= 480px) - PROTO-TR-02-ACTIVACION-*-MOVIL ===== */
+@media (max-width: 480px) {
+  .mobileOnly {
+    display: block;
+  }
+
+  .desktopOnly {
+    display: none;
+  }
+
+  .wrapper {
+    display: block;
+    padding: 0;
+  }
+
+  .card {
+    max-width: 390px;
+    margin: 0 auto;
+    padding: 1.5rem 1.5rem 6.5rem;
+  }
+
+  /* Header fijo del paso 2 - PROTO-TR-02-ACTIVACION-PASO-2-MOVIL */
+  .mobileHeader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.04);
+    z-index: 50;
+  }
+
+  .mobileBack {
+    background: none;
+    border: none;
+    color: var(--color-muted);
+    display: flex;
+    align-items: center;
+    padding: 0.5rem;
+    margin-left: -0.5rem;
+    cursor: pointer;
+  }
+
+  .mobileHeaderTag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-ink);
+  }
+
+  .mobileHeaderAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-ink);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card:has(.mobileHeader) {
+    padding-top: 4.5rem;
+  }
+}

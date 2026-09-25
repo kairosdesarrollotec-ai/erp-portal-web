@@ -1,14 +1,92 @@
 /*
  * Paleta base - PANTALLAS-V2-B-TRANSVERSAL.md (corregida WCAG 2.2 AA,
  * 11 sep 2026: acento #C6600A->#9E4C08, advertencia #B5720A->#8A5505).
+ * Expandida con tokens completos de DESIGN.md (veloxrent_erp_design_system).
+ * Las variables de acento y advertencia usan los valores WCAG corregidos;
+ * los valores originales del DESIGN.md se conservan como comentario de referencia.
  */
 :root {
-  --color-ink: #1F2A33;
-  --color-border: #A39C90;
-  --color-accent: #9E4C08;
-  --color-warning: #8A5505;
-  --color-error: #C22B2B;
-  --color-success: #1E7D4B;
-  --color-muted: #4E4A45;
+  /* ------------------------------------------------------------------ */
+  /* Superficies                                                          */
+  /* ------------------------------------------------------------------ */
+  /* surface-container-lowest */
   --color-surface: #FFFFFF;
+  /* surface-container-low (#F6F3ED) */
+  --color-surface-low: #F6F3ED;
+  /* surface-container (#F1EDE7) */
+  --color-surface-container: #F1EDE7;
+  /* surface-container-highest / borde estructural (#E5E2DC) */
+  --color-surface-border: #E5E2DC;
+  /* fondo hover de filas, tarjetas y sidebar (#FAF9F5) */
+  --color-surface-hover: #FAF9F5;
+
+  /* ------------------------------------------------------------------ */
+  /* Tinta / Texto                                                        */
+  /* ------------------------------------------------------------------ */
+  /* Tinte principal — titulos, nodos de nav, estados activos */
+  --color-ink: #1F2A33;
+  /* Texto operativo secundario */
+  --color-ink-muted: #52606D;
+  /* Etiquetas atenuadas, placeholders de cabecera de tabla */
+  --color-ink-subtle: #7B8794;
+
+  /* ------------------------------------------------------------------ */
+  /* Interaccion                                                          */
+  /* ------------------------------------------------------------------ */
+  /* Acento CTA — valor WCAG 2.2 AA corregido (original DESIGN.md: #C6600A) */
+  --color-accent: #9E4C08;
+  /* Hover del acento (original DESIGN.md: #A85208) */
+  --color-accent-hover: #874107;
+  /* Primario — fondo boton primario, bordes dominantes */
+  --color-primary: #1F2A33;
+  /* Hover del primario */
+  --color-primary-hover: #121A20;
+
+  /* ------------------------------------------------------------------ */
+  /* Estado: Exito / Disponible                                           */
+  /* ------------------------------------------------------------------ */
+  --color-success: #1E7D4B;
+  --color-success-bg: #EBF5F0;
+  --color-success-border: rgba(30, 125, 75, 0.2);
+
+  /* ------------------------------------------------------------------ */
+  /* Estado: Advertencia / Inspeccion Pendiente                           */
+  /* Valor WCAG 2.2 AA corregido (original DESIGN.md: #B5720A)           */
+  /* ------------------------------------------------------------------ */
+  --color-warning: #8A5505;
+  --color-warning-bg: #FDF1DE;
+  --color-warning-border: rgba(138, 85, 5, 0.25);
+
+  /* ------------------------------------------------------------------ */
+  /* Estado: Error / Peligro / Inmovilizado                               */
+  /* ------------------------------------------------------------------ */
+  --color-error: #C22B2B;
+  --color-error-bg: #FBE9E9;
+  --color-error-border: rgba(194, 43, 43, 0.2);
+
+  /* ------------------------------------------------------------------ */
+  /* Estado: Informacion / Logistica Azul                                 */
+  /* ------------------------------------------------------------------ */
+  --color-info: #2166B0;
+  --color-info-bg: #EEF4FB;
+  --color-info-border: rgba(33, 102, 176, 0.2);
+
+  /* ------------------------------------------------------------------ */
+  /* Overlay (backdrop de modales)                                        */
+  /* DESIGN.md: "#1F2A33 al 45% de opacidad"                             */
+  /* ------------------------------------------------------------------ */
+  --color-overlay: rgba(31, 42, 51, 0.45);
+
+  /* ------------------------------------------------------------------ */
+  /* Variables heredadas (mantenidas por compatibilidad hacia atras)      */
+  /* ------------------------------------------------------------------ */
+  --color-border: #A39C90;
+  --color-muted: #4E4A45;
+}
+
+/* Sin esto, el margen por defecto del user-agent (8px) en <body> suma 16px
+   de alto extra sobre cualquier layout a 100vh/100dvh, generando scroll
+   vertical espureo - detectado al validar TR-01-LOGIN-MOVIL a 320/375/390px. */
+body {
+  margin: 0;
 }
