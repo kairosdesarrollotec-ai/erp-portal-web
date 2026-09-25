@@ -195,6 +195,7 @@ export async function loginViaUI(
 
   await page.goto('/');
   await page.getByLabel('Correo o usuario').fill(email);
-  await page.getByLabel('Contraseña').fill(password);
+  // exact:true evita la ambiguedad con el boton aria-label="Mostrar contraseña"
+  await page.getByLabel('Contraseña', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Ingresar' }).click();
 }

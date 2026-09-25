@@ -21,7 +21,7 @@ test.describe('Login', () => {
     await expect(page.getByRole('heading', { name: 'Ingresa a tu cuenta' })).toBeVisible();
 
     await page.getByLabel('Correo o usuario').fill('agente@veloxrent.pe');
-    await page.getByLabel('Contraseña').fill('Velox2026!');
+    await page.getByLabel('Contraseña', { exact: true }).fill('Velox2026!');
     await page.getByRole('button', { name: 'Ingresar' }).click();
 
     // Con una sola asignacion, useLogin auto-selecciona el contexto y navega al tablero.
@@ -35,7 +35,7 @@ test.describe('Login', () => {
 
     await page.goto('/');
     await page.getByLabel('Correo o usuario').fill('agente@veloxrent.pe');
-    await page.getByLabel('Contraseña').fill('Velox2026!');
+    await page.getByLabel('Contraseña', { exact: true }).fill('Velox2026!');
     await page.getByRole('button', { name: 'Ingresar' }).click();
 
     await page.waitForURL('**/seleccion-empresa-sede', { timeout: 10_000 });
@@ -59,7 +59,7 @@ test.describe('Login', () => {
 
     await page.goto('/');
     await page.getByLabel('Correo o usuario').fill('malo@veloxrent.pe');
-    await page.getByLabel('Contraseña').fill('wrong');
+    await page.getByLabel('Contraseña', { exact: true }).fill('wrong');
     await page.getByRole('button', { name: 'Ingresar' }).click();
 
     await expect(page.getByRole('alert')).toContainText('Correo o contraseña incorrectos');
@@ -72,7 +72,7 @@ test.describe('Login', () => {
 
     await page.goto('/');
     await page.getByLabel('Correo o usuario').fill('agente@veloxrent.pe');
-    await page.getByLabel('Contraseña').fill('Velox2026!');
+    await page.getByLabel('Contraseña', { exact: true }).fill('Velox2026!');
     await page.getByRole('button', { name: 'Ingresar' }).click();
 
     await page.waitForURL('**/seleccion-empresa-sede', { timeout: 10_000 });
