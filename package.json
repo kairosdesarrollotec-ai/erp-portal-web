@@ -12,11 +12,15 @@
   "scripts": {
     "dev:web": "npm run dev --workspace apps/web",
     "build:web": "npm run build --workspace apps/web",
+    "build:web:e2e": "npm run build:e2e --workspace apps/web",
+    "preview:web": "npm run preview --workspace apps/web",
     "test:web": "npm run test --workspace apps/web",
+    "test:e2e": "playwright test",
     "lint": "npm run lint --workspaces --if-present",
     "verify:manifest": "node scripts/verify-prototype-manifest.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.47.0",
     "js-yaml": "^5.4.2"
   }
 }

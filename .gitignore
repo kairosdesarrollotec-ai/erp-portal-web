@@ -4,6 +4,8 @@ build/
 .env
 .env.*
 !.env.example
+# Valores placeholder para E2E (no son secretos reales — Firebase es interceptado por page.route())
+!apps/web/.env.e2e
 *.log
 .DS_Store
 coverage/
