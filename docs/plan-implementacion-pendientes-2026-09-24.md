@@ -55,7 +55,7 @@ main → HU-22_desafio-mfa (PR#7) → HU-23_seleccion-empresa-sede-web (PR#17)
 
 ---
 
-## Bloque 4 — Dependabot PRs (dependencias) 🔄 EN PROGRESO
+## Bloque 4 — Dependabot PRs (dependencias) ✅ CERRADO
 
 Los siguientes PRs de Dependabot están abiertos en ambos repos. Requieren análisis antes de mergear porque algunos bumps implican breaking changes:
 
@@ -70,12 +70,15 @@ No hay PRs de Dependabot abiertos en el repo frontend a la fecha.
 | #14 | `@nestjs/common` 10.4.22 → 12.0.4 | ⚠️ Major — breaking changes NestJS |
 | #13 | `@nestjs/platform-express` 10.4.22 → 12.0.4 | ⚠️ Major — breaking changes NestJS |
 | #12 | `@nestjs/config` 3.3.0 → 12.0.0 | ⚠️ Major — breaking changes NestJS |
-| #11 | `@nestjs/testing` 10.4.22 → 12.0.4 | ⚠️ Major — solo dev |
-| #10 | `class-validator` 0.14.4 → 0.15.1 | Minor — revisar decoradores |
-| #9  | `actions/setup-node` 4.4.0 → 7.0.0 | ⚠️ Major — revisar CI |
-| #8  | `actions/checkout` 4.2.2 → 7.0.1 | ⚠️ Major — revisar CI |
+| #8  | `actions/checkout` 4.2.2 → 7.0.1 | ✅ Mergeado 25-sep |
+| #9  | `actions/setup-node` 4.4.0 → 7.0.0 | ✅ Mergeado 25-sep |
+| #10 | `class-validator` 0.14.4 → 0.15.1 | ✅ Mergeado 25-sep |
+| #11 | `@nestjs/testing` 10.4.22 → 12.0.4 | ❌ Cerrado → issue #17 |
+| #12 | `@nestjs/config` 3.3.0 → 12.0.0 | ❌ Cerrado → issue #17 |
+| #13 | `@nestjs/platform-express` 10.4.22 → 12.0.4 | ❌ Cerrado → issue #17 |
+| #14 | `@nestjs/common` 10.4.22 → 12.0.4 | ❌ Cerrado → issue #17 |
 
-**Criterio de decisión:** los bumps de NestJS 10→12 requieren una decisión arquitectónica aprobada (ver `CLAUDE.md` sección 7 y regla de no upgrades sin autorización). Los de `actions/` son independientes y pueden evaluarse por separado.
+Los PRs NestJS #11–#14 requieren migración coordinada (dual-version en workspace + dependencias ESM-only en Jest). Issue de seguimiento: [erp-monolithic-api#17](https://github.com/kairosdesarrollotec-ai/erp-monolithic-api/issues/17).
 
 ---
 
@@ -110,6 +113,6 @@ Desde el cierre del Bloque 2, la regla "un PR por HU" aplica a todo lo nuevo.
 | 1 | Cerrar PR#4 (CI + descripción) | ✅ Cerrado | — | — |
 | 2 | Merge cadena HU-22→HU-26 a main | ✅ Cerrado | Bloque 1 | — |
 | 3 | HU-25 hub de módulos | ✅ Cerrado | Bloque 2 | — |
-| 4 | Dependabot PRs | 🔄 En progreso | — | — |
+| 4 | Dependabot PRs (#8–#10 mergeados; #11–#14 cerrados → issue #17) | ✅ Cerrado | — | — |
 | 5 | Un PR por HU de ahora en adelante | ✅ Activo | Bloque 2 | — |
 | 6 | Backlog funcional frontend | Pendiente | Bloques 2, 3 | — |
