@@ -1,0 +1,92 @@
+name: CD
+
+# Pipeline de despliegue continuo para erp-portal-web (Firebase Hosting).
+#
+# Mapeo rama → ambiente → canal Firebase → aprobacion:
+#   develop → development  → canal: development  (automatico)
+#   qa      → qa           → canal: qa           (automatico)
+#   uat     → uat          → canal: uat           (requiere aprobacion manual: falconxtreme2024)
+#   main    → production   → canal: live          (requiere aprobacion manual: falconxtreme2024)
+#
+# Variables de repositorio requeridas (Settings > Secrets and variables > Actions > Variables):
+#   FIREBASE_PROJECT_ID        — ID del proyecto Firebase
+#   FIREBASE_TOOLS_VERSION     — Version de firebase-tools (ej. 13.29.1)
+#
+# Secretos de repositorio requeridos (Settings > Secrets and variables > Actions > Secrets):
+#   FIREBASE_SERVICE_ACCOUNT   — Service account JSON codificado en base64 (Firebase Hosting Admin)
+#
+# Variables de ambiente requeridas (Settings > Environments > <nombre> > Variables):
+#   FIREBASE_CHANNEL_ID        — Canal de Firebase Hosting: development | qa | uat | live
+#   VITE_API_URL               — URL del backend Cloud Run para ese ambiente
+#   VITE_FIREBASE_API_KEY      — Firebase Web API key
+#   VITE_FIREBASE_AUTH_DOMAIN  — Firebase Auth domain
+#   VITE_FIREBASE_PROJECT_ID   — Firebase project ID (puede coincidir con FIREBASE_PROJECT_ID)
+#   VITE_FIREBASE_APP_ID       — Firebase App ID
+
+on:
+  push:
+    branches: [develop, qa, uat, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: >-
+      Deploy →
+      ${{ github.ref_name == 'main' && 'production'
+       || github.ref_name == 'uat'  && 'uat'
+       || github.ref_name == 'qa'   && 'qa'
+       || 'development' }}
+    runs-on: ubuntu-latest
+
+    # La resolucion del ambiente activa la cola de aprobacion para uat y production.
+    environment: >-
+      ${{ github.ref_name == 'main' && 'production'
+       || github.ref_name == 'uat'  && 'uat'
+       || github.ref_name == 'qa'   && 'qa'
+       || 'development' }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # --- Build de la SPA con variables del ambiente ---
+      # Las variables VITE_* se inyectan en tiempo de build y quedan embebidas
+      # en el bundle estatico. No incluir secretos en variables VITE_*.
+      - name: Build SPA (Vite)
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+        run: npm run build:web
+
+      # --- Deploy a Firebase Hosting ---
+      # Usa firebase-tools a version fija para reproducibilidad.
+      # Para el canal 'live' (production), el deploy actualiza el sitio principal.
+      # Para canales de preview (development/qa/uat), crea una URL de preview.
+      - name: Instalar firebase-tools
+        run: npm install -g "firebase-tools@${{ vars.FIREBASE_TOOLS_VERSION }}"
+
+      - name: Deploy a Firebase Hosting
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-sa.json
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          FIREBASE_CHANNEL_ID: ${{ vars.FIREBASE_CHANNEL_ID }}
+        run: |
+          echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" | base64 --decode > /tmp/firebase-sa.json
+          firebase hosting:channel:deploy "$FIREBASE_CHANNEL_ID" \
+            --project "$FIREBASE_PROJECT_ID" \
+            --no-authorized-domains \
+            --quiet
+          rm -f /tmp/firebase-sa.json
