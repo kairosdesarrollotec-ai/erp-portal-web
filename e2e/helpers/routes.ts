@@ -57,11 +57,33 @@ export const INQUIRY_FIXTURE = {
   createdAt: '2026-09-25T00:00:00Z',
 };
 
-/** Intercepta todas las llamadas de Firebase Auth (signIn y token refresh). */
+/**
+ * Intercepta todas las llamadas de Firebase Auth (signIn y token refresh).
+ *
+ * IMPORTANTE — orden de registro: Playwright ejecuta el handler registrado MAS
+ * RECIENTEMENTE primero. La catch-all debe registrarse PRIMERO (prioridad baja)
+ * y el handler especifico de signInWithPassword ULTIMO (prioridad alta), de lo
+ * contrario la catch-all intercepta signInWithPassword y llama route.continue()
+ * enviando la request real a Firebase con la API key falsa, lo que falla en CI.
+ */
 export async function interceptFirebaseAuth(page: Page, email = 'agente@veloxrent.pe'): Promise<void> {
   const idToken = makeFakeJwt(email);
 
-  // signInWithEmailAndPassword
+  // 1. Catch-all para otras llamadas de inicializacion del SDK (baja prioridad).
+  await page.route('**/identitytoolkit.googleapis.com/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }),
+  );
+
+  // 2. Refresco de token (securetoken).
+  await page.route('**/securetoken.googleapis.com/**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id_token: idToken, refresh_token: 'fake-refresh-token', expires_in: '3600' }),
+    }),
+  );
+
+  // 3. signInWithEmailAndPassword (alta prioridad — registrado ultimo, corre primero).
   await page.route('**/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword**', (route) =>
     route.fulfill({
       status: 200,
@@ -77,24 +99,6 @@ export async function interceptFirebaseAuth(page: Page, email = 'agente@veloxren
       }),
     }),
   );
-
-  // Refresco de token (securetoken) - por si el SDK lo intenta
-  await page.route('**/securetoken.googleapis.com/**', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id_token: idToken, refresh_token: 'fake-refresh-token', expires_in: '3600' }),
-    }),
-  );
-
-  // getProjectConfig (SDK antiguo o inicializacion)
-  await page.route('**/identitytoolkit.googleapis.com/**', (route) => {
-    if (!route.request().url().includes('signInWithPassword')) {
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) });
-    } else {
-      route.continue();
-    }
-  });
 }
 
 /**
