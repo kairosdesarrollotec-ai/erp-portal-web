@@ -1,0 +1,41 @@
+.title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0 0 1.25rem;
+}
+
+.mfaDescription {
+  display: none;
+}
+
+.backendUnavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0 1rem;
+}
+
+.backendUnavailableIcon {
+  color: var(--color-error);
+}
+
+.backendUnavailableText {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .mfaDescription {
+    display: block;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--color-muted);
+    margin: 0 0 1.25rem;
+  }
+}

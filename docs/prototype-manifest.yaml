@@ -27,6 +27,30 @@ screens:
   supersedes: null
   note: activacion paso 1
   is_reference_asset: false
+- proto_id: PROTO-TR-02-ACTIVACION-PASO-1-MOVIL
+  ux_id: TR-02
+  module: transversal
+  source: stitch_veloxrent_prototipo_b
+  folder: activa_tu_cuenta_paso_1_de_2_m_vil_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_1_de_2_m_vil_veloxrent/screen.png
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_1_de_2_m_vil_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 390
+    height: 844
+    dpr: 3
+    label: mobile
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-09-15'
+  sha256: 17089216f6e5cad3a4e52cf22f5fe27d6ab0bf83779fe7ac94b1b129d717e529
+  bytes: 12869
+  supersedes: null
+  note: activacion paso 1 movil
+  is_reference_asset: false
 - proto_id: PROTO-TR-02-ACTIVACION-PASO-2-ERROR
   ux_id: TR-02
   module: transversal
@@ -50,6 +74,30 @@ screens:
   bytes: 62103
   supersedes: null
   note: activacion paso 2 error
+  is_reference_asset: false
+- proto_id: PROTO-TR-02-ACTIVACION-PASO-2-ERROR-MOVIL
+  ux_id: TR-02
+  module: transversal
+  source: stitch_veloxrent_prototipo_b
+  folder: activa_tu_cuenta_paso_2_de_2_error_m_vil_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_2_de_2_error_m_vil_veloxrent/screen.png
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/activa_tu_cuenta_paso_2_de_2_error_m_vil_veloxrent/code.html
+  screen_state: ERROR
+  viewport:
+    width: 390
+    height: 844
+    dpr: 3
+    label: mobile
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-09-15'
+  sha256: 6cfc3065f2d01ab36aadca226fbfc552bce45651c85711a2a1ad440ef273b668
+  bytes: 23094
+  supersedes: null
+  note: activacion paso 2 error movil
   is_reference_asset: false
 - proto_id: PROTO-TR-02-ACTIVACION-PASO-2-MOVIL
   ux_id: TR-02

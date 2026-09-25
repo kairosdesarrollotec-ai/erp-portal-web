@@ -1,0 +1,276 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.header {
+  width: 100%;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #E5E2DC;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-ink);
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.statusText {
+  font-size: 14px;
+  color: var(--color-muted);
+  padding: 2rem;
+}
+
+.conflictBanner {
+  background: #FBF0DE;
+  color: var(--color-warning);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+}
+
+.summaryPanel {
+  border: 1px solid #E5E2DC;
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.customerLabel {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-ink);
+  margin: 0 0 1rem;
+}
+
+.summaryList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.summaryList dt {
+  font-size: 11px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.summaryList dd {
+  margin: 0.125rem 0 0;
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
+.mobileTimeline {
+  margin-top: 1.25rem;
+}
+
+.mobileTimeline summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.desktopTimeline {
+  display: none;
+}
+
+.timelineTitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-ink);
+  margin: 0 0 0.75rem;
+}
+
+.emptyTimeline {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.timeline {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-left: 2px solid #E5E2DC;
+}
+
+.timelineItem {
+  padding-left: 0.875rem;
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+.timelineDate {
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.timelineLabel {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.timelineDetail {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.mainPanel {
+  min-width: 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  background: #E4EEF9;
+  color: #2166B0;
+}
+
+.errorText {
+  color: var(--color-error);
+  font-size: 13px;
+  margin: 0 0 1rem;
+}
+
+.primaryButton {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.875rem 1.5rem;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 1.25rem;
+}
+
+.primaryButton:disabled {
+  background: var(--color-border);
+  cursor: default;
+}
+
+.dangerLink {
+  display: block;
+  background: none;
+  border: none;
+  color: var(--color-error);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.closeForm {
+  margin-top: 1rem;
+  border: 1px solid #F3C6C6;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.closeQuestion {
+  font-size: 13px;
+  color: var(--color-ink);
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+}
+
+.closeReason {
+  width: 100%;
+  min-height: 80px;
+  border: 1px solid #E5E2DC;
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.closeActions {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.dangerButton {
+  background: var(--color-error);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.25rem;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.closedMessage {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.helperText {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: -0.75rem 0 1.25rem;
+}
+
+@media (min-width: 900px) {
+  .content {
+    grid-template-columns: 280px 1fr;
+  }
+
+  .mobileTimeline {
+    display: none;
+  }
+
+  .desktopTimeline {
+    display: block;
+    margin-top: 1.25rem;
+  }
+}
