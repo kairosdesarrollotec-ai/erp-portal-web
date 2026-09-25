@@ -4,7 +4,7 @@ Consolida todo lo pendiente en `erp-portal-web` detectado en la sesión del 23-2
 
 Documento equivalente para el backend: `../erp-monolithic-api/docs/plan-implementacion-pendientes-2026-09-24.md`.
 
-Última actualización: 25-sep-2026.
+Última actualización: 25-sep-2026 (Bloque CI-A cerrado).
 
 ---
 
@@ -82,6 +82,16 @@ Los PRs NestJS #11–#14 requieren migración coordinada (dual-version en worksp
 
 ---
 
+## Bloque CI-A — Supply chain y secret scanning ✅ CERRADO
+
+- [x] SHA pins en `actions/checkout` y `actions/setup-node` en `ci.yml` y `prototype-manifest-check.yml` (commit `9b25b78`).
+- [x] Job `security` con gitleaks v8.30.1 (checksum verificado, sin Action de terceros) — binario descargado en CI (commit `9b25b78`).
+- [x] `.gitleaksignore` creado para dos falsos positivos en prototipos Stitch (`generic-api-key` placeholder `VLX74892KQ91Z8XP`) (commit `3893437`).
+- [x] Fix: comentario en `.gitleaksignore` no debe contener el valor detectado; añadido fingerprint del commit histórico (commit `74f9e48`).
+- [x] PR#21 mergeado a `main` (25-sep-2026), CI verde (secret scanning pasa).
+
+---
+
 ## Bloque 5 — Un PR por HU de ahora en adelante ✅ ACTIVO
 
 Desde el cierre del Bloque 2, la regla "un PR por HU" aplica a todo lo nuevo.
@@ -114,5 +124,6 @@ Desde el cierre del Bloque 2, la regla "un PR por HU" aplica a todo lo nuevo.
 | 2 | Merge cadena HU-22→HU-26 a main | ✅ Cerrado | Bloque 1 | — |
 | 3 | HU-25 hub de módulos | ✅ Cerrado | Bloque 2 | — |
 | 4 | Dependabot PRs (#8–#10 mergeados; #11–#14 cerrados → issue #17) | ✅ Cerrado | — | — |
+| CI-A | Supply chain + secret scanning (PR#21) | ✅ Cerrado | — | — |
 | 5 | Un PR por HU de ahora en adelante | ✅ Activo | Bloque 2 | — |
 | 6 | Backlog funcional frontend | Pendiente | Bloques 2, 3 | — |
