@@ -1,0 +1,46 @@
+/*
+ * Tokens de espaciado — veloxrent_erp_design_system/DESIGN.md
+ * Ritmo base: 4px. Escala de spacing-2xs (2px) a spacing-3xl (48px).
+ */
+:root {
+  /* ------------------------------------------------------------------ */
+  /* Escala de espaciado                                                  */
+  /* ------------------------------------------------------------------ */
+  --space-2xs: 0.125rem;  /*  2px — spacing-2xs */
+  --space-xs:  0.25rem;   /*  4px — spacing-xs  */
+  --space-sm:  0.5rem;    /*  8px — spacing-sm  */
+  --space-md:  0.75rem;   /* 12px — spacing-md  */
+  --space-base: 1rem;     /* 16px — spacing-base */
+  --space-lg:  1.25rem;   /* 20px — spacing-lg  */
+  --space-xl:  1.5rem;    /* 24px — spacing-xl  */
+  --space-2xl: 2rem;      /* 32px — spacing-2xl */
+  --space-3xl: 3rem;      /* 48px — spacing-3xl */
+
+  /* ------------------------------------------------------------------ */
+  /* Gutters y margenes por breakpoint                                    */
+  /* ------------------------------------------------------------------ */
+  --gutter-desktop: 1rem;    /* espacio entre columnas — desktop */
+  --gutter-tablet:  0.75rem; /* espacio entre columnas — tablet  */
+  --gutter-mobile:  0.5rem;  /* espacio entre columnas — mobile  */
+  --margin-desktop: 1.5rem;  /* margen externo — desktop */
+  --margin-tablet:  1rem;    /* margen externo — tablet  */
+  --margin-mobile:  0.75rem; /* margen externo — mobile  */
+
+  /* ------------------------------------------------------------------ */
+  /* Constantes de layout                                                 */
+  /* Fuente: prototipos APPROVED (alquileres_bandeja_veloxrent/code.html) */
+  /* ------------------------------------------------------------------ */
+  --header-height: 64px;        /* h-16 en prototipo */
+  --content-max-width: 1440px;  /* max-w-[1440px] en prototipo */
+  --content-padding: 24px;      /* px-6 en prototipo */
+
+  /* ------------------------------------------------------------------ */
+  /* Radios de borde — shapes del Design System                          */
+  /* ------------------------------------------------------------------ */
+  --radius-sm:  0.125rem; /* 2px  */
+  --radius:     0.25rem;  /* 4px  — controles estandar, badges */
+  --radius-md:  0.375rem; /* 6px  — tarjetas, tablas */
+  --radius-lg:  0.5rem;   /* 8px  — paneles estructurales */
+  --radius-xl:  0.75rem;  /* 12px */
+  --radius-full: 9999px;
+}

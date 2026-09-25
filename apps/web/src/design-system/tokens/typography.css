@@ -1,0 +1,56 @@
+/*
+ * Tokens tipograficos — veloxrent_erp_design_system/DESIGN.md
+ * Fuentes: Public Sans (operativa), Space Grotesk (tecnica/maquina)
+ */
+:root {
+  /* ------------------------------------------------------------------ */
+  /* Familias tipograficas                                                */
+  /* ------------------------------------------------------------------ */
+  --font-sans: 'Public Sans', sans-serif;
+  --font-code: 'Space Grotesk', monospace;
+
+  /* ------------------------------------------------------------------ */
+  /* Escala de tamaños (rem)                                              */
+  /* ------------------------------------------------------------------ */
+  --text-body-sm: 0.75rem;       /* 12px — body-sm */
+  --text-body-base: 0.875rem;    /* 14px — body-base */
+  --text-body-lg: 1rem;          /* 16px — body-lg */
+  --text-label-sm: 0.6875rem;    /* 11px — label-sm */
+  --text-label-md: 0.8125rem;    /* 13px — label-md */
+  --text-headline-sm: 1.125rem;  /* 18px — headline-sm */
+  --text-headline-lg: 1.5rem;    /* 24px — headline-lg */
+  --text-headline-xl: 2rem;      /* 32px — headline-xl */
+  --text-headline-xl-mobile: 1.5rem; /* 24px — headline-xl-mobile */
+
+  /* ------------------------------------------------------------------ */
+  /* Alturas de linea                                                     */
+  /* ------------------------------------------------------------------ */
+  --leading-body-sm: 1rem;
+  --leading-body-base: 1.25rem;
+  --leading-body-lg: 1.5rem;
+  --leading-label-sm: 0.875rem;
+  --leading-label-md: 1rem;
+  --leading-headline-sm: 1.5rem;
+  --leading-headline-lg: 2rem;
+  --leading-headline-xl: 2.5rem;
+  --leading-headline-xl-mobile: 2rem;
+
+  /* ------------------------------------------------------------------ */
+  /* Pesos tipograficos                                                   */
+  /* ------------------------------------------------------------------ */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* ------------------------------------------------------------------ */
+  /* Espaciado entre letras                                               */
+  /* ------------------------------------------------------------------ */
+  --tracking-label-sm: 0.04em;
+  --tracking-label-md: 0.01em;
+  --tracking-code: 0.02em;
+  --tracking-code-sm: 0.03em;
+  --tracking-headline-xl: -0.02em;
+  --tracking-headline-lg: -0.015em;
+  --tracking-headline-sm: -0.01em;
+}
