@@ -21,7 +21,7 @@ export function useReservationsList() {
         return;
       }
       const idToken = await user.getIdToken();
-      const results = await listReservations(idToken, context.companyId);
+      const results = await listReservations(idToken, context.companyId, context.branchId);
       setReservations(results);
       setState(results.length === 0 ? 'EMPTY' : 'READY');
     } catch {

@@ -2,6 +2,14 @@ import type { ChannelMode, ReservationStatus } from './reservation-status';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
+/** Error HTTP de lectura (GET) — expone el status para distinguir 401/403/404/5xx (TDD-RES-001.md finding #7). */
+export class ReservationApiError extends Error {
+  readonly name = 'ReservationApiError';
+  constructor(public readonly status: number) {
+    super(`Error HTTP ${status} al consultar reservas`);
+  }
+}
+
 export interface ReservationSummary {
   id: string;
   status: ReservationStatus;
@@ -26,16 +34,15 @@ function authHeaders(idToken: string): HeadersInit {
 export async function listReservations(
   idToken: string,
   companyId: string,
+  branchId: string,
   status?: ReservationStatus,
 ): Promise<ReservationSummary[]> {
-  const params = new URLSearchParams({ companyId });
+  const params = new URLSearchParams({ companyId, branchId });
   if (status) params.set('status', status);
   const response = await fetch(`${API_BASE_URL}/reservations?${params.toString()}`, {
     headers: authHeaders(idToken),
   });
-  if (!response.ok) {
-    throw new Error(`No se pudo obtener la bandeja de reservas (${response.status})`);
-  }
+  if (!response.ok) throw new ReservationApiError(response.status);
   return (await response.json()) as ReservationSummary[];
 }
 
@@ -50,9 +57,7 @@ export async function getReservation(
   const response = await fetch(`${API_BASE_URL}/reservations/${id}?${params.toString()}`, {
     headers: authHeaders(idToken),
   });
-  if (!response.ok) {
-    throw new Error(`No se pudo obtener la reserva (${response.status})`);
-  }
+  if (!response.ok) throw new ReservationApiError(response.status);
   return (await response.json()) as ReservationSummary;
 }
 
@@ -65,7 +70,7 @@ async function postCommand(
 ): Promise<ReservationSummary> {
   const response = await fetch(`${API_BASE_URL}/reservations/${id}/commands/${command}`, {
     method: 'POST',
-    headers: { ...authHeaders(idToken), 'If-Match': `"${version}"` },
+    headers: { ...authHeaders(idToken), 'If-Match': `"${version}"`, 'Idempotency-Key': crypto.randomUUID() },
     body: JSON.stringify(body),
   });
   if (!response.ok) {
