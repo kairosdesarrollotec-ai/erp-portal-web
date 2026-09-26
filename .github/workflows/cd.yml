@@ -86,7 +86,5 @@ jobs:
         run: |
           echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" | base64 --decode > /tmp/firebase-sa.json
           firebase hosting:channel:deploy "$FIREBASE_CHANNEL_ID" \
-            --project "$FIREBASE_PROJECT_ID" \
-            --no-authorized-domains \
-            --quiet
+            --project "$FIREBASE_PROJECT_ID"
           rm -f /tmp/firebase-sa.json
