@@ -78,13 +78,13 @@ jobs:
       - name: Instalar firebase-tools
         run: npm install -g "firebase-tools@${{ vars.FIREBASE_TOOLS_VERSION }}"
 
+      # Cada ambiente usa un proyecto Firebase separado (un proyecto por ambiente).
+      # firebase deploy --only hosting despliega al canal live del proyecto.
       - name: Deploy a Firebase Hosting
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-sa.json
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
-          FIREBASE_CHANNEL_ID: ${{ vars.FIREBASE_CHANNEL_ID }}
         run: |
           echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}" | base64 --decode > /tmp/firebase-sa.json
-          firebase hosting:channel:deploy "$FIREBASE_CHANNEL_ID" \
-            --project "$FIREBASE_PROJECT_ID"
+          firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID"
           rm -f /tmp/firebase-sa.json
