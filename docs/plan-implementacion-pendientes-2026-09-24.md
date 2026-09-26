@@ -137,5 +137,6 @@ Desde el cierre del Bloque 2, la regla "un PR por HU" aplica a todo lo nuevo.
 | CI-B.1 | Dependabot + npm audit CRITICAL bloqueante (PR#22) | ✅ Cerrado | — | — |
 | CI-B.2 | E2E Playwright — auth, reservas y consultas (PR#28) | ✅ Cerrado | — | — |
 | CI-B.3 | SBOM CycloneDX en CI (PR#29) | ✅ Cerrado | — | — |
+| CI-C | CD pipeline: Firebase Hosting, ambientes, aprobación manual (PR#30) | ✅ Mergeado 25-sep-2026 | Setup Firebase + secrets | — |
 | 5 | Un PR por HU de ahora en adelante | ✅ Activo | Bloque 2 | — |
 | 6 | Backlog funcional frontend | Pendiente | Bloques 2, 3 | — |

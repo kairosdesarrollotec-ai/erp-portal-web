@@ -16,3 +16,7 @@ apps/api/dist/
 
 # Framework interno de agentes/skills/reglas: vive en repo aparte, no en este
 .claude/
+
+# Playwright
+test-results/
+playwright-report/
