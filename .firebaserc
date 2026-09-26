@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "REEMPLAZAR_CON_FIREBASE_PROJECT_ID"
+    "development": "REEMPLAZAR_CON_FIREBASE_PROJECT_ID_DEV",
+    "qa":          "REEMPLAZAR_CON_FIREBASE_PROJECT_ID_QA",
+    "uat":         "REEMPLAZAR_CON_FIREBASE_PROJECT_ID_UAT",
+    "production":  "REEMPLAZAR_CON_FIREBASE_PROJECT_ID_PROD"
   }
 }
+
