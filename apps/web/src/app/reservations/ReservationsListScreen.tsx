@@ -66,7 +66,7 @@ export function ReservationsListScreen() {
                         to={`/reservas/${reservation.id}`}
                         state={context ?? undefined}
                         className={styles.continueButton}
-                        onClick={(event) => event.stopPropagation()}
+                        onClick={(event: React.MouseEvent) => event.stopPropagation()}
                       >
                         Continuar
                       </Link>
