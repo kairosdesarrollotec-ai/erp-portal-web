@@ -34,9 +34,9 @@ const baseReady = {
   branchId: 'b1',
 };
 
-function renderHub() {
+function renderHub(locationState?: Record<string, unknown>) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[{ pathname: '/modulos', state: locationState ?? {} }]}>
       <ModuleHubScreen />
     </MemoryRouter>,
   );
@@ -94,7 +94,7 @@ describe('ModuleHubScreen', () => {
 
   it('muestra el label de sede en el header', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'GERENCIA' });
-    renderHub();
+    renderHub({ companyName: 'VeloxRent', branchName: 'Ayacucho Central', companyId: 'c1', branchId: 'b1' });
     expect(screen.getByText('VeloxRent — Ayacucho Central')).toBeDefined();
   });
 
