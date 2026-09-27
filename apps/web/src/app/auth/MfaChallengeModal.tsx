@@ -224,9 +224,9 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
             // comportamiento que tenia antes de agregar Dialog. Escape SI
             // sigue funcionando (dispara onOpenChange(false) -> onCancel),
             // que es justamente el hallazgo que pedia la revision.
-            onPointerDownOutside={(event) => event.preventDefault()}
-            onInteractOutside={(event) => event.preventDefault()}
-            onCloseAutoFocus={(event) => {
+            onPointerDownOutside={(event: { preventDefault: () => void }) => event.preventDefault()}
+            onInteractOutside={(event: { preventDefault: () => void }) => event.preventDefault()}
+            onCloseAutoFocus={(event: { preventDefault: () => void }) => {
               event.preventDefault();
               triggerRef.current?.focus();
             }}
