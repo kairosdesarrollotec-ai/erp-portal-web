@@ -18,6 +18,7 @@ export interface AssignUserFormInput {
   targetCompanyId: string;
   targetBranchId: string;
   targetRole: WorkerRole;
+  initialPassword: string;
 }
 
 export function useAdminUsers() {
@@ -26,7 +27,6 @@ export function useAdminUsers() {
   const [users, setUsers] = useState<OrganizationUserAssignment[]>([]);
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
-  const [lastPasswordResetLink, setLastPasswordResetLink] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -60,19 +60,15 @@ export function useAdminUsers() {
     if (!context) return false;
     setAssigning(true);
     setAssignError(null);
-    setLastPasswordResetLink(null);
     try {
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesion no disponible.');
       const idToken = await user.getIdToken();
-      const result = await assignUserToCompany(idToken, {
+      await assignUserToCompany(idToken, {
         companyId: context.companyId,
         branchId: context.branchId,
         ...input,
       });
-      if (result.passwordResetLink) {
-        setLastPasswordResetLink(result.passwordResetLink);
-      }
       await reload();
       return true;
     } catch (error) {
@@ -106,7 +102,6 @@ export function useAdminUsers() {
     context,
     assigning,
     assignError,
-    lastPasswordResetLink,
     deactivatingId,
     actionError,
     assign,

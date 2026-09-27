@@ -105,6 +105,9 @@ describe('AdminUsersScreen (ADM-01)', () => {
     fireEvent.change(screen.getByPlaceholderText('usuario@veloxrent.pe'), {
       target: { value: 'nuevo@veloxrent.pe' },
     });
+    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), {
+      target: { value: 'Temporal@123' },
+    });
     fireEvent.click(screen.getByText('Agregar usuario'));
 
     await waitFor(() => {
@@ -115,6 +118,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
         targetCompanyId: 'c1',
         targetBranchId: 'b1',
         targetRole: 'FRONT_OFFICE',
+        initialPassword: 'Temporal@123',
       });
     });
     expect(await screen.findByText('nuevo@veloxrent.pe')).toBeInTheDocument();
