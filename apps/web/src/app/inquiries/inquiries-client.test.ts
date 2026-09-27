@@ -49,7 +49,7 @@ describe('inquiries-client', () => {
     await expect(getInquiry('token', 'con-1', 'c1', 'b1')).rejects.toBeInstanceOf(InquiryApiError);
   });
 
-  it('createInquiry manda el snapshot completo de CON-02, con Idempotency-Key (RegisterInquiryDto, backend PR#7 d7a6124)', async () => {
+  it('createInquiry manda prospect anidado y snapshot completo de CON-02, con Idempotency-Key (CONFLICT-CON-002 resuelto)', async () => {
     const fetchMock = mockFetchOnce(201, { id: 'con-1' });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -58,9 +58,12 @@ describe('inquiries-client', () => {
       branchId: 'b1',
       channel: 'WHATSAPP',
       touristUse: true,
-      prospectName: 'Maria Quispe',
-      prospectDocumentNumber: '12345678',
-      nationality: 'PERUANO',
+      prospect: {
+        fullName: 'Maria Quispe',
+        documentType: 'DNI',
+        documentNumber: '12345678',
+        nationality: 'PERUANO',
+      },
       destination: 'Ayacucho',
       estimatedDays: 3,
       travelStartDate: '2099-01-01',
@@ -74,9 +77,12 @@ describe('inquiries-client', () => {
       branchId: 'b1',
       channel: 'WHATSAPP',
       touristUse: true,
-      prospectName: 'Maria Quispe',
-      prospectDocumentNumber: '12345678',
-      nationality: 'PERUANO',
+      prospect: {
+        fullName: 'Maria Quispe',
+        documentType: 'DNI',
+        documentNumber: '12345678',
+        nationality: 'PERUANO',
+      },
       destination: 'Ayacucho',
       estimatedDays: 3,
       travelStartDate: '2099-01-01',

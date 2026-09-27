@@ -89,7 +89,20 @@ export function NewInquiryScreen() {
             {fieldErrors.customerName && <span className={styles.fieldError}>{fieldErrors.customerName}</span>}
           </label>
           <label className={styles.field}>
-            <span>Documento</span>
+            <span>Tipo de documento</span>
+            <select
+              className={styles.input}
+              value={form.documentType}
+              onChange={(event) => updateForm({ documentType: event.target.value })}
+            >
+              <option value="DNI">DNI</option>
+              <option value="PASAPORTE">Pasaporte</option>
+              <option value="CARNET_EXTRANJERIA">Carnet de extranjería</option>
+              <option value="RUC">RUC</option>
+            </select>
+          </label>
+          <label className={styles.field}>
+            <span>Número de documento</span>
             <input
               className={styles.input}
               type="text"
