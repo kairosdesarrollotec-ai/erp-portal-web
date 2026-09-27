@@ -30,7 +30,7 @@ import styles from './DashboardScreen.module.css';
  * widgets propia sobre esta misma base.
  */
 export function DashboardScreen() {
-  const { state, role, branchName, dashboardState, tasks, companyId, branchId } = useDashboard();
+  const { state, role, companyName, branchName, dashboardState, tasks, companyId, branchId } = useDashboard();
   const navigate = useNavigate();
   const email = getFirebaseAuth().currentUser?.email ?? '';
   const initial = email.charAt(0).toUpperCase();
@@ -52,10 +52,10 @@ export function DashboardScreen() {
           <span className={styles.brand}>VeloxRent</span>
         </div>
         <div className={styles.headerRight}>
-          {branchName && (
+          {companyName && branchName && (
             <span className={styles.branchBadge}>
               <span className={styles.branchDot} />
-              {branchName}
+              {companyName} — {branchName}
             </span>
           )}
           {email && (
@@ -102,7 +102,14 @@ export function DashboardScreen() {
             <h1 className={styles.greeting}>Hola</h1>
             {role && <p className={styles.roleSubtitle}>{WORKER_ROLE_LABELS[role]}</p>}
 
-            {role === 'PLATFORM_ADMIN' && <PlatformAdminAccessCards />}
+            {role === 'PLATFORM_ADMIN' && companyId && branchId && (
+              <PlatformAdminAccessCards
+                companyId={companyId}
+                companyName={companyName ?? ''}
+                branchId={branchId}
+                branchName={branchName ?? ''}
+              />
+            )}
 
             {role !== 'PLATFORM_ADMIN' && dashboardState === 'EMPTY' && (
               <p className={styles.emptyMessage}>No tienes pendientes por ahora.</p>
@@ -165,13 +172,20 @@ const PLATFORM_ADMIN_CARDS = [
   },
 ] as const;
 
-function PlatformAdminAccessCards() {
+interface AdminCardContext {
+  companyId: string;
+  companyName: string;
+  branchId: string;
+  branchName: string;
+}
+
+function PlatformAdminAccessCards(ctx: AdminCardContext) {
   return (
     <div className={styles.adminSection}>
       <p className={styles.adminSectionLabel}>ACCESOS DIRECTOS DE CONFIGURACIÓN</p>
       <div className={styles.adminGrid}>
         {PLATFORM_ADMIN_CARDS.map((card) => (
-          <Link key={card.id} to={card.to} className={styles.adminCard}>
+          <Link key={card.id} to={card.to} state={ctx} className={styles.adminCard}>
             <div className={styles.adminCardTop}>
               <span className={styles.adminCardIcon}>{card.icon}</span>
               <span className={styles.adminCardId}>{card.id}</span>

@@ -32,6 +32,7 @@ interface WorkContextNavigationState {
 export function useDashboard() {
   const [state, setState] = useState<DashboardScreenState>('LOADING');
   const [role, setRole] = useState<WorkerRole | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
   const [branchName, setBranchName] = useState<string | null>(null);
   const [dashboardState, setDashboardState] = useState<DashboardDataState>('EMPTY');
   const [tasks, setTasks] = useState<DashboardTaskItem[]>([]);
@@ -95,7 +96,8 @@ export function useDashboard() {
         const result = await getDashboard(idToken, context.companyId, context.branchId);
         if (cancelled) return;
         setRole(result.role);
-        setBranchName(`${context.companyName} — ${context.branchName}`);
+        setCompanyName(context.companyName);
+        setBranchName(context.branchName);
         setCompanyId(context.companyId);
         setBranchId(context.branchId);
         setDashboardState(result.state);
@@ -112,5 +114,5 @@ export function useDashboard() {
     };
   }, [location.state, navigate]);
 
-  return { state, role, branchName, dashboardState, tasks, companyId, branchId };
+  return { state, role, companyName, branchName, dashboardState, tasks, companyId, branchId };
 }
