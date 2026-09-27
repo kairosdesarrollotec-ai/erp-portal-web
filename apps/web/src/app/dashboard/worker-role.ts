@@ -11,6 +11,7 @@ export type WorkerRole =
   | 'FINANZAS'
   | 'FRONT_OFFICE'
   | 'GERENCIA'
+  | 'PLATFORM_ADMIN'
   | 'RRHH';
 
 export const WORKER_ROLE_LABELS: Record<WorkerRole, string> = {
@@ -20,5 +21,6 @@ export const WORKER_ROLE_LABELS: Record<WorkerRole, string> = {
   FINANZAS: 'Finanzas',
   FRONT_OFFICE: 'Front Office',
   GERENCIA: 'Gerencia',
+  PLATFORM_ADMIN: 'Administrador de Plataforma',
   RRHH: 'RR. HH.',
 };
