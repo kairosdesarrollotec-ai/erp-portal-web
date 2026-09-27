@@ -1,5 +1,5 @@
 /**
- * Input — primitiva del Design System VeloxRent
+ * Input — primitiva del Design System Kairos Corporation
  * Fuente: veloxrent_erp_design_system/DESIGN.md — Components > Form Inputs & Select Fields
  *
  * Campo de texto controlado con HTML semantico accesible.

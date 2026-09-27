@@ -1,5 +1,5 @@
 /**
- * StatusBadge — primitiva del Design System VeloxRent
+ * StatusBadge — primitiva del Design System Kairos Corporation
  * Fuente: veloxrent_erp_design_system/DESIGN.md — Components > Status Badges & Chips
  *
  * Representa estados del ciclo de vida de vehiculos y alquileres.

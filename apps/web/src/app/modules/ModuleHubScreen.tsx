@@ -48,8 +48,8 @@ export function ModuleHubScreen() {
     <main className={styles.wrapper}>
       <header className={styles.header}>
         <div className={styles.brandGroup}>
-          <span className={styles.brandMark}>V</span>
-          <span className={styles.brand}>VeloxRent</span>
+          <span className={styles.brandMark}>K</span>
+          <span className={styles.brand}>Kairos Corporation</span>
         </div>
         <div className={styles.headerRight}>
           {branchLabel && (

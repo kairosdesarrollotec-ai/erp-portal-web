@@ -42,7 +42,7 @@ export function RolePermissionMatrixScreen() {
   return (
     <main className={styles.wrapper}>
       <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
+        <span className={styles.brand}>Kairos Corporation</span>
         <h1 className={styles.title}>Roles y permisos</h1>
       </header>
 

@@ -71,7 +71,7 @@ export function InquiryDetailScreen() {
   return (
     <main className={styles.wrapper}>
       <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
+        <span className={styles.brand}>Kairos Corporation</span>
         <button type="button" className={styles.linkButton} onClick={() => navigate('/consultas')}>
           Volver a la bandeja
         </button>

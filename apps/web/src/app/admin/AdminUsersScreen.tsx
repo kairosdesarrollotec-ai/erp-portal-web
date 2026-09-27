@@ -53,7 +53,7 @@ export function AdminUsersScreen() {
   return (
     <main className={styles.wrapper}>
       <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
+        <span className={styles.brand}>Kairos Corporation</span>
         <h1 className={styles.title}>Usuarios y asignaciones</h1>
         {context && !showAssignForm && (
           <button type="button" className={styles.primaryButton} onClick={() => setShowAssignForm(true)}>

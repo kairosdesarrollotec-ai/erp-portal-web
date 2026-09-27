@@ -1,5 +1,5 @@
 /**
- * Button — primitiva del Design System VeloxRent
+ * Button — primitiva del Design System Kairos Corporation
  * Fuente: veloxrent_erp_design_system/DESIGN.md — Components > Buttons
  */
 import type { ButtonHTMLAttributes } from 'react';

@@ -59,7 +59,7 @@ export function InquiryVehiclesScreen() {
           Consultas
         </Link>
         <span className={styles.headerDivider} aria-hidden="true" />
-        <span className={styles.brand}>VeloxRent</span>
+        <span className={styles.brand}>Kairos Corporation</span>
         <h1 className={styles.title}>
           {navState.destination ? `Disponibles — ${navState.destination}` : 'Vehículos disponibles'}
         </h1>

@@ -76,7 +76,7 @@ export function NotificationTemplatesScreen() {
   return (
     <main className={styles.wrapper}>
       <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
+        <span className={styles.brand}>Kairos Corporation</span>
         <h1 className={styles.title}>Notificaciones</h1>
       </header>
 

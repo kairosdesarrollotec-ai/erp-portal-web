@@ -44,7 +44,7 @@ export function ActivationScreen() {
     return (
       <main className={styles.wrapper}>
         <div className={styles.card}>
-          <p className={styles.brand}>VeloxRent</p>
+          <p className={styles.brand}>Kairos Corporation</p>
           <div className={styles.loadingNotice} role="status" aria-live="polite">
             <Loader2 size={28} aria-hidden="true" />
           </div>
@@ -57,7 +57,7 @@ export function ActivationScreen() {
     return (
       <main className={styles.wrapper}>
         <div className={styles.card}>
-          <p className={styles.brand}>VeloxRent</p>
+          <p className={styles.brand}>Kairos Corporation</p>
           <div role="alert">
             <h1>Tu sesión expiró</h1>
             <p>Vuelve a iniciar sesión para continuar con la activación de tu cuenta.</p>
@@ -89,7 +89,7 @@ export function ActivationScreen() {
         </header>
       )}
       <div className={styles.card}>
-        <p className={`${styles.brand} ${step === 'MFA' ? styles.desktopOnly : ''}`}>VeloxRent</p>
+        <p className={`${styles.brand} ${step === 'MFA' ? styles.desktopOnly : ''}`}>Kairos Corporation</p>
         <Stepper activeStep={step === 'PASSWORD' ? 1 : 2} />
         {step === 'PASSWORD' ? (
           <PasswordStep

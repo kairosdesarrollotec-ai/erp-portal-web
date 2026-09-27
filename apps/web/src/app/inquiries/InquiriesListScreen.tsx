@@ -21,7 +21,7 @@ export function InquiriesListScreen() {
   return (
     <main className={styles.wrapper}>
       <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
+        <span className={styles.brand}>Kairos Corporation</span>
         <h1 className={styles.title}>Consultas</h1>
         <button
           type="button"

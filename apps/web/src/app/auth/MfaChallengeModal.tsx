@@ -287,7 +287,7 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
                           <div className={styles.infoCard}>
                             <p className={styles.infoCardText}>
                               Protocolo de seguridad operativa. Esta verificación caduca en 60 segundos por
-                              normatividad interna de VeloxRent ERP.
+                              normatividad interna de Kairos Corporation ERP.
                             </p>
                           </div>
 
