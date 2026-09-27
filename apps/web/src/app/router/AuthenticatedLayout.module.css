@@ -1,0 +1,13 @@
+.shell {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  background: var(--color-surface);
+}
+
+.rightPanel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}

@@ -1,0 +1,190 @@
+/* ── Desktop sidebar ──────────────────────────────────────────── */
+
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-surface-border);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 10;
+}
+
+/* ── Mobile drawer ───────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+    z-index: 200;
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+}
+
+/* ── Overlay (mobile only) ───────────────────────────────────── */
+
+.overlay {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 199;
+  }
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.sidebarTitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-subtle);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: none;
+  align-items: center;
+  border-radius: var(--radius);
+  transition: color 0.1s ease, background 0.1s ease;
+}
+
+.closeButton:hover {
+  color: var(--color-ink);
+  background: var(--color-surface-low);
+}
+
+.closeButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .closeButton {
+    display: flex;
+  }
+}
+
+/* ── Nav list ────────────────────────────────────────────────── */
+
+.navList {
+  list-style: none;
+  margin: 0.25rem 0 1rem;
+  padding: 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+  text-decoration: none;
+  transition: background 0.1s ease;
+  cursor: pointer;
+  min-height: 38px;
+}
+
+.navItem:hover:not(.navItemDisabled) {
+  background: var(--color-surface-low);
+}
+
+.navItem:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.navItemActive {
+  background: var(--color-surface-container);
+  font-weight: 600;
+}
+
+.navItemActive:hover {
+  background: var(--color-surface-container);
+}
+
+.navItemDisabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ── Icon ────────────────────────────────────────────────────── */
+
+.navIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--color-ink-muted);
+}
+
+.navIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.navItemActive .navIcon {
+  color: var(--color-accent);
+}
+
+/* ── Label ───────────────────────────────────────────────────── */
+
+.navLabel {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Coming soon badge ───────────────────────────────────────── */
+
+.comingSoon {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-ink-subtle);
+  background: var(--color-surface-container);
+  border-radius: var(--radius);
+  padding: 0.15rem 0.4rem;
+  flex-shrink: 0;
+}

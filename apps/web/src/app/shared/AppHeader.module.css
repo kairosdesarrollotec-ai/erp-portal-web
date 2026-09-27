@@ -14,6 +14,34 @@
 
 /* ── Lado izquierdo ─────────────────────────────────────────── */
 
+.menuButton {
+  background: none;
+  border: none;
+  color: var(--color-ink-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  display: none;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.1s ease;
+}
+
+.menuButton:hover {
+  color: var(--color-ink);
+}
+
+.menuButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .menuButton {
+    display: flex;
+  }
+}
+
 .left {
   display: flex;
   align-items: center;

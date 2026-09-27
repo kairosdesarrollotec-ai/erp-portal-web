@@ -4,6 +4,7 @@ import { getFirebaseAuth } from '../providers/firebase';
 import { getDashboard } from '../dashboard/dashboard-client';
 import { getWorkContextAssignments } from '../auth/work-context-client';
 import type { WorkerRole } from '../dashboard/worker-role';
+import { useWorkSession } from '../shared/useWorkSession';
 
 /**
  * TR-11 (HU-25) - estados del hub de módulos de navegación.
@@ -23,6 +24,7 @@ interface NavigationState {
 export function useModuleHub() {
   const [state, setState] = useState<ModuleHubState>('LOADING');
   const [role, setRole] = useState<WorkerRole | null>(null);
+  const { setRole: setSessionRole } = useWorkSession();
   const [branchLabel, setBranchLabel] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [branchId, setBranchId] = useState<string | null>(null);
@@ -80,6 +82,7 @@ export function useModuleHub() {
         const result = await getDashboard(idToken, context.companyId, context.branchId);
         if (cancelled) return;
         setRole(result.role);
+        setSessionRole(result.role);
         setBranchLabel(`${context.companyName} — ${context.branchName}`);
         setCompanyId(context.companyId);
         setBranchId(context.branchId);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, LogOut } from 'lucide-react';
+import { Bell, LogOut, Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
@@ -7,6 +7,7 @@ import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { useNotifications } from '../notifications/useNotifications';
 import { WORKER_ROLE_LABELS, type WorkerRole } from '../dashboard/worker-role';
 import { APP_BRAND } from '../config/brand';
+import { useWorkSession } from './useWorkSession';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
@@ -36,6 +37,7 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
   const { companyId = null, companyName, branchName, branchId = null } =
     (location.state ?? {}) as NavState;
 
+  const { setSidebarOpen } = useWorkSession();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const email = getFirebaseAuth().currentUser?.email ?? '';
   const initial = email.charAt(0).toUpperCase();
@@ -53,6 +55,14 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
     <>
       <header className={styles.header}>
         <div className={styles.left}>
+          <button
+            type="button"
+            className={styles.menuButton}
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Abrir menú de módulos"
+          >
+            <Menu size={20} />
+          </button>
           <button
             type="button"
             className={styles.brandGroup}

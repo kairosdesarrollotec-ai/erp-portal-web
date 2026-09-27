@@ -4,6 +4,7 @@ import { getFirebaseAuth } from '../providers/firebase';
 import { getDashboard, DashboardTaskItem } from './dashboard-client';
 import { getWorkContextAssignments } from '../auth/work-context-client';
 import type { WorkerRole } from './worker-role';
+import { useWorkSession } from '../shared/useWorkSession';
 
 /**
  * TR-06 (HU-24) - estados: LOADING, READY (rol resuelto, tablero EMPTY
@@ -32,6 +33,7 @@ interface WorkContextNavigationState {
 export function useDashboard() {
   const [state, setState] = useState<DashboardScreenState>('LOADING');
   const [role, setRole] = useState<WorkerRole | null>(null);
+  const { setRole: setSessionRole } = useWorkSession();
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [branchName, setBranchName] = useState<string | null>(null);
   const [dashboardState, setDashboardState] = useState<DashboardDataState>('EMPTY');
@@ -96,6 +98,7 @@ export function useDashboard() {
         const result = await getDashboard(idToken, context.companyId, context.branchId);
         if (cancelled) return;
         setRole(result.role);
+        setSessionRole(result.role);
         setCompanyName(context.companyName);
         setBranchName(context.branchName);
         setCompanyId(context.companyId);
