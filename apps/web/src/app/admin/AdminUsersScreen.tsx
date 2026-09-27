@@ -11,19 +11,18 @@ const ASSIGNABLE_ROLES = Object.keys(WORKER_ROLE_LABELS) as WorkerRole[];
  * Estados: READY, LOADING, EMPTY (contrato punto 9). Reutiliza
  * user_company_assignments (misma tabla de TR-05) via GET /admin/users.
  *
- * Alcance real: si el correo no existe en Firebase, el backend crea la
- * cuenta y devuelve un passwordResetLink que se muestra al administrador
- * para que lo comparta con el usuario. El usuario usa ese enlace para
- * establecer su contrasena y luego completa el enrolamiento MFA en TR-02.
+ * El administrador define una contraseña inicial al crear el usuario.
+ * Al primer login, TR-02 redirige al usuario a /activar-cuenta donde debe
+ * cambiar la contraseña obligatoriamente y enrolar MFA.
  */
 export function AdminUsersScreen() {
-  const { state, users, context, assigning, assignError, lastPasswordResetLink, deactivatingId, actionError, assign, deactivate } =
+  const { state, users, context, assigning, assignError, deactivatingId, actionError, assign, deactivate } =
     useAdminUsers();
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [targetEmail, setTargetEmail] = useState('');
   const [targetRole, setTargetRole] = useState<WorkerRole>('FRONT_OFFICE');
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [initialPassword, setInitialPassword] = useState('');
 
   async function handleAssign() {
     if (!context) return;
@@ -32,18 +31,14 @@ export function AdminUsersScreen() {
       targetCompanyId: context.companyId,
       targetBranchId: context.branchId,
       targetRole,
+      initialPassword,
     });
     if (ok) {
       setTargetEmail('');
       setTargetRole('FRONT_OFFICE');
+      setInitialPassword('');
       setShowAssignForm(false);
-      setCopiedLink(false);
     }
-  }
-
-  async function handleCopyLink(link: string) {
-    await navigator.clipboard.writeText(link);
-    setCopiedLink(true);
   }
 
   async function handleDeactivate(assignmentId: string) {
@@ -68,7 +63,7 @@ export function AdminUsersScreen() {
         {showAssignForm && (
           <section className={styles.assignForm}>
             <p className={styles.helperNote}>
-              Si el correo no existe, se crea la cuenta automáticamente y se genera un enlace de acceso para compartir con el usuario.
+              El usuario recibirá esta contraseña inicial. Al primer ingreso, deberá cambiarla y enrolar su MFA.
             </p>
             {assignError && <p className={styles.errorText}>{assignError}</p>}
             <label className={styles.field}>
@@ -79,6 +74,17 @@ export function AdminUsersScreen() {
                 value={targetEmail}
                 onChange={(event) => setTargetEmail(event.target.value)}
                 placeholder="usuario@veloxrent.pe"
+              />
+            </label>
+            <label className={styles.field}>
+              <span>Contraseña inicial (mínimo 8 caracteres)</span>
+              <input
+                className={styles.input}
+                type="password"
+                value={initialPassword}
+                onChange={(event) => setInitialPassword(event.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                autoComplete="new-password"
               />
             </label>
             <label className={styles.field}>
@@ -102,33 +108,13 @@ export function AdminUsersScreen() {
               <button
                 type="button"
                 className={styles.primaryButton}
-                disabled={assigning || !targetEmail}
+                disabled={assigning || !targetEmail || initialPassword.length < 8}
                 onClick={() => void handleAssign()}
               >
                 {assigning ? 'Agregando…' : 'Agregar usuario'}
               </button>
               <button type="button" className={styles.linkButton} onClick={() => setShowAssignForm(false)}>
                 Cancelar
-              </button>
-            </div>
-          </section>
-        )}
-
-        {lastPasswordResetLink && (
-          <section className={styles.resetLinkBox}>
-            <p className={styles.resetLinkTitle}>Usuario creado — enlace de primer acceso</p>
-            <p className={styles.resetLinkNote}>
-              Compartí este enlace con el usuario para que establezca su contraseña. Expira según la política de Firebase
-              (1 hora por defecto).
-            </p>
-            <div className={styles.resetLinkRow}>
-              <code className={styles.resetLinkCode}>{lastPasswordResetLink}</code>
-              <button
-                type="button"
-                className={styles.copyButton}
-                onClick={() => void handleCopyLink(lastPasswordResetLink)}
-              >
-                {copiedLink ? 'Copiado' : 'Copiar'}
               </button>
             </div>
           </section>

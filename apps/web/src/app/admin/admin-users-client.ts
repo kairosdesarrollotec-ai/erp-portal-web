@@ -67,13 +67,14 @@ export interface AssignUserInput {
   targetCompanyId: string;
   targetBranchId: string;
   targetRole: WorkerRole;
+  initialPassword: string;
 }
 
 /** ADM-01 - accion primaria "Agregar usuario" (POST /admin/assignments). */
 export async function assignUserToCompany(
   idToken: string,
   input: AssignUserInput,
-): Promise<{ id: string; passwordResetLink: string | null }> {
+): Promise<{ id: string }> {
   const response = await fetch(`${API_BASE_URL}/admin/assignments`, {
     method: 'POST',
     headers: authHeaders(idToken),
@@ -83,7 +84,7 @@ export async function assignUserToCompany(
     const problem = await response.json().catch(() => null);
     throw new AdminCommandError(response.status, problem);
   }
-  return (await response.json()) as { id: string; passwordResetLink: string | null };
+  return (await response.json()) as { id: string };
 }
 
 /** ADM-01 - "Dar de baja" (POST /admin/assignments/:id/deactivate). */
