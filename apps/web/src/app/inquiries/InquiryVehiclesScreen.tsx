@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useInquiryVehicles } from './useInquiryVehicles';
 import { estimateQuoteTotal } from './vehicle-catalog';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './InquiryVehiclesScreen.module.css';
 
 /**
@@ -53,17 +54,15 @@ export function InquiryVehiclesScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <Link to={`/consultas/${id}`} state={navState ?? undefined} className={styles.backButton} aria-label="Volver al detalle de la consulta">
-          <ChevronLeft size={16} aria-hidden="true" />
-          Consultas
-        </Link>
-        <span className={styles.headerDivider} aria-hidden="true" />
-        <span className={styles.brand}>Kairos Corporation</span>
-        <h1 className={styles.title}>
-          {navState.destination ? `Disponibles — ${navState.destination}` : 'Vehículos disponibles'}
-        </h1>
-      </header>
+      <AppHeader
+        pageTitle={navState.destination ? `Disponibles — ${navState.destination}` : 'Vehículos disponibles'}
+        actions={
+          <Link to={`/consultas/${id}`} state={navState ?? undefined} className={styles.backButton} aria-label="Volver al detalle de la consulta">
+            <ChevronLeft size={16} aria-hidden="true" />
+            Consultas
+          </Link>
+        }
+      />
 
       <div className={styles.content}>
         <p className={styles.demoBanner}>

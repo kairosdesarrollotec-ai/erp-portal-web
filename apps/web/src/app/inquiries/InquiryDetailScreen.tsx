@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInquiryDetail } from './useInquiryDetail';
 import { INQUIRY_STATUS_LABELS } from './inquiry-status';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './InquiryDetailScreen.module.css';
 
 /**
@@ -70,12 +71,13 @@ export function InquiryDetailScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>Kairos Corporation</span>
-        <button type="button" className={styles.linkButton} onClick={() => navigate('/consultas')}>
-          Volver a la bandeja
-        </button>
-      </header>
+      <AppHeader
+        actions={
+          <button type="button" className={styles.linkButton} onClick={() => navigate('/consultas')}>
+            Volver a la bandeja
+          </button>
+        }
+      />
 
       <div className={styles.content}>
         {state === 'SYNC_CONFLICT' && (

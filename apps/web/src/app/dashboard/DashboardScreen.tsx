@@ -1,12 +1,8 @@
-import { useState } from 'react';
-import { Bell, ChevronRight, LogOut, Search, Settings, ShieldCheck, Users } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { getFirebaseAuth } from '../providers/firebase';
+import { ChevronRight, Search, Settings, ShieldCheck, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useDashboard } from './useDashboard';
 import { WORKER_ROLE_LABELS } from './worker-role';
-import { NotificationsPanel } from '../notifications/NotificationsPanel';
-import { useNotifications } from '../notifications/useNotifications';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './DashboardScreen.module.css';
 
 /**
@@ -31,68 +27,10 @@ import styles from './DashboardScreen.module.css';
  */
 export function DashboardScreen() {
   const { state, role, companyName, branchName, dashboardState, tasks, companyId, branchId } = useDashboard();
-  const navigate = useNavigate();
-  const email = getFirebaseAuth().currentUser?.email ?? '';
-  const initial = email.charAt(0).toUpperCase();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  // TR-07 - solo se usa para el contador del badge; el panel al abrirse
-  // hace su propia carga a traves de otra instancia del hook.
-  const { unreadCount } = useNotifications(companyId, branchId);
-
-  async function handleSignOut() {
-    await signOut(getFirebaseAuth());
-    navigate('/');
-  }
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <div className={styles.brandGroup}>
-          <span className={styles.brandMark}>K</span>
-          <span className={styles.brand}>Kairos Corporation</span>
-        </div>
-        <div className={styles.headerRight}>
-          {companyName && branchName && (
-            <span className={styles.branchBadge}>
-              <span className={styles.branchDot} />
-              {companyName} — {branchName}
-            </span>
-          )}
-          {email && (
-            <div className={styles.userGroup}>
-              <span className={styles.avatar}>{initial}</span>
-              <div className={styles.userText}>
-                <span className={styles.userEmail}>{email}</span>
-                {role && <span className={styles.userRole}>{WORKER_ROLE_LABELS[role]}</span>}
-              </div>
-            </div>
-          )}
-          <button
-            type="button"
-            className={styles.bellButton}
-            onClick={() => setNotificationsOpen(true)}
-            aria-label="Notificaciones"
-          >
-            <Bell size={18} />
-            {unreadCount > 0 && <span className={styles.bellBadge}>{unreadCount}</span>}
-          </button>
-          <button type="button" className={styles.signOutButton} onClick={() => void handleSignOut()}>
-            <LogOut size={16} />
-          </button>
-        </div>
-      </header>
-
-      {notificationsOpen && (
-        <NotificationsPanel
-          companyId={companyId}
-          branchId={branchId}
-          onClose={() => setNotificationsOpen(false)}
-          onNavigate={(deepLink) => {
-            setNotificationsOpen(false);
-            navigate(deepLink);
-          }}
-        />
-      )}
+      <AppHeader role={role} />
 
       <div className={styles.content}>
         {state === 'LOADING' && <p className={styles.loadingText}>Cargando tu tablero…</p>}

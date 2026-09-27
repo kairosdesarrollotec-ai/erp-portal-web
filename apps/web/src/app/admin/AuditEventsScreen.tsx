@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuditEvents } from './useAuditEvents';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './AuditEventsScreen.module.css';
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
@@ -54,10 +55,7 @@ export function AuditEventsScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>Kairos Corporation</span>
-        <h1 className={styles.title}>Auditoría administrativa</h1>
-      </header>
+      <AppHeader pageTitle="Auditoría administrativa" />
 
       <div className={styles.content}>
         <section className={styles.filters}>
@@ -104,28 +102,30 @@ export function AuditEventsScreen() {
         {state === 'EMPTY' && <p className={styles.statusText}>No hay eventos que coincidan con este filtro.</p>}
 
         {state === 'READY' && (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Actor</th>
-                <th>Fecha/hora</th>
-                <th>Tipo</th>
-                <th>Acción</th>
-                <th>Detalle</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event) => (
-                <tr key={event.id} className={styles.row}>
-                  <td>{event.actorEmail ?? event.actorFirebaseUid ?? 'Sistema'}</td>
-                  <td>{new Date(event.createdAt).toLocaleString('es-PE')}</td>
-                  <td>{ENTITY_TYPE_LABELS[event.entityType] ?? event.entityType}</td>
-                  <td>{event.action}</td>
-                  <td className={styles.detailCell}>{formatChanges(event.changes)}</td>
+          <div className={styles.tableWrapper}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Actor</th>
+                  <th>Fecha/hora</th>
+                  <th>Tipo</th>
+                  <th>Acción</th>
+                  <th>Detalle</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={event.id} className={styles.row}>
+                    <td>{event.actorEmail ?? event.actorFirebaseUid ?? 'Sistema'}</td>
+                    <td>{new Date(event.createdAt).toLocaleString('es-PE')}</td>
+                    <td>{ENTITY_TYPE_LABELS[event.entityType] ?? event.entityType}</td>
+                    <td>{event.action}</td>
+                    <td className={styles.detailCell}>{formatChanges(event.changes)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </main>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { useReservationDetail } from './useReservationDetail';
 import { RESERVATION_STATUS_LABELS } from './reservation-status';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './ReservationDetailScreen.module.css';
 
 /**
@@ -52,12 +53,13 @@ export function ReservationDetailScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>Kairos Corporation</span>
-        <button type="button" className={styles.linkButton} onClick={() => navigate('/reservas')}>
-          Volver a la bandeja
-        </button>
-      </header>
+      <AppHeader
+        actions={
+          <button type="button" className={styles.linkButton} onClick={() => navigate('/reservas')}>
+            Volver a la bandeja
+          </button>
+        }
+      />
 
       <div className={styles.content}>
         {state === 'SYNC_CONFLICT' && (

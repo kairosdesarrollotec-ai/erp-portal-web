@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAdminUsers } from './useAdminUsers';
 import { WORKER_ROLE_LABELS, WorkerRole } from '../dashboard/worker-role';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './AdminUsersScreen.module.css';
 
 const ASSIGNABLE_ROLES = Object.keys(WORKER_ROLE_LABELS) as WorkerRole[];
@@ -52,15 +53,16 @@ export function AdminUsersScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>Kairos Corporation</span>
-        <h1 className={styles.title}>Usuarios y asignaciones</h1>
-        {context && !showAssignForm && (
-          <button type="button" className={styles.primaryButton} onClick={() => setShowAssignForm(true)}>
-            Agregar usuario
-          </button>
-        )}
-      </header>
+      <AppHeader
+        pageTitle="Usuarios y asignaciones"
+        actions={
+          context && !showAssignForm ? (
+            <button type="button" className={styles.primaryButton} onClick={() => setShowAssignForm(true)}>
+              Agregar usuario
+            </button>
+          ) : undefined
+        }
+      />
 
       <div className={styles.content}>
         {showAssignForm && (
@@ -143,6 +145,7 @@ export function AdminUsersScreen() {
         {state === 'EMPTY' && <p className={styles.statusText}>Todavía no hay usuarios asignados a esta organización.</p>}
 
         {state === 'READY' && (
+          <div className={styles.tableWrapper}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -194,6 +197,7 @@ export function AdminUsersScreen() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </main>

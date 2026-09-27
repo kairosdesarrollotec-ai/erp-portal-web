@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useNewInquiry } from './useNewInquiry';
 import { INQUIRY_CHANNEL_LABELS } from './inquiry-status';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './NewInquiryScreen.module.css';
 
 /**
@@ -24,15 +25,16 @@ export function NewInquiryScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>Kairos Corporation</span>
-        <h1 className={styles.title}>Nueva Consulta</h1>
-        {autosave !== 'idle' && (
-          <span className={styles.autosave}>
-            {autosave === 'saving' ? 'Guardando…' : 'Guardado en este dispositivo'}
-          </span>
-        )}
-      </header>
+      <AppHeader
+        pageTitle="Nueva Consulta"
+        actions={
+          autosave !== 'idle' ? (
+            <span className={styles.autosave}>
+              {autosave === 'saving' ? 'Guardando…' : 'Guardado en este dispositivo'}
+            </span>
+          ) : undefined
+        }
+      />
 
       <div className={styles.content}>
         {error && <p className={styles.errorText}>{error}</p>}

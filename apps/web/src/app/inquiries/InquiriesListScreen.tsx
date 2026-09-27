@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useInquiriesList } from './useInquiriesList';
 import { INQUIRY_CHANNEL_LABELS, INQUIRY_STATUS_GROUP, INQUIRY_STATUS_GROUP_LABELS } from './inquiry-status';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './InquiriesListScreen.module.css';
 
 /**
@@ -20,17 +21,18 @@ export function InquiriesListScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>Kairos Corporation</span>
-        <h1 className={styles.title}>Consultas</h1>
-        <button
-          type="button"
-          className={styles.newButton}
-          onClick={() => navigate('/consultas/nueva', { state: context ?? undefined })}
-        >
-          Nueva Consulta
-        </button>
-      </header>
+      <AppHeader
+        pageTitle="Consultas"
+        actions={
+          <button
+            type="button"
+            className={styles.newButton}
+            onClick={() => navigate('/consultas/nueva', { state: context ?? undefined })}
+          >
+            Nueva Consulta
+          </button>
+        }
+      />
 
       <div className={styles.content}>
         <div className={styles.filters}>
@@ -84,6 +86,7 @@ export function InquiriesListScreen() {
         {state === 'EMPTY' && <p className={styles.statusText}>Todavía no hay consultas registradas.</p>}
 
         {state === 'READY' && (
+          <div className={styles.tableWrapper}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -122,6 +125,7 @@ export function InquiriesListScreen() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </main>
