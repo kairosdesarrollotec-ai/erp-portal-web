@@ -95,8 +95,8 @@ describe('inquiries-client', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'con-1' }) });
     vi.stubGlobal('fetch', fetchMock);
 
-    await quoteInquiry('token', 'con-1', 1, 'veh-1', 'Ayacucho', 3);
-    await quoteInquiry('token', 'con-1', 2, 'veh-1', 'Ayacucho', 3);
+    await quoteInquiry('token', 'con-1', 1, 'c1', 'b1', 'veh-1', 'Ayacucho', 3);
+    await quoteInquiry('token', 'con-1', 2, 'c1', 'b1', 'veh-1', 'Ayacucho', 3);
 
     const firstHeaders = fetchMock.mock.calls[0][1].headers as Record<string, string>;
     const secondHeaders = fetchMock.mock.calls[1][1].headers as Record<string, string>;
@@ -115,7 +115,7 @@ describe('inquiries-client', () => {
       }),
     );
 
-    await expect(quoteInquiry('token', 'con-1', 1, 'veh-1', 'Ayacucho', 3)).rejects.toMatchObject({
+    await expect(quoteInquiry('token', 'con-1', 1, 'c1', 'b1', 'veh-1', 'Ayacucho', 3)).rejects.toMatchObject({
       status: 412,
       problem: { code: 'INQUIRY_VERSION_CONFLICT' },
     });

@@ -123,7 +123,7 @@ export function useInquiryVehicles() {
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesión no disponible.');
       const idToken = await user.getIdToken();
-      await quoteInquiry(idToken, id, navState.version, vehicleId, navState.destination, navState.travelDays || 1);
+      await quoteInquiry(idToken, id, navState.version, navState.companyId, navState.branchId, vehicleId, navState.destination, navState.travelDays || 1);
       navigate(`/consultas/${id}`, { state: navState });
     } catch (err) {
       if (err instanceof InquiryCommandError && (err.status === 409 || err.status === 412)) {

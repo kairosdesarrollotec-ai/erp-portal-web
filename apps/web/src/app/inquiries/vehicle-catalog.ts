@@ -19,21 +19,21 @@ export interface CatalogVehicle {
 
 export const VEHICLE_CATALOG: CatalogVehicle[] = [
   {
-    id: 'veh-mock-hilux',
+    id: 'f1a2b3c4-d5e6-4789-8a0b-c1d2e3f40001',
     model: 'Toyota Hilux 4x4',
     photoUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=480&q=60',
     dailyRate: 220,
     currency: 'PEN',
   },
   {
-    id: 'veh-mock-tucson',
+    id: 'f1a2b3c4-d5e6-4789-8a0b-c1d2e3f40002',
     model: 'Hyundai Tucson',
     photoUrl: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=480&q=60',
     dailyRate: 180,
     currency: 'PEN',
   },
   {
-    id: 'veh-mock-rio',
+    id: 'f1a2b3c4-d5e6-4789-8a0b-c1d2e3f40003',
     model: 'Kia Rio',
     photoUrl: 'https://images.unsplash.com/photo-1550355291-bbee04a92027?w=480&q=60',
     dailyRate: 120,

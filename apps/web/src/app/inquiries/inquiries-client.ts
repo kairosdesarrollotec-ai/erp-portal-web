@@ -196,11 +196,13 @@ export function quoteInquiry(
   idToken: string,
   id: string,
   version: number,
+  companyId: string,
+  branchId: string,
   vehicleId: string,
   destination: string,
   estimatedDays: number,
 ): Promise<InquirySummary> {
-  return postCommand(idToken, id, 'quote', version, { vehicleId, destination, estimatedDays });
+  return postCommand(idToken, id, 'quote', version, { companyId, branchId, vehicleId, destination, estimatedDays });
 }
 
 /** CON-04 - cierra sin conversion (motivo obligatorio, BR-CON-003). */
