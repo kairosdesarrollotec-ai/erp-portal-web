@@ -49,7 +49,7 @@ describe('inquiries-client', () => {
     await expect(getInquiry('token', 'con-1', 'c1', 'b1')).rejects.toBeInstanceOf(InquiryApiError);
   });
 
-  it('createInquiry manda el snapshot completo de CON-02, con Idempotency-Key (RegisterInquiryDto, backend PR#7 d7a6124)', async () => {
+  it('createInquiry manda prospect anidado y snapshot completo de CON-02, con Idempotency-Key (CONFLICT-CON-002 resuelto)', async () => {
     const fetchMock = mockFetchOnce(201, { id: 'con-1' });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -58,9 +58,12 @@ describe('inquiries-client', () => {
       branchId: 'b1',
       channel: 'WHATSAPP',
       touristUse: true,
-      prospectName: 'Maria Quispe',
-      prospectDocumentNumber: '12345678',
-      nationality: 'PERUANO',
+      prospect: {
+        fullName: 'Maria Quispe',
+        documentType: 'DNI',
+        documentNumber: '12345678',
+        nationality: 'PERUANO',
+      },
       destination: 'Ayacucho',
       estimatedDays: 3,
       travelStartDate: '2099-01-01',
@@ -74,9 +77,12 @@ describe('inquiries-client', () => {
       branchId: 'b1',
       channel: 'WHATSAPP',
       touristUse: true,
-      prospectName: 'Maria Quispe',
-      prospectDocumentNumber: '12345678',
-      nationality: 'PERUANO',
+      prospect: {
+        fullName: 'Maria Quispe',
+        documentType: 'DNI',
+        documentNumber: '12345678',
+        nationality: 'PERUANO',
+      },
       destination: 'Ayacucho',
       estimatedDays: 3,
       travelStartDate: '2099-01-01',
@@ -89,8 +95,8 @@ describe('inquiries-client', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'con-1' }) });
     vi.stubGlobal('fetch', fetchMock);
 
-    await quoteInquiry('token', 'con-1', 1, 'veh-1', 'Ayacucho', 3);
-    await quoteInquiry('token', 'con-1', 2, 'veh-1', 'Ayacucho', 3);
+    await quoteInquiry('token', 'con-1', 1, 'c1', 'b1', 'veh-1', 'Ayacucho', 3);
+    await quoteInquiry('token', 'con-1', 2, 'c1', 'b1', 'veh-1', 'Ayacucho', 3);
 
     const firstHeaders = fetchMock.mock.calls[0][1].headers as Record<string, string>;
     const secondHeaders = fetchMock.mock.calls[1][1].headers as Record<string, string>;
@@ -109,7 +115,7 @@ describe('inquiries-client', () => {
       }),
     );
 
-    await expect(quoteInquiry('token', 'con-1', 1, 'veh-1', 'Ayacucho', 3)).rejects.toMatchObject({
+    await expect(quoteInquiry('token', 'con-1', 1, 'c1', 'b1', 'veh-1', 'Ayacucho', 3)).rejects.toMatchObject({
       status: 412,
       problem: { code: 'INQUIRY_VERSION_CONFLICT' },
     });

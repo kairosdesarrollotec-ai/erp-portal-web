@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useReservationsList } from './useReservationsList';
 import { RESERVATION_STATUS_LABELS } from './reservation-status';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './ReservationsListScreen.module.css';
 
 /**
@@ -14,10 +15,7 @@ export function ReservationsListScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
-        <h1 className={styles.title}>Reservas</h1>
-      </header>
+      <AppHeader pageTitle="Reservas" />
 
       <div className={styles.content}>
         {state === 'LOADING' && <p className={styles.statusText}>Cargando reservas…</p>}
@@ -31,6 +29,7 @@ export function ReservationsListScreen() {
         {state === 'EMPTY' && <p className={styles.statusText}>Todavía no hay reservas registradas.</p>}
 
         {state === 'READY' && (
+          <div className={styles.tableWrapper}>
           <table className={styles.table}>
             <thead>
               <tr>
@@ -76,6 +75,7 @@ export function ReservationsListScreen() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </main>

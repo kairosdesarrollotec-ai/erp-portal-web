@@ -112,7 +112,7 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
     fireEvent.click(screen.getAllByText('Cotizar este vehículo')[0]);
 
     expect(await screen.findByText('detalle')).toBeInTheDocument();
-    expect(quoteInquiryMock).toHaveBeenCalledWith('fake-id-token', 'con-1', 1, 'veh-mock-hilux', 'Ayacucho', 3);
+    expect(quoteInquiryMock).toHaveBeenCalledWith('fake-id-token', 'con-1', 1, 'c1', 'b1', 'f1a2b3c4-d5e6-4789-8a0b-c1d2e3f40001', 'Ayacucho', 3);
   });
 
   // Finding "Deep link roto en CON-03": sin location.state, se resuelve
@@ -150,7 +150,7 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
     fireEvent.click((await screen.findAllByText('Cotizar este vehículo'))[0]);
 
     await waitFor(() =>
-      expect(quoteInquiryMock).toHaveBeenCalledWith('fake-id-token', 'con-1', 5, 'veh-mock-hilux', '', 1),
+      expect(quoteInquiryMock).toHaveBeenCalledWith('fake-id-token', 'con-1', 5, 'c1', 'b1', 'f1a2b3c4-d5e6-4789-8a0b-c1d2e3f40001', '', 1),
     );
   });
 

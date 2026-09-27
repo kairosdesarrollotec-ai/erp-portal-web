@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NotificationChannel } from './notification-templates-client';
 import { useNotificationTemplates } from './useNotificationTemplates';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './NotificationTemplatesScreen.module.css';
 
 const CHANNEL_LABELS: Record<NotificationChannel, string> = {
@@ -75,10 +76,7 @@ export function NotificationTemplatesScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
-        <h1 className={styles.title}>Notificaciones</h1>
-      </header>
+      <AppHeader pageTitle="Notificaciones" />
 
       <div className={styles.content}>
         <p className={styles.scopeNote}>

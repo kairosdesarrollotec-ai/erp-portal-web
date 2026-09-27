@@ -5,154 +5,6 @@
   background: var(--color-surface);
 }
 
-.header {
-  width: 100%;
-  padding: 1rem 2rem;
-  border-bottom: 1px solid #E5E2DC;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.brandGroup {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.brandMark {
-  width: 32px;
-  height: 32px;
-  border-radius: 4px;
-  background: var(--color-ink);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.brand {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: -0.01em;
-  color: var(--color-ink);
-}
-
-.headerRight {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  font-size: 13px;
-  color: var(--color-muted);
-}
-
-.branchBadge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #F6F3ED;
-  border: 1px solid #E5E2DC;
-  border-radius: 4px;
-  padding: 0.375rem 0.75rem;
-  color: #33302C;
-  font-weight: 500;
-}
-
-.branchDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--color-success);
-}
-
-.userGroup {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding-left: 0.75rem;
-  border-left: 1px solid #E5E2DC;
-}
-
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  background: #E5E2DC;
-  color: var(--color-ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 12px;
-}
-
-.userText {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-
-.userEmail {
-  font-weight: 600;
-  color: var(--color-ink);
-  font-size: 13px;
-}
-
-.userRole {
-  font-size: 11px;
-  color: #78716A;
-}
-
-.bellButton {
-  position: relative;
-  background: none;
-  border: none;
-  color: var(--color-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-  display: flex;
-  align-items: center;
-}
-
-.bellButton:hover {
-  color: var(--color-ink);
-}
-
-.bellBadge {
-  position: absolute;
-  top: -2px;
-  right: -4px;
-  min-width: 15px;
-  height: 15px;
-  padding: 0 3px;
-  border-radius: 8px;
-  background: var(--color-error, #d92d20);
-  color: #fff;
-  font-size: 10px;
-  line-height: 15px;
-  text-align: center;
-}
-
-.signOutButton {
-  background: none;
-  border: none;
-  color: var(--color-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-  display: flex;
-  align-items: center;
-}
-
-.signOutButton:hover {
-  color: var(--color-ink);
-}
-
 .content {
   flex: 1;
   width: 100%;
@@ -189,18 +41,6 @@
 }
 
 @media (max-width: 480px) {
-  .header {
-    padding: 1rem;
-  }
-
-  .headerRight {
-    gap: 0.75rem;
-  }
-
-  .userText {
-    display: none;
-  }
-
   .content {
     padding: 2rem 1rem 3rem;
   }
@@ -219,16 +59,22 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  border: 1px solid #E5E2DC;
-  border-radius: 8px;
+  border: var(--elevation-1-border);
+  border-radius: var(--radius-lg);
   padding: 1rem 1.25rem;
   text-decoration: none;
-  background: #fff;
-  transition: border-color 0.15s ease;
+  background: var(--color-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .taskCard:hover {
   border-color: var(--color-accent);
+  box-shadow: 0 2px 8px -2px rgba(158, 76, 8, 0.12);
+}
+
+.taskCard:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 .taskTitle {
@@ -240,4 +86,113 @@
 .taskDetail {
   font-size: 13px;
   color: var(--color-muted);
+}
+
+/* PROV-TR-06-PA-001 — PLATFORM_ADMIN access cards */
+.adminSection {
+  width: 100%;
+  max-width: 52rem;
+}
+
+.adminSectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-subtle);
+  margin: 0 0 1rem;
+}
+
+.adminGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .adminGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.adminCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 1.25rem;
+  border: 1.5px solid var(--color-surface-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  transition: border-color 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.adminCard:hover,
+.adminCard:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: 0 4px 14px -3px rgb(158 76 8 / 15%);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.adminCard:active {
+  transform: translateY(0);
+}
+
+.adminCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.adminCardIcon {
+  display: flex;
+  align-items: center;
+  color: var(--color-ink);
+}
+
+.adminCard:hover .adminCardIcon,
+.adminCard:focus-visible .adminCardIcon {
+  color: var(--color-accent);
+}
+
+.adminCardId {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-subtle);
+}
+
+.adminCardLabel {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-ink);
+  line-height: 1.2;
+}
+
+.adminCardDesc {
+  font-size: 13px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.adminCardArrow {
+  position: absolute;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  color: var(--color-ink-subtle);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.18s, transform 0.18s, color 0.18s;
+}
+
+.adminCard:hover .adminCardArrow,
+.adminCard:focus-visible .adminCardArrow {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--color-accent);
 }

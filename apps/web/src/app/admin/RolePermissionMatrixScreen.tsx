@@ -1,4 +1,5 @@
 import { useRolePermissionMatrix } from './useRolePermissionMatrix';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './RolePermissionMatrixScreen.module.css';
 
 function actionKey(module: string, action: string): string {
@@ -41,10 +42,7 @@ export function RolePermissionMatrixScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
-        <h1 className={styles.title}>Roles y permisos</h1>
-      </header>
+      <AppHeader pageTitle="Roles y permisos" />
 
       <div className={styles.mobileNotice}>
         Esta pantalla requiere una tabla amplia, disponible solo en escritorio.

@@ -264,7 +264,7 @@ export function useActivation() {
   }, [resolveActivationForEnrolledUser]);
 
   const qrCodeUrl = totpSecret
-    ? totpSecret.generateQrCodeUrl(getFirebaseAuth().currentUser?.email ?? undefined, 'VeloxRent')
+    ? totpSecret.generateQrCodeUrl(getFirebaseAuth().currentUser?.email ?? undefined, 'Kairos Corporation')
     : null;
 
   return {

@@ -15,7 +15,7 @@ export function AppShellHeader({ breadcrumbs, right, className }: HeaderProps) {
     >
       <div className={styles.headerInner}>
         <div className={styles.headerLeft}>
-          <a href="/" className={styles.logoMark} aria-label="VeloxRent — inicio">
+          <a href="/" className={styles.logoMark} aria-label="Kairos Corporation — inicio">
             {/*
              * Logotipo: "Velox" en color primario, "Rent" en acento.
              * Autoridad: prototipo APPROVED alquileres_bandeja_veloxrent/code.html.

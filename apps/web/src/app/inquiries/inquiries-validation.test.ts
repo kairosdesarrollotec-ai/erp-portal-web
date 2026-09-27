@@ -7,6 +7,7 @@ function buildForm(overrides: Partial<NewInquiryFormData> = {}): NewInquiryFormD
     channel: 'WHATSAPP',
     displayMode: 'PRESENCIAL',
     customerName: 'Maria Quispe',
+    documentType: 'DNI',
     document: '12345678',
     nationality: 'PERUANO',
     hospedajeDocument: '',

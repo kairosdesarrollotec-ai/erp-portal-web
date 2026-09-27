@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useReservationDepositPolicy } from './useReservationDepositPolicy';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './ReservationDepositPolicyScreen.module.css';
 
 function formatAmount(amount: string, currency: string): string {
@@ -39,10 +40,7 @@ export function ReservationDepositPolicyScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
-        <h1 className={styles.title}>Catálogos y parámetros</h1>
-      </header>
+      <AppHeader pageTitle="Catálogos y parámetros" />
 
       <div className={styles.content}>
         {state === 'LOADING' && <p className={styles.statusText}>Cargando parámetros…</p>}

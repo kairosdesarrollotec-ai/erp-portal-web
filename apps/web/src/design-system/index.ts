@@ -1,5 +1,5 @@
 /**
- * Design System VeloxRent — barrel de componentes
+ * Design System Kairos Corporation — barrel de componentes
  * Fuente: veloxrent_erp_design_system/DESIGN.md
  *
  * Para usar los tokens CSS importar en el punto de entrada de la app:

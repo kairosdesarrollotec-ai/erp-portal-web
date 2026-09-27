@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { useInquiryVehicles } from './useInquiryVehicles';
 import { estimateQuoteTotal } from './vehicle-catalog';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './InquiryVehiclesScreen.module.css';
 
 /**
@@ -26,8 +29,20 @@ export function InquiryVehiclesScreen() {
     useInquiryVehicles();
   const navigate = useNavigate();
 
+  const [search, setSearch] = useState('');
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+
   const isStale = state === 'STALE_VERSION';
   const showVirtualEvidence = navState?.displayMode === 'VIRTUAL';
+
+  const filteredVehicles = vehicles.filter((v) => {
+    const q = search.trim().toLowerCase();
+    const matchesSearch = q === '' || v.model.toLowerCase().includes(q);
+    const matchesMin = priceMin === '' || v.dailyRate >= Number(priceMin);
+    const matchesMax = priceMax === '' || v.dailyRate <= Number(priceMax);
+    return matchesSearch && matchesMin && matchesMax;
+  });
 
   if (state === 'LOADING') {
     return (
@@ -52,12 +67,15 @@ export function InquiryVehiclesScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
-        <h1 className={styles.title}>
-          {navState.destination ? `Vehículos disponibles — ${navState.destination}` : 'Vehículos disponibles'}
-        </h1>
-      </header>
+      <AppHeader
+        pageTitle={navState.destination ? `Disponibles — ${navState.destination}` : 'Vehículos disponibles'}
+        actions={
+          <Link to={`/consultas/${id}`} state={navState ?? undefined} className={styles.backButton} aria-label="Volver al detalle de la consulta">
+            <ChevronLeft size={16} aria-hidden="true" />
+            Consultas
+          </Link>
+        }
+      />
 
       <div className={styles.content}>
         <p className={styles.demoBanner}>
@@ -79,8 +97,51 @@ export function InquiryVehiclesScreen() {
         {state === 'EMPTY' && <p className={styles.statusText}>No hay vehículos elegibles para esta consulta.</p>}
 
         {state !== 'EMPTY' && (
+          <>
+            <div className={styles.filters}>
+              <label className={styles.filterField}>
+                <span className={styles.filterLabel}>Buscar</span>
+                <input
+                  className={styles.filterInput}
+                  type="search"
+                  placeholder="Marca o modelo…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Buscar por marca o modelo"
+                />
+              </label>
+              <label className={styles.filterField}>
+                <span className={styles.filterLabel}>Precio mín. (S/)</span>
+                <input
+                  className={styles.filterInput}
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  value={priceMin}
+                  onChange={(e) => setPriceMin(e.target.value)}
+                  aria-label="Tarifa diaria mínima"
+                />
+              </label>
+              <label className={styles.filterField}>
+                <span className={styles.filterLabel}>Precio máx. (S/)</span>
+                <input
+                  className={styles.filterInput}
+                  type="number"
+                  min={0}
+                  placeholder="Sin límite"
+                  value={priceMax}
+                  onChange={(e) => setPriceMax(e.target.value)}
+                  aria-label="Tarifa diaria máxima"
+                />
+              </label>
+            </div>
+
+            {filteredVehicles.length === 0 && (
+              <p className={styles.statusText}>No hay vehículos que coincidan con los filtros aplicados.</p>
+            )}
+
           <div className={styles.grid}>
-            {vehicles.map((vehicle) => (
+            {filteredVehicles.map((vehicle) => (
               <article key={vehicle.id} className={`${styles.card} ${isStale ? styles.cardStale : ''}`}>
                 <img className={styles.photo} src={vehicle.photoUrl} alt={vehicle.model} />
                 <div className={styles.cardBody}>
@@ -124,6 +185,7 @@ export function InquiryVehiclesScreen() {
               </article>
             ))}
           </div>
+          </>
         )}
       </div>
     </main>

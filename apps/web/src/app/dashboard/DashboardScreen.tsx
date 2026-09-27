@@ -1,12 +1,8 @@
-import { useState } from 'react';
-import { Bell, LogOut } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { getFirebaseAuth } from '../providers/firebase';
+import { ChevronRight, Search, Settings, ShieldCheck, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useDashboard } from './useDashboard';
 import { WORKER_ROLE_LABELS } from './worker-role';
-import { NotificationsPanel } from '../notifications/NotificationsPanel';
-import { useNotifications } from '../notifications/useNotifications';
+import { AppHeader } from '../shared/AppHeader';
 import styles from './DashboardScreen.module.css';
 
 /**
@@ -30,69 +26,11 @@ import styles from './DashboardScreen.module.css';
  * widgets propia sobre esta misma base.
  */
 export function DashboardScreen() {
-  const { state, role, branchName, dashboardState, tasks, companyId, branchId } = useDashboard();
-  const navigate = useNavigate();
-  const email = getFirebaseAuth().currentUser?.email ?? '';
-  const initial = email.charAt(0).toUpperCase();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  // TR-07 - solo se usa para el contador del badge; el panel al abrirse
-  // hace su propia carga a traves de otra instancia del hook.
-  const { unreadCount } = useNotifications(companyId, branchId);
-
-  async function handleSignOut() {
-    await signOut(getFirebaseAuth());
-    navigate('/');
-  }
+  const { state, role, companyName, branchName, dashboardState, tasks, companyId, branchId } = useDashboard();
 
   return (
     <main className={styles.wrapper}>
-      <header className={styles.header}>
-        <div className={styles.brandGroup}>
-          <span className={styles.brandMark}>V</span>
-          <span className={styles.brand}>VeloxRent</span>
-        </div>
-        <div className={styles.headerRight}>
-          {branchName && (
-            <span className={styles.branchBadge}>
-              <span className={styles.branchDot} />
-              {branchName}
-            </span>
-          )}
-          {email && (
-            <div className={styles.userGroup}>
-              <span className={styles.avatar}>{initial}</span>
-              <div className={styles.userText}>
-                <span className={styles.userEmail}>{email}</span>
-                {role && <span className={styles.userRole}>{WORKER_ROLE_LABELS[role]}</span>}
-              </div>
-            </div>
-          )}
-          <button
-            type="button"
-            className={styles.bellButton}
-            onClick={() => setNotificationsOpen(true)}
-            aria-label="Notificaciones"
-          >
-            <Bell size={18} />
-            {unreadCount > 0 && <span className={styles.bellBadge}>{unreadCount}</span>}
-          </button>
-          <button type="button" className={styles.signOutButton} onClick={() => void handleSignOut()}>
-            <LogOut size={16} />
-          </button>
-        </div>
-      </header>
-
-      {notificationsOpen && (
-        <NotificationsPanel
-          companyId={companyId}
-          branchId={branchId}
-          onClose={() => setNotificationsOpen(false)}
-          onNavigate={(deepLink) => {
-            setNotificationsOpen(false);
-            navigate(deepLink);
-          }}
-        />
-      )}
+      <AppHeader role={role} />
 
       <div className={styles.content}>
         {state === 'LOADING' && <p className={styles.loadingText}>Cargando tu tablero…</p>}
@@ -102,11 +40,20 @@ export function DashboardScreen() {
             <h1 className={styles.greeting}>Hola</h1>
             {role && <p className={styles.roleSubtitle}>{WORKER_ROLE_LABELS[role]}</p>}
 
-            {dashboardState === 'EMPTY' && (
+            {role === 'PLATFORM_ADMIN' && companyId && branchId && (
+              <PlatformAdminAccessCards
+                companyId={companyId}
+                companyName={companyName ?? ''}
+                branchId={branchId}
+                branchName={branchName ?? ''}
+              />
+            )}
+
+            {role !== 'PLATFORM_ADMIN' && dashboardState === 'EMPTY' && (
               <p className={styles.emptyMessage}>No tienes pendientes por ahora.</p>
             )}
 
-            {dashboardState === 'READY' && tasks.length > 0 && (
+            {role !== 'PLATFORM_ADMIN' && dashboardState === 'READY' && tasks.length > 0 && (
               <ul className={styles.taskList}>
                 {tasks.map((task) => (
                   <li key={task.id}>
@@ -128,5 +75,65 @@ export function DashboardScreen() {
         )}
       </div>
     </main>
+  );
+}
+
+// PROV-TR-06-PA-001: baseline visual PROTO-TR-06-DASHBOARD-ROL-ADMINISTRACION
+const PLATFORM_ADMIN_CARDS = [
+  {
+    id: 'ADM-01',
+    icon: <Users size={20} />,
+    label: 'Usuarios',
+    description: 'Cuentas, credenciales, asignación de roles y estados.',
+    to: '/admin/usuarios',
+  },
+  {
+    id: 'ADM-03',
+    icon: <Settings size={20} />,
+    label: 'Catálogos y parámetros',
+    description: 'Tablas maestras, tarifas base y reglas del negocio.',
+    to: '/admin/parametros',
+  },
+  {
+    id: 'ADM-04',
+    icon: <Search size={20} />,
+    label: 'Auditoría',
+    description: 'Registro inmutable de accesos, operaciones y eventos.',
+    to: '/admin/auditoria',
+  },
+  {
+    id: 'ADM-05',
+    icon: <ShieldCheck size={20} />,
+    label: 'Permisos',
+    description: 'Matriz de roles y permisos por empresa y módulo.',
+    to: '/admin/permisos',
+  },
+] as const;
+
+interface AdminCardContext {
+  companyId: string;
+  companyName: string;
+  branchId: string;
+  branchName: string;
+}
+
+function PlatformAdminAccessCards(ctx: AdminCardContext) {
+  return (
+    <div className={styles.adminSection}>
+      <p className={styles.adminSectionLabel}>ACCESOS DIRECTOS DE CONFIGURACIÓN</p>
+      <div className={styles.adminGrid}>
+        {PLATFORM_ADMIN_CARDS.map((card) => (
+          <Link key={card.id} to={card.to} state={ctx} className={styles.adminCard}>
+            <div className={styles.adminCardTop}>
+              <span className={styles.adminCardIcon}>{card.icon}</span>
+              <span className={styles.adminCardId}>{card.id}</span>
+            </div>
+            <span className={styles.adminCardLabel}>{card.label}</span>
+            <span className={styles.adminCardDesc}>{card.description}</span>
+            <ChevronRight size={16} className={styles.adminCardArrow} />
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }

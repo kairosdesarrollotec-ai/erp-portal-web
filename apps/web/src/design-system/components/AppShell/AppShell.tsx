@@ -1,5 +1,5 @@
 /**
- * AppShell — compound component del shell de aplicacion VeloxRent
+ * AppShell — compound component del shell de aplicacion Kairos Corporation
  *
  * Fuente visual: alquileres_bandeja_veloxrent/code.html (PROTO-ALQ-01-BANDEJA, APPROVED)
  * Fuente de diseno: veloxrent_erp_design_system/DESIGN.md

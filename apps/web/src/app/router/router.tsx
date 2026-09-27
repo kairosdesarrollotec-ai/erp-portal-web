@@ -6,6 +6,7 @@ import { DashboardScreen } from '../dashboard/DashboardScreen';
 import { HealthCheckScreen } from './HealthCheckScreen';
 import { RequireAuthenticatedUser } from './RequireAuthenticatedUser';
 import { RequireCompletedActivation } from './RequireCompletedActivation';
+import { AuthenticatedLayout } from './AuthenticatedLayout';
 import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
 import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
 import { InquiriesListScreen } from '../inquiries/InquiriesListScreen';
@@ -44,19 +45,24 @@ export const router = createBrowserRouter([
         element: <RequireCompletedActivation />,
         children: [
           { path: '/seleccion-empresa-sede', element: <WorkContextScreen /> },
-          { path: '/tablero', element: <DashboardScreen /> },
-          { path: '/reservas', element: <ReservationsListScreen /> },
-          { path: '/reservas/:id', element: <ReservationDetailScreen /> },
-          { path: '/consultas', element: <InquiriesListScreen /> },
-          { path: '/consultas/nueva', element: <NewInquiryScreen /> },
-          { path: '/consultas/:id/vehiculos', element: <InquiryVehiclesScreen /> },
-          { path: '/consultas/:id', element: <InquiryDetailScreen /> },
-          { path: '/admin/usuarios', element: <AdminUsersScreen /> },
-          { path: '/admin/auditoria', element: <AuditEventsScreen /> },
-          { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
-          { path: '/admin/permisos', element: <RolePermissionMatrixScreen /> },
-          { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
-          { path: '/modulos', element: <ModuleHubScreen /> },
+          {
+            element: <AuthenticatedLayout />,
+            children: [
+              { path: '/tablero', element: <DashboardScreen /> },
+              { path: '/reservas', element: <ReservationsListScreen /> },
+              { path: '/reservas/:id', element: <ReservationDetailScreen /> },
+              { path: '/consultas', element: <InquiriesListScreen /> },
+              { path: '/consultas/nueva', element: <NewInquiryScreen /> },
+              { path: '/consultas/:id/vehiculos', element: <InquiryVehiclesScreen /> },
+              { path: '/consultas/:id', element: <InquiryDetailScreen /> },
+              { path: '/admin/usuarios', element: <AdminUsersScreen /> },
+              { path: '/admin/auditoria', element: <AuditEventsScreen /> },
+              { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
+              { path: '/admin/permisos', element: <RolePermissionMatrixScreen /> },
+              { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
+              { path: '/modulos', element: <ModuleHubScreen /> },
+            ],
+          },
         ],
       },
     ],

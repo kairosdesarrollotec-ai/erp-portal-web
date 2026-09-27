@@ -14,6 +14,7 @@ export interface NewInquiryFormData {
   channel: InquiryChannel;
   displayMode: DisplayMode;
   customerName: string;
+  documentType: string;
   document: string;
   nationality: Nationality;
   hospedajeDocument: string;
@@ -28,6 +29,7 @@ const INITIAL_FORM: NewInquiryFormData = {
   channel: 'WHATSAPP',
   displayMode: 'PRESENCIAL',
   customerName: '',
+  documentType: 'DNI',
   document: '',
   nationality: 'PERUANO',
   hospedajeDocument: '',
@@ -137,9 +139,12 @@ export function useNewInquiry() {
         branchId: context.branchId,
         channel: form.channel,
         touristUse: form.touristUse ?? false,
-        prospectName: form.customerName.trim(),
-        prospectDocumentNumber: form.document.trim() || undefined,
-        nationality: form.nationality,
+        prospect: {
+          fullName: form.customerName.trim(),
+          documentType: form.documentType,
+          documentNumber: form.document.trim(),
+          nationality: form.nationality,
+        },
         destination: form.destination.trim(),
         estimatedDays: form.travelDays,
         travelStartDate: form.travelDate || undefined,
@@ -202,9 +207,12 @@ export function useNewInquiry() {
         branchId: context.branchId,
         channel: form.channel,
         touristUse: false,
-        prospectName: form.customerName.trim(),
-        prospectDocumentNumber: form.document.trim() || undefined,
-        nationality: form.nationality,
+        prospect: {
+          fullName: form.customerName.trim(),
+          documentType: form.documentType,
+          documentNumber: form.document.trim(),
+          nationality: form.nationality,
+        },
         destination: form.destination.trim(),
         estimatedDays: form.travelDays,
         travelStartDate: form.travelDate || undefined,

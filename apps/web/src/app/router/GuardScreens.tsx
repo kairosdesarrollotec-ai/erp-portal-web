@@ -13,7 +13,7 @@ export function GuardLoadingScreen() {
   return (
     <main className={styles.wrapper}>
       <div className={styles.card}>
-        <p className={styles.brand}>VeloxRent</p>
+        <p className={styles.brand}>Kairos Corporation</p>
         <div className={styles.notice} role="status" aria-live="polite">
           <Loader2 className={styles.noticeIcon} size={32} aria-hidden="true" />
           <p className={styles.noticeSubtitle}>Verificando tu sesión…</p>
@@ -27,7 +27,7 @@ export function GuardBlockingScreen({ onRetry }: { onRetry: () => void }) {
   return (
     <main className={styles.wrapper}>
       <div className={styles.card}>
-        <p className={styles.brand}>VeloxRent</p>
+        <p className={styles.brand}>Kairos Corporation</p>
         <div className={styles.notice} role="alert">
           <WifiOff className={styles.noticeIcon} size={40} aria-hidden="true" />
           <h1 className={styles.noticeTitle}>No pudimos verificar tu cuenta</h1>

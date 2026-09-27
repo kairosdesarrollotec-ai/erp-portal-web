@@ -56,7 +56,7 @@ function fillRequiredFields() {
   fireEvent.change(screen.getByText('Nombre').closest('label')!.querySelector('input')!, {
     target: { value: 'Maria Quispe' },
   });
-  fireEvent.change(screen.getByText('Documento').closest('label')!.querySelector('input')!, {
+  fireEvent.change(screen.getByText('Número de documento').closest('label')!.querySelector('input')!, {
     target: { value: '12345678' },
   });
   fireEvent.change(screen.getByText('Destino').closest('label')!.querySelector('input')!, {
@@ -128,9 +128,12 @@ describe('NewInquiryScreen (CON-02)', () => {
       branchId: 'b1',
       channel: 'WHATSAPP',
       touristUse: true,
-      prospectName: 'Maria Quispe',
-      prospectDocumentNumber: '12345678',
-      nationality: 'PERUANO',
+      prospect: {
+        fullName: 'Maria Quispe',
+        documentType: 'DNI',
+        documentNumber: '12345678',
+        nationality: 'PERUANO',
+      },
       destination: 'Ayacucho',
       estimatedDays: 1,
       travelStartDate: '2099-01-01',

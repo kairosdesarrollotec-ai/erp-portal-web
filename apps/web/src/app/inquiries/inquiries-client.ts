@@ -121,30 +121,17 @@ export class InquiryCommandError extends Error {
 
 /**
  * CON-02 - crea la Consulta en REGISTRADA con el snapshot completo
- * (TDD-CON-001.md 11.1 + RegisterInquiryDto, backend PR#7 d7a6124).
+ * (TDD-CON-001.md 11.1 + RegisterInquiryDto).
  *
- * Actualizado tras el cierre de PR#7 backend (revalidacion de seguimiento,
- * hallazgo ALTO "brecha contractual con CON-02"): el backend ahora exige
- * `companyId`, `branchId`, `nationality`, `destination` y `estimatedDays`
- * como obligatorios (antes el body de este cliente ni siquiera los
- * mandaba - una llamada real habria fallado con 400). Se agregan tambien
- * los campos opcionales del snapshot (`prospectName`/`prospectDocumentType`/
- * `prospectDocumentNumber`, `travelStartDate`, `partySize`,
- * `countryEntryDate`) que el formulario de CON-02 ya capturaba localmente
- * pero nunca enviaba.
+ * La identidad del prospecto va en el sub-objeto `prospect` (CONFLICT-CON-002
+ * resuelto en el backend — campos planos en el nivel raiz son rechazados con
+ * 400 "should not exist"). `customerId` sigue omitido: no existe flujo de
+ * busqueda/alta de cliente en el frontend todavia.
  *
- * `customerId` se sigue omitiendo: el frontend no tiene ningun flujo de
- * busqueda/alta de cliente (`CustomerLookupPort` no esta expuesto via UI
- * todavia) - inventar un id seria peor que no mandarlo; por eso
- * `prospectName` es obligatorio en su lugar (CON-P02, validado por el
- * handler).
- *
- * `countryEntryDate` (fecha de ingreso al pais, solo EXTRANJERO,
- * SC-CON-001.03) queda sin mandar: el formulario captura "Documento de
- * hospedaje" para el cliente extranjero, que es un campo distinto (no una
- * fecha) y no tiene equivalente en este DTO - no se inventa una fecha a
- * partir de un dato que no lo es. Documentado como brecha pendiente, no
- * corregido silenciosamente.
+ * `countryEntryDate` (SC-CON-001.03, solo EXTRANJERO) queda fuera: el
+ * formulario captura "Documento de hospedaje", que es un campo distinto y no
+ * tiene equivalente en ProspectDto. Brecha documentada, no corregida
+ * silenciosamente.
  */
 export async function createInquiry(
   idToken: string,
@@ -154,15 +141,17 @@ export async function createInquiry(
     channel: string;
     customerId?: string;
     touristUse: boolean;
-    prospectName?: string;
-    prospectDocumentType?: string;
-    prospectDocumentNumber?: string;
-    nationality: 'PERUANO' | 'EXTRANJERO';
+    prospect?: {
+      fullName: string;
+      documentType: string;
+      documentNumber: string;
+      nationality: 'PERUANO' | 'EXTRANJERO';
+      countryEntryDate?: string;
+    };
     destination: string;
     estimatedDays: number;
     travelStartDate?: string;
     partySize?: number;
-    countryEntryDate?: string;
   },
 ): Promise<InquirySummary> {
   const response = await fetch(`${API_BASE_URL}/inquiries`, {
@@ -207,11 +196,13 @@ export function quoteInquiry(
   idToken: string,
   id: string,
   version: number,
+  companyId: string,
+  branchId: string,
   vehicleId: string,
   destination: string,
   estimatedDays: number,
 ): Promise<InquirySummary> {
-  return postCommand(idToken, id, 'quote', version, { vehicleId, destination, estimatedDays });
+  return postCommand(idToken, id, 'quote', version, { companyId, branchId, vehicleId, destination, estimatedDays });
 }
 
 /** CON-04 - cierra sin conversion (motivo obligatorio, BR-CON-003). */

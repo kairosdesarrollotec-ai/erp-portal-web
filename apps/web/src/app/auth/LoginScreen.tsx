@@ -51,7 +51,7 @@ export function LoginScreen() {
     return (
       <main className={styles.wrapper}>
         <div className={styles.card}>
-          <p className={styles.brand}>VeloxRent</p>
+          <p className={styles.brand}>Kairos Corporation</p>
           <div className={styles.fullScreenNotice}>
             <div className={styles.noticeIcon}>
               {isBlocked ? <Lock size={40} /> : <WifiOff size={40} />}
@@ -82,7 +82,7 @@ export function LoginScreen() {
     return (
       <main className={styles.wrapper}>
         <div className={styles.card}>
-          <p className={styles.brand}>VeloxRent</p>
+          <p className={styles.brand}>Kairos Corporation</p>
           <div className={styles.fullScreenNotice} role="alert">
             <div className={styles.noticeIcon}>
               <WifiOff size={40} />
@@ -104,10 +104,10 @@ export function LoginScreen() {
     <main className={styles.wrapper}>
       <div className={styles.card}>
         <div className={`${styles.brandRow} ${styles.mobileOnly}`}>
-          <span className={styles.brandMark}>VR</span>
-          <span className={styles.brandWordmark}>VeloxRent</span>
+          <span className={styles.brandMark}>KC</span>
+          <span className={styles.brandWordmark}>Kairos Corporation</span>
         </div>
-        <p className={`${styles.brand} ${styles.desktopOnly}`}>VeloxRent</p>
+        <p className={`${styles.brand} ${styles.desktopOnly}`}>Kairos Corporation</p>
         <h1 className={styles.title}>Ingresa a tu cuenta</h1>
         <p className={`${styles.subtitle} ${styles.mobileOnly}`}>
           Acceso al sistema interno de gestión operativa
@@ -176,7 +176,7 @@ export function LoginScreen() {
         </button>
 
         <p className={`${styles.mobileFooter} ${styles.mobileOnly}`}>
-          VeloxRent ERP v2.6 · Uso exclusivo para personal autorizado
+          Kairos Corporation ERP v2.6 · Uso exclusivo para personal autorizado
         </p>
       </div>
 

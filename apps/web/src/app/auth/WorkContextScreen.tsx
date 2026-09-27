@@ -31,7 +31,7 @@ export function WorkContextScreen() {
   return (
     <main className={styles.wrapper}>
       <header className={styles.header}>
-        <span className={styles.brand}>VeloxRent</span>
+        <span className={styles.brand}>Kairos Corporation</span>
       </header>
 
       <div className={styles.content}>
@@ -66,7 +66,7 @@ export function WorkContextScreen() {
       </div>
 
       <footer className={styles.footer}>
-        <span>VeloxRent © 2026 · Sistema de Gestión Interna</span>
+        <span>Kairos Corporation © 2026 · Sistema de Gestión Interna</span>
       </footer>
     </main>
   );

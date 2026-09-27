@@ -3,31 +3,7 @@
   display: flex;
   flex-direction: column;
   background: var(--color-surface);
-}
-
-.header {
-  width: 100%;
-  padding: 1rem 2rem;
-  border-bottom: 1px solid #E5E2DC;
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.brand {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 18px;
-  color: var(--color-ink);
-}
-
-.title {
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--color-ink);
-  margin: 0;
-  flex: 1;
+  overflow-x: hidden;
 }
 
 .primaryButton {
@@ -119,6 +95,11 @@
   display: flex;
   gap: 1rem;
   align-items: center;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table {
@@ -215,4 +196,61 @@
     border: none;
     padding: 0.25rem 0;
   }
+}
+
+.resetLinkBox {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 4px;
+  background: #FFF8F2;
+}
+
+.resetLinkTitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-ink);
+  margin: 0 0 0.375rem;
+}
+
+.resetLinkNote {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0 0 0.75rem;
+}
+
+.resetLinkRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.resetLinkCode {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  word-break: break-all;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-ink);
+}
+
+.copyButton {
+  flex-shrink: 0;
+  padding: 0.4rem 1rem;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.copyButton:hover {
+  opacity: 0.88;
 }
