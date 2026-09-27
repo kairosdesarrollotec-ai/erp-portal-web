@@ -33,11 +33,11 @@ export class AdminCommandError extends Error {
 
   private static friendlyMessage(problem: { code?: string; detail?: string } | null): string | null {
     if (!problem) return null;
-    if (problem.code === 'USER_NOT_FOUND_IN_IDENTITY_PROVIDER') {
-      return 'No existe una cuenta con ese correo. ADM-01 asigna empresa/sede/rol a una cuenta que ya se registro, no crea cuentas nuevas.';
+    if (problem.code === 'USER_ALREADY_EXISTS_IN_IDENTITY_PROVIDER') {
+      return 'Ya existe una cuenta con ese correo en el proveedor de identidad.';
     }
     if (problem.code === 'COMPANY_BRANCH_NOT_IN_ORGANIZATION') {
-      return 'La empresa/sede indicada no pertenece a tu organizacion.';
+      return 'La empresa/sede indicada no pertenece a tu organización.';
     }
     return problem.detail ?? null;
   }
@@ -70,7 +70,10 @@ export interface AssignUserInput {
 }
 
 /** ADM-01 - accion primaria "Agregar usuario" (POST /admin/assignments). */
-export async function assignUserToCompany(idToken: string, input: AssignUserInput): Promise<{ id: string }> {
+export async function assignUserToCompany(
+  idToken: string,
+  input: AssignUserInput,
+): Promise<{ id: string; passwordResetLink: string | null }> {
   const response = await fetch(`${API_BASE_URL}/admin/assignments`, {
     method: 'POST',
     headers: authHeaders(idToken),
@@ -80,7 +83,7 @@ export async function assignUserToCompany(idToken: string, input: AssignUserInpu
     const problem = await response.json().catch(() => null);
     throw new AdminCommandError(response.status, problem);
   }
-  return (await response.json()) as { id: string };
+  return (await response.json()) as { id: string; passwordResetLink: string | null };
 }
 
 /** ADM-01 - "Dar de baja" (POST /admin/assignments/:id/deactivate). */

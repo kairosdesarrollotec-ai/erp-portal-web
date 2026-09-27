@@ -10,20 +10,19 @@ const ASSIGNABLE_ROLES = Object.keys(WORKER_ROLE_LABELS) as WorkerRole[];
  * Estados: READY, LOADING, EMPTY (contrato punto 9). Reutiliza
  * user_company_assignments (misma tabla de TR-05) via GET /admin/users.
  *
- * Alcance real (no sobre-declarado): esta pantalla asigna empresa/sede/
- * rol a un usuario que YA existe en Firebase Authentication - no crea
- * cuentas nuevas (ver admin-users-client.ts). Por eso el formulario pide
- * un correo ya registrado, no datos de una cuenta nueva. La columna
- * "Rol" muestra el rol operativo de la asignacion (sustituto de
- * admin-role-policy.ts, provisional hasta que exista ADM-02).
+ * Alcance real: si el correo no existe en Firebase, el backend crea la
+ * cuenta y devuelve un passwordResetLink que se muestra al administrador
+ * para que lo comparta con el usuario. El usuario usa ese enlace para
+ * establecer su contrasena y luego completa el enrolamiento MFA en TR-02.
  */
 export function AdminUsersScreen() {
-  const { state, users, context, assigning, assignError, deactivatingId, actionError, assign, deactivate } =
+  const { state, users, context, assigning, assignError, lastPasswordResetLink, deactivatingId, actionError, assign, deactivate } =
     useAdminUsers();
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [targetEmail, setTargetEmail] = useState('');
   const [targetRole, setTargetRole] = useState<WorkerRole>('FRONT_OFFICE');
+  const [copiedLink, setCopiedLink] = useState(false);
 
   async function handleAssign() {
     if (!context) return;
@@ -37,7 +36,13 @@ export function AdminUsersScreen() {
       setTargetEmail('');
       setTargetRole('FRONT_OFFICE');
       setShowAssignForm(false);
+      setCopiedLink(false);
     }
+  }
+
+  async function handleCopyLink(link: string) {
+    await navigator.clipboard.writeText(link);
+    setCopiedLink(true);
   }
 
   async function handleDeactivate(assignmentId: string) {
@@ -61,8 +66,7 @@ export function AdminUsersScreen() {
         {showAssignForm && (
           <section className={styles.assignForm}>
             <p className={styles.helperNote}>
-              Se asigna empresa/sede/rol a una cuenta que ya existe en el proveedor de identidad — esta pantalla
-              todavía no crea cuentas nuevas.
+              Si el correo no existe, se crea la cuenta automáticamente y se genera un enlace de acceso para compartir con el usuario.
             </p>
             {assignError && <p className={styles.errorText}>{assignError}</p>}
             <label className={styles.field}>
@@ -103,6 +107,26 @@ export function AdminUsersScreen() {
               </button>
               <button type="button" className={styles.linkButton} onClick={() => setShowAssignForm(false)}>
                 Cancelar
+              </button>
+            </div>
+          </section>
+        )}
+
+        {lastPasswordResetLink && (
+          <section className={styles.resetLinkBox}>
+            <p className={styles.resetLinkTitle}>Usuario creado — enlace de primer acceso</p>
+            <p className={styles.resetLinkNote}>
+              Compartí este enlace con el usuario para que establezca su contraseña. Expira según la política de Firebase
+              (1 hora por defecto).
+            </p>
+            <div className={styles.resetLinkRow}>
+              <code className={styles.resetLinkCode}>{lastPasswordResetLink}</code>
+              <button
+                type="button"
+                className={styles.copyButton}
+                onClick={() => void handleCopyLink(lastPasswordResetLink)}
+              >
+                {copiedLink ? 'Copiado' : 'Copiar'}
               </button>
             </div>
           </section>
