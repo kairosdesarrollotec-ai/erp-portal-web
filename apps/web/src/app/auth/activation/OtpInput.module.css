@@ -22,9 +22,9 @@
 .digitBox {
   width: 52px;
   height: 52px;
-  border: 1.5px solid #a39c90;
-  border-radius: 2px;
-  background-color: #ffffff;
+  border: 1.5px solid var(--color-surface-border);
+  border-radius: var(--radius);
+  background-color: var(--color-surface);
   font-family: 'Space Grotesk', monospace, sans-serif;
   font-size: 20px;
   font-weight: 700;
@@ -38,7 +38,7 @@
 
 .digitBox:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 1px var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(158, 76, 8, 0.15);
 }
 
 .digitBoxError {
@@ -53,7 +53,10 @@
 }
 
 .mfaHint {
-  display: none;
+  display: block;
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  margin-top: 0.5rem;
 }
 
 @media (max-width: 480px) {

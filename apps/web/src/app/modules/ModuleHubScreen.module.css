@@ -17,12 +17,14 @@
 .header {
   width: 100%;
   padding: 1rem 2rem;
-  border-bottom: 1px solid var(--color-surface-border, #E5E2DC);
+  border-top: 3px solid var(--color-accent);
+  border-bottom: 1px solid var(--color-surface-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
+  background: var(--color-surface);
 }
 
 .brandGroup {
@@ -34,8 +36,8 @@
 .brandMark {
   width: 32px;
   height: 32px;
-  border-radius: 4px;
-  background: var(--color-ink, #1F2A33);
+  border-radius: var(--radius);
+  background: var(--color-ink);
   color: #fff;
   display: flex;
   align-items: center;
@@ -43,6 +45,8 @@
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
   font-size: 16px;
+  box-shadow: inset 0 -2px 0 0 rgba(158, 76, 8, 0.6);
+  flex-shrink: 0;
 }
 
 .brand {
@@ -65,12 +69,13 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #F6F3ED;
-  border: 1px solid #E5E2DC;
-  border-radius: 4px;
+  background: var(--color-surface-low);
+  border: 1px solid var(--color-surface-border);
+  border-radius: var(--radius);
   padding: 0.375rem 0.75rem;
-  color: #33302C;
+  color: var(--color-ink);
   font-weight: 500;
+  font-size: 12px;
 }
 
 .branchDot {
@@ -85,20 +90,22 @@
   align-items: center;
   gap: 0.625rem;
   padding-left: 0.75rem;
-  border-left: 1px solid #E5E2DC;
+  border-left: 1px solid var(--color-surface-border);
 }
 
 .avatar {
   width: 32px;
   height: 32px;
-  border-radius: 999px;
-  background: #E5E2DC;
-  color: var(--color-ink, #1F2A33);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-container);
+  border: 1.5px solid var(--color-surface-border);
+  color: var(--color-ink);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 12px;
+  flex-shrink: 0;
 }
 
 .userText {
@@ -115,7 +122,7 @@
 
 .userRole {
   font-size: 11px;
-  color: #78716A;
+  color: var(--color-ink-subtle);
 }
 
 .bellButton {
@@ -249,16 +256,16 @@
   text-align: center;
   padding: 1.25rem 1rem;
   min-height: 100px;
-  border-radius: 8px;
-  background: var(--color-surface, #fff);
-  border: 1px solid var(--color-surface-border, #E5E2DC);
-  box-shadow: 0 1px 3px rgba(31, 42, 51, 0.06);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: var(--elevation-1-border);
+  box-shadow: var(--elevation-2-shadow);
   text-decoration: none;
-  color: var(--color-ink, #1F2A33);
-  transition: box-shadow 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  color: var(--color-ink);
+  transition: box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
   cursor: pointer;
   position: relative;
-  gap: 0.5rem;
+  gap: 0.375rem;
 }
 
 @media (min-width: 768px) {
@@ -270,8 +277,9 @@
 }
 
 a.card:hover {
-  box-shadow: 0 4px 12px rgba(31, 42, 51, 0.1);
-  background: var(--color-surface-low, #F6F3ED);
+  box-shadow: 0 6px 16px rgba(31, 42, 51, 0.1);
+  background: var(--color-surface-hover);
+  border-color: rgba(158, 76, 8, 0.25);
 }
 
 a.card:active {
@@ -279,7 +287,7 @@ a.card:active {
 }
 
 a.card:focus-visible {
-  outline: 2px solid var(--color-accent, #9E4C08);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -304,12 +312,21 @@ a.card:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-ink, #1F2A33);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-low);
+  border: 1px solid var(--color-surface-border);
+  color: var(--color-ink);
   flex-shrink: 0;
+  margin-bottom: 0.25rem;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 a.card:hover .cardIcon {
-  color: var(--color-accent, #9E4C08);
+  background: rgba(158, 76, 8, 0.08);
+  border-color: rgba(158, 76, 8, 0.2);
+  color: var(--color-accent);
 }
 
 .cardLabel {

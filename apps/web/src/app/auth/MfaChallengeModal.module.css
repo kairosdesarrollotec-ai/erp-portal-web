@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,9 +14,10 @@
   position: relative;
   width: 100%;
   max-width: 380px;
-  background: #ffffff;
-  border-radius: 6px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border: var(--elevation-3-border);
+  box-shadow: var(--elevation-3-shadow);
   padding: 1.5rem;
   box-sizing: border-box;
 }
@@ -56,6 +57,8 @@
 
 .field {
   margin-bottom: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-surface-border);
 }
 
 .digitInputs {
@@ -67,9 +70,9 @@
 .digitBox {
   width: 44px;
   height: 48px;
-  border: 1.5px solid var(--color-border);
-  border-radius: 4px;
-  background: #ffffff;
+  border: 1.5px solid var(--color-surface-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
   font-family: 'Space Grotesk', monospace, sans-serif;
   font-size: 20px;
   font-weight: 600;
@@ -83,7 +86,7 @@
 
 .digitBox:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(198, 96, 10, 0.15);
+  box-shadow: 0 0 0 2px rgba(158, 76, 8, 0.15);
 }
 
 .digitBoxError {
