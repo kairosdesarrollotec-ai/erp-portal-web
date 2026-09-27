@@ -53,10 +53,15 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
     <>
       <header className={styles.header}>
         <div className={styles.left}>
-          <div className={styles.brandGroup}>
+          <button
+            type="button"
+            className={styles.brandGroup}
+            onClick={() => navigate('/modulos', { state: location.state })}
+            aria-label={`${APP_BRAND.name} — ir al inicio`}
+          >
             <span className={styles.brandMark}>{APP_BRAND.initial}</span>
             <span className={styles.brand}>{APP_BRAND.name}</span>
-          </div>
+          </button>
           {(pageTitle || actions) && (
             <span className={styles.sectionDivider} aria-hidden="true" />
           )}
