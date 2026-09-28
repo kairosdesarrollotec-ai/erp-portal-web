@@ -8,15 +8,17 @@ import styles from './InquiryVehiclesScreen.module.css';
 
 /**
  * CON-03 - Exhibición y cotización. Fuente: PANTALLAS-V3-B-CONSULTA.md.
- * Catálogo de vehículos MOCK (ver vehicle-catalog.ts) - limitación
- * conocida, Fleet no existe todavía.
+ * El catálogo de vehículos disponibles proviene del módulo Fleet real
+ * (ver `useInquiryVehicles.ts` / `fleet-client.ts`), filtrado por la
+ * empresa/sede de la consulta y por estado `AVAILABLE`.
  *
  * Hallazgo de revision PR#11 (Critico #3, "actualizar disponibilidad no
- * consulta ninguna fuente"): el catalogo es estatico/mock - "Actualizar
- * ahora" solo reinicia el reloj de 5 minutos, nunca consulta una fuente
- * real de disponibilidad. Antes esto no se comunicaba en ningun lado;
- * ahora hay un banner permanente "Catálogo de demostración" (no solo
- * cuando esta STALE) para que nunca se presente como vigente/operativo.
+ * consulta ninguna fuente"): antes el catalogo era estatico/mock y
+ * "Actualizar ahora" solo reiniciaba el reloj de 5 minutos sin consultar
+ * ninguna fuente real. Ahora "Actualizar ahora" vuelve a consultar Fleet
+ * (`refreshAvailability` -> `listVehicles`); el aviso de 5 minutos se
+ * mantiene como recordatorio de que la disponibilidad pudo cambiar desde
+ * la ultima carga, no como limitacion de un mock.
  *
  * Hallazgo de revision PR#11 (Critico #4, lado CON-03): "Reservar este
  * vehículo" navegaba a /reservas como si la reserva ya existiera. Ahora
@@ -78,11 +80,6 @@ export function InquiryVehiclesScreen() {
       />
 
       <div className={styles.content}>
-        <p className={styles.demoBanner}>
-          Catálogo de demostración: la disponibilidad no proviene de Fleet (todavía no existe como servicio) — no
-          refleja el estado real de la flota.
-        </p>
-
         {isStale && (
           <div className={styles.staleBanner}>
             Esta vista tiene más de 5 minutos — vuelve a cargarla antes de cotizar.
@@ -156,7 +153,6 @@ export function InquiryVehiclesScreen() {
                       </span>
                     ) : null}
                   </span>
-                  <span className={styles.badge}>Demo</span>
 
                   <button
                     type="button"
