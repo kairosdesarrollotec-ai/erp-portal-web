@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Bell, LogOut, Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { useNotifications } from '../notifications/useNotifications';
 import { WORKER_ROLE_LABELS, type WorkerRole } from '../dashboard/worker-role';
 import { APP_BRAND } from '../config/brand';
 import { useWorkSession } from './useWorkSession';
+import { useSignOut } from './useSignOut';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
@@ -45,11 +45,7 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
 
   const branchBadge = companyName && branchName ? `${companyName} — ${branchName}` : null;
   const roleLabel = role ? WORKER_ROLE_LABELS[role] : null;
-
-  async function handleSignOut() {
-    await signOut(getFirebaseAuth());
-    navigate('/');
-  }
+  const handleSignOut = useSignOut();
 
   return (
     <>
@@ -109,8 +105,10 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
             className={styles.signOutButton}
             onClick={() => void handleSignOut()}
             aria-label="Cerrar sesión"
+            title="Cerrar sesión"
           >
             <LogOut size={16} />
+            <span className={styles.signOutLabel}>Cerrar sesión</span>
           </button>
         </div>
       </header>
