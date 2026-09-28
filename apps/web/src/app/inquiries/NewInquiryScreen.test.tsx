@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { NewInquiryScreen } from './NewInquiryScreen';
 
 const createInquiryMock = vi.fn();
 const closeInquiryMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
+const listCustomersMock = vi.fn();
+const createCustomerMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -19,6 +21,15 @@ vi.mock('./inquiries-client', async () => {
     ...actual,
     createInquiry: (...args: unknown[]) => createInquiryMock(...args),
     closeInquiry: (...args: unknown[]) => closeInquiryMock(...args),
+  };
+});
+
+vi.mock('../customers/customers-client', async () => {
+  const actual = await vi.importActual<typeof import('../customers/customers-client')>('../customers/customers-client');
+  return {
+    ...actual,
+    listCustomers: (...args: unknown[]) => listCustomersMock(...args),
+    createCustomer: (...args: unknown[]) => createCustomerMock(...args),
   };
 });
 
@@ -72,6 +83,8 @@ describe('NewInquiryScreen (CON-02)', () => {
     createInquiryMock.mockReset();
     closeInquiryMock.mockReset();
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
+    listCustomersMock.mockReset().mockResolvedValue({ items: [], total: 0 });
+    createCustomerMock.mockReset();
     try {
       sessionStorage.clear();
     } catch {
@@ -213,5 +226,174 @@ describe('NewInquiryScreen (CON-02)', () => {
     expect((screen.getByText('Nombre').closest('label')!.querySelector('input') as HTMLInputElement).value).toBe(
       'Maria Quispe',
     );
+  });
+
+  // Integración Módulo de Clientes (PR 4): buscar y vincular un cliente
+  // existente debe rellenar el formulario y enviar customerId (no prospect).
+  it('busca clientes existentes, vincula el seleccionado y envia customerId en vez de prospect', async () => {
+    listCustomersMock.mockResolvedValue({
+      items: [
+        {
+          id: 'cust-1',
+          organizationId: 'org-1',
+          operatingCompanyId: 'c1',
+          fullName: 'Juan Perez',
+          documentType: 'DNI',
+          documentNumber: '87654321',
+          nationality: 'PERUANO',
+          createdAt: '2026-09-01T00:00:00Z',
+          updatedAt: '2026-09-01T00:00:00Z',
+        },
+      ],
+      total: 1,
+    });
+    createInquiryMock.mockResolvedValue({
+      id: 'con-3',
+      status: 'REGISTRADA',
+      channel: 'WHATSAPP',
+      version: 1,
+      companyId: 'c1',
+      customer: null,
+      touristUse: true,
+      createdAt: '2026-09-16T00:00:00Z',
+    });
+    renderScreen();
+    await waitForContext();
+
+    fireEvent.change(screen.getByLabelText('Buscar cliente existente'), {
+      target: { value: 'Juan' },
+    });
+
+    const result = await screen.findByText('Juan Perez');
+    fireEvent.click(result);
+
+    expect(await screen.findByText('Cliente vinculado')).toBeInTheDocument();
+    expect((screen.getByText('Nombre').closest('label')!.querySelector('input') as HTMLInputElement).value).toBe(
+      'Juan Perez',
+    );
+
+    fireEvent.change(screen.getByText('Destino').closest('label')!.querySelector('input')!, {
+      target: { value: 'Ayacucho' },
+    });
+    fireEvent.change(screen.getByText('Fecha').closest('label')!.querySelector('input')!, {
+      target: { value: '2099-01-01' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(await screen.findByText('vehiculos')).toBeInTheDocument();
+    expect(createInquiryMock).toHaveBeenCalledWith(
+      'fake-id-token',
+      expect.objectContaining({
+        customerId: 'cust-1',
+      }),
+    );
+    expect(createInquiryMock.mock.calls[0][1]).not.toHaveProperty('prospect');
+  });
+
+  it('permite desvincular un cliente seleccionado y volver a buscar', async () => {
+    listCustomersMock.mockResolvedValue({
+      items: [
+        {
+          id: 'cust-1',
+          organizationId: 'org-1',
+          operatingCompanyId: 'c1',
+          fullName: 'Juan Perez',
+          documentType: 'DNI',
+          documentNumber: '87654321',
+          nationality: 'PERUANO',
+          createdAt: '2026-09-01T00:00:00Z',
+          updatedAt: '2026-09-01T00:00:00Z',
+        },
+      ],
+      total: 1,
+    });
+    renderScreen();
+    await waitForContext();
+
+    fireEvent.change(screen.getByLabelText('Buscar cliente existente'), {
+      target: { value: 'Juan' },
+    });
+    fireEvent.click(await screen.findByText('Juan Perez'));
+    expect(await screen.findByText('Cliente vinculado')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Desvincular cliente' }));
+
+    expect(screen.queryByText('Cliente vinculado')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Buscar cliente existente')).toBeInTheDocument();
+  });
+
+  // Registrar un cliente nuevo desde el modal debe vincularlo automaticamente
+  // y usar customerId al enviar la consulta.
+  it('registra un cliente nuevo desde el modal, lo vincula y envia customerId', async () => {
+    createCustomerMock.mockResolvedValue({
+      id: 'cust-2',
+      organizationId: 'org-1',
+      operatingCompanyId: 'c1',
+      fullName: 'Ana Torres',
+      documentType: 'DNI',
+      documentNumber: '11223344',
+      nationality: 'PERUANO',
+      createdAt: '2026-09-20T00:00:00Z',
+      updatedAt: '2026-09-20T00:00:00Z',
+    });
+    createInquiryMock.mockResolvedValue({
+      id: 'con-4',
+      status: 'REGISTRADA',
+      channel: 'WHATSAPP',
+      version: 1,
+      companyId: 'c1',
+      customer: null,
+      touristUse: true,
+      createdAt: '2026-09-16T00:00:00Z',
+    });
+    renderScreen();
+    await waitForContext();
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Registrar nuevo cliente' }));
+
+    const modal = within(await screen.findByRole('dialog'));
+    fireEvent.change(modal.getByLabelText(/Nombre completo/i), { target: { value: 'Ana Torres' } });
+    fireEvent.change(modal.getByLabelText(/Número de documento/i), { target: { value: '11223344' } });
+
+    fireEvent.click(modal.getByRole('button', { name: /Registrar cliente/i }));
+
+    expect(await screen.findByText('Cliente vinculado')).toBeInTheDocument();
+    expect(createCustomerMock).toHaveBeenCalledWith(
+      'fake-id-token',
+      expect.objectContaining({ companyId: 'c1', branchId: 'b1', fullName: 'Ana Torres', documentNumber: '11223344' }),
+    );
+
+    fireEvent.change(screen.getByText('Destino').closest('label')!.querySelector('input')!, {
+      target: { value: 'Ayacucho' },
+    });
+    fireEvent.change(screen.getByText('Fecha').closest('label')!.querySelector('input')!, {
+      target: { value: '2099-01-01' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    expect(await screen.findByText('vehiculos')).toBeInTheDocument();
+    expect(createInquiryMock).toHaveBeenCalledWith(
+      'fake-id-token',
+      expect.objectContaining({ customerId: 'cust-2' }),
+    );
+    expect(createInquiryMock.mock.calls[0][1]).not.toHaveProperty('prospect');
+  });
+
+  it('muestra el error del modal si createCustomer falla y no cierra el modal', async () => {
+    const { CustomerCommandError } = await import('../customers/customers-client');
+    createCustomerMock.mockRejectedValue(new CustomerCommandError(409, { detail: 'Ya existe un cliente con ese documento.' }));
+    renderScreen();
+    await waitForContext();
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Registrar nuevo cliente' }));
+    const modal = within(await screen.findByRole('dialog'));
+    fireEvent.change(modal.getByLabelText(/Nombre completo/i), { target: { value: 'Ana Torres' } });
+    fireEvent.change(modal.getByLabelText(/Número de documento/i), { target: { value: '11223344' } });
+    fireEvent.click(modal.getByRole('button', { name: /Registrar cliente/i }));
+
+    expect(await screen.findByText('Ya existe un cliente con ese documento.')).toBeInTheDocument();
+    expect(screen.queryByText('Cliente vinculado')).not.toBeInTheDocument();
   });
 });

@@ -68,16 +68,15 @@ describe('NotificationTemplatesScreen (ADM-05)', () => {
 
     expect(await screen.findByText('Reserva confirmada')).toBeInTheDocument();
     expect(screen.getByText('Sin plantilla')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Hola {nombre}')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('Hola {nombre}')).toBeInTheDocument();
   });
 
   it('solo ofrece variables e insertar seguras, nunca datos personales completos', async () => {
     getNotificationTemplatesMock.mockResolvedValue(baseData());
     renderScreen();
 
-    await screen.findByText('Reserva confirmada');
+    expect(await screen.findByText('{fecha}')).toBeInTheDocument();
     expect(screen.queryByText('{dni_completo}')).not.toBeInTheDocument();
-    expect(screen.getByText('{fecha}')).toBeInTheDocument();
   });
 
   it('guarda la plantilla cuando hay cambios y al menos un canal', async () => {
@@ -101,8 +100,8 @@ describe('NotificationTemplatesScreen (ADM-05)', () => {
     getNotificationTemplatesMock.mockResolvedValue(baseData());
     renderScreen();
 
-    await screen.findByText('Reserva confirmada');
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Correo' }));
+    const emailCheckbox = await screen.findByRole('checkbox', { name: 'Correo' });
+    fireEvent.click(emailCheckbox);
 
     expect(screen.getByRole('button', { name: 'Guardar plantilla' })).toBeDisabled();
   });
