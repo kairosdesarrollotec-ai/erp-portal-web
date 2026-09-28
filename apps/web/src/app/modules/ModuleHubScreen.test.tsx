@@ -72,7 +72,7 @@ describe('ModuleHubScreen', () => {
     expect(screen.queryByText('Admin')).toBeNull();
   });
 
-  it('muestra Tablero, Consultas, Reservas y Flota como links navegables', () => {
+  it('muestra Tablero, Consultas, Reservas, Clientes y Flota como links navegables', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
     renderHub();
     const tableroPaths = screen.getAllByRole('link', { name: /tablero/i });
@@ -81,6 +81,8 @@ describe('ModuleHubScreen', () => {
     expect(consultas).toBeDefined();
     const reservas = screen.getByRole('link', { name: /reservas/i });
     expect(reservas).toBeDefined();
+    const clientes = screen.getByRole('link', { name: /clientes/i });
+    expect(clientes).toBeDefined();
     const flota = screen.getByRole('link', { name: /flota/i });
     expect(flota).toBeDefined();
   });
@@ -89,9 +91,9 @@ describe('ModuleHubScreen', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
     renderHub();
     const badges = screen.getAllByText(/próximamente/i);
-    // 8 módulos sin ruta implementada (Alquileres, Devoluciones, Clientes,
-    // Pagos, Incidentes, Personal, Reportes) = 7 sin admin
-    expect(badges.length).toBe(7);
+    // 6 módulos sin ruta implementada (Alquileres, Devoluciones,
+    // Pagos, Incidentes, Personal, Reportes) = 6 sin admin
+    expect(badges.length).toBe(6);
   });
 
   it('muestra el label de sede en el header', () => {
