@@ -91,7 +91,7 @@ describe('ModuleHubScreen', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
     renderHub();
     const badges = screen.getAllByText(/próximamente/i);
-    // Módulos sin ruta implementada (Alquileres, Devoluciones,
+    // 6 módulos sin ruta implementada (Alquileres, Devoluciones,
     // Pagos, Incidentes, Personal, Reportes) = 6 sin admin
     expect(badges.length).toBe(6);
   });
