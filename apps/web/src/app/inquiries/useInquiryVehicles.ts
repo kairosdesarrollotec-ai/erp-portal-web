@@ -3,15 +3,38 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getInquiry, quoteInquiry, InquiryApiError, InquiryCommandError } from './inquiries-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
-import { VEHICLE_CATALOG } from './vehicle-catalog';
+import { listVehicles, FleetApiError, type FleetVehicle } from '../fleet/fleet-client';
 import type { InquiryNavState } from './inquiries-nav-state';
 
 /** CON-03 - estados READY/LOADING/EMPTY/STALE_VERSION/RECOVERABLE_ERROR (contrato punto 9). */
 export type InquiryVehiclesState = 'LOADING' | 'READY' | 'EMPTY' | 'STALE_VERSION' | 'RECOVERABLE_ERROR';
 
-/** El catalogo/tarifa nunca se muestra vigente pasados 5 minutos (punto 14). */
+/** La disponibilidad de Fleet nunca se muestra vigente pasados 5 minutos (punto 14). */
 const STALE_AFTER_MS = 5 * 60 * 1000;
 const STALE_CHECK_INTERVAL_MS = 15 * 1000;
+
+const PLACEHOLDER_PHOTO_URL =
+  'https://images.unsplash.com/photo-1502877338535-766e1452684a?w=480&q=60';
+
+/** Vehículo de Fleet adaptado a lo que necesita la UI de cotización. */
+export interface InquiryVehicle {
+  id: string;
+  model: string;
+  photoUrl: string;
+  dailyRate: number;
+  currency: string;
+}
+
+function toInquiryVehicle(vehicle: FleetVehicle): InquiryVehicle | null {
+  if (vehicle.dailyRate === null) return null;
+  return {
+    id: vehicle.id,
+    model: `${vehicle.brand} ${vehicle.model}`.trim(),
+    photoUrl: vehicle.photoUrl ?? PLACEHOLDER_PHOTO_URL,
+    dailyRate: vehicle.dailyRate,
+    currency: 'PEN',
+  };
+}
 
 /**
  * Hallazgo de revision PR#11 ("Deep link roto en CON-03"): si el usuario
@@ -38,19 +61,47 @@ export function useInquiryVehicles() {
 
   const [navState, setNavState] = useState<InquiryNavState | null>(rawNavState);
   const [state, setState] = useState<InquiryVehiclesState>('LOADING');
+  const [vehicles, setVehicles] = useState<InquiryVehicle[]>([]);
   const [quotingVehicleId, setQuotingVehicleId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const loadedAtRef = useRef(Date.now());
+  const requestIdRef = useRef(0);
 
   const hasUsableNavState = Boolean(rawNavState?.companyId && rawNavState?.branchId && rawNavState?.version);
+
+  const loadVehicles = useCallback(async (companyId: string, branchId: string) => {
+    const requestId = ++requestIdRef.current;
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible.');
+      const idToken = await user.getIdToken();
+      const result = await listVehicles(idToken, {
+        companyId,
+        branchId,
+        status: 'AVAILABLE',
+        limit: 100,
+        offset: 0,
+      });
+      if (requestId !== requestIdRef.current) return;
+      const mapped = result.items
+        .map(toInquiryVehicle)
+        .filter((v): v is InquiryVehicle => v !== null);
+      loadedAtRef.current = Date.now();
+      setVehicles(mapped);
+      setState(mapped.length === 0 ? 'EMPTY' : 'READY');
+    } catch {
+      if (requestId !== requestIdRef.current) return;
+      setState('RECOVERABLE_ERROR');
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     async function resolveDeepLink() {
-      if (hasUsableNavState) {
+      if (hasUsableNavState && rawNavState) {
         setNavState(rawNavState);
-        setState(VEHICLE_CATALOG.length === 0 ? 'EMPTY' : 'READY');
+        await loadVehicles(rawNavState.companyId, rawNavState.branchId);
         return;
       }
       if (contextLoading) return;
@@ -64,7 +115,7 @@ export function useInquiryVehicles() {
         const idToken = await user.getIdToken();
         const inquiry = await getInquiry(idToken, id, resolvedContext.companyId, resolvedContext.branchId);
         if (cancelled) return;
-        setNavState({
+        const nextNavState: InquiryNavState = {
           ...resolvedContext,
           customerName: inquiry.customer?.name ?? '',
           destination: '',
@@ -75,8 +126,9 @@ export function useInquiryVehicles() {
           channel: inquiry.channel as InquiryNavState['channel'],
           touristUse: inquiry.touristUse,
           version: inquiry.version,
-        });
-        setState(VEHICLE_CATALOG.length === 0 ? 'EMPTY' : 'READY');
+        };
+        setNavState(nextNavState);
+        await loadVehicles(nextNavState.companyId, nextNavState.branchId);
       } catch {
         if (!cancelled) setState('RECOVERABLE_ERROR');
       }
@@ -88,7 +140,7 @@ export function useInquiryVehicles() {
     };
     // hasUsableNavState/rawNavState derivan de location.state; resolvedContext/contextLoading ya cubren el resto.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, hasUsableNavState, resolvedContext, contextLoading]);
+  }, [id, hasUsableNavState, resolvedContext, contextLoading, loadVehicles]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -100,9 +152,9 @@ export function useInquiryVehicles() {
   }, []);
 
   const refreshAvailability = useCallback(() => {
-    loadedAtRef.current = Date.now();
-    setState(VEHICLE_CATALOG.length === 0 ? 'EMPTY' : 'READY');
-  }, []);
+    if (!navState) return;
+    void loadVehicles(navState.companyId, navState.branchId);
+  }, [navState, loadVehicles]);
 
   /**
    * Hallazgo de revision PR#11 (Critico #4, lado CON-03): antes esta
@@ -128,7 +180,7 @@ export function useInquiryVehicles() {
     } catch (err) {
       if (err instanceof InquiryCommandError && (err.status === 409 || err.status === 412)) {
         setState('STALE_VERSION');
-      } else if (err instanceof InquiryApiError) {
+      } else if (err instanceof InquiryApiError || err instanceof FleetApiError) {
         setError(err.message);
       } else {
         setError(err instanceof Error ? err.message : 'No se pudo cotizar el vehículo.');
@@ -142,7 +194,7 @@ export function useInquiryVehicles() {
     id,
     navState,
     state,
-    vehicles: VEHICLE_CATALOG,
+    vehicles,
     quotingVehicleId,
     error,
     quoteVehicle,
