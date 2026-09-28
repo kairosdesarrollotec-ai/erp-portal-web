@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNewInquiry } from './useNewInquiry';
 import { INQUIRY_CHANNEL_LABELS } from './inquiry-status';
 import { AppHeader } from '../shared/AppHeader';
+import { NewCustomerModal } from '../customers/NewCustomerModal';
 import styles from './NewInquiryScreen.module.css';
 
 /**
@@ -17,7 +18,28 @@ import styles from './NewInquiryScreen.module.css';
  * que es lo que realmente ocurre (ver useNewInquiry.ts).
  */
 export function NewInquiryScreen() {
-  const { form, state, autosave, error, fieldErrors, updateForm, submit, closeWithoutTouristUse } = useNewInquiry();
+  const {
+    form,
+    state,
+    autosave,
+    error,
+    fieldErrors,
+    updateForm,
+    submit,
+    closeWithoutTouristUse,
+    customerSearchQuery,
+    setCustomerSearchQuery,
+    customerSearchResults,
+    searchingCustomers,
+    selectCustomer,
+    clearSelectedCustomer,
+    isNewCustomerModalOpen,
+    modalLoading,
+    modalError,
+    openNewCustomerModal,
+    closeNewCustomerModal,
+    handleCreateCustomer,
+  } = useNewInquiry();
   const navigate = useNavigate();
 
   const rejectsTouristUse = form.touristUse === false;
@@ -76,7 +98,79 @@ export function NewInquiryScreen() {
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Datos del cliente</h2>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Datos del cliente</h2>
+            <button
+              type="button"
+              className={styles.newCustomerButton}
+              onClick={openNewCustomerModal}
+            >
+              + Registrar nuevo cliente
+            </button>
+          </div>
+
+          {form.customerId ? (
+            <div className={styles.selectedCustomerBox}>
+              <div className={styles.selectedCustomerInfo}>
+                <span className={styles.selectedCustomerBadge}>Cliente vinculado</span>
+                <strong className={styles.selectedCustomerName}>{form.customerName}</strong>
+                <span className={styles.selectedCustomerDoc}>
+                  {form.documentType}: {form.document} ({form.nationality})
+                </span>
+              </div>
+              <button
+                type="button"
+                className={styles.deselectCustomerButton}
+                onClick={clearSelectedCustomer}
+                aria-label="Desvincular cliente"
+              >
+                Desvincular
+              </button>
+            </div>
+          ) : (
+            <div className={styles.customerSearchContainer}>
+              <label className={styles.field}>
+                <span>Buscar cliente registrado</span>
+                <input
+                  className={styles.input}
+                  type="search"
+                  placeholder="Buscar por nombre o número de documento…"
+                  value={customerSearchQuery}
+                  onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                  aria-label="Buscar cliente existente"
+                />
+              </label>
+              {searchingCustomers && (
+                <span className={styles.searchLoading}>Buscando clientes…</span>
+              )}
+              {customerSearchResults.length > 0 && (
+                <ul className={styles.customerSearchResults} role="listbox" aria-label="Clientes encontrados">
+                  {customerSearchResults.map((cust) => (
+                    <li
+                      key={cust.id}
+                      className={styles.customerSearchResultItem}
+                      role="option"
+                      aria-selected={false}
+                      tabIndex={0}
+                      onClick={() => selectCustomer(cust)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          selectCustomer(cust);
+                        }
+                      }}
+                    >
+                      <div className={styles.customerResultName}>{cust.fullName}</div>
+                      <div className={styles.customerResultMeta}>
+                        {cust.documentType}: {cust.documentNumber} · {cust.nationality ?? 'PERUANO'}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           <label className={styles.field}>
             <span>Nombre</span>
             <input
@@ -241,6 +335,14 @@ export function NewInquiryScreen() {
           </button>
         </div>
       </div>
+
+      <NewCustomerModal
+        isOpen={isNewCustomerModalOpen}
+        onClose={closeNewCustomerModal}
+        onSubmit={handleCreateCustomer}
+        loading={modalLoading}
+        error={modalError}
+      />
     </main>
   );
 }
