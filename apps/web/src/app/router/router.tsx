@@ -19,6 +19,7 @@ import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolic
 import { RolePermissionMatrixScreen } from '../admin/RolePermissionMatrixScreen';
 import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
 import { ModuleHubScreen } from '../modules/ModuleHubScreen';
+import { FleetListScreen } from '../fleet/FleetListScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
               { path: '/consultas/nueva', element: <NewInquiryScreen /> },
               { path: '/consultas/:id/vehiculos', element: <InquiryVehiclesScreen /> },
               { path: '/consultas/:id', element: <InquiryDetailScreen /> },
+              { path: '/flota', element: <FleetListScreen /> },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
