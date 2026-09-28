@@ -3,8 +3,6 @@ import {
   listCustomers,
   getCustomer,
   createCustomer,
-  CustomerApiError,
-  CustomerCommandError,
 } from './customers-client';
 
 function mockFetchOnce(status: number, body: unknown, ok = status >= 200 && status < 300) {
