@@ -13,6 +13,7 @@ import { InquiriesListScreen } from '../inquiries/InquiriesListScreen';
 import { NewInquiryScreen } from '../inquiries/NewInquiryScreen';
 import { InquiryVehiclesScreen } from '../inquiries/InquiryVehiclesScreen';
 import { InquiryDetailScreen } from '../inquiries/InquiryDetailScreen';
+import { CustomersListScreen } from '../customers/CustomersListScreen';
 import { AdminUsersScreen } from '../admin/AdminUsersScreen';
 import { AuditEventsScreen } from '../admin/AuditEventsScreen';
 import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
               { path: '/consultas/nueva', element: <NewInquiryScreen /> },
               { path: '/consultas/:id/vehiculos', element: <InquiryVehiclesScreen /> },
               { path: '/consultas/:id', element: <InquiryDetailScreen /> },
+              { path: '/clientes', element: <CustomersListScreen /> },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
