@@ -63,7 +63,7 @@ export function AdminUsersScreen() {
         {showAssignForm && (
           <section className={styles.assignForm}>
             <p className={styles.helperNote}>
-              El usuario recibirá esta contraseña inicial. Al primer ingreso, deberá cambiarla y enrolar su MFA.
+              Se enviará un correo al usuario con estas credenciales. Al primer ingreso, el sistema lo obligará a cambiar la contraseña y enrolar su MFA.
             </p>
             {assignError && <p className={styles.errorText}>{assignError}</p>}
             <label className={styles.field}>
