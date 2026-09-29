@@ -230,3 +230,50 @@
   cursor: pointer;
   font-size: 13px;
 }
+
+.rowActions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.dangerLink {
+  background: none;
+  border: none;
+  color: var(--color-error);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.confirmGroup {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.dangerButton {
+  background: var(--color-error);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dangerButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
