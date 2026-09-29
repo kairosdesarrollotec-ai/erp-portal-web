@@ -40,6 +40,18 @@ export interface UpdateVehicleStatusPayload {
   status: VehicleStatus;
 }
 
+export interface UpdateVehiclePayload {
+  companyId: string;
+  branchId: string;
+  brand: string;
+  model: string;
+  year?: number;
+  color?: string;
+  category?: string;
+  dailyRate?: number;
+  photoUrl?: string;
+}
+
 export interface ListVehiclesParams {
   companyId: string;
   branchId: string;
@@ -171,6 +183,30 @@ export async function updateVehicleStatus(
   payload: UpdateVehicleStatusPayload,
 ): Promise<FleetVehicle> {
   const response = await fetch(`${API_BASE_URL}/fleet/vehicles/${id}/status`, {
+    method: 'PATCH',
+    headers: authHeaders(idToken),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let problem: { code?: string; detail?: string } | null = null;
+    try {
+      problem = await response.json();
+    } catch {
+      // response might not be JSON
+    }
+    throw new FleetCommandError(response.status, problem);
+  }
+
+  return (await response.json()) as FleetVehicle;
+}
+
+export async function updateVehicle(
+  idToken: string,
+  id: string,
+  payload: UpdateVehiclePayload,
+): Promise<FleetVehicle> {
+  const response = await fetch(`${API_BASE_URL}/fleet/vehicles/${id}`, {
     method: 'PATCH',
     headers: authHeaders(idToken),
     body: JSON.stringify(payload),

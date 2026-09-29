@@ -1,6 +1,6 @@
 import { useState, type FormEvent, useEffect } from 'react';
 import type { VehicleFormData } from './useFleetList';
-import type { VehicleStatus } from './fleet-client';
+import type { FleetVehicle, VehicleStatus } from './fleet-client';
 import styles from './NewVehicleModal.module.css';
 
 interface NewVehicleModalProps {
@@ -10,6 +10,13 @@ interface NewVehicleModalProps {
   isSubmitting: boolean;
   errorMessage: string | null;
   onClearError: () => void;
+  /**
+   * Cuando se pasa, el modal opera en modo edición sobre este vehículo:
+   * la placa se muestra pero no es editable (es el identificador natural
+   * del vehículo) y el estado no se ofrece aquí (se cambia desde el
+   * selector rápido o la acción "Dar de baja" en la lista).
+   */
+  vehicle?: FleetVehicle | null;
 }
 
 const CATEGORIES = [
@@ -35,7 +42,9 @@ export function NewVehicleModal({
   isSubmitting,
   errorMessage,
   onClearError,
+  vehicle = null,
 }: NewVehicleModalProps) {
+  const isEditMode = vehicle !== null;
   const [plate, setPlate] = useState('');
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
@@ -60,8 +69,21 @@ export function NewVehicleModal({
       setPhotoUrl('');
       setValidationError(null);
       onClearError();
+      return;
     }
-  }, [isOpen, onClearError]);
+
+    if (vehicle) {
+      setPlate(vehicle.plate);
+      setBrand(vehicle.brand);
+      setModel(vehicle.model);
+      setYear(vehicle.year != null ? String(vehicle.year) : '');
+      setColor(vehicle.color ?? '');
+      setCategory(vehicle.category ?? 'SEDAN');
+      setStatus(vehicle.status);
+      setDailyRate(vehicle.dailyRate != null ? String(vehicle.dailyRate) : '');
+      setPhotoUrl(vehicle.photoUrl ?? '');
+    }
+  }, [isOpen, onClearError, vehicle]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -80,7 +102,7 @@ export function NewVehicleModal({
     setValidationError(null);
 
     const cleanPlate = plate.trim().toUpperCase();
-    if (!cleanPlate) {
+    if (!isEditMode && !cleanPlate) {
       setValidationError('La placa es obligatoria.');
       return;
     }
@@ -124,6 +146,7 @@ export function NewVehicleModal({
     }
   }
 
+
   const activeError = validationError || errorMessage;
 
   return (
@@ -145,10 +168,12 @@ export function NewVehicleModal({
         </button>
 
         <h2 id="new-vehicle-title" className={styles.title}>
-          Registrar Vehículo
+          {isEditMode ? 'Editar Vehículo' : 'Registrar Vehículo'}
         </h2>
         <p className={styles.description}>
-          Ingrese los datos del nuevo vehículo para agregarlo al catálogo de la sede actual.
+          {isEditMode
+            ? 'Actualice los datos del vehículo. La placa y el estado no se editan desde aquí.'
+            : 'Ingrese los datos del nuevo vehículo para agregarlo al catálogo de la sede actual.'}
         </p>
 
         {activeError && <div className={styles.errorText}>{activeError}</div>}
@@ -156,7 +181,7 @@ export function NewVehicleModal({
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.gridTwo}>
             <label className={styles.field}>
-              Placa *
+              Placa {isEditMode ? '' : '*'}
               <input
                 type="text"
                 className={styles.input}
@@ -164,8 +189,9 @@ export function NewVehicleModal({
                 onChange={(e) => setPlate(e.target.value.toUpperCase())}
                 placeholder="ABC-123"
                 maxLength={10}
-                required
-                disabled={isSubmitting}
+                required={!isEditMode}
+                disabled={isSubmitting || isEditMode}
+                readOnly={isEditMode}
               />
             </label>
 
@@ -257,21 +283,23 @@ export function NewVehicleModal({
           </div>
 
           <div className={styles.gridTwo}>
-            <label className={styles.field}>
-              Estado Inicial
-              <select
-                className={styles.select}
-                value={status}
-                onChange={(e) => setStatus(e.target.value as VehicleStatus)}
-                disabled={isSubmitting}
-              >
-                {STATUSES.map((st) => (
-                  <option key={st.value} value={st.value}>
-                    {st.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!isEditMode && (
+              <label className={styles.field}>
+                Estado Inicial
+                <select
+                  className={styles.select}
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as VehicleStatus)}
+                  disabled={isSubmitting}
+                >
+                  {STATUSES.map((st) => (
+                    <option key={st.value} value={st.value}>
+                      {st.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             <label className={styles.field}>
               URL de Foto (opcional)
@@ -296,7 +324,13 @@ export function NewVehicleModal({
               Cancelar
             </button>
             <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
-              {isSubmitting ? 'Registrando...' : 'Registrar Vehículo'}
+              {isSubmitting
+                ? isEditMode
+                  ? 'Guardando...'
+                  : 'Registrando...'
+                : isEditMode
+                  ? 'Guardar Cambios'
+                  : 'Registrar Vehículo'}
             </button>
           </div>
         </form>

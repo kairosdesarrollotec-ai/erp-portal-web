@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
-import { useFleetList } from './useFleetList';
+import { useFleetList, type VehicleFormData } from './useFleetList';
 import { NewVehicleModal } from './NewVehicleModal';
 import { AppHeader } from '../shared/AppHeader';
-import type { VehicleStatus } from './fleet-client';
+import type { FleetVehicle, VehicleStatus } from './fleet-client';
 import styles from './FleetListScreen.module.css';
 
 const STATUS_LABELS: Record<VehicleStatus, string> = {
@@ -36,10 +36,46 @@ export function FleetListScreen() {
     updatingId,
     addVehicle,
     changeStatus,
+    editingVehicle,
+    setEditingVehicle,
+    editSubmitting,
+    editError,
+    setEditError,
+    editVehicle,
+    deactivateVehicle,
     reload,
   } = useFleetList();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [deactivatingConfirmId, setDeactivatingConfirmId] = useState<string | null>(null);
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+
+  function openEditModal(vehicle: FleetVehicle) {
+    setEditingVehicle(vehicle);
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setEditingVehicle(null);
+  }
+
+  async function handleModalSubmit(data: VehicleFormData): Promise<boolean> {
+    if (editingVehicle) {
+      return editVehicle(editingVehicle.id, data);
+    }
+    return addVehicle(data);
+  }
+
+  async function handleConfirmDeactivate(vehicleId: string) {
+    setDeactivatingId(vehicleId);
+    try {
+      await deactivateVehicle(vehicleId);
+    } finally {
+      setDeactivatingId(null);
+      setDeactivatingConfirmId(null);
+    }
+  }
 
   return (
     <main className={styles.wrapper}>
@@ -130,6 +166,7 @@ export function FleetListScreen() {
                   <th>Tarifa diaria</th>
                   <th>Estado</th>
                   <th>Acción</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -178,6 +215,45 @@ export function FleetListScreen() {
                         <option value="OUT_OF_SERVICE">Fuera de Servicio</option>
                       </select>
                     </td>
+                    <td>
+                      {v.status !== 'OUT_OF_SERVICE' &&
+                        (deactivatingConfirmId === v.id ? (
+                          <span className={styles.confirmGroup}>
+                            <button
+                              type="button"
+                              className={styles.dangerButton}
+                              disabled={deactivatingId === v.id}
+                              onClick={() => void handleConfirmDeactivate(v.id)}
+                            >
+                              {deactivatingId === v.id ? 'Dando de baja…' : 'Confirmar baja'}
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.linkButton}
+                              onClick={() => setDeactivatingConfirmId(null)}
+                            >
+                              Volver
+                            </button>
+                          </span>
+                        ) : (
+                          <span className={styles.rowActions}>
+                            <button
+                              type="button"
+                              className={styles.linkButton}
+                              onClick={() => openEditModal(v)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.dangerLink}
+                              onClick={() => setDeactivatingConfirmId(v.id)}
+                            >
+                              Dar de baja
+                            </button>
+                          </span>
+                        ))}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -188,11 +264,12 @@ export function FleetListScreen() {
 
       <NewVehicleModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSubmit={addVehicle}
-        isSubmitting={creating}
-        errorMessage={createError}
-        onClearError={() => setCreateError(null)}
+        onClose={closeModal}
+        onSubmit={handleModalSubmit}
+        isSubmitting={editingVehicle ? editSubmitting : creating}
+        errorMessage={editingVehicle ? editError : createError}
+        onClearError={() => (editingVehicle ? setEditError(null) : setCreateError(null))}
+        vehicle={editingVehicle}
       />
     </main>
   );

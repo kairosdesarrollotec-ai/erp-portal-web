@@ -7,6 +7,7 @@ import {
   VehicleStatus,
   createVehicle,
   listVehicles,
+  updateVehicle,
   updateVehicleStatus,
 } from './fleet-client';
 import { useWorkContextForFleet } from './useWorkContextForFleet';
@@ -27,6 +28,16 @@ export interface VehicleFormData {
   photoUrl?: string;
 }
 
+export interface VehicleEditFormData {
+  brand: string;
+  model: string;
+  year?: number;
+  color?: string;
+  category?: string;
+  dailyRate?: number;
+  photoUrl?: string;
+}
+
 export function useFleetList() {
   const { context, loading: contextLoading } = useWorkContextForFleet();
   const [state, setState] = useState<FleetListState>('LOADING');
@@ -37,6 +48,9 @@ export function useFleetList() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<FleetVehicle | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
 
   const reload = useCallback(async () => {
@@ -160,6 +174,53 @@ export function useFleetList() {
     [context, reload],
   );
 
+  const editVehicle = useCallback(
+    async (vehicleId: string, formData: VehicleEditFormData): Promise<boolean> => {
+      if (!context) return false;
+      setEditSubmitting(true);
+      setEditError(null);
+
+      try {
+        const user = getFirebaseAuth().currentUser;
+        if (!user) {
+          setEditError('No hay sesión activa.');
+          return false;
+        }
+        const idToken = await user.getIdToken();
+
+        await updateVehicle(idToken, vehicleId, {
+          companyId: context.companyId,
+          branchId: context.branchId,
+          brand: formData.brand.trim(),
+          model: formData.model.trim(),
+          year: formData.year || undefined,
+          color: formData.color?.trim() || undefined,
+          category: formData.category?.trim() || undefined,
+          dailyRate: formData.dailyRate || undefined,
+          photoUrl: formData.photoUrl?.trim() || undefined,
+        });
+
+        await reload();
+        return true;
+      } catch (error) {
+        if (error instanceof FleetCommandError) {
+          setEditError(error.message);
+        } else {
+          setEditError('Ocurrió un error al editar el vehículo. Intente nuevamente.');
+        }
+        return false;
+      } finally {
+        setEditSubmitting(false);
+      }
+    },
+    [context, reload],
+  );
+
+  const deactivateVehicle = useCallback(
+    (vehicleId: string) => changeStatus(vehicleId, 'OUT_OF_SERVICE'),
+    [changeStatus],
+  );
+
   return {
     state,
     vehicles,
@@ -175,6 +236,13 @@ export function useFleetList() {
     updatingId,
     addVehicle,
     changeStatus,
+    editingVehicle,
+    setEditingVehicle,
+    editSubmitting,
+    editError,
+    setEditError,
+    editVehicle,
+    deactivateVehicle,
     reload,
   };
 }
