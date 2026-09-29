@@ -156,7 +156,9 @@ describe('AdminUsersScreen (ADM-01)', () => {
     fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), {
       target: { value: 'Temporal@123' },
     });
-    fireEvent.change(screen.getByDisplayValue('VeloxRent'), { target: { value: 'c2' } });
+    // Desmarcar VeloxRent Sede Central y marcar VeloxRent Norte Sede Norte
+    fireEvent.click(screen.getByLabelText('VeloxRent - Sede Central'));
+    fireEvent.click(screen.getByLabelText('VeloxRent Norte - Sede Norte'));
 
     fireEvent.click(screen.getAllByText('Agregar usuario').at(-1)!);
 
@@ -169,6 +171,50 @@ describe('AdminUsersScreen (ADM-01)', () => {
         targetBranchId: 'b2',
         targetRole: 'FRONT_OFFICE',
         initialPassword: 'Temporal@123',
+      });
+    });
+  });
+
+  it('permite asignar a múltiples empresas y sedes simultáneamente', async () => {
+    listOrganizationUsersMock.mockResolvedValue([]);
+    assignUserToCompanyMock.mockResolvedValue({ id: 'assign-5' });
+    renderScreen();
+
+    await screen.findByText('Todavía no hay usuarios asignados a esta organización.');
+    fireEvent.click(screen.getByText('Agregar usuario'));
+
+    await screen.findByText('VeloxRent Norte');
+    fireEvent.change(screen.getByPlaceholderText('usuario@veloxrent.pe'), {
+      target: { value: 'multi@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), {
+      target: { value: 'Temporal@123' },
+    });
+
+    // VeloxRent Sede Central ya viene seleccionada, además marcamos VeloxRent Norte
+    fireEvent.click(screen.getByLabelText('VeloxRent Norte - Sede Norte'));
+
+    fireEvent.click(screen.getAllByText('Agregar usuario').at(-1)!);
+
+    await waitFor(() => {
+      expect(assignUserToCompanyMock).toHaveBeenCalledTimes(2);
+      expect(assignUserToCompanyMock).toHaveBeenNthCalledWith(1, 'fake-id-token', {
+        companyId: 'c1',
+        branchId: 'b1',
+        targetEmail: 'multi@veloxrent.pe',
+        targetCompanyId: 'c1',
+        targetBranchId: 'b1',
+        targetRole: 'FRONT_OFFICE',
+        initialPassword: 'Temporal@123',
+      });
+      expect(assignUserToCompanyMock).toHaveBeenNthCalledWith(2, 'fake-id-token', {
+        companyId: 'c1',
+        branchId: 'b1',
+        targetEmail: 'multi@veloxrent.pe',
+        targetCompanyId: 'c2',
+        targetBranchId: 'b2',
+        targetRole: 'FRONT_OFFICE',
+        initialPassword: undefined,
       });
     });
   });

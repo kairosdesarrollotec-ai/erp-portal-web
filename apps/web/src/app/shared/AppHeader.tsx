@@ -84,7 +84,9 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
           )}
           {email && (
             <div className={styles.userGroup}>
-              <span className={styles.avatar}>{initial}</span>
+              <span className={styles.avatar} title={email}>
+                {initial}
+              </span>
               <div className={styles.userText}>
                 <span className={styles.userEmail}>{email}</span>
                 {roleLabel && <span className={styles.userRole}>{roleLabel}</span>}

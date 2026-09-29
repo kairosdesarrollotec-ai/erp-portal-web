@@ -225,4 +225,49 @@ describe('FleetListScreen', () => {
       );
     });
   });
+
+  it('muestra controles de foto y permite quitar la foto precargada en edición', async () => {
+    listVehiclesMock.mockResolvedValue({
+      items: [
+        {
+          id: 'v-edit',
+          organizationId: 'org-1',
+          operatingCompanyId: 'c1',
+          branchId: 'b1',
+          plate: 'FOT-001',
+          brand: 'Nissan',
+          model: 'Frontier',
+          year: 2023,
+          color: 'Gris',
+          category: 'PICKUP',
+          status: 'AVAILABLE',
+          dailyRate: 280,
+          photoUrl: 'data:image/jpeg;base64,fakephotodata',
+          createdAt: '2026-09-28T12:00:00.000Z',
+          updatedAt: '2026-09-28T12:00:00.000Z',
+        },
+      ],
+      total: 1,
+    });
+
+    renderScreen();
+
+    expect(await screen.findByText('FOT-001')).toBeInTheDocument();
+
+    // Clic en editar
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByAltText('Vista previa del vehículo')).toHaveAttribute(
+      'src',
+      'data:image/jpeg;base64,fakephotodata',
+    );
+    expect(screen.getByRole('button', { name: 'Cambiar foto' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Quitar foto' })).toBeInTheDocument();
+
+    // Quitar la foto
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar foto' }));
+    expect(screen.queryByAltText('Vista previa del vehículo')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Adjuntar foto' })).toBeInTheDocument();
+  });
 });
