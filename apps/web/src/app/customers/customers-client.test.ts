@@ -3,6 +3,7 @@ import {
   listCustomers,
   getCustomer,
   createCustomer,
+  updateCustomer,
 } from './customers-client';
 
 function mockFetchOnce(status: number, body: unknown, ok = status >= 200 && status < 300) {
@@ -95,6 +96,57 @@ describe('customers-client', () => {
 
     await expect(
       createCustomer('token', {
+        companyId: 'comp-1',
+        branchId: 'branch-1',
+        fullName: 'Ana Gomez',
+        documentType: 'DNI',
+        documentNumber: '87654321',
+      }),
+    ).rejects.toMatchObject({
+      name: 'CustomerCommandError',
+      status: 409,
+      problem: { code: 'CUSTOMER_DOCUMENT_ALREADY_EXISTS' },
+    });
+  });
+
+
+  it('updateCustomer envía PATCH con el payload al endpoint del cliente', async () => {
+    const fetchMock = mockFetchOnce(200, { id: 'cust-1', fullName: 'Ana Gomez Editada' });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const payload = {
+      companyId: 'comp-1',
+      branchId: 'branch-1',
+      fullName: 'Ana Gomez Editada',
+      documentType: 'DNI',
+      documentNumber: '87654321',
+      email: 'ana@example.com',
+    };
+
+    const res = await updateCustomer('token', 'cust-1', payload);
+    expect(res.id).toBe('cust-1');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toContain('/customers/cust-1');
+    expect(init.method).toBe('PATCH');
+    expect(JSON.parse(init.body as string)).toEqual(payload);
+  });
+
+  it('updateCustomer lanza CustomerCommandError con el detalle del backend en error 409', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          code: 'CUSTOMER_DOCUMENT_ALREADY_EXISTS',
+          detail: 'Ya existe un cliente con DNI número 87654321 en esta empresa.',
+        }),
+      }),
+    );
+
+    await expect(
+      updateCustomer('token', 'cust-1', {
         companyId: 'comp-1',
         branchId: 'branch-1',
         fullName: 'Ana Gomez',

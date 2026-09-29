@@ -142,3 +142,23 @@
 .textMuted {
   color: var(--color-muted);
 }
+
+.editButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+
+.editButton:hover {
+  opacity: 0.85;
+}
