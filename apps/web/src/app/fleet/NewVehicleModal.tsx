@@ -1,4 +1,5 @@
-import { useState, type FormEvent, useEffect } from 'react';
+import { useState, useRef, type FormEvent, useEffect, type ChangeEvent } from 'react';
+import { Camera } from 'lucide-react';
 import type { VehicleFormData } from './useFleetList';
 import type { FleetVehicle, VehicleStatus } from './fleet-client';
 import styles from './NewVehicleModal.module.css';
@@ -55,6 +56,64 @@ export function NewVehicleModal({
   const [dailyRate, setDailyRate] = useState<string>('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setValidationError('Por favor seleccione un archivo de imagen válido (JPEG, PNG o WebP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result;
+      if (typeof result !== 'string') return;
+
+      if (typeof window !== 'undefined' && typeof window.Image !== 'undefined') {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            const maxDim = 1024;
+            let width = img.width;
+            let height = img.height;
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressed = canvas.toDataURL('image/jpeg', 0.82);
+              setPhotoUrl(compressed);
+              return;
+            }
+          } catch {
+            // fallback al Data URL original si canvas falla (ej. CORS o entorno headless)
+          }
+          setPhotoUrl(result);
+        };
+        img.onerror = () => {
+          setPhotoUrl(result);
+        };
+        img.src = result;
+      } else {
+        setPhotoUrl(result);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }
 
   useEffect(() => {
     if (!isOpen) {
@@ -282,36 +341,68 @@ export function NewVehicleModal({
             </label>
           </div>
 
-          <div className={styles.gridTwo}>
-            {!isEditMode && (
-              <label className={styles.field}>
-                Estado Inicial
-                <select
-                  className={styles.select}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as VehicleStatus)}
+          {!isEditMode && (
+            <label className={styles.field}>
+              Estado Inicial
+              <select
+                className={styles.select}
+                value={status}
+                onChange={(e) => setStatus(e.target.value as VehicleStatus)}
+                disabled={isSubmitting}
+              >
+                {STATUSES.map((st) => (
+                  <option key={st.value} value={st.value}>
+                    {st.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          <div className={styles.photoSection}>
+            <span className={styles.photoLabel}>Foto del Vehículo (opcional)</span>
+            <div className={styles.photoContainer}>
+              {photoUrl ? (
+                <div className={styles.photoPreviewWrapper}>
+                  <img
+                    src={photoUrl}
+                    alt="Vista previa del vehículo"
+                    className={styles.photoPreview}
+                  />
+                </div>
+              ) : null}
+              <div className={styles.photoActions}>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={handleFileChange}
+                  disabled={isSubmitting}
+                  data-testid="vehicle-photo-file-input"
+                />
+                <button
+                  type="button"
+                  className={styles.attachPhotoButton}
+                  onClick={() => fileInputRef.current?.click()}
                   disabled={isSubmitting}
                 >
-                  {STATUSES.map((st) => (
-                    <option key={st.value} value={st.value}>
-                      {st.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            <label className={styles.field}>
-              URL de Foto (opcional)
-              <input
-                type="url"
-                className={styles.input}
-                value={photoUrl}
-                onChange={(e) => setPhotoUrl(e.target.value)}
-                placeholder="https://..."
-                disabled={isSubmitting}
-              />
-            </label>
+                  <Camera size={16} />
+                  {photoUrl ? 'Cambiar foto' : 'Adjuntar foto'}
+                </button>
+                {photoUrl && (
+                  <button
+                    type="button"
+                    className={styles.removePhotoButton}
+                    onClick={() => setPhotoUrl('')}
+                    disabled={isSubmitting}
+                  >
+                    Quitar foto
+                  </button>
+                )}
+                <span className={styles.photoHint}>Formatos admitidos: JPG, PNG o WebP</span>
+              </div>
+            </div>
           </div>
 
           <div className={styles.actions}>

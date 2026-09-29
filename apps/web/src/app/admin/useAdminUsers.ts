@@ -15,10 +15,16 @@ import type { WorkerRole } from '../dashboard/worker-role';
 /** ADM-01 - estados READY/LOADING/EMPTY/RECOVERABLE_ERROR (contrato punto 9). */
 export type AdminUsersState = 'LOADING' | 'READY' | 'EMPTY' | 'RECOVERABLE_ERROR';
 
-export interface AssignUserFormInput {
-  targetEmail: string;
+export interface AssignCompanyBranchTarget {
   targetCompanyId: string;
   targetBranchId: string;
+}
+
+export interface AssignUserFormInput {
+  targetEmail: string;
+  targets?: AssignCompanyBranchTarget[];
+  targetCompanyId?: string;
+  targetBranchId?: string;
   targetRole: WorkerRole;
   /** Omitir cuando el correo ya existe (ver AssignUserInput). */
   initialPassword?: string;
@@ -74,18 +80,52 @@ export function useAdminUsers() {
 
   async function assign(input: AssignUserFormInput): Promise<boolean> {
     if (!context) return false;
+    const targets: AssignCompanyBranchTarget[] =
+      input.targets && input.targets.length > 0
+        ? input.targets
+        : input.targetCompanyId && input.targetBranchId
+          ? [{ targetCompanyId: input.targetCompanyId, targetBranchId: input.targetBranchId }]
+          : [];
+
+    if (targets.length === 0) return false;
+
     setAssigning(true);
     setAssignError(null);
     try {
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesion no disponible.');
       const idToken = await user.getIdToken();
-      await assignUserToCompany(idToken, {
-        companyId: context.companyId,
-        branchId: context.branchId,
-        ...input,
-      });
-      await reload();
+
+      let successCount = 0;
+      let firstError: Error | null = null;
+
+      for (let i = 0; i < targets.length; i++) {
+        const target = targets[i];
+        try {
+          await assignUserToCompany(idToken, {
+            companyId: context.companyId,
+            branchId: context.branchId,
+            targetEmail: input.targetEmail,
+            targetCompanyId: target.targetCompanyId,
+            targetBranchId: target.targetBranchId,
+            targetRole: input.targetRole,
+            initialPassword: i === 0 ? input.initialPassword : undefined,
+          });
+          successCount++;
+        } catch (err) {
+          if (i === 0) {
+            throw err;
+          }
+          if (!firstError) firstError = err as Error;
+        }
+      }
+
+      if (successCount > 0) {
+        await reload();
+      }
+      if (successCount === 0 && firstError) {
+        throw firstError;
+      }
       return true;
     } catch (error) {
       setAssignError(error instanceof AdminCommandError ? error.message : 'No se pudo asignar el usuario.');

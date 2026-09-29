@@ -289,7 +289,7 @@ export function NewInquiryScreen() {
 
           {rejectsTouristUse && (
             <p className={styles.warningText}>
-              El cliente no confirma uso turístico: esta consulta se cierra sin cotizar (no continúa a CON-03).
+              Por políticas de cobertura de seguros y términos de servicio de la flota, el alquiler está destinado exclusivamente a uso turístico. Al indicar que no tiene fin turístico, la consulta se registrará como cerrada sin cotización comercial.
             </p>
           )}
         </section>
