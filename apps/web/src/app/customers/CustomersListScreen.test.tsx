@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { CustomersListScreen } from './CustomersListScreen';
-import { CustomerApiError } from './customers-client';
+import { CustomerApiError, CustomerCommandError } from './customers-client';
 
 const listCustomersMock = vi.fn();
 const createCustomerMock = vi.fn();
+const updateCustomerMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
@@ -23,6 +24,7 @@ vi.mock('./customers-client', async () => {
     ...actual,
     listCustomers: (...args: unknown[]) => listCustomersMock(...args),
     createCustomer: (...args: unknown[]) => createCustomerMock(...args),
+    updateCustomer: (...args: unknown[]) => updateCustomerMock(...args),
   };
 });
 
@@ -55,6 +57,7 @@ describe('CustomersListScreen', () => {
   beforeEach(() => {
     listCustomersMock.mockReset();
     createCustomerMock.mockReset();
+    updateCustomerMock.mockReset();
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
@@ -167,5 +170,99 @@ describe('CustomersListScreen', () => {
         expect.any(String),
       );
     });
+  });
+
+
+  it('abre el modal de edición con los datos precargados y guarda los cambios', async () => {
+    listCustomersMock.mockResolvedValue({
+      items: [
+        {
+          id: 'cust-1',
+          fullName: 'Juan Perez',
+          documentType: 'DNI',
+          documentNumber: '12345678',
+          nationality: 'PERUANO',
+          countryEntryDate: null,
+          email: 'juan@test.com',
+          phone: '999888777',
+          address: 'Av. El Sol 123',
+          createdAt: '2026-09-28T12:00:00.000Z',
+          updatedAt: '2026-09-28T12:00:00.000Z',
+        },
+      ],
+      total: 1,
+    });
+    updateCustomerMock.mockResolvedValue({ id: 'cust-1', fullName: 'Juan Perez Actualizado' });
+
+    renderScreen();
+
+    const editBtn = await screen.findByRole('button', { name: 'Editar cliente Juan Perez' });
+    fireEvent.click(editBtn);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Editar Cliente' })).toBeInTheDocument();
+
+    const fullNameInput = screen.getByPlaceholderText(
+      'Ej. Juan Pérez o Inversiones SAC',
+    ) as HTMLInputElement;
+    expect(fullNameInput.value).toBe('Juan Perez');
+
+    fireEvent.change(fullNameInput, { target: { value: 'Juan Perez Actualizado' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() => {
+      expect(updateCustomerMock).toHaveBeenCalledWith(
+        'fake-id-token',
+        'cust-1',
+        expect.objectContaining({
+          companyId: 'c1',
+          branchId: 'b1',
+          fullName: 'Juan Perez Actualizado',
+          documentNumber: '12345678',
+          documentType: 'DNI',
+        }),
+      );
+    });
+  });
+
+  it('muestra el error de documento duplicado al editar un cliente', async () => {
+    listCustomersMock.mockResolvedValue({
+      items: [
+        {
+          id: 'cust-1',
+          fullName: 'Juan Perez',
+          documentType: 'DNI',
+          documentNumber: '12345678',
+          nationality: 'PERUANO',
+          countryEntryDate: null,
+          email: 'juan@test.com',
+          phone: '999888777',
+          address: 'Av. El Sol 123',
+          createdAt: '2026-09-28T12:00:00.000Z',
+          updatedAt: '2026-09-28T12:00:00.000Z',
+        },
+      ],
+      total: 1,
+    });
+    updateCustomerMock.mockRejectedValue(
+      new CustomerCommandError(409, {
+        code: 'CUSTOMER_DOCUMENT_ALREADY_EXISTS',
+        detail: 'Ya existe un cliente con DNI número 99999999 en esta empresa.',
+      }),
+    );
+
+    renderScreen();
+
+    const editBtn = await screen.findByRole('button', { name: 'Editar cliente Juan Perez' });
+    fireEvent.click(editBtn);
+
+    fireEvent.change(screen.getByPlaceholderText('Ej. 12345678'), {
+      target: { value: '99999999' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(
+      await screen.findByText('Ya existe un cliente con DNI número 99999999 en esta empresa.'),
+    ).toBeInTheDocument();
   });
 });

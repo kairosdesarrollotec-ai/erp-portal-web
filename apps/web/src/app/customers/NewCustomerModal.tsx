@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { CustomerFormData } from './useCustomersList';
 import styles from './NewCustomerModal.module.css';
@@ -9,6 +9,8 @@ interface NewCustomerModalProps {
   onSubmit: (data: CustomerFormData) => Promise<boolean>;
   loading: boolean;
   error: string | null;
+  mode?: 'create' | 'edit';
+  initialData?: CustomerFormData;
 }
 
 const DOCUMENT_TYPES = [
@@ -24,16 +26,34 @@ export function NewCustomerModal({
   onSubmit,
   loading,
   error,
+  mode = 'create',
+  initialData,
 }: NewCustomerModalProps) {
-  const [fullName, setFullName] = useState('');
-  const [documentType, setDocumentType] = useState('DNI');
-  const [documentNumber, setDocumentNumber] = useState('');
-  const [nationality, setNationality] = useState<'PERUANO' | 'EXTRANJERO'>('PERUANO');
-  const [countryEntryDate, setCountryEntryDate] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const [fullName, setFullName] = useState(initialData?.fullName ?? '');
+  const [documentType, setDocumentType] = useState(initialData?.documentType ?? 'DNI');
+  const [documentNumber, setDocumentNumber] = useState(initialData?.documentNumber ?? '');
+  const [nationality, setNationality] = useState<'PERUANO' | 'EXTRANJERO'>(
+    initialData?.nationality ?? 'PERUANO',
+  );
+  const [countryEntryDate, setCountryEntryDate] = useState(initialData?.countryEntryDate ?? '');
+  const [email, setEmail] = useState(initialData?.email ?? '');
+  const [phone, setPhone] = useState(initialData?.phone ?? '');
+  const [address, setAddress] = useState(initialData?.address ?? '');
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setFullName(initialData?.fullName ?? '');
+    setDocumentType(initialData?.documentType ?? 'DNI');
+    setDocumentNumber(initialData?.documentNumber ?? '');
+    setNationality(initialData?.nationality ?? 'PERUANO');
+    setCountryEntryDate(initialData?.countryEntryDate ?? '');
+    setEmail(initialData?.email ?? '');
+    setPhone(initialData?.phone ?? '');
+    setAddress(initialData?.address ?? '');
+    setValidationError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -62,14 +82,16 @@ export function NewCustomerModal({
     });
 
     if (success) {
-      setFullName('');
-      setDocumentType('DNI');
-      setDocumentNumber('');
-      setNationality('PERUANO');
-      setCountryEntryDate('');
-      setEmail('');
-      setPhone('');
-      setAddress('');
+      if (mode === 'create') {
+        setFullName('');
+        setDocumentType('DNI');
+        setDocumentNumber('');
+        setNationality('PERUANO');
+        setCountryEntryDate('');
+        setEmail('');
+        setPhone('');
+        setAddress('');
+      }
       onClose();
     }
   }
@@ -93,10 +115,12 @@ export function NewCustomerModal({
         </button>
 
         <h2 id="new-customer-title" className={styles.title}>
-          Nuevo Cliente
+          {mode === 'edit' ? 'Editar Cliente' : 'Nuevo Cliente'}
         </h2>
         <p className={styles.description}>
-          Registra los datos del cliente para asociarlo a cotizaciones, consultas y reservas.
+          {mode === 'edit'
+            ? 'Actualiza los datos del cliente registrado.'
+            : 'Registra los datos del cliente para asociarlo a cotizaciones, consultas y reservas.'}
         </p>
 
         {(validationError || error) && (
@@ -255,7 +279,11 @@ export function NewCustomerModal({
               className={styles.submitButton}
               disabled={loading}
             >
-              {loading ? 'Guardando…' : 'Registrar cliente'}
+              {loading
+                ? 'Guardando…'
+                : mode === 'edit'
+                  ? 'Guardar cambios'
+                  : 'Registrar cliente'}
             </button>
           </div>
         </form>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Pencil } from 'lucide-react';
 import { useCustomersList } from './useCustomersList';
 import { NewCustomerModal } from './NewCustomerModal';
 import { AppHeader } from '../shared/AppHeader';
@@ -16,6 +16,12 @@ export function CustomersListScreen() {
     creating,
     createError,
     addCustomer,
+    editingCustomer,
+    startEditingCustomer,
+    stopEditingCustomer,
+    editCustomer,
+    updating,
+    updateError,
   } = useCustomersList();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -89,6 +95,7 @@ export function CustomersListScreen() {
                   <th>Contacto</th>
                   <th>Nacionalidad</th>
                   <th>Fecha de registro</th>
+                  <th aria-label="Acciones"></th>
                 </tr>
               </thead>
               <tbody>
@@ -120,6 +127,16 @@ export function CustomersListScreen() {
                       )}
                     </td>
                     <td>{new Date(c.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className={styles.editButton}
+                        onClick={() => startEditingCustomer(c)}
+                        aria-label={`Editar cliente ${c.fullName}`}
+                      >
+                        <Pencil size={14} /> Editar
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -134,6 +151,29 @@ export function CustomersListScreen() {
         onSubmit={addCustomer}
         loading={creating}
         error={createError}
+      />
+
+      <NewCustomerModal
+        isOpen={editingCustomer !== null}
+        onClose={stopEditingCustomer}
+        onSubmit={editCustomer}
+        loading={updating}
+        error={updateError}
+        mode="edit"
+        initialData={
+          editingCustomer
+            ? {
+                fullName: editingCustomer.fullName,
+                documentType: editingCustomer.documentType,
+                documentNumber: editingCustomer.documentNumber,
+                nationality: editingCustomer.nationality ?? undefined,
+                countryEntryDate: editingCustomer.countryEntryDate ?? undefined,
+                email: editingCustomer.email ?? undefined,
+                phone: editingCustomer.phone ?? undefined,
+                address: editingCustomer.address ?? undefined,
+              }
+            : undefined
+        }
       />
     </main>
   );

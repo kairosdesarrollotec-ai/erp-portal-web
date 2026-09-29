@@ -29,6 +29,19 @@ export interface CreateCustomerPayload {
   address?: string;
 }
 
+export interface UpdateCustomerPayload {
+  companyId: string;
+  branchId: string;
+  fullName: string;
+  documentType: string;
+  documentNumber: string;
+  nationality?: 'PERUANO' | 'EXTRANJERO';
+  countryEntryDate?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+}
+
 export interface ListCustomersParams {
   companyId: string;
   branchId: string;
@@ -149,3 +162,28 @@ export async function createCustomer(
 
   return (await response.json()) as Customer;
 }
+
+export async function updateCustomer(
+  idToken: string,
+  id: string,
+  payload: UpdateCustomerPayload,
+): Promise<Customer> {
+  const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
+    method: 'PATCH',
+    headers: authHeaders(idToken),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let problem: { code?: string; detail?: string } | null = null;
+    try {
+      problem = await response.json();
+    } catch {
+      // response might not be JSON
+    }
+    throw new CustomerCommandError(response.status, problem);
+  }
+
+  return (await response.json()) as Customer;
+}
+
