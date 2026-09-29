@@ -14,8 +14,12 @@ import type { NewInquiryFormData } from './useNewInquiry';
  * HU-26 no persiste estos campos (ver comentario en inquiries-client.ts).
  */
 export interface InquiryFormErrors {
-  customerName?: string;
-  document?: string;
+  /**
+   * Rediseño CON-02: ya no hay campos manuales de nombre/documento - la
+   * identidad viene siempre de un Customer vinculado (buscado o creado via
+   * el modal). Sin `customerId` no hay como registrar la consulta.
+   */
+  customerId?: string;
   hospedajeDocument?: string;
   destination?: string;
   travelDate?: string;
@@ -28,11 +32,8 @@ function todayISODate(): string {
 export function validateNewInquiryForm(form: NewInquiryFormData): InquiryFormErrors {
   const errors: InquiryFormErrors = {};
 
-  if (form.customerName.trim().length === 0) {
-    errors.customerName = 'Ingresa el nombre del cliente.';
-  }
-  if (form.document.trim().length === 0) {
-    errors.document = 'Ingresa el documento del cliente.';
+  if (!form.customerId) {
+    errors.customerId = 'Busca y selecciona un cliente registrado, o registra uno nuevo, antes de continuar.';
   }
   if (form.nationality === 'EXTRANJERO' && form.hospedajeDocument.trim().length === 0) {
     errors.hospedajeDocument = 'Ingresa el documento de hospedaje.';
