@@ -16,7 +16,7 @@ import styles from './InquiriesListScreen.module.css';
  * patron que ReservationsListScreen.tsx, PR#10 finding #3).
  */
 export function InquiriesListScreen() {
-  const { state, inquiries, context, filters, setFilters } = useInquiriesList();
+  const { state, inquiries, customerNames, context, filters, setFilters } = useInquiriesList();
   const navigate = useNavigate();
 
   return (
@@ -100,7 +100,9 @@ export function InquiriesListScreen() {
             <tbody>
               {inquiries.map((inquiry) => {
                 const group = INQUIRY_STATUS_GROUP[inquiry.status];
-                const customerName = inquiry.customer?.name ?? 'Sin cliente registrado';
+                const customerName = inquiry.customerId
+                  ? customerNames[inquiry.customerId] ?? 'Cargando cliente…'
+                  : 'Sin cliente registrado';
                 return (
                   <tr key={inquiry.id} className={styles.row}>
                     <td>

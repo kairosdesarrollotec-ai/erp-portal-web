@@ -117,7 +117,10 @@ export function useInquiryVehicles() {
         if (cancelled) return;
         const nextNavState: InquiryNavState = {
           ...resolvedContext,
-          customerName: inquiry.customer?.name ?? '',
+          // Deep link directo (sin navState previo): el nombre del cliente
+          // no esta disponible sin una llamada extra a GET /customers/{id} que
+          // este flujo de recuperacion no hace; queda vacio a proposito.
+          customerName: '',
           destination: '',
           travelDate: '',
           travelers: 1,

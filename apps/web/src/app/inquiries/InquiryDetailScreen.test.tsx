@@ -5,6 +5,7 @@ import { InquiryDetailScreen } from './InquiryDetailScreen';
 
 const getInquiryMock = vi.fn();
 const closeInquiryMock = vi.fn();
+const getCustomerMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
@@ -22,6 +23,14 @@ vi.mock('./inquiries-client', async () => {
   };
 });
 
+vi.mock('../customers/customers-client', async () => {
+  const actual = await vi.importActual<typeof import('../customers/customers-client')>('../customers/customers-client');
+  return {
+    ...actual,
+    getCustomer: (...args: unknown[]) => getCustomerMock(...args),
+  };
+});
+
 vi.mock('../auth/work-context-client', () => ({
   getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
 }));
@@ -35,7 +44,7 @@ function buildInquiry(overrides: Record<string, unknown> = {}) {
     channel: 'WHATSAPP',
     version: 1,
     companyId: 'c1',
-    customer: { id: 'cust-1', name: 'Maria Quispe' },
+    customerId: 'cust-1',
     touristUse: true,
     createdAt: '2026-09-16T00:00:00Z',
     interactions: [],
@@ -66,6 +75,7 @@ describe('InquiryDetailScreen (CON-04)', () => {
   beforeEach(() => {
     getInquiryMock.mockReset();
     closeInquiryMock.mockReset();
+    getCustomerMock.mockReset().mockResolvedValue({ id: 'cust-1', fullName: 'Maria Quispe' });
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
