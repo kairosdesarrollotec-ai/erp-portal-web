@@ -4,7 +4,9 @@ import {
   AdminCommandError,
   assignUserToCompany,
   deactivateAssignment,
+  getOrganizationCompanies,
   listOrganizationUsers,
+  OrganizationCompany,
   OrganizationUserAssignment,
 } from './admin-users-client';
 import { useWorkContextForAdmin } from './useWorkContextForAdmin';
@@ -18,13 +20,15 @@ export interface AssignUserFormInput {
   targetCompanyId: string;
   targetBranchId: string;
   targetRole: WorkerRole;
-  initialPassword: string;
+  /** Omitir cuando el correo ya existe (ver AssignUserInput). */
+  initialPassword?: string;
 }
 
 export function useAdminUsers() {
   const { context, loading: contextLoading } = useWorkContextForAdmin();
   const [state, setState] = useState<AdminUsersState>('LOADING');
   const [users, setUsers] = useState<OrganizationUserAssignment[]>([]);
+  const [companies, setCompanies] = useState<OrganizationCompany[]>([]);
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
@@ -51,6 +55,18 @@ export function useAdminUsers() {
   useEffect(() => {
     if (!contextLoading && context) {
       void reload();
+      void (async () => {
+        try {
+          const user = getFirebaseAuth().currentUser;
+          if (!user) return;
+          const idToken = await user.getIdToken();
+          const result = await getOrganizationCompanies(idToken, context.companyId, context.branchId);
+          setCompanies(result);
+        } catch {
+          // El selector de empresa/sede se degrada a la empresa/sede del contexto actual
+          // (ver AdminUsersScreen) - no bloquea la bandeja principal si esto falla.
+        }
+      })();
     } else if (!contextLoading && !context) {
       setState('RECOVERABLE_ERROR');
     }
@@ -100,6 +116,7 @@ export function useAdminUsers() {
     state,
     users,
     context,
+    companies,
     assigning,
     assignError,
     deactivatingId,
