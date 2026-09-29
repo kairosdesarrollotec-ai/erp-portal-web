@@ -160,7 +160,7 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
       channel: 'WHATSAPP',
       version: 2,
       companyId: 'c1',
-      customer: null,
+      customerId: null,
       touristUse: true,
       createdAt: '2026-09-16T00:00:00Z',
     });
@@ -185,7 +185,7 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
       channel: 'WHATSAPP',
       version: 5,
       companyId: 'c1',
-      customer: { id: 'cust-1', name: 'Maria Quispe' },
+      customerId: 'cust-1',
       touristUse: true,
       createdAt: '2026-09-16T00:00:00Z',
       interactions: [],
@@ -197,7 +197,7 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
       channel: 'WHATSAPP',
       version: 6,
       companyId: 'c1',
-      customer: null,
+      customerId: null,
       touristUse: true,
       createdAt: '2026-09-16T00:00:00Z',
     });

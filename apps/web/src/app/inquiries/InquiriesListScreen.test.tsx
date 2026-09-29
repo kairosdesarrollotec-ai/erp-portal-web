@@ -5,6 +5,7 @@ import { InquiriesListScreen } from './InquiriesListScreen';
 import { InquiryApiError } from './inquiries-client';
 
 const listInquiriesMock = vi.fn();
+const getCustomerMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
@@ -18,6 +19,14 @@ vi.mock('./inquiries-client', async () => {
   return {
     ...actual,
     listInquiries: (...args: unknown[]) => listInquiriesMock(...args),
+  };
+});
+
+vi.mock('../customers/customers-client', async () => {
+  const actual = await vi.importActual<typeof import('../customers/customers-client')>('../customers/customers-client');
+  return {
+    ...actual,
+    getCustomer: (...args: unknown[]) => getCustomerMock(...args),
   };
 });
 
@@ -46,6 +55,7 @@ function renderScreen() {
 describe('InquiriesListScreen (CON-01)', () => {
   beforeEach(() => {
     listInquiriesMock.mockReset();
+    getCustomerMock.mockReset();
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
     try {
       sessionStorage.clear();
@@ -62,14 +72,20 @@ describe('InquiriesListScreen (CON-01)', () => {
         channel: 'WHATSAPP',
         version: 1,
         companyId: 'c1',
-        customer: { id: 'cust-1', name: 'Maria Quispe' },
+        customerId: 'cust-1',
         touristUse: true,
         createdAt: '2026-09-16T00:00:00Z',
       },
     ]);
+    getCustomerMock.mockResolvedValue({ id: 'cust-1', fullName: 'Maria Quispe' });
     renderScreen();
 
+    // Bug fix regresion: una consulta con `customerId` vinculado debe
+    // mostrar el nombre real del cliente (resuelto via GET /customers/{id}),
+    // nunca "Sin cliente registrado".
     expect(await screen.findByText('Maria Quispe')).toBeInTheDocument();
+    expect(getCustomerMock).toHaveBeenCalledWith('fake-id-token', 'cust-1', 'c1', 'b1');
+    expect(screen.queryByText('Sin cliente registrado')).not.toBeInTheDocument();
     expect(screen.getByText('Abierta')).toBeInTheDocument();
     expect(screen.getByText('Nueva Consulta')).toBeInTheDocument();
     expect(listInquiriesMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1', {
@@ -88,11 +104,12 @@ describe('InquiriesListScreen (CON-01)', () => {
         channel: 'WHATSAPP',
         version: 1,
         companyId: 'c1',
-        customer: { id: 'cust-1', name: 'Maria Quispe' },
+        customerId: 'cust-1',
         touristUse: true,
         createdAt: '2026-09-16T00:00:00Z',
       },
     ]);
+    getCustomerMock.mockResolvedValue({ id: 'cust-1', fullName: 'Maria Quispe' });
     renderScreen();
 
     const rowLink = await screen.findByRole('link', { name: 'Ver detalle de la consulta de Maria Quispe' });
@@ -124,6 +141,25 @@ describe('InquiriesListScreen (CON-01)', () => {
     expect(
       await screen.findByText(/No tienes permisos para ver la bandeja de consultas/),
     ).toBeInTheDocument();
+  });
+
+  it('muestra "Sin cliente registrado" cuando la consulta no tiene customerId (prospecto)', async () => {
+    listInquiriesMock.mockResolvedValue([
+      {
+        id: 'con-2',
+        status: 'REGISTRADA',
+        channel: 'WHATSAPP',
+        version: 1,
+        companyId: 'c1',
+        customerId: null,
+        touristUse: true,
+        createdAt: '2026-09-16T00:00:00Z',
+      },
+    ]);
+    renderScreen();
+
+    expect(await screen.findByText('Sin cliente registrado')).toBeInTheDocument();
+    expect(getCustomerMock).not.toHaveBeenCalled();
   });
 
   // Finding "Filtro por cliente dispara una peticion por tecla": escribir

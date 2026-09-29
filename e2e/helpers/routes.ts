@@ -52,9 +52,23 @@ export const INQUIRY_FIXTURE = {
   version: 1,
   companyId: 'company-001',
   branchId: 'branch-001',
-  customer: { id: 'cust-002', name: 'María García' },
+  customerId: 'cust-002',
   touristUse: false,
   createdAt: '2026-09-25T00:00:00Z',
+};
+
+export const CUSTOMER_FIXTURE = {
+  id: 'cust-002',
+  organizationId: 'org-001',
+  operatingCompanyId: 'company-001',
+  fullName: 'María García',
+  documentType: 'DNI',
+  documentNumber: '12345678',
+  nationality: 'PERUANO',
+  email: 'maria.garcia@example.com',
+  phone: '999999999',
+  createdAt: '2026-09-20T00:00:00Z',
+  updatedAt: '2026-09-20T00:00:00Z',
 };
 
 /**
@@ -191,10 +205,15 @@ export async function interceptReservations(
 /** Intercepta GET /inquiries y GET /inquiries/:id. */
 export async function interceptInquiries(
   page: Page,
-  options: { list?: object[]; detail?: object } = {},
+  options: { list?: object[]; detail?: object; customer?: object } = {},
 ): Promise<void> {
   const list = options.list ?? [INQUIRY_FIXTURE];
   const detail = options.detail ?? { ...INQUIRY_FIXTURE, interactions: [], quotations: [] };
+  const customer = options.customer ?? CUSTOMER_FIXTURE;
+
+  await page.route(/\/customers\/[^?/]+(\?.*)?$/, (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(customer) }),
+  );
 
   await page.route(/\/inquiries\/[^?/]+(\?.*)?$/, (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(detail) }),

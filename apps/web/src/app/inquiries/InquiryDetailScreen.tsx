@@ -26,7 +26,7 @@ import styles from './InquiryDetailScreen.module.css';
  * faltan.
  */
 export function InquiryDetailScreen() {
-  const { navState, state, inquiry, saving, actionError, closeWithoutConversion, reload } = useInquiryDetail();
+  const { navState, state, inquiry, customerName, saving, actionError, closeWithoutConversion, reload } = useInquiryDetail();
   const navigate = useNavigate();
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [closeReason, setCloseReason] = useState('');
@@ -90,7 +90,7 @@ export function InquiryDetailScreen() {
         )}
 
         <div className={styles.summaryPanel}>
-          <p className={styles.customerLabel}>{navState?.customerName ?? inquiry.customer?.name ?? 'Sin cliente registrado'}</p>
+          <p className={styles.customerLabel}>{navState?.customerName ?? customerName ?? 'Sin cliente registrado'}</p>
           <dl className={styles.summaryList}>
             <div>
               <dt>Vehículo cotizado</dt>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getFirebaseAuth } from '../providers/firebase';
 import { listInquiries, InquirySummary, InquiryApiError } from './inquiries-client';
+import { getCustomer } from '../customers/customers-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
 import type { InquiryChannel, InquiryStatus } from './inquiry-status';
 
@@ -53,6 +54,16 @@ export function useInquiriesList() {
   const { context, loading: contextLoading } = useWorkContextForInquiries();
   const [state, setState] = useState<InquiriesListState>('LOADING');
   const [inquiries, setInquiries] = useState<InquirySummary[]>([]);
+  /**
+   * Bug fix (Consultas - "Sin cliente registrado" con cliente vinculado):
+   * GET /inquiries solo trae `customerId` (CONFLICT-CON-002 - la identidad
+   * vive en Customer, no en Inquiry). El nombre se resuelve aparte via
+   * `GET /customers/{id}` para cada `customerId` distinto de la pagina
+   * actual y se cachea aqui por id - antes NINGUN codigo hacia esta
+   * resolucion y la bandeja leia un campo `inquiry.customer` que el
+   * backend nunca envia.
+   */
+  const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [filters, setFiltersState] = useState<InquiriesFilters>(() => loadStoredFilters());
   const requestIdRef = useRef(0);
 
@@ -83,6 +94,35 @@ export function useInquiriesList() {
       if (requestId !== requestIdRef.current) return;
       setInquiries(results);
       setState(results.length === 0 ? 'EMPTY' : 'READY');
+
+      const missingIds = Array.from(
+        new Set(
+          results
+            .map((inquiry) => inquiry.customerId)
+            .filter((customerId): customerId is string => Boolean(customerId) && !(customerId! in customerNames)),
+        ),
+      );
+      if (missingIds.length > 0) {
+        void Promise.all(
+          missingIds.map(async (customerId) => {
+            try {
+              const customer = await getCustomer(idToken, customerId, context.companyId, context.branchId);
+              return [customerId, customer.fullName] as const;
+            } catch {
+              return [customerId, null] as const;
+            }
+          }),
+        ).then((entries) => {
+          if (requestId !== requestIdRef.current) return;
+          setCustomerNames((prev) => {
+            const next = { ...prev };
+            for (const [customerId, fullName] of entries) {
+              if (fullName) next[customerId] = fullName;
+            }
+            return next;
+          });
+        });
+      }
     } catch (error) {
       if (requestId !== requestIdRef.current) return;
       if (error instanceof InquiryApiError && (error.status === 401 || error.status === 403)) {
@@ -105,5 +145,5 @@ export function useInquiriesList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context, contextLoading, filters]);
 
-  return { state, inquiries, context, filters, setFilters, reload };
+  return { state, inquiries, customerNames, context, filters, setFilters, reload };
 }
