@@ -6,6 +6,7 @@ import { AdminUsersScreen } from './AdminUsersScreen';
 const listOrganizationUsersMock = vi.fn();
 const assignUserToCompanyMock = vi.fn();
 const deactivateAssignmentMock = vi.fn();
+const getOrganizationCompaniesMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -20,8 +21,22 @@ vi.mock('./admin-users-client', async () => {
     listOrganizationUsers: (...args: unknown[]) => listOrganizationUsersMock(...args),
     assignUserToCompany: (...args: unknown[]) => assignUserToCompanyMock(...args),
     deactivateAssignment: (...args: unknown[]) => deactivateAssignmentMock(...args),
+    getOrganizationCompanies: (...args: unknown[]) => getOrganizationCompaniesMock(...args),
   };
 });
+
+const GROUP_COMPANIES = [
+  {
+    companyId: 'c1',
+    companyName: 'VeloxRent',
+    branches: [{ branchId: 'b1', branchName: 'Sede Central' }],
+  },
+  {
+    companyId: 'c2',
+    companyName: 'VeloxRent Norte',
+    branches: [{ branchId: 'b2', branchName: 'Sede Norte' }],
+  },
+];
 
 function renderScreen() {
   return render(
@@ -42,6 +57,8 @@ describe('AdminUsersScreen (ADM-01)', () => {
     listOrganizationUsersMock.mockReset();
     assignUserToCompanyMock.mockReset();
     deactivateAssignmentMock.mockReset();
+    getOrganizationCompaniesMock.mockReset();
+    getOrganizationCompaniesMock.mockResolvedValue(GROUP_COMPANIES);
   });
 
   it('muestra la bandeja de usuarios con estado y MFA', async () => {
@@ -122,6 +139,64 @@ describe('AdminUsersScreen (ADM-01)', () => {
       });
     });
     expect(await screen.findByText('nuevo@veloxrent.pe')).toBeInTheDocument();
+  });
+
+  it('permite elegir empresa/sede del grupo (no solo el contexto actual del admin)', async () => {
+    listOrganizationUsersMock.mockResolvedValue([]);
+    assignUserToCompanyMock.mockResolvedValue({ id: 'assign-3' });
+    renderScreen();
+
+    await screen.findByText('Todavía no hay usuarios asignados a esta organización.');
+    fireEvent.click(screen.getByText('Agregar usuario'));
+
+    await screen.findByText('VeloxRent Norte');
+    fireEvent.change(screen.getByPlaceholderText('usuario@veloxrent.pe'), {
+      target: { value: 'norte@veloxrent.pe' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), {
+      target: { value: 'Temporal@123' },
+    });
+    fireEvent.change(screen.getByDisplayValue('VeloxRent'), { target: { value: 'c2' } });
+
+    fireEvent.click(screen.getAllByText('Agregar usuario').at(-1)!);
+
+    await waitFor(() => {
+      expect(assignUserToCompanyMock).toHaveBeenCalledWith('fake-id-token', {
+        companyId: 'c1',
+        branchId: 'b1',
+        targetEmail: 'norte@veloxrent.pe',
+        targetCompanyId: 'c2',
+        targetBranchId: 'b2',
+        targetRole: 'FRONT_OFFICE',
+        initialPassword: 'Temporal@123',
+      });
+    });
+  });
+
+  it('agrega un usuario con correo existente sin exigir contraseña inicial', async () => {
+    listOrganizationUsersMock.mockResolvedValue([]);
+    assignUserToCompanyMock.mockResolvedValue({ id: 'assign-4' });
+    renderScreen();
+
+    await screen.findByText('Todavía no hay usuarios asignados a esta organización.');
+    fireEvent.click(screen.getByText('Agregar usuario'));
+    fireEvent.change(screen.getByPlaceholderText('usuario@veloxrent.pe'), {
+      target: { value: 'existente@veloxrent.pe' },
+    });
+    // La contraseña se deja en blanco: el backend reutiliza el uid existente.
+    fireEvent.click(screen.getAllByText('Agregar usuario').at(-1)!);
+
+    await waitFor(() => {
+      expect(assignUserToCompanyMock).toHaveBeenCalledWith('fake-id-token', {
+        companyId: 'c1',
+        branchId: 'b1',
+        targetEmail: 'existente@veloxrent.pe',
+        targetCompanyId: 'c1',
+        targetBranchId: 'b1',
+        targetRole: 'FRONT_OFFICE',
+        initialPassword: undefined,
+      });
+    });
   });
 
   it('da de baja a un usuario tras confirmar', async () => {

@@ -16,27 +16,49 @@ const ASSIGNABLE_ROLES = Object.keys(WORKER_ROLE_LABELS) as WorkerRole[];
  * cambiar la contraseña obligatoriamente y enrolar MFA.
  */
 export function AdminUsersScreen() {
-  const { state, users, context, assigning, assignError, deactivatingId, actionError, assign, deactivate } =
+  const { state, users, context, companies, assigning, assignError, deactivatingId, actionError, assign, deactivate } =
     useAdminUsers();
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [targetEmail, setTargetEmail] = useState('');
   const [targetRole, setTargetRole] = useState<WorkerRole>('FRONT_OFFICE');
   const [initialPassword, setInitialPassword] = useState('');
+  const [targetCompanyId, setTargetCompanyId] = useState('');
+  const [targetBranchId, setTargetBranchId] = useState('');
+
+  // Empresa/sede seleccionable: usa la lista del grupo cuando ya cargo, y
+  // mientras tanto (o si falla) se degrada al contexto de trabajo actual
+  // del admin, como hacia antes esta pantalla.
+  const selectableCompanies =
+    companies.length > 0
+      ? companies
+      : context
+        ? [{ companyId: context.companyId, companyName: context.companyName, branches: [{ branchId: context.branchId, branchName: context.branchName }] }]
+        : [];
+  const effectiveTargetCompanyId = targetCompanyId || context?.companyId || selectableCompanies[0]?.companyId || '';
+  const selectedCompany = selectableCompanies.find((company) => company.companyId === effectiveTargetCompanyId);
+  const effectiveTargetBranchId = targetBranchId || selectedCompany?.branches[0]?.branchId || context?.branchId || '';
+
+  function handleCompanyChange(companyId: string) {
+    setTargetCompanyId(companyId);
+    setTargetBranchId('');
+  }
 
   async function handleAssign() {
-    if (!context) return;
+    if (!effectiveTargetCompanyId || !effectiveTargetBranchId || !context) return;
     const ok = await assign({
       targetEmail,
-      targetCompanyId: context.companyId,
-      targetBranchId: context.branchId,
+      targetCompanyId: effectiveTargetCompanyId,
+      targetBranchId: effectiveTargetBranchId,
       targetRole,
-      initialPassword,
+      initialPassword: initialPassword.length > 0 ? initialPassword : undefined,
     });
     if (ok) {
       setTargetEmail('');
       setTargetRole('FRONT_OFFICE');
       setInitialPassword('');
+      setTargetCompanyId('');
+      setTargetBranchId('');
       setShowAssignForm(false);
     }
   }
@@ -77,7 +99,35 @@ export function AdminUsersScreen() {
               />
             </label>
             <label className={styles.field}>
-              <span>Contraseña inicial (mínimo 8 caracteres)</span>
+              <span>Empresa</span>
+              <select
+                className={styles.input}
+                value={effectiveTargetCompanyId}
+                onChange={(event) => handleCompanyChange(event.target.value)}
+              >
+                {selectableCompanies.map((company) => (
+                  <option key={company.companyId} value={company.companyId}>
+                    {company.companyName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.field}>
+              <span>Sede</span>
+              <select
+                className={styles.input}
+                value={effectiveTargetBranchId}
+                onChange={(event) => setTargetBranchId(event.target.value)}
+              >
+                {(selectedCompany?.branches ?? []).map((branch) => (
+                  <option key={branch.branchId} value={branch.branchId}>
+                    {branch.branchName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.field}>
+              <span>Contraseña inicial (solo si el correo es nuevo, mínimo 8 caracteres)</span>
               <input
                 className={styles.input}
                 type="password"
@@ -102,13 +152,20 @@ export function AdminUsersScreen() {
               </select>
             </label>
             <p className={styles.helperNote}>
-              Empresa/sede: {context?.companyName} — {context?.branchName} (tu contexto actual).
+              Deja la contraseña en blanco si el correo ya tiene una cuenta en KAIROS: se reutilizara y solo se le
+              agregara la nueva empresa/sede/rol.
             </p>
             <div className={styles.formActions}>
               <button
                 type="button"
                 className={styles.primaryButton}
-                disabled={assigning || !targetEmail || initialPassword.length < 8}
+                disabled={
+                  assigning ||
+                  !targetEmail ||
+                  !effectiveTargetCompanyId ||
+                  !effectiveTargetBranchId ||
+                  (initialPassword.length > 0 && initialPassword.length < 8)
+                }
                 onClick={() => void handleAssign()}
               >
                 {assigning ? 'Agregando…' : 'Agregar usuario'}
