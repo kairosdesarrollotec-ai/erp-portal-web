@@ -263,16 +263,11 @@ export function useNewInquiry() {
         partySize: form.travelers,
       };
 
-      if (form.customerId) {
-        inquiryPayload.customerId = form.customerId;
-      } else {
-        inquiryPayload.prospect = {
-          fullName: form.customerName.trim(),
-          documentType: form.documentType,
-          documentNumber: form.document.trim(),
-          nationality: form.nationality,
-        };
-      }
+      // Rediseño CON-02: `validateNewInquiryForm` ya exige `customerId` antes
+      // de llegar aqui (no hay campos manuales para armar un `prospect`) -
+      // `prospect` queda en el tipo del payload solo por compatibilidad con
+      // `createInquiry` (inquiries-client.ts), no se construye mas.
+      inquiryPayload.customerId = form.customerId ?? undefined;
 
       const created = await createInquiry(idToken, inquiryPayload);
       clearStoredDraft();
@@ -356,16 +351,7 @@ export function useNewInquiry() {
         partySize: form.travelers,
       };
 
-      if (form.customerId) {
-        closePayload.customerId = form.customerId;
-      } else {
-        closePayload.prospect = {
-          fullName: form.customerName.trim(),
-          documentType: form.documentType,
-          documentNumber: form.document.trim(),
-          nationality: form.nationality,
-        };
-      }
+      closePayload.customerId = form.customerId ?? undefined;
 
       const created = await createInquiry(idToken, closePayload);
       await closeInquiry(idToken, created.id, created.version, 'SIN_USO_TURISTICO', 'El cliente no confirma uso turístico.');
