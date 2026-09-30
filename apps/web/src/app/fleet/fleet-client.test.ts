@@ -103,7 +103,7 @@ describe('fleet-client', () => {
           headers: {
             Authorization: 'Bearer token-123',
             'Content-Type': 'application/json',
-            'X-Idempotency-Key': 'key-abc',
+            'Idempotency-Key': 'key-abc',
           },
           body: JSON.stringify({
             companyId: 'comp-1',

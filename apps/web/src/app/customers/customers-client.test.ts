@@ -76,7 +76,7 @@ describe('customers-client', () => {
 
     const [, init] = fetchMock.mock.calls[0];
     const headers = init.headers as Record<string, string>;
-    expect(headers['X-Idempotency-Key']).toBe('idem-key-1');
+    expect(headers['Idempotency-Key']).toBe('idem-key-1');
     expect(headers['Authorization']).toBe('Bearer token');
     expect(JSON.parse(init.body as string)).toEqual(payload);
   });

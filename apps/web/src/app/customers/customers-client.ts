@@ -1,46 +1,12 @@
+import type { components } from '../../api/customers.generated';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
-export interface Customer {
-  id: string;
-  organizationId: string;
-  operatingCompanyId: string;
-  fullName: string;
-  documentType: string;
-  documentNumber: string;
-  nationality?: 'PERUANO' | 'EXTRANJERO' | null;
-  countryEntryDate?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateCustomerPayload {
-  companyId: string;
-  branchId: string;
-  fullName: string;
-  documentType: string;
-  documentNumber: string;
-  nationality?: 'PERUANO' | 'EXTRANJERO';
-  countryEntryDate?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-}
-
-export interface UpdateCustomerPayload {
-  companyId: string;
-  branchId: string;
-  fullName: string;
-  documentType: string;
-  documentNumber: string;
-  nationality?: 'PERUANO' | 'EXTRANJERO';
-  countryEntryDate?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-}
+export type Customer = components['schemas']['CustomerResponse'];
+export type CreateCustomerPayload = components['schemas']['CreateCustomerRequest'];
+export type UpdateCustomerPayload = components['schemas']['UpdateCustomerRequest'];
+export type ListCustomersResponse = components['schemas']['ListCustomersResponse'];
+export type KairosErrorResponse = components['schemas']['KairosErrorResponse'];
 
 export interface ListCustomersParams {
   companyId: string;
@@ -48,11 +14,6 @@ export interface ListCustomersParams {
   search?: string;
   limit?: number;
   offset?: number;
-}
-
-export interface ListCustomersResult {
-  items: Customer[];
-  total: number;
 }
 
 function authHeaders(idToken: string): HeadersInit {
@@ -75,7 +36,7 @@ export class CustomerApiError extends Error {
 export class CustomerCommandError extends Error {
   constructor(
     public readonly status: number,
-    public readonly problem: { code?: string; detail?: string } | null,
+    public readonly problem: KairosErrorResponse | null,
   ) {
     super(problem?.detail ?? `La operación no se pudo completar (${status})`);
     this.name = 'CustomerCommandError';
@@ -86,7 +47,7 @@ export async function listCustomers(
   idToken: string,
   params: ListCustomersParams,
   signal?: AbortSignal,
-): Promise<ListCustomersResult> {
+): Promise<ListCustomersResponse> {
   const query = new URLSearchParams({
     companyId: params.companyId,
     branchId: params.branchId,
@@ -107,7 +68,7 @@ export async function listCustomers(
     );
   }
 
-  return (await response.json()) as ListCustomersResult;
+  return (await response.json()) as ListCustomersResponse;
 }
 
 export async function getCustomer(
@@ -141,7 +102,7 @@ export async function createCustomer(
     'Content-Type': 'application/json',
   };
   if (idempotencyKey) {
-    headers['X-Idempotency-Key'] = idempotencyKey;
+    headers['Idempotency-Key'] = idempotencyKey;
   }
 
   const response = await fetch(`${API_BASE_URL}/customers`, {
@@ -151,7 +112,7 @@ export async function createCustomer(
   });
 
   if (!response.ok) {
-    let problem: { code?: string; detail?: string } | null = null;
+    let problem: KairosErrorResponse | null = null;
     try {
       problem = await response.json();
     } catch {
@@ -167,15 +128,24 @@ export async function updateCustomer(
   idToken: string,
   id: string,
   payload: UpdateCustomerPayload,
+  idempotencyKey?: string,
 ): Promise<Customer> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${idToken}`,
+    'Content-Type': 'application/json',
+  };
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = idempotencyKey;
+  }
+
   const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
     method: 'PATCH',
-    headers: authHeaders(idToken),
+    headers,
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    let problem: { code?: string; detail?: string } | null = null;
+    let problem: KairosErrorResponse | null = null;
     try {
       problem = await response.json();
     } catch {
@@ -186,4 +156,3 @@ export async function updateCustomer(
 
   return (await response.json()) as Customer;
 }
-

@@ -112,7 +112,7 @@ export function FleetListScreen() {
             <select
               className={styles.statusSelect}
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => setStatusFilter(e.target.value as VehicleStatus | 'ALL')}
               aria-label="Filtrar por estado"
             >
               <option value="ALL">Todos los estados</option>

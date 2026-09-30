@@ -1,70 +1,23 @@
+import type { components } from '../../api/fleet.generated';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
-export type VehicleStatus = 'AVAILABLE' | 'RENTED' | 'MAINTENANCE' | 'OUT_OF_SERVICE';
-
-export interface FleetVehicle {
-  id: string;
-  organizationId: string;
-  operatingCompanyId: string;
-  branchId: string | null;
-  plate: string;
-  brand: string;
-  model: string;
-  year: number | null;
-  color: string | null;
-  category: string;
-  status: VehicleStatus;
-  dailyRate: number | null;
-  photoUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateVehiclePayload {
-  companyId: string;
-  branchId: string;
-  plate: string;
-  brand: string;
-  model: string;
-  year?: number;
-  color?: string;
-  category?: string;
-  status?: VehicleStatus;
-  dailyRate?: number;
-  photoUrl?: string;
-}
-
-export interface UpdateVehicleStatusPayload {
-  companyId: string;
-  branchId: string;
-  status: VehicleStatus;
-}
-
-export interface UpdateVehiclePayload {
-  companyId: string;
-  branchId: string;
-  brand: string;
-  model: string;
-  year?: number;
-  color?: string;
-  category?: string;
-  dailyRate?: number;
-  photoUrl?: string;
-}
+export type VehicleStatus = components['schemas']['VehicleStatus'];
+export type FleetVehicle = components['schemas']['VehicleResponse'];
+export type CreateVehiclePayload = components['schemas']['CreateVehicleRequest'];
+export type UpdateVehiclePayload = components['schemas']['UpdateVehicleRequest'];
+export type UpdateVehicleStatusPayload = components['schemas']['UpdateVehicleStatusRequest'];
+export type ListVehiclesResponse = components['schemas']['ListVehiclesResponse'];
+export type KairosErrorResponse = components['schemas']['KairosErrorResponse'];
 
 export interface ListVehiclesParams {
   companyId: string;
   branchId: string;
   filterBranchId?: string;
-  status?: string;
+  status?: VehicleStatus;
   search?: string;
   limit?: number;
   offset?: number;
-}
-
-export interface ListVehiclesResult {
-  items: FleetVehicle[];
-  total: number;
 }
 
 function authHeaders(idToken: string): HeadersInit {
@@ -87,7 +40,7 @@ export class FleetApiError extends Error {
 export class FleetCommandError extends Error {
   constructor(
     public readonly status: number,
-    public readonly problem: { code?: string; detail?: string } | null,
+    public readonly problem: KairosErrorResponse | null,
   ) {
     super(problem?.detail ?? `La operación no se pudo completar (${status})`);
     this.name = 'FleetCommandError';
@@ -98,7 +51,7 @@ export async function listVehicles(
   idToken: string,
   params: ListVehiclesParams,
   signal?: AbortSignal,
-): Promise<ListVehiclesResult> {
+): Promise<ListVehiclesResponse> {
   const query = new URLSearchParams({
     companyId: params.companyId,
     branchId: params.branchId,
@@ -121,7 +74,7 @@ export async function listVehicles(
     );
   }
 
-  return (await response.json()) as ListVehiclesResult;
+  return (await response.json()) as ListVehiclesResponse;
 }
 
 export async function getVehicle(
@@ -155,7 +108,7 @@ export async function createVehicle(
     'Content-Type': 'application/json',
   };
   if (idempotencyKey) {
-    headers['X-Idempotency-Key'] = idempotencyKey;
+    headers['Idempotency-Key'] = idempotencyKey;
   }
 
   const response = await fetch(`${API_BASE_URL}/fleet/vehicles`, {
@@ -165,7 +118,7 @@ export async function createVehicle(
   });
 
   if (!response.ok) {
-    let problem: { code?: string; detail?: string } | null = null;
+    let problem: KairosErrorResponse | null = null;
     try {
       problem = await response.json();
     } catch {
@@ -181,15 +134,24 @@ export async function updateVehicleStatus(
   idToken: string,
   id: string,
   payload: UpdateVehicleStatusPayload,
+  idempotencyKey?: string,
 ): Promise<FleetVehicle> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${idToken}`,
+    'Content-Type': 'application/json',
+  };
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = idempotencyKey;
+  }
+
   const response = await fetch(`${API_BASE_URL}/fleet/vehicles/${id}/status`, {
     method: 'PATCH',
-    headers: authHeaders(idToken),
+    headers,
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    let problem: { code?: string; detail?: string } | null = null;
+    let problem: KairosErrorResponse | null = null;
     try {
       problem = await response.json();
     } catch {
@@ -205,15 +167,24 @@ export async function updateVehicle(
   idToken: string,
   id: string,
   payload: UpdateVehiclePayload,
+  idempotencyKey?: string,
 ): Promise<FleetVehicle> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${idToken}`,
+    'Content-Type': 'application/json',
+  };
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = idempotencyKey;
+  }
+
   const response = await fetch(`${API_BASE_URL}/fleet/vehicles/${id}`, {
     method: 'PATCH',
-    headers: authHeaders(idToken),
+    headers,
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    let problem: { code?: string; detail?: string } | null = null;
+    let problem: KairosErrorResponse | null = null;
     try {
       problem = await response.json();
     } catch {

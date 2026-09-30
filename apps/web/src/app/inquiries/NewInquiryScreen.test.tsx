@@ -424,7 +424,7 @@ describe('NewInquiryScreen (CON-02)', () => {
 
   it('muestra el error del modal si createCustomer falla y no cierra el modal', async () => {
     const { CustomerCommandError } = await import('../customers/customers-client');
-    createCustomerMock.mockRejectedValue(new CustomerCommandError(409, { detail: 'Ya existe un cliente con ese documento.' }));
+    createCustomerMock.mockRejectedValue(new CustomerCommandError(409, { code: 'CUSTOMER_DOCUMENT_ALREADY_EXISTS', detail: 'Ya existe un cliente con ese documento.' }));
     renderScreen();
     await waitForContext();
 
