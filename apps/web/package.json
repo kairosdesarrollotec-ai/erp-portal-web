@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint:fix": "eslint . --ext ts,tsx --fix",
-    "generate:api": "openapi-typescript ../../../erp-monolithic-api/packages/contracts/openapi/customers.yaml -o src/api/customers.generated.ts && openapi-typescript ../../../erp-monolithic-api/packages/contracts/openapi/fleet.yaml -o src/api/fleet.generated.ts"
+    "generate:api": "npx --yes openapi-typescript@7 ../../../erp-monolithic-api/packages/contracts/openapi/customers.yaml -o src/api/customers.generated.ts && npx --yes openapi-typescript@7 ../../../erp-monolithic-api/packages/contracts/openapi/fleet.yaml -o src/api/fleet.generated.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -51,7 +51,6 @@
     "jest-axe": "^11.0.0",
     "jsdom": "^25.0.1",
     "msw": "^2.4.9",
-    "openapi-typescript": "^7.13.0",
     "typescript": "^7.0.2",
     "typescript-eslint": "^8.70.1",
     "vite": "^5.4.7",
