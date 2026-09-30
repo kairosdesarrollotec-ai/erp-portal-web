@@ -17,10 +17,14 @@
     "test:web": "npm run test --workspace apps/web",
     "test:e2e": "playwright test",
     "lint": "npm run lint --workspaces --if-present",
-    "verify:manifest": "node scripts/verify-prototype-manifest.mjs"
+    "verify:manifest": "node scripts/verify-prototype-manifest.mjs",
+    "audit:prod": "node scripts/audit-check.mjs",
+    "audit:all": "node scripts/audit-check.mjs --include-dev"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
-    "js-yaml": "^5.4.2"
+    "js-yaml": "^5.4.2",
+    "vite": "^8.0.0",
+    "vitest": "^5.0.0"
   }
 }

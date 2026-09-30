@@ -27,15 +27,14 @@ jobs:
       - name: Tests + accesibilidad axe (apps/web)
         run: npm run test:web
 
-      - name: SCA / npm audit (bloqueante - critical)
-        # Bloquea en severidad CRITICAL. Las vulnerabilidades HIGH conocidas
-        # (undici via Firebase) solo se resuelven con un salto de major de
-        # Firebase, fuera de alcance actual; se reportan sin bloquear (SLA
-        # KAIROS para HIGH: 7 dias).
-        run: npm audit --omit=dev --audit-level=critical
-      - name: SCA / npm audit (informativo - high)
-        run: npm audit --omit=dev --audit-level=high
-        continue-on-error: true
+      # SCA con allowlist. Bloquea en CRITICAL y en cualquier HIGH no registrado
+      # en audit-allowlist.json. Los HIGH conocidos (undici via firebase v10)
+      # estan en el allowlist con fecha de remediacion; el script verifica que
+      # no hayan pasado su SLA. Agregar un nuevo HIGH al allowlist requiere razon,
+      # plan de remediacion y target_date — no es exencion permanente.
+      # Ver scripts/audit-check.mjs y audit-allowlist.json.
+      - name: SCA / npm audit (bloqueante - high/critical con allowlist)
+        run: npm run audit:prod
 
   e2e:
     name: E2E Playwright
