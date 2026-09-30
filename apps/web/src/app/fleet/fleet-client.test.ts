@@ -4,8 +4,11 @@ import {
   getVehicle,
   createVehicle,
   updateVehicleStatus,
+  requestPhotoUploadSession,
+  uploadPhotoToGcs,
   FleetApiError,
   FleetCommandError,
+  GcsUploadError,
 } from './fleet-client';
 
 describe('fleet-client', () => {
@@ -133,6 +136,94 @@ describe('fleet-client', () => {
           model: 'Tucson',
         }),
       ).rejects.toThrow(FleetCommandError);
+    });
+  });
+
+  describe('requestPhotoUploadSession', () => {
+    it('envía POST con companyId, branchId, contentType y contentLength', async () => {
+      const session = {
+        uploadUrl: 'https://storage.googleapis.com/signed-url',
+        objectUrl: 'https://storage.googleapis.com/bucket/photo.jpg',
+      };
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => session });
+
+      const result = await requestPhotoUploadSession('token-123', {
+        companyId: 'comp-1',
+        branchId: 'branch-1',
+        contentType: 'image/jpeg',
+        contentLength: 500_000,
+      });
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/fleet/vehicles/photo-upload-sessions'),
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({ Authorization: 'Bearer token-123' }),
+          body: JSON.stringify({
+            companyId: 'comp-1',
+            branchId: 'branch-1',
+            contentType: 'image/jpeg',
+            contentLength: 500_000,
+          }),
+        }),
+      );
+      expect(result).toEqual(session);
+    });
+
+    it('lanza FleetCommandError cuando el servidor responde con error', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 413,
+        json: async () => ({ code: 'PAYLOAD_TOO_LARGE', detail: 'El archivo supera 12 MB' }),
+      });
+
+      await expect(
+        requestPhotoUploadSession('token-123', {
+          companyId: 'comp-1',
+          branchId: 'branch-1',
+          contentType: 'image/jpeg',
+          contentLength: 13_000_000,
+        }),
+      ).rejects.toThrow(FleetCommandError);
+    });
+  });
+
+  describe('uploadPhotoToGcs', () => {
+    it('envía PUT al uploadUrl con el archivo como body', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: true });
+      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+
+      await uploadPhotoToGcs('https://storage.googleapis.com/signed', file);
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        'https://storage.googleapis.com/signed',
+        expect.objectContaining({
+          method: 'PUT',
+          headers: { 'Content-Type': 'image/jpeg' },
+          body: file,
+        }),
+      );
+    });
+
+    it('lanza GcsUploadError cuando GCS responde con error', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: false, status: 403 });
+      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+
+      await expect(
+        uploadPhotoToGcs('https://storage.googleapis.com/signed', file),
+      ).rejects.toThrow(GcsUploadError);
+    });
+
+    it('GcsUploadError incluye el status HTTP de GCS', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: false, status: 503 });
+      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+
+      try {
+        await uploadPhotoToGcs('https://storage.googleapis.com/signed', file);
+      } catch (e) {
+        expect(e).toBeInstanceOf(GcsUploadError);
+        expect((e as GcsUploadError).status).toBe(503);
+      }
     });
   });
 
