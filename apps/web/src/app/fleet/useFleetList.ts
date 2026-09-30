@@ -3,6 +3,7 @@ import { getFirebaseAuth } from '../providers/firebase';
 import {
   FleetApiError,
   FleetCommandError,
+  GcsUploadError,
   FleetVehicle,
   VehicleStatus,
   createVehicle,
@@ -163,7 +164,7 @@ export function useFleetList() {
         await reload();
         return true;
       } catch (error) {
-        if (error instanceof FleetCommandError) {
+        if (error instanceof FleetCommandError || error instanceof GcsUploadError) {
           setCreateError(error.message);
         } else {
           setCreateError('Ocurrió un error al registrar el vehículo. Intente nuevamente.');
@@ -235,7 +236,7 @@ export function useFleetList() {
         await reload();
         return true;
       } catch (error) {
-        if (error instanceof FleetCommandError) {
+        if (error instanceof FleetCommandError || error instanceof GcsUploadError) {
           setEditError(error.message);
         } else {
           setEditError('Ocurrió un error al editar el vehículo. Intente nuevamente.');
