@@ -115,7 +115,7 @@ export function useDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [location.state, navigate]);
+  }, [location.state, navigate, setSessionRole]);
 
   return { state, role, companyName, branchName, dashboardState, tasks, companyId, branchId };
 }

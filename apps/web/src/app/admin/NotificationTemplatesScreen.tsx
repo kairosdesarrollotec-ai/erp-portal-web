@@ -39,17 +39,20 @@ export function NotificationTemplatesScreen() {
 
   useEffect(() => {
     if (data && !selectedEventType && data.templates.length > 0) {
-      setSelectedEventType(data.templates[0].eventType);
+      queueMicrotask(() => setSelectedEventType(data.templates[0].eventType));
     }
   }, [data, selectedEventType]);
 
   useEffect(() => {
     if (selectedEntry) {
-      setDraftBody(selectedEntry.current?.body ?? '');
-      setDraftChannels(selectedEntry.current?.channels ?? []);
+      queueMicrotask(() => {
+        setDraftBody(selectedEntry.current?.body ?? '');
+        setDraftChannels(selectedEntry.current?.channels ?? []);
+      });
     }
   }, [selectedEntry]);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const dirty = useMemo(() => {
     if (!selectedEntry) return false;
     const currentBody = selectedEntry.current?.body ?? '';

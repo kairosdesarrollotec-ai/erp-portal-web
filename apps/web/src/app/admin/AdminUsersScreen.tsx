@@ -16,7 +16,7 @@ const ASSIGNABLE_ROLES = Object.keys(WORKER_ROLE_LABELS) as WorkerRole[];
  * cambiar la contraseña obligatoriamente y enrolar MFA.
  */
 export function AdminUsersScreen() {
-  const { state, users, context, assigning, assignError, deactivatingId, actionError, assign, deactivate } =
+  const { state, users, context, companies, assigning, assignError, deactivatingId, actionError, assign, deactivate } =
     useAdminUsers();
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -24,19 +24,66 @@ export function AdminUsersScreen() {
   const [targetRole, setTargetRole] = useState<WorkerRole>('FRONT_OFFICE');
   const [initialPassword, setInitialPassword] = useState('');
 
+  // Empresa/sede seleccionable: usa la lista del grupo cuando ya cargo, y
+  // mientras tanto (o si falla) se degrada al contexto de trabajo actual
+  // del admin, como hacia antes esta pantalla.
+  const selectableCompanies =
+    companies.length > 0
+      ? companies
+      : context
+        ? [{ companyId: context.companyId, companyName: context.companyName, branches: [{ branchId: context.branchId, branchName: context.branchName }] }]
+        : [];
+
+  const [selectedKeys, setSelectedKeys] = useState<string[]>(() => {
+    return context ? [`${context.companyId}::${context.branchId}`] : [];
+  });
+
+  function handleOpenAssignForm() {
+    if (context && selectedKeys.length === 0) {
+      setSelectedKeys([`${context.companyId}::${context.branchId}`]);
+    }
+    setShowAssignForm(true);
+  }
+
+  function toggleBranch(companyId: string, branchId: string) {
+    const key = `${companyId}::${branchId}`;
+    setSelectedKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  }
+
+  function toggleAllCompanyBranches(company: (typeof selectableCompanies)[0]) {
+    const branchKeys = company.branches.map((b) => `${company.companyId}::${b.branchId}`);
+    const allSelected = branchKeys.length > 0 && branchKeys.every((k) => selectedKeys.includes(k));
+    setSelectedKeys((prev) => {
+      if (allSelected) {
+        return prev.filter((k) => !branchKeys.includes(k));
+      } else {
+        const toAdd = branchKeys.filter((k) => !prev.includes(k));
+        return [...prev, ...toAdd];
+      }
+    });
+  }
+
   async function handleAssign() {
-    if (!context) return;
+    if (selectedKeys.length === 0 || !context) return;
+    const targets = selectedKeys.map((k) => {
+      const [targetCompanyId, targetBranchId] = k.split('::');
+      return { targetCompanyId, targetBranchId };
+    });
     const ok = await assign({
       targetEmail,
-      targetCompanyId: context.companyId,
-      targetBranchId: context.branchId,
+      targets,
       targetRole,
-      initialPassword,
+      initialPassword: initialPassword.length > 0 ? initialPassword : undefined,
     });
     if (ok) {
       setTargetEmail('');
       setTargetRole('FRONT_OFFICE');
       setInitialPassword('');
+      if (context) {
+        setSelectedKeys([`${context.companyId}::${context.branchId}`]);
+      }
       setShowAssignForm(false);
     }
   }
@@ -52,7 +99,7 @@ export function AdminUsersScreen() {
         pageTitle="Usuarios y asignaciones"
         actions={
           context && !showAssignForm ? (
-            <button type="button" className={styles.primaryButton} onClick={() => setShowAssignForm(true)}>
+            <button type="button" className={styles.primaryButton} onClick={handleOpenAssignForm}>
               Agregar usuario
             </button>
           ) : undefined
@@ -76,8 +123,52 @@ export function AdminUsersScreen() {
                 placeholder="usuario@veloxrent.pe"
               />
             </label>
+            <div className={styles.field}>
+              <span className={styles.selectorLabel}>Empresas y sedes asignadas (selecciona una o más)</span>
+              <div className={styles.companiesSelector}>
+                {selectableCompanies.map((company) => {
+                  const branchKeys = company.branches.map((b) => `${company.companyId}::${b.branchId}`);
+                  const allSelected = branchKeys.length > 0 && branchKeys.every((k) => selectedKeys.includes(k));
+                  const someSelected = branchKeys.some((k) => selectedKeys.includes(k));
+
+                  return (
+                    <div key={company.companyId} className={styles.companyCard}>
+                      <label className={styles.companyHeaderLabel}>
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = someSelected && !allSelected;
+                          }}
+                          onChange={() => toggleAllCompanyBranches(company)}
+                          aria-label={`Seleccionar todas las sedes de ${company.companyName}`}
+                        />
+                        <span>{company.companyName}</span>
+                      </label>
+                      <div className={styles.branchesList}>
+                        {company.branches.map((branch) => {
+                          const key = `${company.companyId}::${branch.branchId}`;
+                          const isChecked = selectedKeys.includes(key);
+                          return (
+                            <label key={branch.branchId} className={styles.branchLabel}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleBranch(company.companyId, branch.branchId)}
+                                aria-label={`${company.companyName} - ${branch.branchName}`}
+                              />
+                              <span>{branch.branchName}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
             <label className={styles.field}>
-              <span>Contraseña inicial (mínimo 8 caracteres)</span>
+              <span>Contraseña inicial (solo si el correo es nuevo, mínimo 8 caracteres)</span>
               <input
                 className={styles.input}
                 type="password"
@@ -102,13 +193,19 @@ export function AdminUsersScreen() {
               </select>
             </label>
             <p className={styles.helperNote}>
-              Empresa/sede: {context?.companyName} — {context?.branchName} (tu contexto actual).
+              Deja la contraseña en blanco si el correo ya tiene una cuenta en KAIROS: se reutilizara y solo se le
+              agregara la nueva empresa/sede/rol.
             </p>
             <div className={styles.formActions}>
               <button
                 type="button"
                 className={styles.primaryButton}
-                disabled={assigning || !targetEmail || initialPassword.length < 8}
+                disabled={
+                  assigning ||
+                  !targetEmail ||
+                  selectedKeys.length === 0 ||
+                  (initialPassword.length > 0 && initialPassword.length < 8)
+                }
                 onClick={() => void handleAssign()}
               >
                 {assigning ? 'Agregando…' : 'Agregar usuario'}

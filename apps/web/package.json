@@ -11,7 +11,8 @@
     "lint": "eslint . --ext ts,tsx",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint:fix": "eslint . --ext ts,tsx --fix"
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "generate:api": "npx --yes openapi-typescript@7 ../../../erp-monolithic-api/packages/contracts/openapi/customers.yaml -o src/api/customers.generated.ts && npx --yes openapi-typescript@7 ../../../erp-monolithic-api/packages/contracts/openapi/fleet.yaml -o src/api/fleet.generated.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.0.1",
     "@types/jest-axe": "^3.5.9",

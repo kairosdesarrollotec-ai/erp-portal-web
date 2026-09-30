@@ -92,7 +92,7 @@ export const MODULE_ITEMS: ModuleItem[] = [
     id: 'flota',
     label: 'Flota',
     description: 'FLO-01',
-    path: null,
+    path: '/flota',
     icon: (
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L17 10l-2.5-4.5c-.3-.5-.8-.8-1.4-.8H7c-.6 0-1.1.3-1.4.8L3 10H2c-.6 0-1 .4-1 1v5c0 .6.4 1 1 1h2" />
@@ -106,7 +106,7 @@ export const MODULE_ITEMS: ModuleItem[] = [
     id: 'clientes',
     label: 'Clientes',
     description: 'CLI-01',
-    path: null,
+    path: '/clientes',
     icon: (
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />

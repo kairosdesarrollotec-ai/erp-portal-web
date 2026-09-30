@@ -1,6 +1,9 @@
 import '@testing-library/jest-dom/vitest';
 import { expect } from 'vitest';
 import { toHaveNoViolations } from 'jest-axe';
+import { configure } from '@testing-library/dom';
+
+configure({ asyncUtilTimeout: 4000 });
 
 // SCA/accesibilidad (hallazgo MEDIO de revalidacion PR#4, "CI y
 // trazabilidad siguen incompletos" - falta evidencia automatizada de

@@ -6,6 +6,43 @@ import { InquiryVehiclesScreen } from './InquiryVehiclesScreen';
 const quoteInquiryMock = vi.fn();
 const getInquiryMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
+const listVehiclesMock = vi.fn();
+
+const FLEET_VEHICLE_1 = {
+  id: 'f1a2b3c4-d5e6-4789-8a0b-c1d2e3f40001',
+  organizationId: 'org-1',
+  operatingCompanyId: 'c1',
+  branchId: 'b1',
+  plate: 'ABC-123',
+  brand: 'Toyota',
+  model: 'Hilux 4x4',
+  year: 2023,
+  color: 'Blanco',
+  category: 'PICKUP',
+  status: 'AVAILABLE',
+  dailyRate: 220,
+  photoUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=480&q=60',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
+
+const FLEET_VEHICLE_2 = {
+  id: 'f1a2b3c4-d5e6-4789-8a0b-c1d2e3f40002',
+  organizationId: 'org-1',
+  operatingCompanyId: 'c1',
+  branchId: 'b1',
+  plate: 'DEF-456',
+  brand: 'Hyundai',
+  model: 'Tucson',
+  year: 2022,
+  color: 'Gris',
+  category: 'SUV',
+  status: 'AVAILABLE',
+  dailyRate: 180,
+  photoUrl: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=480&q=60',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -25,6 +62,14 @@ vi.mock('./inquiries-client', async () => {
 vi.mock('../auth/work-context-client', () => ({
   getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
 }));
+
+vi.mock('../fleet/fleet-client', async () => {
+  const actual = await vi.importActual<typeof import('../fleet/fleet-client')>('../fleet/fleet-client');
+  return {
+    ...actual,
+    listVehicles: (...args: unknown[]) => listVehiclesMock(...args),
+  };
+});
 
 const DEFAULT_NAV_STATE_SENTINEL = Symbol('default-nav-state');
 
@@ -73,25 +118,37 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
     quoteInquiryMock.mockReset();
     getInquiryMock.mockReset();
     getWorkContextAssignmentsMock.mockReset();
+    listVehiclesMock.mockReset();
+    listVehiclesMock.mockResolvedValue({ items: [FLEET_VEHICLE_1, FLEET_VEHICLE_2], total: 2 });
   });
 
-  it('muestra el catalogo de vehiculos con el boton "Cotizar este vehiculo" y el banner de demo', () => {
+  it('muestra el catalogo real de Fleet con el boton "Cotizar este vehiculo"', async () => {
     renderScreen();
 
-    expect(screen.getByText('Toyota Hilux 4x4')).toBeInTheDocument();
+    expect(await screen.findByText('Toyota Hilux 4x4')).toBeInTheDocument();
     expect(screen.getAllByText('Cotizar este vehículo').length).toBeGreaterThan(0);
-    expect(screen.getByText(/Catálogo de demostración/)).toBeInTheDocument();
-    expect(screen.queryByText(/Enviar evidencia/)).not.toBeInTheDocument();
+    expect(listVehiclesMock).toHaveBeenCalledWith(
+      'fake-id-token',
+      expect.objectContaining({ companyId: 'c1', branchId: 'b1', status: 'AVAILABLE' }),
+    );
   });
 
   // Finding "Botones sin implementación": el boton de evidencia esta
   // deshabilitado con una explicacion, no ausente ni funcional a medias.
-  it('el boton "Enviar evidencia" aparece deshabilitado en modalidad virtual', () => {
+  it('el boton "Enviar evidencia" aparece deshabilitado en modalidad virtual', async () => {
     renderScreen('VIRTUAL');
 
+    await screen.findByText('Toyota Hilux 4x4');
     const evidenceButtons = screen.getAllByText(/Enviar evidencia/);
     expect(evidenceButtons.length).toBeGreaterThan(0);
     evidenceButtons.forEach((button) => expect(button.closest('button')).toBeDisabled());
+  });
+
+  it('si Fleet no devuelve vehiculos, muestra el estado vacio', async () => {
+    listVehiclesMock.mockResolvedValue({ items: [], total: 0 });
+    renderScreen();
+
+    expect(await screen.findByText('No hay vehículos elegibles para esta consulta.')).toBeInTheDocument();
   });
 
   // Finding Critico #4 (lado CON-03): ya no navega a /reservas como si
@@ -103,13 +160,13 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
       channel: 'WHATSAPP',
       version: 2,
       companyId: 'c1',
-      customer: null,
+      customerId: null,
       touristUse: true,
       createdAt: '2026-09-16T00:00:00Z',
     });
     renderScreen();
 
-    fireEvent.click(screen.getAllByText('Cotizar este vehículo')[0]);
+    fireEvent.click((await screen.findAllByText('Cotizar este vehículo'))[0]);
 
     expect(await screen.findByText('detalle')).toBeInTheDocument();
     expect(quoteInquiryMock).toHaveBeenCalledWith('fake-id-token', 'con-1', 1, 'c1', 'b1', 'f1a2b3c4-d5e6-4789-8a0b-c1d2e3f40001', 'Ayacucho', 3);
@@ -128,7 +185,7 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
       channel: 'WHATSAPP',
       version: 5,
       companyId: 'c1',
-      customer: { id: 'cust-1', name: 'Maria Quispe' },
+      customerId: 'cust-1',
       touristUse: true,
       createdAt: '2026-09-16T00:00:00Z',
       interactions: [],
@@ -140,7 +197,7 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
       channel: 'WHATSAPP',
       version: 6,
       companyId: 'c1',
-      customer: null,
+      customerId: null,
       touristUse: true,
       createdAt: '2026-09-16T00:00:00Z',
     });

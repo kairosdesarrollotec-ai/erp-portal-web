@@ -151,6 +151,138 @@
   padding: 0.5rem;
 }
 
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.newCustomerButton {
+  background: none;
+  border: 1px dashed var(--color-ink);
+  border-radius: 6px;
+  color: var(--color-ink);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.375rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.newCustomerButton:hover {
+  background: #f4f4f5;
+}
+
+.selectedCustomerBox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  width: 100%;
+}
+
+.selectedCustomerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.selectedCustomerBadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #15803d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.selectedCustomerName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.selectedCustomerDoc {
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.deselectCustomerButton {
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 0.25rem 0.625rem;
+  font-size: 12px;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.deselectCustomerButton:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+.customerSearchContainer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.searchLoading {
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-top: 0.25rem;
+}
+
+.customerSearchResults {
+  list-style: none;
+  margin: 0.25rem 0 0 0;
+  padding: 0;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.customerSearchResultItem {
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.customerSearchResultItem:last-child {
+  border-bottom: none;
+}
+
+.customerSearchResultItem:hover,
+.customerSearchResultItem:focus {
+  background: #f8fafc;
+  outline: none;
+}
+
+.customerResultName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.customerResultMeta {
+  font-size: 11px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
 @media (min-width: 720px) {
   .content {
     max-width: 760px;
@@ -164,6 +296,9 @@
   }
 
   .sectionTitle,
+  .sectionHeader,
+  .selectedCustomerBox,
+  .customerSearchContainer,
   .chipGroup,
   .warningText {
     grid-column: 1 / -1;

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useNewInquiry } from './useNewInquiry';
 import { INQUIRY_CHANNEL_LABELS } from './inquiry-status';
 import { AppHeader } from '../shared/AppHeader';
+import { NewCustomerModal } from '../customers/NewCustomerModal';
 import styles from './NewInquiryScreen.module.css';
 
 /**
@@ -17,11 +18,36 @@ import styles from './NewInquiryScreen.module.css';
  * que es lo que realmente ocurre (ver useNewInquiry.ts).
  */
 export function NewInquiryScreen() {
-  const { form, state, autosave, error, fieldErrors, updateForm, submit, closeWithoutTouristUse } = useNewInquiry();
+  const {
+    form,
+    state,
+    autosave,
+    error,
+    fieldErrors,
+    updateForm,
+    submit,
+    closeWithoutTouristUse,
+    customerSearchQuery,
+    setCustomerSearchQuery,
+    customerSearchResults,
+    searchingCustomers,
+    selectCustomer,
+    clearSelectedCustomer,
+    isNewCustomerModalOpen,
+    modalLoading,
+    modalError,
+    openNewCustomerModal,
+    closeNewCustomerModal,
+    handleCreateCustomer,
+  } = useNewInquiry();
   const navigate = useNavigate();
 
   const rejectsTouristUse = form.touristUse === false;
   const saving = state === 'SAVING';
+  // Fecha minima del selector nativo = hoy, para no dejar elegir una fecha
+  // pasada. No reemplaza la validacion de submit (inquiries-validation.ts):
+  // el valor se puede pegar/editar a mano y saltarse el `min` del input.
+  const todayISODate = new Date().toISOString().slice(0, 10);
 
   return (
     <main className={styles.wrapper}>
@@ -39,8 +65,8 @@ export function NewInquiryScreen() {
       <div className={styles.content}>
         {error && <p className={styles.errorText}>{error}</p>}
         <p className={styles.helperNote}>
-          El nombre, documento, nacionalidad, destino, fecha y personas se envían al registrar la consulta. La fecha
-          de ingreso al país (clientes extranjeros) todavía no tiene un campo propio en este formulario.
+          El cliente vinculado, destino, fecha y personas se envían al registrar la consulta. La fecha de ingreso al
+          país (clientes extranjeros) todavía no tiene un campo propio en este formulario.
         </p>
 
         <section className={styles.section}>
@@ -59,71 +85,122 @@ export function NewInquiryScreen() {
             ))}
           </div>
 
-          <label className={styles.field}>
-            <span>Canal de contacto</span>
-            <select
-              className={styles.input}
-              value={form.channel}
-              onChange={(event) => updateForm({ channel: event.target.value as typeof form.channel })}
-            >
-              {Object.entries(INQUIRY_CHANNEL_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/*
+           * Rediseño CON-02: "canal de contacto" (WhatsApp/Redes/etc, como
+           * llego el cliente) solo aplica cuando la modalidad es VIRTUAL -
+           * en modalidad PRESENCIAL el cliente ya esta frente al asesor y
+           * el campo no tiene sentido (confirmado con inquiry-status.ts:
+           * `channel` y `displayMode` son datos distintos, este cambio
+           * solo afecta cuando se pide el primero, no el significado de
+           * ninguno de los dos).
+           */}
+          {form.displayMode === 'VIRTUAL' && (
+            <label className={styles.field}>
+              <span>Canal de contacto</span>
+              <select
+                className={styles.input}
+                value={form.channel}
+                onChange={(event) => updateForm({ channel: event.target.value as typeof form.channel })}
+              >
+                {Object.entries(INQUIRY_CHANNEL_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Datos del cliente</h2>
-          <label className={styles.field}>
-            <span>Nombre</span>
-            <input
-              className={styles.input}
-              type="text"
-              value={form.customerName}
-              onChange={(event) => updateForm({ customerName: event.target.value })}
-              aria-invalid={Boolean(fieldErrors.customerName)}
-            />
-            {fieldErrors.customerName && <span className={styles.fieldError}>{fieldErrors.customerName}</span>}
-          </label>
-          <label className={styles.field}>
-            <span>Tipo de documento</span>
-            <select
-              className={styles.input}
-              value={form.documentType}
-              onChange={(event) => updateForm({ documentType: event.target.value })}
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Datos del cliente</h2>
+            <button
+              type="button"
+              className={styles.newCustomerButton}
+              onClick={openNewCustomerModal}
             >
-              <option value="DNI">DNI</option>
-              <option value="PASAPORTE">Pasaporte</option>
-              <option value="CARNET_EXTRANJERIA">Carnet de extranjería</option>
-              <option value="RUC">RUC</option>
-            </select>
-          </label>
-          <label className={styles.field}>
-            <span>Número de documento</span>
-            <input
-              className={styles.input}
-              type="text"
-              inputMode="numeric"
-              value={form.document}
-              onChange={(event) => updateForm({ document: event.target.value })}
-              aria-invalid={Boolean(fieldErrors.document)}
-            />
-            {fieldErrors.document && <span className={styles.fieldError}>{fieldErrors.document}</span>}
-          </label>
-          <label className={styles.field}>
-            <span>Nacionalidad</span>
-            <select
-              className={styles.input}
-              value={form.nationality}
-              onChange={(event) => updateForm({ nationality: event.target.value as typeof form.nationality })}
-            >
-              <option value="PERUANO">Peruano</option>
-              <option value="EXTRANJERO">Extranjero</option>
-            </select>
-          </label>
+              + Registrar nuevo cliente
+            </button>
+          </div>
+
+          {form.customerId ? (
+            <div className={styles.selectedCustomerBox}>
+              <div className={styles.selectedCustomerInfo}>
+                <span className={styles.selectedCustomerBadge}>Cliente vinculado</span>
+                <strong className={styles.selectedCustomerName}>{form.customerName}</strong>
+                <span className={styles.selectedCustomerDoc}>
+                  {form.documentType}: {form.document} ({form.nationality})
+                </span>
+              </div>
+              <button
+                type="button"
+                className={styles.deselectCustomerButton}
+                onClick={clearSelectedCustomer}
+                aria-label="Desvincular cliente"
+              >
+                Desvincular
+              </button>
+            </div>
+          ) : (
+            <div className={styles.customerSearchContainer}>
+              <label className={styles.field}>
+                <span>Buscar cliente registrado</span>
+                <input
+                  className={styles.input}
+                  type="search"
+                  placeholder="Buscar por nombre o número de documento…"
+                  value={customerSearchQuery}
+                  onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                  aria-label="Buscar cliente existente"
+                />
+              </label>
+              {searchingCustomers && (
+                <span className={styles.searchLoading}>Buscando clientes…</span>
+              )}
+              {customerSearchResults.length > 0 && (
+                <ul className={styles.customerSearchResults} role="listbox" aria-label="Clientes encontrados">
+                  {customerSearchResults.map((cust) => (
+                    <li
+                      key={cust.id}
+                      className={styles.customerSearchResultItem}
+                      role="option"
+                      aria-selected={false}
+                      tabIndex={0}
+                      onClick={() => selectCustomer(cust)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          selectCustomer(cust);
+                        }
+                      }}
+                    >
+                      <div className={styles.customerResultName}>{cust.fullName}</div>
+                      <div className={styles.customerResultMeta}>
+                        {cust.documentType}: {cust.documentNumber} · {cust.nationality ?? 'PERUANO'}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {/*
+           * Rediseño CON-02: Nombre/Tipo de documento/Numero de
+           * documento/Nacionalidad ya no se capturan a mano aqui - esa
+           * identidad vive en el modulo Clientes (busqueda de cliente
+           * existente arriba, o "+ Registrar nuevo cliente"). Decision de
+           * negocio (a confirmar con el usuario, ver reporte): sin estos
+           * campos manuales ya no existe forma de capturar un "prospecto"
+           * suelto, asi que ahora SIEMPRE se exige un cliente vinculado
+           * (buscado o recien creado) antes de poder continuar - antes se
+           * permitia registrar la consulta sin cliente formal via
+           * `prospect`. Ver fieldErrors.customerId mas abajo.
+           */}
+          {!form.customerId && fieldErrors.customerId && (
+            <span className={styles.fieldError}>{fieldErrors.customerId}</span>
+          )}
 
           {form.nationality === 'EXTRANJERO' && (
             <label className={`${styles.field} ${styles.revealed}`}>
@@ -160,6 +237,7 @@ export function NewInquiryScreen() {
             <input
               className={styles.input}
               type="date"
+              min={todayISODate}
               value={form.travelDate}
               onChange={(event) => updateForm({ travelDate: event.target.value })}
               aria-invalid={Boolean(fieldErrors.travelDate)}
@@ -211,7 +289,7 @@ export function NewInquiryScreen() {
 
           {rejectsTouristUse && (
             <p className={styles.warningText}>
-              El cliente no confirma uso turístico: esta consulta se cierra sin cotizar (no continúa a CON-03).
+              Por políticas de cobertura de seguros y términos de servicio de la flota, el alquiler está destinado exclusivamente a uso turístico. Al indicar que no tiene fin turístico, la consulta se registrará como cerrada sin cotización comercial.
             </p>
           )}
         </section>
@@ -241,6 +319,14 @@ export function NewInquiryScreen() {
           </button>
         </div>
       </div>
+
+      <NewCustomerModal
+        isOpen={isNewCustomerModalOpen}
+        onClose={closeNewCustomerModal}
+        onSubmit={handleCreateCustomer}
+        loading={modalLoading}
+        error={modalError}
+      />
     </main>
   );
 }

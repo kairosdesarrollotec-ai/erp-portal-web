@@ -1,8 +1,6 @@
 import { ArrowRight, Building2, LogOut } from 'lucide-react';
-import { signOut } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
-import { getFirebaseAuth } from '../providers/firebase';
 import { useWorkContext } from './useWorkContext';
+import { useSignOut } from '../shared/useSignOut';
 import type { WorkContextAssignment } from './work-context-client';
 import styles from './WorkContextScreen.module.css';
 
@@ -20,13 +18,8 @@ import styles from './WorkContextScreen.module.css';
  */
 export function WorkContextScreen() {
   const { state, assignments, selectContext } = useWorkContext();
-  const navigate = useNavigate();
+  const handleSignOut = useSignOut();
   const isSelecting = state === 'SELECTING';
-
-  async function handleSignOut() {
-    await signOut(getFirebaseAuth());
-    navigate('/');
-  }
 
   return (
     <main className={styles.wrapper}>

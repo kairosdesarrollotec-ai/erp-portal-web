@@ -6,6 +6,7 @@ function buildForm(overrides: Partial<NewInquiryFormData> = {}): NewInquiryFormD
   return {
     channel: 'WHATSAPP',
     displayMode: 'PRESENCIAL',
+    customerId: 'cust-1',
     customerName: 'Maria Quispe',
     documentType: 'DNI',
     document: '12345678',
@@ -26,14 +27,18 @@ describe('validateNewInquiryForm (finding "sin validacion funcional")', () => {
     expect(hasInquiryFormErrors(errors)).toBe(false);
   });
 
-  it('exige nombre, documento, destino y fecha', () => {
+  it('exige un cliente vinculado, destino y fecha', () => {
     const errors = validateNewInquiryForm(
-      buildForm({ customerName: '', document: '', destination: '', travelDate: '' }),
+      buildForm({ customerId: null, destination: '', travelDate: '' }),
     );
-    expect(errors.customerName).toBeTruthy();
-    expect(errors.document).toBeTruthy();
+    expect(errors.customerId).toBeTruthy();
     expect(errors.destination).toBeTruthy();
     expect(errors.travelDate).toBeTruthy();
+  });
+
+  it('no exige cliente cuando ya hay uno vinculado (buscado o recien creado)', () => {
+    const errors = validateNewInquiryForm(buildForm({ customerId: 'cust-1' }));
+    expect(errors.customerId).toBeUndefined();
   });
 
   it('exige documento de hospedaje solo si la nacionalidad es Extranjero', () => {

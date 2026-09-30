@@ -9,7 +9,16 @@ export interface InquirySummary {
   version: number;
   companyId: string;
   branchId?: string;
-  customer: { id: string; name: string } | null;
+  /**
+   * Bug fix (Consultas): el backend (CONFLICT-CON-002) ya no embebe un
+   * objeto `customer` en la respuesta de /inquiries - solo persiste
+   * `customerId`. El nombre del cliente vinculado se resuelve aparte con
+   * `GET /customers/{customerId}` (ver useInquiriesList.ts). Antes este
+   * tipo declaraba `customer: { id, name } | null`, que el backend nunca
+   * enviaba: `inquiry.customer` siempre era `undefined` y la bandeja
+   * mostraba "Sin cliente registrado" incluso con cliente vinculado.
+   */
+  customerId: string | null;
   touristUse: boolean;
   createdAt: string;
 }
@@ -205,15 +214,20 @@ export function quoteInquiry(
   return postCommand(idToken, id, 'quote', version, { companyId, branchId, vehicleId, destination, estimatedDays });
 }
 
-/** CON-04 - cierra sin conversion (motivo obligatorio, BR-CON-003). */
+/** CON-04 - cierra sin conversion (motivo obligatorio, BR-CON-003).
+ *  Requiere companyId y branchId para que el backend valide el contexto de trabajo
+ *  (CloseInquiryDto exige ambos campos con @IsUUID()).
+ */
 export function closeInquiry(
   idToken: string,
   id: string,
   version: number,
+  companyId: string,
+  branchId: string,
   reason: string,
   note?: string,
 ): Promise<InquirySummary> {
-  return postCommand(idToken, id, 'close', version, { reason, note });
+  return postCommand(idToken, id, 'close', version, { companyId, branchId, reason, note });
 }
 
 /**

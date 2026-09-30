@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { closeInquiry, getInquiry, InquiryCommandError, InquiryDetail } from './inquiries-client';
+import { getCustomer } from '../customers/customers-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
 import type { InquiryNavState } from './inquiries-nav-state';
 
@@ -15,6 +16,12 @@ export function useInquiryDetail() {
   const { context, loading: contextLoading } = useWorkContextForInquiries();
   const [state, setState] = useState<InquiryDetailScreenState>('LOADING');
   const [inquiry, setInquiry] = useState<InquiryDetail | null>(null);
+  /**
+   * Bug fix (Consultas): igual causa raiz que useInquiriesList.ts -
+   * GET /inquiries/{id} solo trae `customerId`, el nombre se resuelve
+   * aparte con `GET /customers/{id}`.
+   */
+  const [customerName, setCustomerName] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -31,6 +38,16 @@ export function useInquiryDetail() {
       const result = await getInquiry(idToken, id, context.companyId, context.branchId);
       setInquiry(result);
       setState('READY');
+      if (result.customerId) {
+        try {
+          const customer = await getCustomer(idToken, result.customerId, context.companyId, context.branchId);
+          setCustomerName(customer.fullName);
+        } catch {
+          setCustomerName(null);
+        }
+      } else {
+        setCustomerName(null);
+      }
     } catch {
       setState('RECOVERABLE_ERROR');
     }
@@ -38,9 +55,10 @@ export function useInquiryDetail() {
 
   useEffect(() => {
     if (!contextLoading && context) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void reload();
     } else if (!contextLoading && !context) {
-      setState('RECOVERABLE_ERROR');
+      queueMicrotask(() => setState('RECOVERABLE_ERROR'));
     }
   }, [context, contextLoading, reload]);
 
@@ -52,7 +70,7 @@ export function useInquiryDetail() {
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesión no disponible.');
       const idToken = await user.getIdToken();
-      const updated = await closeInquiry(idToken, inquiry.id, inquiry.version, 'CIERRE_MANUAL', reason);
+      const updated = await closeInquiry(idToken, inquiry.id, inquiry.version, context!.companyId, context!.branchId, 'CIERRE_MANUAL', reason);
       setInquiry({ ...inquiry, ...updated });
     } catch (error) {
       // TDD-CON-001.md 10.1: una version distinta a la esperada devuelve
@@ -74,6 +92,7 @@ export function useInquiryDetail() {
     context,
     state,
     inquiry,
+    customerName,
     saving,
     actionError,
     closeWithoutConversion,

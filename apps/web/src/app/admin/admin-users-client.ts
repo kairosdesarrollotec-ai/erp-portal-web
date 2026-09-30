@@ -39,6 +39,9 @@ export class AdminCommandError extends Error {
     if (problem.code === 'COMPANY_BRANCH_NOT_IN_ORGANIZATION') {
       return 'La empresa/sede indicada no pertenece a tu organización.';
     }
+    if (problem.code === 'INITIAL_PASSWORD_REQUIRED') {
+      return 'Este correo es nuevo: ingresa una contraseña inicial de al menos 8 caracteres.';
+    }
     return problem.detail ?? null;
   }
 }
@@ -67,7 +70,40 @@ export interface AssignUserInput {
   targetCompanyId: string;
   targetBranchId: string;
   targetRole: WorkerRole;
-  initialPassword: string;
+  /**
+   * Solo obligatoria si el correo es nuevo (el backend responde 400
+   * INITIAL_PASSWORD_REQUIRED en ese caso, ver AdminCommandError). Si el
+   * correo ya existe, se ignora aunque se envie.
+   */
+  initialPassword?: string;
+}
+
+export interface OrganizationBranch {
+  branchId: string;
+  branchName: string;
+}
+
+export interface OrganizationCompany {
+  companyId: string;
+  companyName: string;
+  branches: OrganizationBranch[];
+}
+
+/** ADM-01 - empresas/sedes del grupo, para el selector de "Agregar usuario" (GET /admin/companies). */
+export async function getOrganizationCompanies(
+  idToken: string,
+  companyId: string,
+  branchId: string,
+): Promise<OrganizationCompany[]> {
+  const params = new URLSearchParams({ companyId, branchId });
+  const response = await fetch(`${API_BASE_URL}/admin/companies?${params.toString()}`, {
+    headers: authHeaders(idToken),
+  });
+  if (!response.ok) {
+    throw new Error(`No se pudo obtener la lista de empresas (${response.status})`);
+  }
+  const body = (await response.json()) as { companies: OrganizationCompany[] };
+  return body.companies;
 }
 
 /** ADM-01 - accion primaria "Agregar usuario" (POST /admin/assignments). */

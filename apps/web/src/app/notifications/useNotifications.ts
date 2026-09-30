@@ -32,7 +32,7 @@ export function useNotifications(companyId: string | null, branchId: string | nu
   }, [companyId, branchId]);
 
   useEffect(() => {
-    void load();
+    queueMicrotask(() => void load());
   }, [load]);
 
   const unreadCount = notifications.filter((n) => n.readAt === null).length;

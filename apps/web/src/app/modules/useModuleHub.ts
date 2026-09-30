@@ -96,7 +96,7 @@ export function useModuleHub() {
     return () => {
       cancelled = true;
     };
-  }, [location.state, navigate]);
+  }, [location.state, navigate, setSessionRole]);
 
   return { state, role, branchLabel, companyId, branchId };
 }

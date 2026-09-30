@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { ArrowLeftRight, LogOut, X } from 'lucide-react';
 import { MODULE_ITEMS } from '../modules/module-definitions';
 import { useWorkSession } from './useWorkSession';
+import { useSignOut } from './useSignOut';
 import styles from './AppSidebar.module.css';
 
 function isModuleActive(modulePath: string | null, currentPath: string): boolean {
@@ -13,6 +14,7 @@ function isModuleActive(modulePath: string | null, currentPath: string): boolean
 export function AppSidebar() {
   const location = useLocation();
   const { role, sidebarOpen, setSidebarOpen } = useWorkSession();
+  const handleSignOut = useSignOut();
 
   const visibleItems = MODULE_ITEMS.filter((m) => {
     if (m.adminOnly) return role === null || role === 'ADMINISTRACION';
@@ -78,6 +80,27 @@ export function AppSidebar() {
             );
           })}
         </ul>
+
+        <div className={styles.sidebarFooter}>
+          <Link
+            to="/seleccion-empresa-sede"
+            className={styles.footerLink}
+            onClick={() => setSidebarOpen(false)}
+            title="Cambiar empresa o sede de trabajo"
+          >
+            <ArrowLeftRight size={16} />
+            <span>Cambiar sede</span>
+          </Link>
+          <button
+            type="button"
+            className={styles.signOutButton}
+            onClick={() => void handleSignOut()}
+            aria-label="Cerrar sesión"
+          >
+            <LogOut size={16} />
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
       </nav>
     </>
   );
