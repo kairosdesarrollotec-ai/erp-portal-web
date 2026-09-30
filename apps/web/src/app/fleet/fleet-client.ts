@@ -39,6 +39,16 @@ export class FleetApiError extends Error {
   }
 }
 
+export class GcsUploadError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'GcsUploadError';
+    this.status = status;
+  }
+}
+
 export class FleetCommandError extends Error {
   constructor(
     public readonly status: number,
@@ -196,7 +206,7 @@ export async function uploadPhotoToGcs(uploadUrl: string, file: File): Promise<v
   });
 
   if (!response.ok) {
-    throw new Error(`Error al subir la foto a GCS (${response.status})`);
+    throw new GcsUploadError(`Error al subir la foto a GCS (${response.status})`, response.status);
   }
 }
 
