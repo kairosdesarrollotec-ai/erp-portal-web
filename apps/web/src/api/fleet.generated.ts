@@ -4,6 +4,31 @@
  */
 
 export interface paths {
+    "/fleet/vehicles/photo-upload-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Solicita una URL firmada para subir una foto de vehículo a GCS
+         * @description Devuelve una uploadUrl (PUT firmado a GCS, válida 15 min) y una objectUrl (URL HTTPS permanente donde quedará almacenado el archivo).
+         *     El cliente debe:
+         *       1. Hacer PUT a uploadUrl con el archivo como body y el Content-Type correcto.
+         *       2. Pasar objectUrl como photoUrl al crear o actualizar el vehículo.
+         *
+         *     Límites: JPEG o WebP, máximo 12 MB (ADR-KAI-005 / SDD-00 §16.5). Requiere rol con permiso de escritura en Flota.
+         */
+        post: operations["requestVehiclePhotoUploadSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/fleet/vehicles": {
         parameters: {
             query?: never;
@@ -67,6 +92,31 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PhotoUploadSessionRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /**
+             * @description Tipo MIME del archivo a subir. Solo JPEG y WebP (SDD-00 §16.5).
+             * @enum {string}
+             */
+            contentType: "image/jpeg" | "image/webp";
+            /** @description Tamaño exacto del archivo en bytes (máx 12 MB = 12 582 912 bytes). */
+            contentLength: number;
+        };
+        PhotoUploadSessionResponse: {
+            /**
+             * Format: uri
+             * @description URL firmada de GCS para la carga (PUT con el archivo como body, Content-Type igual al solicitado). Válida 15 minutos.
+             */
+            uploadUrl: string;
+            /**
+             * Format: uri
+             * @description URL permanente del objeto en GCS. Pasar como photoUrl al crear o actualizar el vehículo después de que la carga a uploadUrl sea exitosa.
+             */
+            objectUrl: string;
+        };
         /**
          * @description Estado operativo del vehículo. AVAILABLE = disponible para alquiler; RENTED = en alquiler activo; MAINTENANCE = en mantenimiento; OUT_OF_SERVICE = fuera de servicio (no disponible ni rentable).
          * @enum {string}
@@ -97,7 +147,10 @@ export interface components {
             status?: components["schemas"]["VehicleStatus"];
             /** @description Tarifa diaria de alquiler en moneda local. */
             dailyRate?: number | null;
-            /** @description URL de la foto del vehículo. */
+            /**
+             * Format: uri
+             * @description URL HTTPS de Google Cloud Storage del objeto ya cargado. Obtener previamente via POST /fleet/vehicles/photo-upload-sessions. No se acepta data: URI ni URL de otro proveedor.
+             */
             photoUrl?: string | null;
         };
         UpdateVehicleRequest: {
@@ -116,6 +169,10 @@ export interface components {
             color?: string | null;
             category?: string | null;
             dailyRate?: number | null;
+            /**
+             * Format: uri
+             * @description URL HTTPS de GCS del objeto ya cargado. Si no se proporciona, la foto existente del vehículo no cambia.
+             */
             photoUrl?: string | null;
         };
         UpdateVehicleStatusRequest: {
@@ -199,6 +256,73 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    requestVehiclePhotoUploadSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhotoUploadSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Sesión de carga creada correctamente */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PhotoUploadSessionResponse"];
+                };
+            };
+            /** @description contentType no permitido, contentLength fuera de rango, o parámetros requeridos ausentes */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NestErrorResponse"];
+                };
+            };
+            /** @description Token de Firebase ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Empresa/sede no autorizada o FLEET_WRITE_NOT_ALLOWED */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KairosErrorResponse"];
+                };
+            };
+            /** @description contentLength supera el límite de 12 MB */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NestErrorResponse"];
+                };
+            };
+            /** @description GCS no configurado en el entorno (GCS_BUCKET_NAME ausente) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NestErrorResponse"];
+                };
+            };
+        };
+    };
     listVehicles: {
         parameters: {
             query: {

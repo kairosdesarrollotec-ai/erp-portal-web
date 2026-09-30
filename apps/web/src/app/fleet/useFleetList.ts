@@ -7,8 +7,10 @@ import {
   VehicleStatus,
   createVehicle,
   listVehicles,
+  requestPhotoUploadSession,
   updateVehicle,
   updateVehicleStatus,
+  uploadPhotoToGcs,
 } from './fleet-client';
 import { useWorkContextForFleet } from './useWorkContextForFleet';
 
@@ -26,6 +28,7 @@ export interface VehicleFormData {
   status?: VehicleStatus;
   dailyRate?: number;
   photoUrl?: string;
+  photoFile?: File;
 }
 
 export interface VehicleEditFormData {
@@ -36,6 +39,7 @@ export interface VehicleEditFormData {
   category?: string;
   dailyRate?: number;
   photoUrl?: string;
+  photoFile?: File;
 }
 
 export function useFleetList() {
@@ -98,6 +102,29 @@ export function useFleetList() {
     return () => clearTimeout(timer);
   }, [context, contextLoading, search, statusFilter, reload]);
 
+  async function resolvePhotoUrl(
+    idToken: string,
+    photoFile: File | undefined,
+    photoUrl: string | undefined,
+  ): Promise<string | undefined> {
+    if (!photoFile) return photoUrl?.trim() || undefined;
+
+    if (!context) throw new Error('Contexto no disponible');
+
+    const contentType =
+      photoFile.type === 'image/webp' ? ('image/webp' as const) : ('image/jpeg' as const);
+
+    const session = await requestPhotoUploadSession(idToken, {
+      companyId: context.companyId,
+      branchId: context.branchId,
+      contentType,
+      contentLength: photoFile.size,
+    });
+
+    await uploadPhotoToGcs(session.uploadUrl, photoFile);
+    return session.objectUrl;
+  }
+
   const addVehicle = useCallback(
     async (formData: VehicleFormData): Promise<boolean> => {
       if (!context) return false;
@@ -113,6 +140,8 @@ export function useFleetList() {
         const idToken = await user.getIdToken();
         const idempotencyKey = crypto.randomUUID();
 
+        const photoUrl = await resolvePhotoUrl(idToken, formData.photoFile, formData.photoUrl);
+
         await createVehicle(
           idToken,
           {
@@ -126,7 +155,7 @@ export function useFleetList() {
             category: formData.category?.trim() || 'SEDAN',
             status: formData.status ?? 'AVAILABLE',
             dailyRate: formData.dailyRate || undefined,
-            photoUrl: formData.photoUrl?.trim() || undefined,
+            photoUrl,
           },
           idempotencyKey,
         );
@@ -144,6 +173,7 @@ export function useFleetList() {
         setCreating(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [context, reload],
   );
 
@@ -188,6 +218,8 @@ export function useFleetList() {
         }
         const idToken = await user.getIdToken();
 
+        const photoUrl = await resolvePhotoUrl(idToken, formData.photoFile, formData.photoUrl);
+
         await updateVehicle(idToken, vehicleId, {
           companyId: context.companyId,
           branchId: context.branchId,
@@ -197,7 +229,7 @@ export function useFleetList() {
           color: formData.color?.trim() || undefined,
           category: formData.category?.trim() || undefined,
           dailyRate: formData.dailyRate || undefined,
-          photoUrl: formData.photoUrl?.trim() || undefined,
+          photoUrl,
         });
 
         await reload();
@@ -213,6 +245,7 @@ export function useFleetList() {
         setEditSubmitting(false);
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [context, reload],
   );
 

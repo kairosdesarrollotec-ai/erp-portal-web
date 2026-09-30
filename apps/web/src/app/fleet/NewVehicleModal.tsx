@@ -4,6 +4,8 @@ import type { VehicleFormData } from './useFleetList';
 import type { FleetVehicle, VehicleStatus } from './fleet-client';
 import styles from './NewVehicleModal.module.css';
 
+const MAX_PHOTO_BYTES = 12 * 1024 * 1024; // 12 MB — SDD-00 §16.5
+
 interface NewVehicleModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -54,7 +56,9 @@ export function NewVehicleModal({
   const [category, setCategory] = useState('SEDAN');
   const [status, setStatus] = useState<VehicleStatus>('AVAILABLE');
   const [dailyRate, setDailyRate] = useState<string>('');
-  const [photoUrl, setPhotoUrl] = useState('');
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState('');
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,57 +66,36 @@ export function NewVehicleModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setValidationError('Por favor seleccione un archivo de imagen válido (JPEG, PNG o WebP).');
+    if (file.type !== 'image/jpeg' && file.type !== 'image/webp') {
+      setValidationError('Solo se admiten imágenes JPEG o WebP.');
+      e.target.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result;
-      if (typeof result !== 'string') return;
+    if (file.size > MAX_PHOTO_BYTES) {
+      setValidationError(`El archivo supera el tamaño máximo de 12 MB.`);
+      e.target.value = '';
+      return;
+    }
 
-      if (typeof window !== 'undefined' && typeof window.Image !== 'undefined') {
-        const img = new Image();
-        img.onload = () => {
-          try {
-            const canvas = document.createElement('canvas');
-            const maxDim = 1024;
-            let width = img.width;
-            let height = img.height;
-            if (width > maxDim || height > maxDim) {
-              if (width > height) {
-                height = Math.round((height * maxDim) / width);
-                width = maxDim;
-              } else {
-                width = Math.round((width * maxDim) / height);
-                height = maxDim;
-              }
-            }
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              ctx.drawImage(img, 0, 0, width, height);
-              const compressed = canvas.toDataURL('image/jpeg', 0.82);
-              setPhotoUrl(compressed);
-              return;
-            }
-          } catch {
-            // fallback al Data URL original si canvas falla (ej. CORS o entorno headless)
-          }
-          setPhotoUrl(result);
-        };
-        img.onerror = () => {
-          setPhotoUrl(result);
-        };
-        img.src = result;
-      } else {
-        setPhotoUrl(result);
-      }
-    };
-    reader.readAsDataURL(file);
+    if (photoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
+
+    const blobUrl = URL.createObjectURL(file);
+    setPendingPhotoFile(file);
+    setPhotoPreviewUrl(blobUrl);
+    setExistingPhotoUrl('');
     e.target.value = '';
+  }
+
+  function clearPhoto() {
+    if (photoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
+    setPendingPhotoFile(null);
+    setPhotoPreviewUrl('');
+    setExistingPhotoUrl('');
   }
 
   useEffect(() => {
@@ -126,7 +109,12 @@ export function NewVehicleModal({
       setCategory('SEDAN');
       setStatus('AVAILABLE');
       setDailyRate('');
-      setPhotoUrl('');
+      setPendingPhotoFile(null);
+      setPhotoPreviewUrl((prev) => {
+        if (prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+        return '';
+      });
+      setExistingPhotoUrl('');
       setValidationError(null);
       onClearError();
       return;
@@ -141,7 +129,9 @@ export function NewVehicleModal({
       setCategory(vehicle.category ?? 'SEDAN');
       setStatus(vehicle.status);
       setDailyRate(vehicle.dailyRate != null ? String(vehicle.dailyRate) : '');
-      setPhotoUrl(vehicle.photoUrl ?? '');
+      setPendingPhotoFile(null);
+      setPhotoPreviewUrl('');
+      setExistingPhotoUrl(vehicle.photoUrl ?? '');
     }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [isOpen, onClearError, vehicle]);
@@ -199,7 +189,8 @@ export function NewVehicleModal({
       category,
       status,
       dailyRate: parsedRate,
-      photoUrl: photoUrl.trim() || undefined,
+      photoFile: pendingPhotoFile ?? undefined,
+      photoUrl: pendingPhotoFile ? undefined : (existingPhotoUrl.trim() || undefined),
     });
 
     if (success) {
@@ -364,10 +355,10 @@ export function NewVehicleModal({
           <div className={styles.photoSection}>
             <span className={styles.photoLabel}>Foto del Vehículo (opcional)</span>
             <div className={styles.photoContainer}>
-              {photoUrl ? (
+              {(photoPreviewUrl || existingPhotoUrl) ? (
                 <div className={styles.photoPreviewWrapper}>
                   <img
-                    src={photoUrl}
+                    src={photoPreviewUrl || existingPhotoUrl}
                     alt="Vista previa del vehículo"
                     className={styles.photoPreview}
                   />
@@ -377,7 +368,7 @@ export function NewVehicleModal({
                 <input
                   type="file"
                   ref={fileInputRef}
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/jpeg,image/webp"
                   style={{ display: 'none' }}
                   onChange={handleFileChange}
                   disabled={isSubmitting}
@@ -390,19 +381,19 @@ export function NewVehicleModal({
                   disabled={isSubmitting}
                 >
                   <Camera size={16} />
-                  {photoUrl ? 'Cambiar foto' : 'Adjuntar foto'}
+                  {(photoPreviewUrl || existingPhotoUrl) ? 'Cambiar foto' : 'Adjuntar foto'}
                 </button>
-                {photoUrl && (
+                {(photoPreviewUrl || existingPhotoUrl) && (
                   <button
                     type="button"
                     className={styles.removePhotoButton}
-                    onClick={() => setPhotoUrl('')}
+                    onClick={clearPhoto}
                     disabled={isSubmitting}
                   >
                     Quitar foto
                   </button>
                 )}
-                <span className={styles.photoHint}>Formatos admitidos: JPG, PNG o WebP</span>
+                <span className={styles.photoHint}>Formatos admitidos: JPEG o WebP (máx 12 MB)</span>
               </div>
             </div>
           </div>
@@ -418,9 +409,11 @@ export function NewVehicleModal({
             </button>
             <button type="submit" className={styles.submitButton} disabled={isSubmitting}>
               {isSubmitting
-                ? isEditMode
-                  ? 'Guardando...'
-                  : 'Registrando...'
+                ? pendingPhotoFile
+                  ? 'Subiendo foto...'
+                  : isEditMode
+                    ? 'Guardando...'
+                    : 'Registrando...'
                 : isEditMode
                   ? 'Guardar Cambios'
                   : 'Registrar Vehículo'}

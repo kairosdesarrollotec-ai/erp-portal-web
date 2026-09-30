@@ -9,6 +9,8 @@ export type UpdateVehiclePayload = components['schemas']['UpdateVehicleRequest']
 export type UpdateVehicleStatusPayload = components['schemas']['UpdateVehicleStatusRequest'];
 export type ListVehiclesResponse = components['schemas']['ListVehiclesResponse'];
 export type KairosErrorResponse = components['schemas']['KairosErrorResponse'];
+export type PhotoUploadSessionRequest = components['schemas']['PhotoUploadSessionRequest'];
+export type PhotoUploadSessionResponse = components['schemas']['PhotoUploadSessionResponse'];
 
 export interface ListVehiclesParams {
   companyId: string;
@@ -161,6 +163,41 @@ export async function updateVehicleStatus(
   }
 
   return (await response.json()) as FleetVehicle;
+}
+
+export async function requestPhotoUploadSession(
+  idToken: string,
+  payload: PhotoUploadSessionRequest,
+): Promise<PhotoUploadSessionResponse> {
+  const response = await fetch(`${API_BASE_URL}/fleet/vehicles/photo-upload-sessions`, {
+    method: 'POST',
+    headers: authHeaders(idToken),
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    let problem: KairosErrorResponse | null = null;
+    try {
+      problem = await response.json();
+    } catch {
+      // response might not be JSON
+    }
+    throw new FleetCommandError(response.status, problem);
+  }
+
+  return (await response.json()) as PhotoUploadSessionResponse;
+}
+
+export async function uploadPhotoToGcs(uploadUrl: string, file: File): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error al subir la foto a GCS (${response.status})`);
+  }
 }
 
 export async function updateVehicle(
