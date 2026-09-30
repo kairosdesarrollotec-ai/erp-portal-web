@@ -43,17 +43,17 @@ export function NewCustomerModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    queueMicrotask(() => {
-      setFullName(initialData?.fullName ?? '');
-      setDocumentType(initialData?.documentType ?? 'DNI');
-      setDocumentNumber(initialData?.documentNumber ?? '');
-      setNationality(initialData?.nationality ?? 'PERUANO');
-      setCountryEntryDate(initialData?.countryEntryDate ?? '');
-      setEmail(initialData?.email ?? '');
-      setPhone(initialData?.phone ?? '');
-      setAddress(initialData?.address ?? '');
-      setValidationError(null);
-    });
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setFullName(initialData?.fullName ?? '');
+    setDocumentType(initialData?.documentType ?? 'DNI');
+    setDocumentNumber(initialData?.documentNumber ?? '');
+    setNationality(initialData?.nationality ?? 'PERUANO');
+    setCountryEntryDate(initialData?.countryEntryDate ?? '');
+    setEmail(initialData?.email ?? '');
+    setPhone(initialData?.phone ?? '');
+    setAddress(initialData?.address ?? '');
+    setValidationError(null);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [isOpen, initialData]);
 
   if (!isOpen) return null;

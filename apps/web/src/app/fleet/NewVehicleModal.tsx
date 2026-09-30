@@ -116,36 +116,34 @@ export function NewVehicleModal({
   }
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!isOpen) {
-      queueMicrotask(() => {
-        setPlate('');
-        setBrand('');
-        setModel('');
-        setYear('');
-        setColor('');
-        setCategory('SEDAN');
-        setStatus('AVAILABLE');
-        setDailyRate('');
-        setPhotoUrl('');
-        setValidationError(null);
-        onClearError();
-      });
+      setPlate('');
+      setBrand('');
+      setModel('');
+      setYear('');
+      setColor('');
+      setCategory('SEDAN');
+      setStatus('AVAILABLE');
+      setDailyRate('');
+      setPhotoUrl('');
+      setValidationError(null);
+      onClearError();
       return;
     }
 
     if (vehicle) {
-      queueMicrotask(() => {
-        setPlate(vehicle.plate);
-        setBrand(vehicle.brand);
-        setModel(vehicle.model);
-        setYear(vehicle.year != null ? String(vehicle.year) : '');
-        setColor(vehicle.color ?? '');
-        setCategory(vehicle.category ?? 'SEDAN');
-        setStatus(vehicle.status);
-        setDailyRate(vehicle.dailyRate != null ? String(vehicle.dailyRate) : '');
-        setPhotoUrl(vehicle.photoUrl ?? '');
-      });
+      setPlate(vehicle.plate);
+      setBrand(vehicle.brand);
+      setModel(vehicle.model);
+      setYear(vehicle.year != null ? String(vehicle.year) : '');
+      setColor(vehicle.color ?? '');
+      setCategory(vehicle.category ?? 'SEDAN');
+      setStatus(vehicle.status);
+      setDailyRate(vehicle.dailyRate != null ? String(vehicle.dailyRate) : '');
+      setPhotoUrl(vehicle.photoUrl ?? '');
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [isOpen, onClearError, vehicle]);
 
   useEffect(() => {
