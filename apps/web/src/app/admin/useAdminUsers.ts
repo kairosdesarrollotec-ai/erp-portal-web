@@ -96,8 +96,7 @@ export function useAdminUsers() {
       if (!user) throw new Error('Sesion no disponible.');
       const idToken = await user.getIdToken();
 
-      let successCount = 0;
-      let firstError: Error | null = null;
+      const results: Array<{ target: AssignCompanyBranchTarget; error: Error | null }> = [];
 
       for (let i = 0; i < targets.length; i++) {
         const target = targets[i];
@@ -111,21 +110,36 @@ export function useAdminUsers() {
             targetRole: input.targetRole,
             initialPassword: i === 0 ? input.initialPassword : undefined,
           });
-          successCount++;
+          results.push({ target, error: null });
         } catch (err) {
-          if (i === 0) {
-            throw err;
-          }
-          if (!firstError) firstError = err as Error;
+          results.push({ target, error: err as Error });
         }
       }
+
+      const failures = results.filter((r) => r.error !== null);
+      const successCount = results.length - failures.length;
 
       if (successCount > 0) {
         await reload();
       }
-      if (successCount === 0 && firstError) {
-        throw firstError;
+
+      if (failures.length > 0) {
+        const failedSummary = failures
+          .map((f) => {
+            const msg = f.error instanceof AdminCommandError ? f.error.message : 'Error desconocido';
+            return `Empresa ${f.target.targetCompanyId} / Sede ${f.target.targetBranchId}: ${msg}`;
+          })
+          .join('\n');
+
+        const prefix =
+          successCount > 0
+            ? `${successCount} asignacion(es) completada(s), pero ${failures.length} fallaron:`
+            : 'No se pudo completar ninguna asignación:';
+
+        setAssignError(`${prefix}\n${failedSummary}`);
+        return false;
       }
+
       return true;
     } catch (error) {
       setAssignError(error instanceof AdminCommandError ? error.message : 'No se pudo asignar el usuario.');

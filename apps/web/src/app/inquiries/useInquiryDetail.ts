@@ -69,7 +69,7 @@ export function useInquiryDetail() {
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesión no disponible.');
       const idToken = await user.getIdToken();
-      const updated = await closeInquiry(idToken, inquiry.id, inquiry.version, 'CIERRE_MANUAL', reason);
+      const updated = await closeInquiry(idToken, inquiry.id, inquiry.version, context!.companyId, context!.branchId, 'CIERRE_MANUAL', reason);
       setInquiry({ ...inquiry, ...updated });
     } catch (error) {
       // TDD-CON-001.md 10.1: una version distinta a la esperada devuelve

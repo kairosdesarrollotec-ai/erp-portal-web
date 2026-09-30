@@ -124,6 +124,8 @@ describe('InquiryDetailScreen (CON-04)', () => {
       'fake-id-token',
       'con-1',
       1,
+      'c1',
+      'b1',
       'CIERRE_MANUAL',
       'El cliente ya no requiere el vehículo.',
     );

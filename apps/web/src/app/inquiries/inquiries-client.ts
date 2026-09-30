@@ -214,15 +214,20 @@ export function quoteInquiry(
   return postCommand(idToken, id, 'quote', version, { companyId, branchId, vehicleId, destination, estimatedDays });
 }
 
-/** CON-04 - cierra sin conversion (motivo obligatorio, BR-CON-003). */
+/** CON-04 - cierra sin conversion (motivo obligatorio, BR-CON-003).
+ *  Requiere companyId y branchId para que el backend valide el contexto de trabajo
+ *  (CloseInquiryDto exige ambos campos con @IsUUID()).
+ */
 export function closeInquiry(
   idToken: string,
   id: string,
   version: number,
+  companyId: string,
+  branchId: string,
   reason: string,
   note?: string,
 ): Promise<InquirySummary> {
-  return postCommand(idToken, id, 'close', version, { reason, note });
+  return postCommand(idToken, id, 'close', version, { companyId, branchId, reason, note });
 }
 
 /**

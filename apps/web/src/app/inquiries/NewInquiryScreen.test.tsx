@@ -227,7 +227,7 @@ describe('NewInquiryScreen (CON-02)', () => {
     fireEvent.click(closeButton);
 
     expect(await screen.findByText('bandeja')).toBeInTheDocument();
-    expect(closeInquiryMock).toHaveBeenCalledWith('fake-id-token', 'con-2', 1, 'SIN_USO_TURISTICO', expect.any(String));
+    expect(closeInquiryMock).toHaveBeenCalledWith('fake-id-token', 'con-2', 1, 'c1', 'b1', 'SIN_USO_TURISTICO', expect.any(String));
   });
 
   // Hallazgo propio (revision de PR#7 backend): closeWithoutTouristUse

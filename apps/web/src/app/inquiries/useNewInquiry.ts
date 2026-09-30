@@ -354,7 +354,7 @@ export function useNewInquiry() {
       closePayload.customerId = form.customerId ?? undefined;
 
       const created = await createInquiry(idToken, closePayload);
-      await closeInquiry(idToken, created.id, created.version, 'SIN_USO_TURISTICO', 'El cliente no confirma uso turístico.');
+      await closeInquiry(idToken, created.id, created.version, context.companyId, context.branchId, 'SIN_USO_TURISTICO', 'El cliente no confirma uso turístico.');
       clearStoredDraft();
       navigate('/consultas', { state: context });
     } catch (err) {
