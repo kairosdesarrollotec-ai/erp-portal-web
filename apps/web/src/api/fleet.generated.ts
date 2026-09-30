@@ -163,8 +163,8 @@ export interface components {
              * @description Nueva sede asignada al vehículo. Solo roles cross-branch pueden asignar una sede diferente al branchId del contexto.
              */
             assignedBranchId?: string | null;
-            brand: string;
-            model: string;
+            brand?: string;
+            model?: string;
             year?: number | null;
             color?: string | null;
             category?: string | null;
