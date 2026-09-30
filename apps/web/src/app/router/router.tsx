@@ -21,6 +21,13 @@ import { RolePermissionMatrixScreen } from '../admin/RolePermissionMatrixScreen'
 import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
 import { ModuleHubScreen } from '../modules/ModuleHubScreen';
 import { FleetListScreen } from '../fleet/FleetListScreen';
+import { RentalsListScreen } from '../rentals/RentalsListScreen';
+import { NewRentalScreen } from '../rentals/NewRentalScreen';
+import { Stage1DocumentsScreen } from '../rentals/Stage1DocumentsScreen';
+import { Stage2ValidationsScreen } from '../rentals/Stage2ValidationsScreen';
+import { Stage3ContractScreen } from '../rentals/Stage3ContractScreen';
+import { Stage4ChecklistScreen } from '../rentals/Stage4ChecklistScreen';
+import { Stage5ConfirmationScreen } from '../rentals/Stage5ConfirmationScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -59,6 +66,13 @@ export const router = createBrowserRouter([
               { path: '/consultas/:id', element: <InquiryDetailScreen /> },
               { path: '/clientes', element: <CustomersListScreen /> },
               { path: '/flota', element: <FleetListScreen /> },
+              { path: '/alquileres', element: <RentalsListScreen /> },
+              { path: '/alquileres/nuevo', element: <NewRentalScreen /> },
+              { path: '/alquileres/:id/entrega-01', element: <Stage1DocumentsScreen /> },
+              { path: '/alquileres/:id/entrega-02', element: <Stage2ValidationsScreen /> },
+              { path: '/alquileres/:id/entrega-03', element: <Stage3ContractScreen /> },
+              { path: '/alquileres/:id/entrega-04', element: <Stage4ChecklistScreen /> },
+              { path: '/alquileres/:id/entrega-05', element: <Stage5ConfirmationScreen /> },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
