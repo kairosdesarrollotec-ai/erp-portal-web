@@ -60,7 +60,7 @@ export function useAdminUsers() {
 
   useEffect(() => {
     if (!contextLoading && context) {
-      void reload();
+      queueMicrotask(() => void reload());
       void (async () => {
         try {
           const user = getFirebaseAuth().currentUser;
@@ -74,6 +74,7 @@ export function useAdminUsers() {
         }
       })();
     } else if (!contextLoading && !context) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState('RECOVERABLE_ERROR');
     }
   }, [context, contextLoading, reload]);

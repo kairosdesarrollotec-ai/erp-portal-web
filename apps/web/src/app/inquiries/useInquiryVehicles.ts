@@ -26,7 +26,7 @@ export interface InquiryVehicle {
 }
 
 function toInquiryVehicle(vehicle: FleetVehicle): InquiryVehicle | null {
-  if (vehicle.dailyRate === null) return null;
+  if (vehicle.dailyRate == null) return null;
   return {
     id: vehicle.id,
     model: `${vehicle.brand} ${vehicle.model}`.trim(),
@@ -64,7 +64,7 @@ export function useInquiryVehicles() {
   const [vehicles, setVehicles] = useState<InquiryVehicle[]>([]);
   const [quotingVehicleId, setQuotingVehicleId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const loadedAtRef = useRef(Date.now());
+  const loadedAtRef = useRef(0);
   const requestIdRef = useRef(0);
 
   const hasUsableNavState = Boolean(rawNavState?.companyId && rawNavState?.branchId && rawNavState?.version);

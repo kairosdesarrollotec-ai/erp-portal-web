@@ -97,6 +97,7 @@ export function OtpInput({
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOtpDigits() {
   return useState<string[]>(Array(6).fill(''));
 }

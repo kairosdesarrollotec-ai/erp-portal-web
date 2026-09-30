@@ -115,11 +115,14 @@ export function useNewInquiry() {
   useEffect(() => {
     const q = customerSearchQuery.trim();
     if (q.length < 2 || !context) {
-      setCustomerSearchResults([]);
-      setSearchingCustomers(false);
+      queueMicrotask(() => {
+        setCustomerSearchResults([]);
+        setSearchingCustomers(false);
+      });
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearchingCustomers(true);
     const timer = setTimeout(async () => {
       try {

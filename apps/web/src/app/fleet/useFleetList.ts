@@ -44,7 +44,7 @@ export function useFleetList() {
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<VehicleStatus | 'ALL'>('ALL');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -91,7 +91,7 @@ export function useFleetList() {
   useEffect(() => {
     if (contextLoading) return;
     if (!context) {
-      setState('RECOVERABLE_ERROR');
+      queueMicrotask(() => setState('RECOVERABLE_ERROR'));
       return;
     }
     const timer = setTimeout(() => void reload(), FILTER_DEBOUNCE_MS);

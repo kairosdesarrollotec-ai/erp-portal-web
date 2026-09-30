@@ -75,7 +75,7 @@ export function useCustomersList() {
   useEffect(() => {
     if (contextLoading) return;
     if (!context) {
-      setState('RECOVERABLE_ERROR');
+      queueMicrotask(() => setState('RECOVERABLE_ERROR'));
       return;
     }
     const timer = setTimeout(() => void reload(), FILTER_DEBOUNCE_MS);

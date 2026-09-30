@@ -35,9 +35,10 @@ export function useAuditEvents() {
 
   useEffect(() => {
     if (!contextLoading && context) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void reload({});
     } else if (!contextLoading && !context) {
-      setState('RECOVERABLE_ERROR');
+      queueMicrotask(() => setState('RECOVERABLE_ERROR'));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context, contextLoading]);

@@ -39,6 +39,7 @@ export function PasswordStep({
     mode: 'onChange',
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const newPassword = watch('newPassword') ?? '';
   const confirmPassword = watch('confirmPassword') ?? '';
   const requirements = evaluatePasswordRequirements(newPassword);

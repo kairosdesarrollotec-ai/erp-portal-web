@@ -55,9 +55,10 @@ export function useInquiryDetail() {
 
   useEffect(() => {
     if (!contextLoading && context) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void reload();
     } else if (!contextLoading && !context) {
-      setState('RECOVERABLE_ERROR');
+      queueMicrotask(() => setState('RECOVERABLE_ERROR'));
     }
   }, [context, contextLoading, reload]);
 

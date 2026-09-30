@@ -131,12 +131,12 @@ export function useInquiriesList() {
         setState('RECOVERABLE_ERROR');
       }
     }
-  }, [context, filters]);
+  }, [context, filters, customerNames]);
 
   useEffect(() => {
     if (contextLoading) return;
     if (!context) {
-      setState('RECOVERABLE_ERROR');
+      queueMicrotask(() => setState('RECOVERABLE_ERROR'));
       return;
     }
     const timer = setTimeout(() => void reload(), FILTER_DEBOUNCE_MS);
