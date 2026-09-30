@@ -21,7 +21,11 @@
     "audit:prod": "node scripts/audit-check.mjs",
     "audit:all": "node scripts/audit-check.mjs --include-dev"
   },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.5"
+  },
   "devDependencies": {
+    "@grpc/grpc-js": "^1.14.5",
     "@playwright/test": "^1.47.0",
     "js-yaml": "^5.4.2",
     "vite": "^8.0.0",
