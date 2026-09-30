@@ -1,0 +1,9 @@
+{
+  "_description": "Known HIGH/CRITICAL vulnerabilities pending major framework upgrades. Each entry must have a tracked remediation and a target_date. Review monthly and remove entries as they are fixed. Adding an entry here means committing to a remediation plan — it is NOT a permanent exemption.",
+  "_sla": {
+    "critical": "7 days",
+    "high": "30 days from discovery; entries here have an approved extension",
+    "moderate": "90 days"
+  },
+  "entries": []
+}
