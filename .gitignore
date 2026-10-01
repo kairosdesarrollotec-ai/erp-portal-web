@@ -20,3 +20,6 @@ apps/api/dist/
 # Playwright
 test-results/
 playwright-report/
+
+# Capturas E2E generadas (artefactos de build, no se versionan)
+screenshots/
