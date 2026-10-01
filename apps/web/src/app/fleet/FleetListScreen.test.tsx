@@ -21,6 +21,10 @@ const requestPhotoUploadSessionMock = vi.fn();
 const uploadPhotoToGcsMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
+vi.mock('../shared/useRolePermissions', () => ({
+  useRolePermissions: () => ({ can: () => true }),
+}));
+
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: {

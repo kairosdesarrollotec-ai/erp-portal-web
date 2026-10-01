@@ -9,6 +9,10 @@ const registerDocumentsMock = vi.fn();
 const confirmReservationMock = vi.fn();
 const cancelReservationMock = vi.fn();
 
+vi.mock('../shared/useRolePermissions', () => ({
+  useRolePermissions: () => ({ can: () => true }),
+}));
+
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },

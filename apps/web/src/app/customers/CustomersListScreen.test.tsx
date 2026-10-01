@@ -9,6 +9,10 @@ const createCustomerMock = vi.fn();
 const updateCustomerMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
+vi.mock('../shared/useRolePermissions', () => ({
+  useRolePermissions: () => ({ can: () => true }),
+}));
+
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: {
@@ -48,6 +52,7 @@ function renderScreen() {
     >
       <Routes>
         <Route path="/clientes" element={<CustomersListScreen />} />
+        <Route path="/clientes/:id" element={<div data-testid="ficha-screen">Ficha</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -223,6 +228,103 @@ describe('CustomersListScreen', () => {
         }),
       );
     });
+  });
+
+  it('muestra el panel de coincidencia cuando al crear el servidor devuelve 409', async () => {
+    listCustomersMock.mockImplementation((_token: unknown, params: { search?: string }) => {
+      if (params.search === '12345678') {
+        return Promise.resolve({
+          items: [
+            {
+              id: 'cust-existing',
+              fullName: 'María García',
+              documentType: 'DNI',
+              documentNumber: '12345678',
+              nationality: 'PERUANO',
+              countryEntryDate: null,
+              email: 'maria@test.com',
+              phone: '987654321',
+              address: null,
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 1,
+        });
+      }
+      return Promise.resolve({ items: [], total: 0 });
+    });
+    createCustomerMock.mockRejectedValue(
+      new CustomerCommandError(409, {
+        code: 'CUSTOMER_DOCUMENT_ALREADY_EXISTS',
+        detail: 'Ya existe un cliente con ese documento en esta empresa.',
+      }),
+    );
+
+    renderScreen();
+
+    const newBtn = await screen.findByText('Nuevo Cliente');
+    fireEvent.click(newBtn);
+
+    fireEvent.change(screen.getByPlaceholderText('Ej. 12345678'), {
+      target: { value: '12345678' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Ej. Juan Pérez o Inversiones SAC'), {
+      target: { value: 'María García' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
+
+    expect(await screen.findByText('Cliente ya registrado')).toBeInTheDocument();
+    expect(screen.getByText('María García')).toBeInTheDocument();
+    expect(screen.getByText('DNI 12345678')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver ficha del cliente' })).toBeInTheDocument();
+  });
+
+  it('navega a la ficha del cliente al hacer clic en "Ver ficha del cliente"', async () => {
+    listCustomersMock.mockImplementation((_token: unknown, params: { search?: string }) => {
+      if (params.search === '12345678') {
+        return Promise.resolve({
+          items: [
+            {
+              id: 'cust-existing',
+              fullName: 'María García',
+              documentType: 'DNI',
+              documentNumber: '12345678',
+              nationality: 'PERUANO',
+              countryEntryDate: null,
+              email: null,
+              phone: null,
+              address: null,
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+            },
+          ],
+          total: 1,
+        });
+      }
+      return Promise.resolve({ items: [], total: 0 });
+    });
+    createCustomerMock.mockRejectedValue(
+      new CustomerCommandError(409, {
+        code: 'CUSTOMER_DOCUMENT_ALREADY_EXISTS',
+        detail: 'Ya existe un cliente con ese documento en esta empresa.',
+      }),
+    );
+
+    renderScreen();
+
+    const newBtn = await screen.findByText('Nuevo Cliente');
+    fireEvent.click(newBtn);
+    fireEvent.change(screen.getByPlaceholderText('Ej. 12345678'), { target: { value: '12345678' } });
+    fireEvent.change(screen.getByPlaceholderText('Ej. Juan Pérez o Inversiones SAC'), {
+      target: { value: 'María García' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
+
+    await screen.findByText('Cliente ya registrado');
+    fireEvent.click(screen.getByRole('button', { name: 'Ver ficha del cliente' }));
+
+    expect(await screen.findByTestId('ficha-screen')).toBeInTheDocument();
   });
 
   it('muestra el error de documento duplicado al editar un cliente', async () => {

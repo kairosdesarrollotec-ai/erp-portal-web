@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { Search, Pencil } from 'lucide-react';
+import { Search, Pencil, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useCustomersList } from './useCustomersList';
 import { NewCustomerModal } from './NewCustomerModal';
 import { AppHeader } from '../shared/AppHeader';
+import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './CustomersListScreen.module.css';
 
 export function CustomersListScreen() {
+  const navigate = useNavigate();
+  const { can } = useRolePermissions();
+  const canWrite = can('CUSTOMER', 'WRITE');
   const {
     state,
     customers,
@@ -15,6 +20,8 @@ export function CustomersListScreen() {
     setSearch,
     creating,
     createError,
+    duplicateCustomer,
+    clearDuplicateCustomer,
     addCustomer,
     editingCustomer,
     startEditingCustomer,
@@ -26,12 +33,17 @@ export function CustomersListScreen() {
 
   const [modalOpen, setModalOpen] = useState(false);
 
+  function handleNewModalClose() {
+    setModalOpen(false);
+    clearDuplicateCustomer();
+  }
+
   return (
     <main className={styles.wrapper}>
       <AppHeader
         pageTitle="Clientes"
         actions={
-          context ? (
+          context && canWrite ? (
             <button
               type="button"
               className={styles.newButton}
@@ -128,14 +140,26 @@ export function CustomersListScreen() {
                     </td>
                     <td>{new Date(c.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <button
-                        type="button"
-                        className={styles.editButton}
-                        onClick={() => startEditingCustomer(c)}
-                        aria-label={`Editar cliente ${c.fullName}`}
-                      >
-                        <Pencil size={14} /> Editar
-                      </button>
+                      <div className={styles.rowActions}>
+                        <button
+                          type="button"
+                          className={styles.iconButton}
+                          onClick={() => navigate(`/clientes/${c.id}`, { state: context ?? undefined })}
+                          aria-label={`Ver ficha de ${c.fullName}`}
+                        >
+                          <Eye size={14} />
+                        </button>
+                        {canWrite && (
+                          <button
+                            type="button"
+                            className={styles.editButton}
+                            onClick={() => startEditingCustomer(c)}
+                            aria-label={`Editar cliente ${c.fullName}`}
+                          >
+                            <Pencil size={14} /> Editar
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -147,10 +171,13 @@ export function CustomersListScreen() {
 
       <NewCustomerModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={handleNewModalClose}
         onSubmit={addCustomer}
         loading={creating}
         error={createError}
+        duplicateCustomer={duplicateCustomer}
+        onViewExistingCustomer={(id) => navigate(`/clientes/${id}`)}
+        onClearDuplicate={clearDuplicateCustomer}
       />
 
       <NewCustomerModal

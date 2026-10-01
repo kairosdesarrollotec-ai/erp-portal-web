@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Search } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useFleetList, type VehicleFormData } from './useFleetList';
 import { NewVehicleModal } from './NewVehicleModal';
 import { AppHeader } from '../shared/AppHeader';
+import { useRolePermissions } from '../shared/useRolePermissions';
 import type { FleetVehicle, VehicleStatus } from './fleet-client';
 import styles from './FleetListScreen.module.css';
 
@@ -21,6 +23,9 @@ const STATUS_CLASSES: Record<VehicleStatus, string> = {
 };
 
 export function FleetListScreen() {
+  const navigate = useNavigate();
+  const { can } = useRolePermissions();
+  const canWrite = can('FLEET', 'WRITE');
   const {
     state,
     vehicles,
@@ -82,7 +87,7 @@ export function FleetListScreen() {
       <AppHeader
         pageTitle="Flota Vehicular"
         actions={
-          context ? (
+          context && canWrite ? (
             <button
               type="button"
               className={styles.newButton}
@@ -205,7 +210,7 @@ export function FleetListScreen() {
                       <select
                         className={styles.quickStatusSelect}
                         value={v.status}
-                        disabled={updatingId === v.id}
+                        disabled={updatingId === v.id || !canWrite}
                         onChange={(e) => void changeStatus(v.id, e.target.value as VehicleStatus)}
                         aria-label={`Cambiar estado de ${v.plate}`}
                       >
@@ -216,7 +221,20 @@ export function FleetListScreen() {
                       </select>
                     </td>
                     <td>
-                      {v.status !== 'OUT_OF_SERVICE' &&
+                      <span className={styles.rowActions}>
+                        <button
+                          type="button"
+                          className={styles.linkButton}
+                          onClick={() =>
+                            navigate(`/flota/${v.id}`, {
+                              state: context ?? undefined,
+                            })
+                          }
+                        >
+                          Ver detalle
+                        </button>
+                      </span>
+                      {canWrite && v.status !== 'OUT_OF_SERVICE' &&
                         (deactivatingConfirmId === v.id ? (
                           <span className={styles.confirmGroup}>
                             <button

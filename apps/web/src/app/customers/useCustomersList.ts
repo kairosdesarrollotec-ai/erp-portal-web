@@ -33,6 +33,7 @@ export function useCustomersList() {
   const [search, setSearch] = useState('');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [duplicateCustomer, setDuplicateCustomer] = useState<Customer | null>(null);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
@@ -117,7 +118,33 @@ export function useCustomersList() {
         await reload();
         return true;
       } catch (error) {
-        if (error instanceof CustomerCommandError) {
+        if (error instanceof CustomerCommandError && error.status === 409) {
+          // Buscar el cliente existente para mostrar el panel de coincidencia (SC-CLI-002)
+          try {
+            const searchUser = getFirebaseAuth().currentUser;
+            if (searchUser) {
+              const searchToken = await searchUser.getIdToken();
+              const searchResult = await listCustomers(searchToken, {
+                companyId: context.companyId,
+                branchId: context.branchId,
+                search: formData.documentNumber.trim(),
+              });
+              const match = searchResult.items.find(
+                (c) =>
+                  c.documentType.toUpperCase() === formData.documentType.trim().toUpperCase() &&
+                  c.documentNumber.trim() === formData.documentNumber.trim(),
+              );
+              setDuplicateCustomer(match ?? null);
+              if (!match) {
+                setCreateError(error.message);
+              }
+            } else {
+              setCreateError(error.message);
+            }
+          } catch {
+            setCreateError(error.message);
+          }
+        } else if (error instanceof CustomerCommandError) {
           setCreateError(error.message);
         } else {
           setCreateError('Ocurrió un error al registrar el cliente. Intente nuevamente.');
@@ -184,6 +211,8 @@ export function useCustomersList() {
     [context, editingCustomer, reload],
   );
 
+  const clearDuplicateCustomer = useCallback(() => setDuplicateCustomer(null), []);
+
   return {
     state,
     customers,
@@ -194,6 +223,8 @@ export function useCustomersList() {
     creating,
     createError,
     setCreateError,
+    duplicateCustomer,
+    clearDuplicateCustomer,
     addCustomer,
     reload,
     editingCustomer,
