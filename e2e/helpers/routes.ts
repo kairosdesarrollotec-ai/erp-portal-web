@@ -21,12 +21,12 @@ export const SINGLE_ASSIGNMENT = {
   companyName: 'VeloxRent Lima',
   branchId: 'branch-001',
   branchName: 'Sede Miraflores',
-  role: 'RESERVATION_AGENT',
+  role: 'FRONT_OFFICE',
 };
 
 export const MULTI_ASSIGNMENTS = [
   SINGLE_ASSIGNMENT,
-  { companyId: 'company-001', companyName: 'VeloxRent Lima', branchId: 'branch-002', branchName: 'Sede San Isidro', role: 'RESERVATION_AGENT' },
+  { companyId: 'company-001', companyName: 'VeloxRent Lima', branchId: 'branch-002', branchName: 'Sede San Isidro', role: 'FRONT_OFFICE' },
 ];
 
 export const RESERVATION_FIXTURE = {
@@ -140,9 +140,10 @@ export async function interceptFirebaseAuth(page: Page, email = 'agente@veloxren
  */
 export async function interceptBackendAuth(
   page: Page,
-  options: { assignments?: typeof MULTI_ASSIGNMENTS } = {},
+  options: { assignments?: typeof MULTI_ASSIGNMENTS; role?: string } = {},
 ): Promise<void> {
   const assignments = options.assignments ?? [SINGLE_ASSIGNMENT];
+  const role = options.role ?? 'FRONT_OFFICE';
 
   await page.route('**/audit/login-attempts', (route) =>
     route.fulfill({ status: 201, contentType: 'application/json', body: '{}' }),
@@ -172,7 +173,7 @@ export async function interceptBackendAuth(
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ role: 'RESERVATION_AGENT', state: 'EMPTY' }),
+      body: JSON.stringify({ role, state: 'EMPTY' }),
     }),
   );
 
@@ -371,13 +372,13 @@ export async function interceptInquiries(
 /** Realiza el flujo de login completo via UI (Firebase y backend interceptados). */
 export async function loginViaUI(
   page: Page,
-  options: { email?: string; password?: string; assignments?: typeof MULTI_ASSIGNMENTS } = {},
+  options: { email?: string; password?: string; assignments?: typeof MULTI_ASSIGNMENTS; role?: string } = {},
 ): Promise<void> {
   const email = options.email ?? 'agente@veloxrent.pe';
   const password = options.password ?? 'Velox2026!';
 
   await interceptFirebaseAuth(page, email);
-  await interceptBackendAuth(page, { assignments: options.assignments });
+  await interceptBackendAuth(page, { assignments: options.assignments, role: options.role });
 
   await page.goto('/');
   await page.getByLabel('Correo o usuario').fill(email);
