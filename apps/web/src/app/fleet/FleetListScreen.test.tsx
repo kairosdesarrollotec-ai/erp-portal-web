@@ -1,12 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FleetListScreen } from './FleetListScreen';
 import { FleetApiError } from './fleet-client';
+
+function createTestQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
+    },
+  });
+}
 
 const listVehiclesMock = vi.fn();
 const createVehicleMock = vi.fn();
 const updateVehicleStatusMock = vi.fn();
+const requestPhotoUploadSessionMock = vi.fn();
+const uploadPhotoToGcsMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
@@ -25,6 +37,8 @@ vi.mock('./fleet-client', async () => {
     listVehicles: (...args: unknown[]) => listVehiclesMock(...args),
     createVehicle: (...args: unknown[]) => createVehicleMock(...args),
     updateVehicleStatus: (...args: unknown[]) => updateVehicleStatusMock(...args),
+    requestPhotoUploadSession: (...args: unknown[]) => requestPhotoUploadSessionMock(...args),
+    uploadPhotoToGcs: (...args: unknown[]) => uploadPhotoToGcsMock(...args),
   };
 });
 
@@ -38,18 +52,20 @@ const oneAssignment = [
 
 function renderScreen() {
   return render(
-    <MemoryRouter
-      initialEntries={[
-        {
-          pathname: '/flota',
-          state: { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' },
-        },
-      ]}
-    >
-      <Routes>
-        <Route path="/flota" element={<FleetListScreen />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={createTestQueryClient()}>
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/flota',
+            state: { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' },
+          },
+        ]}
+      >
+        <Routes>
+          <Route path="/flota" element={<FleetListScreen />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -58,6 +74,8 @@ describe('FleetListScreen', () => {
     listVehiclesMock.mockReset();
     createVehicleMock.mockReset();
     updateVehicleStatusMock.mockReset();
+    requestPhotoUploadSessionMock.mockReset();
+    uploadPhotoToGcsMock.mockReset();
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
@@ -220,6 +238,61 @@ describe('FleetListScreen', () => {
           plate: 'XYZ-789',
           brand: 'Hyundai',
           model: 'Tucson',
+        }),
+        expect.any(String),
+      );
+    });
+  });
+
+  it('flujo GCS: requestPhotoUploadSession → uploadPhotoToGcs → createVehicle con objectUrl', async () => {
+    listVehiclesMock.mockResolvedValue({ items: [], total: 0 });
+    createVehicleMock.mockResolvedValue({ id: 'v-gcs', plate: 'GCS-001' });
+    requestPhotoUploadSessionMock.mockResolvedValue({
+      uploadUrl: 'https://storage.googleapis.com/upload/signed-url',
+      objectUrl: 'https://storage.googleapis.com/kairos-bucket/vehicles/photo.jpg',
+    });
+    uploadPhotoToGcsMock.mockResolvedValue(undefined);
+
+    renderScreen();
+
+    const newBtn = await screen.findByText('+ Nuevo Vehículo');
+    fireEvent.click(newBtn);
+
+    // Rellena campos obligatorios
+    fireEvent.change(screen.getByPlaceholderText('ABC-123'), { target: { value: 'GCS-001' } });
+    fireEvent.change(screen.getByPlaceholderText('Toyota, Hyundai, Nissan...'), {
+      target: { value: 'Toyota' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), {
+      target: { value: 'Hilux' },
+    });
+
+    // Simula selección de archivo de foto
+    const photoFile = new File(['fake-jpeg-data'], 'foto.jpg', { type: 'image/jpeg' });
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    Object.defineProperty(fileInput, 'files', { value: [photoFile], configurable: true });
+    fireEvent.change(fileInput);
+
+    // Envía el formulario
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
+
+    await waitFor(() => {
+      expect(requestPhotoUploadSessionMock).toHaveBeenCalledWith(
+        'fake-id-token',
+        expect.objectContaining({
+          companyId: 'c1',
+          branchId: 'b1',
+          contentType: 'image/jpeg',
+        }),
+      );
+      expect(uploadPhotoToGcsMock).toHaveBeenCalledWith(
+        'https://storage.googleapis.com/upload/signed-url',
+        photoFile,
+      );
+      expect(createVehicleMock).toHaveBeenCalledWith(
+        'fake-id-token',
+        expect.objectContaining({
+          photoUrl: 'https://storage.googleapis.com/kairos-bucket/vehicles/photo.jpg',
         }),
         expect.any(String),
       );

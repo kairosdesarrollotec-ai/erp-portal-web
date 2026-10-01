@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getFirebaseAuth } from '../providers/firebase';
 import {
   FleetApiError,
@@ -18,6 +19,7 @@ import { useWorkContextForFleet } from './useWorkContextForFleet';
 export type FleetListState = 'LOADING' | 'READY' | 'EMPTY' | 'RECOVERABLE_ERROR' | 'FORBIDDEN';
 
 const FILTER_DEBOUNCE_MS = 400;
+const FLEET_LIST_KEY = ['fleet', 'list'] as const;
 
 export interface VehicleFormData {
   plate: string;
@@ -43,158 +45,219 @@ export interface VehicleEditFormData {
   photoFile?: File;
 }
 
+async function resolvePhotoUrl(
+  idToken: string,
+  context: { companyId: string; branchId: string },
+  photoFile: File | undefined,
+  photoUrl: string | undefined,
+): Promise<string | undefined> {
+  if (!photoFile) return photoUrl?.trim() || undefined;
+
+  const mimeType = photoFile.type;
+  if (mimeType !== 'image/jpeg' && mimeType !== 'image/webp') {
+    throw new Error(`Tipo MIME no admitido: ${mimeType}. Solo se aceptan image/jpeg o image/webp.`);
+  }
+  const contentType = mimeType;
+
+  const session = await requestPhotoUploadSession(idToken, {
+    companyId: context.companyId,
+    branchId: context.branchId,
+    contentType,
+    contentLength: photoFile.size,
+  });
+
+  await uploadPhotoToGcs(session.uploadUrl, photoFile);
+  return session.objectUrl;
+}
+
 export function useFleetList() {
   const { context, loading: contextLoading } = useWorkContextForFleet();
-  const [state, setState] = useState<FleetListState>('LOADING');
-  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
-  const [total, setTotal] = useState(0);
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<VehicleStatus | 'ALL'>('ALL');
-  const [creating, setCreating] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedStatus, setDebouncedStatus] = useState<VehicleStatus | 'ALL'>('ALL');
   const [createError, setCreateError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<FleetVehicle | null>(null);
-  const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
-  const requestIdRef = useRef(0);
 
-  const reload = useCallback(async () => {
-    if (!context) return;
-    const requestId = ++requestIdRef.current;
-    setState('LOADING');
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setDebouncedStatus(statusFilter);
+    }, FILTER_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [search, statusFilter]);
 
-    try {
+  const queryKey = [
+    ...FLEET_LIST_KEY,
+    context?.companyId,
+    context?.branchId,
+    debouncedSearch,
+    debouncedStatus,
+  ] as const;
+
+  const query = useQuery({
+    queryKey,
+    queryFn: async () => {
       const user = getFirebaseAuth().currentUser;
-      if (!user) {
-        if (requestId === requestIdRef.current) setState('RECOVERABLE_ERROR');
-        return;
-      }
+      if (!user) throw new Error('No hay sesión activa');
       const idToken = await user.getIdToken();
-      const result = await listVehicles(idToken, {
-        companyId: context.companyId,
-        branchId: context.branchId,
-        status: statusFilter === 'ALL' ? undefined : statusFilter,
-        search: search.trim() || undefined,
+      return listVehicles(idToken, {
+        companyId: context!.companyId,
+        branchId: context!.branchId,
+        status: debouncedStatus === 'ALL' ? undefined : debouncedStatus,
+        search: debouncedSearch.trim() || undefined,
         limit: 100,
         offset: 0,
       });
+    },
+    enabled: !contextLoading && !!context,
+    placeholderData: (prev) => prev,
+  });
 
-      if (requestId !== requestIdRef.current) return;
-      setVehicles(result.items);
-      setTotal(result.total);
-      setState(result.items.length === 0 ? 'EMPTY' : 'READY');
-    } catch (error) {
-      if (requestId !== requestIdRef.current) return;
-      if (error instanceof FleetApiError && (error.status === 401 || error.status === 403)) {
-        setState('FORBIDDEN');
-      } else {
-        setState('RECOVERABLE_ERROR');
+  const state: FleetListState = (() => {
+    if (contextLoading || query.isLoading) return 'LOADING';
+    if (!context) return 'RECOVERABLE_ERROR';
+    if (query.isError) {
+      const err = query.error;
+      if (err instanceof FleetApiError && (err.status === 401 || err.status === 403)) {
+        return 'FORBIDDEN';
       }
+      return 'RECOVERABLE_ERROR';
     }
-  }, [context, search, statusFilter]);
-
-  useEffect(() => {
-    if (contextLoading) return;
-    if (!context) {
-      queueMicrotask(() => setState('RECOVERABLE_ERROR'));
-      return;
+    if (query.data) {
+      return query.data.items.length === 0 ? 'EMPTY' : 'READY';
     }
-    const timer = setTimeout(() => void reload(), FILTER_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [context, contextLoading, search, statusFilter, reload]);
+    return 'LOADING';
+  })();
 
-  async function resolvePhotoUrl(
-    idToken: string,
-    photoFile: File | undefined,
-    photoUrl: string | undefined,
-  ): Promise<string | undefined> {
-    if (!photoFile) return photoUrl?.trim() || undefined;
+  const vehicles = query.data?.items ?? [];
+  const total = query.data?.total ?? 0;
 
-    if (!context) throw new Error('Contexto no disponible');
+  const invalidateList = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: FLEET_LIST_KEY }),
+    [queryClient],
+  );
 
-    const contentType =
-      photoFile.type === 'image/webp' ? ('image/webp' as const) : ('image/jpeg' as const);
+  const {
+    mutateAsync: createMutateAsync,
+    isPending: creating,
+  } = useMutation({
+    mutationFn: async (formData: VehicleFormData) => {
+      if (!context) throw new Error('Contexto no disponible');
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('No hay sesión activa.');
+      const idToken = await user.getIdToken();
+      const idempotencyKey = crypto.randomUUID();
+      const photoUrl = await resolvePhotoUrl(idToken, context, formData.photoFile, formData.photoUrl);
+      await createVehicle(
+        idToken,
+        {
+          companyId: context.companyId,
+          branchId: context.branchId,
+          plate: formData.plate.trim().toUpperCase(),
+          brand: formData.brand.trim(),
+          model: formData.model.trim(),
+          year: formData.year || undefined,
+          color: formData.color?.trim() || undefined,
+          category: formData.category?.trim() || 'SEDAN',
+          status: formData.status ?? 'AVAILABLE',
+          dailyRate: formData.dailyRate || undefined,
+          photoUrl,
+        },
+        idempotencyKey,
+      );
+    },
+    onSuccess: () => {
+      setCreateError(null);
+      void invalidateList();
+    },
+    onError: (error) => {
+      if (error instanceof FleetCommandError || error instanceof GcsUploadError) {
+        setCreateError(error.message);
+      } else {
+        setCreateError('Ocurrió un error al registrar el vehículo. Intente nuevamente.');
+      }
+    },
+  });
 
-    const session = await requestPhotoUploadSession(idToken, {
-      companyId: context.companyId,
-      branchId: context.branchId,
-      contentType,
-      contentLength: photoFile.size,
-    });
+  const { mutateAsync: statusMutateAsync } = useMutation({
+    mutationFn: async ({ vehicleId, newStatus }: { vehicleId: string; newStatus: VehicleStatus }) => {
+      if (!context) throw new Error('Contexto no disponible');
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('No hay sesión activa.');
+      const idToken = await user.getIdToken();
+      await updateVehicleStatus(idToken, vehicleId, {
+        companyId: context.companyId,
+        branchId: context.branchId,
+        status: newStatus,
+      });
+    },
+    onSuccess: () => void invalidateList(),
+  });
 
-    await uploadPhotoToGcs(session.uploadUrl, photoFile);
-    return session.objectUrl;
-  }
+  const {
+    mutateAsync: editMutateAsync,
+    isPending: editSubmitting,
+  } = useMutation({
+    mutationFn: async ({
+      vehicleId,
+      formData,
+    }: {
+      vehicleId: string;
+      formData: VehicleEditFormData;
+    }) => {
+      if (!context) throw new Error('Contexto no disponible');
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('No hay sesión activa.');
+      const idToken = await user.getIdToken();
+      const photoUrl = await resolvePhotoUrl(idToken, context, formData.photoFile, formData.photoUrl);
+      await updateVehicle(idToken, vehicleId, {
+        companyId: context.companyId,
+        branchId: context.branchId,
+        brand: formData.brand.trim(),
+        model: formData.model.trim(),
+        year: formData.year || undefined,
+        color: formData.color?.trim() || undefined,
+        category: formData.category?.trim() || undefined,
+        dailyRate: formData.dailyRate || undefined,
+        photoUrl,
+      });
+    },
+    onSuccess: () => {
+      setEditError(null);
+      void invalidateList();
+    },
+    onError: (error) => {
+      if (error instanceof FleetCommandError || error instanceof GcsUploadError) {
+        setEditError(error.message);
+      } else {
+        setEditError('Ocurrió un error al editar el vehículo. Intente nuevamente.');
+      }
+    },
+  });
 
   const addVehicle = useCallback(
     async (formData: VehicleFormData): Promise<boolean> => {
-      if (!context) return false;
-      setCreating(true);
       setCreateError(null);
-
       try {
-        const user = getFirebaseAuth().currentUser;
-        if (!user) {
-          setCreateError('No hay sesión activa.');
-          return false;
-        }
-        const idToken = await user.getIdToken();
-        const idempotencyKey = crypto.randomUUID();
-
-        const photoUrl = await resolvePhotoUrl(idToken, formData.photoFile, formData.photoUrl);
-
-        await createVehicle(
-          idToken,
-          {
-            companyId: context.companyId,
-            branchId: context.branchId,
-            plate: formData.plate.trim().toUpperCase(),
-            brand: formData.brand.trim(),
-            model: formData.model.trim(),
-            year: formData.year || undefined,
-            color: formData.color?.trim() || undefined,
-            category: formData.category?.trim() || 'SEDAN',
-            status: formData.status ?? 'AVAILABLE',
-            dailyRate: formData.dailyRate || undefined,
-            photoUrl,
-          },
-          idempotencyKey,
-        );
-
-        await reload();
+        await createMutateAsync(formData);
         return true;
-      } catch (error) {
-        if (error instanceof FleetCommandError || error instanceof GcsUploadError) {
-          setCreateError(error.message);
-        } else {
-          setCreateError('Ocurrió un error al registrar el vehículo. Intente nuevamente.');
-        }
+      } catch {
         return false;
-      } finally {
-        setCreating(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [context, reload],
+    [createMutateAsync],
   );
 
   const changeStatus = useCallback(
     async (vehicleId: string, newStatus: VehicleStatus): Promise<boolean> => {
-      if (!context) return false;
       setUpdatingId(vehicleId);
-
       try {
-        const user = getFirebaseAuth().currentUser;
-        if (!user) return false;
-        const idToken = await user.getIdToken();
-
-        await updateVehicleStatus(idToken, vehicleId, {
-          companyId: context.companyId,
-          branchId: context.branchId,
-          status: newStatus,
-        });
-
-        await reload();
+        await statusMutateAsync({ vehicleId, newStatus });
         return true;
       } catch {
         return false;
@@ -202,57 +265,30 @@ export function useFleetList() {
         setUpdatingId(null);
       }
     },
-    [context, reload],
+    [statusMutateAsync],
   );
 
   const editVehicle = useCallback(
     async (vehicleId: string, formData: VehicleEditFormData): Promise<boolean> => {
-      if (!context) return false;
-      setEditSubmitting(true);
       setEditError(null);
-
       try {
-        const user = getFirebaseAuth().currentUser;
-        if (!user) {
-          setEditError('No hay sesión activa.');
-          return false;
-        }
-        const idToken = await user.getIdToken();
-
-        const photoUrl = await resolvePhotoUrl(idToken, formData.photoFile, formData.photoUrl);
-
-        await updateVehicle(idToken, vehicleId, {
-          companyId: context.companyId,
-          branchId: context.branchId,
-          brand: formData.brand.trim(),
-          model: formData.model.trim(),
-          year: formData.year || undefined,
-          color: formData.color?.trim() || undefined,
-          category: formData.category?.trim() || undefined,
-          dailyRate: formData.dailyRate || undefined,
-          photoUrl,
-        });
-
-        await reload();
+        await editMutateAsync({ vehicleId, formData });
         return true;
-      } catch (error) {
-        if (error instanceof FleetCommandError || error instanceof GcsUploadError) {
-          setEditError(error.message);
-        } else {
-          setEditError('Ocurrió un error al editar el vehículo. Intente nuevamente.');
-        }
+      } catch {
         return false;
-      } finally {
-        setEditSubmitting(false);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [context, reload],
+    [editMutateAsync],
   );
 
   const deactivateVehicle = useCallback(
     (vehicleId: string) => changeStatus(vehicleId, 'OUT_OF_SERVICE'),
     [changeStatus],
+  );
+
+  const reload = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: FLEET_LIST_KEY }),
+    [queryClient],
   );
 
   return {
