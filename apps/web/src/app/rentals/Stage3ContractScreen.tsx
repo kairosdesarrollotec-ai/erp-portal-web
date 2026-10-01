@@ -20,7 +20,7 @@ const NOTARY_RESULT_LABELS: Record<string, string> = {
 };
 
 /**
- * ENTREGA-03 - Garantía y contrato (mapea a evaluate-notary,
+ * ENTREGA-03 / ALQ-07 (excepción notarial) + ALQ-08 (garantía y contrato). Mapea a evaluate-notary,
  * approve-notary-exception, formalize-contract). Para los 4 modelos de
  * notaría obligatoria (Hilux, Colorado, Verna, Yaris - BR-ALQ-003) el
  * backend siempre devuelve MANDATORY y no hay alternativa que mostrar.

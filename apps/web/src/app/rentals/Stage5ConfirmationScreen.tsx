@@ -7,7 +7,7 @@ import { loadChecklistDraft, clearChecklistDraft } from './rental-checklist-draf
 import styles from './RentalStageForms.module.css';
 
 /**
- * ENTREGA-05 - Confirmacion de entrega. Resumen de solo lectura de las 4
+ * ENTREGA-05 / ALQ-09 - Confirmacion de entrega. Resumen de solo lectura de las 4
  * etapas anteriores con link "Editar" por seccion, y boton "Confirmar
  * entrega" que ejecuta complete-delivery (accion irreversible) con los
  * datos capturados en ENTREGA-04.

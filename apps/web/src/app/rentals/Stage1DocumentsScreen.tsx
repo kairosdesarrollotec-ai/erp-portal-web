@@ -9,7 +9,7 @@ type DriverType = 'TITULAR' | 'ACOMPANANTE' | 'JURIDICA';
 type IdDocType = 'DNI' | 'PASAPORTE_CE';
 
 /**
- * ENTREGA-01 - Cliente y documentos (mapea a POST .../commands/validate-documents).
+ * ENTREGA-01 / ALQ-03 - Cliente y documentos (mapea a POST .../commands/validate-documents).
  * Cliente y vehiculo ya vienen heredados de Consulta/Reserva - no se vuelven
  * a pedir aqui, solo se muestran de forma informativa.
  */

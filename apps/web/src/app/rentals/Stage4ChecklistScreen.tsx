@@ -11,7 +11,7 @@ const MIN_TECHNICAL_MINUTES = 30;
 const MIN_DOCUMENTARY_MINUTES = 15;
 
 /**
- * ENTREGA-04 - Checklist y evidencias (mapea a complete-delivery, ejecutado
+ * ENTREGA-04 / ALQ-09 - Checklist y evidencias (mapea a complete-delivery, ejecutado
  * recien en ENTREGA-05). Version ONLINE-ONLY: la captura se modela como
  * contadores de fotos/videos (35 fotos + 3 videos por 5 zonas) mas
  * formularios FIV/FCKE resumidos en notas; el envio real de archivos a GCS

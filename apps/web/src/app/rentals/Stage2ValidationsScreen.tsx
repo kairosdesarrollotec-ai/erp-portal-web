@@ -9,7 +9,7 @@ import styles from './RentalStageForms.module.css';
 type ExternalCheckStatus = 'verified' | 'pending' | 'down';
 
 /**
- * ENTREGA-02 - Validaciones externas y alcoholímetro
+ * ENTREGA-02 / ALQ-04 - Validaciones externas y alcoholímetro
  * (mapea a POST .../commands/register-alcohol-test). RENIEC/MTC no tienen
  * endpoint propio en el backend actual (fuera del alcance de rentals.module);
  * se simulan como verificados por defecto con un boton de reintento, tal
