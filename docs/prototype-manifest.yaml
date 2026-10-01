@@ -1707,6 +1707,30 @@ screens:
   supersedes: null
   note: catalogo disponibilidad flota
   is_reference_asset: false
+- proto_id: PROTO-FLO-01-GESTION-FLOTA-OPERADOR
+  ux_id: FLO-01
+  module: fleet
+  source: stitch_veloxrent_prototipo_b
+  folder: flota_gestion_operador_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/flota_gestion_operador_veloxrent/screen.png
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/flota_gestion_operador_veloxrent/code.html
+  screen_state: FLEET_OPERATOR_LIST
+  viewport:
+    width: 1440
+    height: 1024
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-10-01'
+  sha256: d020f31120ed9052bf4754cd03589acb9e6cdc49dbae802b9bcd250139905dd8
+  bytes: 155648
+  supersedes: null
+  note: gestion flota operador — tabla con registro, edicion y cambio de estado
+  is_reference_asset: false
 - proto_id: PROTO-INC-02-DETALLE-INCIDENCIA-INC-0234
   ux_id: INC-02
   module: soporte

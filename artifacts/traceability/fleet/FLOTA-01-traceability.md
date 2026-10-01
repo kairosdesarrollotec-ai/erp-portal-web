@@ -1,8 +1,9 @@
-# Trazabilidad — FLOTA-01 Gestión de Flota Vehicular (Frontend)
+# Trazabilidad — FLO-01 Gestión de Flota Vehicular (Frontend)
 
 **Fecha:** 2026-10-01  
-**UX-ID:** FLOTA-01  
-**Rama mergeada:** `feat/fleet-gcs-photo-upload` → `main` (2026-10-01)
+**UX-ID:** FLO-01 (alias informal: FLOTA-01)  
+**Rama mergeada:** `feat/fleet-gcs-photo-upload` → `main` (2026-10-01)  
+**Actualización:** 2026-10-01 — BDD/SDD/TDD específicos creados (BRECHA-FLOTA-01 cerrada); PROTO-ID APPROVED para FLEET_OPERATOR_LIST registrado (BRECHA-FLOTA-04 cerrada).
 
 ---
 
@@ -10,12 +11,13 @@
 
 | Eslabón | Referencia | Estado |
 |---------|-----------|--------|
-| **BDD** | BDD-KAIROS-MVP-002-TRANSVERSAL §FLOTA (gestión de vehículos) | Fuente transversal — no hay BDD específico de módulo fleet |
-| **SDD** | SDD-KAIROS-MVP-002-TRANSVERSAL §16 (módulo Flota) | Fuente transversal |
-| **TDD** | TDD-KAIROS-MVP-002-TRANSVERSAL §fleet + ADR-KAI-* | Fuente transversal |
-| **UX-ID** | FLOTA-01 | Registrado |
-| **PROTO-ID** | Ver `docs/prototype-manifest.yaml` | A verificar con `source-auditor` |
-| **OpenAPI** | `packages/contracts/openapi/fleet.yaml` | Contrato vigente |
+| **BDD** | `docs/sources/bdd/bdd-fleet.md` v1.0 (BR-FLT-001..009, SC-FLT-001..010) | APROBADO — 2026-10-01 |
+| **SDD** | `docs/sources/sdd/sdd-fleet.md` v1.0 | APROBADO — 2026-10-01 |
+| **TDD** | `docs/sources/tdd/tdd-fleet.md` v1.0 (TDD-FLT-ADR-001..004) | APROBADO — 2026-10-01 |
+| **UX-ID** | FLO-01 | Registrado |
+| **PROTO-ID (READY)** | `PROTO-FLO-01-CATALOGO-DISPONIBILIDAD-FLOTA` — screen_state: READY | APPROVED |
+| **PROTO-ID (FLEET_OPERATOR_LIST)** | `PROTO-FLO-01-GESTION-FLOTA-OPERADOR` — screen_state: FLEET_OPERATOR_LIST | APPROVED — 2026-10-01 |
+| **OpenAPI** | `packages/contracts/openapi/fleet.yaml` v0.2.0 | Contrato vigente |
 | **Código** | `src/app/fleet/` (FleetListScreen, useFleetList, NewVehicleModal, fleet-client) | Implementado |
 | **Pruebas** | `FleetListScreen.test.tsx`, `fleet-client.test.ts` | 22/22 passing |
 | **Evidencia** | `artifacts/evidence/fleet/fleet-gcs-upload-evidence.md` | Registrada |
@@ -69,7 +71,7 @@
 
 | ID | Descripción | Severidad |
 |----|-------------|-----------|
-| BRECHA-FLOTA-01 | No hay BDD/SDD/TDD específico del módulo fleet | P2 — Fuentes transversales aplican |
+| BRECHA-FLOTA-01 | ~~No hay BDD/SDD/TDD específico del módulo fleet~~ | **Resuelto 2026-10-01** — bdd-fleet.md, sdd-fleet.md, tdd-fleet.md creados |
 | BRECHA-FLOTA-02 | `fleet-client.test.ts` migrado a MSW v2 | **Resuelto 2026-10-01** |
 | BRECHA-FLOTA-03 | Test de `updateVehicle` añadido | **Resuelto 2026-10-01** |
-| BRECHA-FLOTA-04 | Sin test visual de prototipo (responsive-visual-reviewer) | P2 — Requiere PROTO-ID APPROVED vigente |
+| BRECHA-FLOTA-04 | ~~Sin PROTO-ID APPROVED vigente para FLEET_OPERATOR_LIST~~ | **Resuelto 2026-10-01** — PROTO-FLO-01-GESTION-FLOTA-OPERADOR registrado (1440×1024 desktop, APPROVED) |

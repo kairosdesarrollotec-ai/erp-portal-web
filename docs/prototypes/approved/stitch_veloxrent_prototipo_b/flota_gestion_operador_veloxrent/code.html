@@ -1,0 +1,435 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flota — Gestión de flota - VeloxRent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Public Sans', sans-serif;
+      background-color: #FFFFFF;
+      color: #1F2A33;
+    }
+    .font-mono-code {
+      font-family: 'Space Grotesk', monospace;
+    }
+  </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col antialiased selection:bg-amber-100 selection:text-amber-900">
+
+  <!-- TOP APP HEADER -->
+  <header class="border-b border-[#E5E2DC] bg-white sticky top-0 z-40">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <!-- Left: Brand & Breadcrumb -->
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-2">
+          <span class="text-xl font-bold tracking-tight text-[#1F2A33] font-mono-code flex items-center gap-1.5">
+            <span class="w-3 h-3 bg-[#C6600A] rounded-sm inline-block"></span>
+            Velox<span class="text-[#C6600A]">Rent</span>
+          </span>
+          <span class="text-[11px] font-semibold bg-[#F5F4F0] text-[#7A756D] px-2 py-0.5 rounded border border-[#E5E2DC] ml-1">ERP v3.4</span>
+        </div>
+
+        <div class="h-4 w-px bg-[#E5E2DC]"></div>
+
+        <nav class="flex items-center gap-2 text-sm text-[#7A756D]">
+          <a href="#" class="hover:text-[#1F2A33] transition-colors">Flota</a>
+          <span>›</span>
+          <span class="text-[#1F2A33] font-semibold">Gestión de flota</span>
+        </nav>
+      </div>
+
+      <!-- Right: System Status & User Profile -->
+      <div class="flex items-center gap-5">
+        <!-- Online Pill -->
+        <div class="flex items-center gap-1.5 px-2.5 py-1 bg-[#F0FDF4] text-[#1E7D4B] border border-[#DCFCE7] rounded-full text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-[#1E7D4B] animate-pulse"></span>
+          <span>En línea</span>
+        </div>
+
+        <!-- Sede Indicator -->
+        <div class="flex items-center gap-1.5 text-xs text-[#4E4A45]">
+          <svg class="w-3.5 h-3.5 text-[#7A756D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+          <span>Ayacucho — Sede Central</span>
+        </div>
+
+        <div class="h-4 w-px bg-[#E5E2DC]"></div>
+
+        <!-- User profile badge — Fleet Operator -->
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-[#1F2A33] text-white flex items-center justify-center font-bold text-xs font-mono-code tracking-wider">
+            RP
+          </div>
+          <div class="text-left hidden md:block">
+            <div class="text-xs font-semibold text-[#1F2A33] leading-tight">Rodrigo Palomino</div>
+            <div class="text-[11px] text-[#7A756D] leading-tight">Operador de Flota</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-6 py-8">
+
+    <!-- PAGE TITLE & SUMMARY CARDS -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-[#E5E2DC]">
+      <div>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold text-[#1F2A33] tracking-tight">Gestión de Flota</h1>
+          <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#FAF9F5] border border-[#E5E2DC] text-[#4E4A45] font-mono-code">
+            18 vehículos registrados
+          </span>
+        </div>
+        <p class="text-sm text-[#7A756D] mt-1">
+          Administra el catálogo de vehículos: registra nuevas unidades, actualiza datos y gestiona el estado operativo de la flota.
+        </p>
+      </div>
+
+      <!-- Primary CTA -->
+      <div class="flex items-center gap-3">
+        <button class="inline-flex items-center gap-2 px-3.5 py-2 border border-[#E5E2DC] rounded text-xs font-semibold text-[#4E4A45] hover:bg-[#FAF9F5] transition-colors shadow-sm">
+          <svg class="w-4 h-4 text-[#7A756D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+          </svg>
+          Exportar
+        </button>
+        <button class="inline-flex items-center gap-2 px-4 py-2 bg-[#C6600A] hover:bg-[#A85208] text-white rounded text-xs font-semibold transition-colors shadow-sm font-mono-code">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Registrar Vehículo
+        </button>
+      </div>
+    </div>
+
+    <!-- SUMMARY CARDS -->
+    <div class="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Total -->
+      <div class="bg-[#FAF9F5] border border-[#E5E2DC] rounded-lg p-4">
+        <div class="text-[11px] uppercase font-bold tracking-wider text-[#7A756D] mb-1">Total flota</div>
+        <div class="text-2xl font-bold text-[#1F2A33] font-mono-code">18</div>
+        <div class="text-xs text-[#7A756D] mt-0.5">Ayacucho — Sede Central</div>
+      </div>
+      <!-- Disponibles -->
+      <div class="bg-[#F0FDF4] border border-[#DCFCE7] rounded-lg p-4">
+        <div class="text-[11px] uppercase font-bold tracking-wider text-[#1E7D4B] mb-1">Disponibles</div>
+        <div class="text-2xl font-bold text-[#1E7D4B] font-mono-code">11</div>
+        <div class="text-xs text-[#1E7D4B]/70 mt-0.5">Listos para alquilar</div>
+      </div>
+      <!-- En alquiler -->
+      <div class="bg-[#FFFDF7] border border-[#FAD8A8] rounded-lg p-4">
+        <div class="text-[11px] uppercase font-bold tracking-wider text-[#B5720A] mb-1">En alquiler</div>
+        <div class="text-2xl font-bold text-[#B5720A] font-mono-code">5</div>
+        <div class="text-xs text-[#B5720A]/70 mt-0.5">Contratos activos</div>
+      </div>
+      <!-- Mantenimiento -->
+      <div class="bg-[#FEF2F2] border border-[#FECACA] rounded-lg p-4">
+        <div class="text-[11px] uppercase font-bold tracking-wider text-[#C22B2B] mb-1">Mantenimiento</div>
+        <div class="text-2xl font-bold text-[#C22B2B] font-mono-code">2</div>
+        <div class="text-xs text-[#C22B2B]/70 mt-0.5">Fuera de servicio: 0</div>
+      </div>
+    </div>
+
+    <!-- FILTERS BAR -->
+    <section class="mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+      <!-- Search by plate or brand -->
+      <div class="flex items-center gap-2 bg-[#FAF9F5] border border-[#E5E2DC] rounded px-3 py-2 text-xs flex-1 max-w-xs">
+        <svg class="w-3.5 h-3.5 text-[#7A756D] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input type="text" placeholder="Buscar por placa o marca…" class="bg-transparent focus:outline-none text-[#1F2A33] placeholder-[#A39C90] font-mono-code text-xs w-full">
+      </div>
+
+      <!-- Status filter -->
+      <div class="flex items-center gap-1.5 bg-[#FAF9F5] border border-[#E5E2DC] rounded px-3 py-2 text-xs">
+        <span class="text-[#7A756D]">Estado:</span>
+        <select class="bg-transparent font-medium text-[#1F2A33] focus:outline-none cursor-pointer">
+          <option selected="">Todos los estados</option>
+          <option>Disponible (11)</option>
+          <option>En alquiler (5)</option>
+          <option>Mantenimiento (2)</option>
+          <option>Fuera de servicio (0)</option>
+        </select>
+      </div>
+
+      <!-- Category filter -->
+      <div class="flex items-center gap-1.5 bg-[#FAF9F5] border border-[#E5E2DC] rounded px-3 py-2 text-xs">
+        <span class="text-[#7A756D]">Categoría:</span>
+        <select class="bg-transparent font-medium text-[#1F2A33] focus:outline-none cursor-pointer">
+          <option selected="">Todas</option>
+          <option>Pick-up 4x4</option>
+          <option>SUV / Crossover</option>
+          <option>Sedán</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- VEHICLE TABLE -->
+    <section class="mt-4">
+      <div class="border border-[#E5E2DC] rounded-lg overflow-hidden shadow-sm">
+        <table class="w-full text-xs">
+          <thead>
+            <tr class="bg-[#FAF9F5] border-b border-[#E5E2DC]">
+              <th class="px-4 py-3 text-left font-bold uppercase tracking-wider text-[#7A756D] w-16">Foto</th>
+              <th class="px-4 py-3 text-left font-bold uppercase tracking-wider text-[#7A756D]">Placa</th>
+              <th class="px-4 py-3 text-left font-bold uppercase tracking-wider text-[#7A756D]">Marca / Modelo</th>
+              <th class="px-4 py-3 text-left font-bold uppercase tracking-wider text-[#7A756D]">Año</th>
+              <th class="px-4 py-3 text-left font-bold uppercase tracking-wider text-[#7A756D]">Categoría</th>
+              <th class="px-4 py-3 text-left font-bold uppercase tracking-wider text-[#7A756D]">Estado</th>
+              <th class="px-4 py-3 text-right font-bold uppercase tracking-wider text-[#7A756D]">Tarifa/día</th>
+              <th class="px-4 py-3 text-center font-bold uppercase tracking-wider text-[#7A756D]">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#F5F4F0]">
+
+            <!-- Row 1: Toyota Hilux — AVAILABLE -->
+            <tr class="bg-white hover:bg-[#FAFAF9] transition-colors">
+              <td class="px-4 py-3">
+                <div class="w-12 h-10 rounded bg-[#F5F4F0] border border-[#E5E2DC] overflow-hidden">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1Wm71vbwg34zCGZGPevkNShAMFQAk_6czjeqV-qcnvGQlLluGJ8AHNSdmkmhIzrCBWd6PSJaHfIJgX9sjknmXygdn9FZZ1KzTrNUtgc30bYL4uBRhr2msqG8dj_M_GwH9SiT0_Bj5l5NNtQYAv2c9dL72jKy35Chqg0KdXmrSiAij7oXi-VAmklca0u6BRygK1MDneqQikvdltSHWAJrbvZjJyTxNt7bQCSi1di7ERjWxrfJwSJQ2zX3Us" alt="" class="w-full h-full object-cover">
+                </div>
+              </td>
+              <td class="px-4 py-3 font-mono-code font-bold text-[#1F2A33] tracking-wider">D0Y-704</td>
+              <td class="px-4 py-3">
+                <div class="font-semibold text-[#1F2A33]">Toyota Hilux 4x4</div>
+                <div class="text-[#7A756D] text-[11px]">Doble Cabina 2.8 Turbo Diesel</div>
+              </td>
+              <td class="px-4 py-3 text-[#4E4A45] font-mono-code">2023</td>
+              <td class="px-4 py-3 text-[#4E4A45]">Pick-up 4x4</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F0FDF4] text-[#1E7D4B] border border-[#DCFCE7]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#1E7D4B]"></span>
+                  Disponible
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right font-mono-code font-bold text-[#1F2A33]">S/ 350.00</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-center gap-2">
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Editar vehículo">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                  </button>
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Cambiar estado">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 2: Mitsubishi L200 — AVAILABLE -->
+            <tr class="bg-white hover:bg-[#FAFAF9] transition-colors">
+              <td class="px-4 py-3">
+                <div class="w-12 h-10 rounded bg-[#F5F4F0] border border-[#E5E2DC] overflow-hidden">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1XPfZKB3pIVjdXXtDFaDqSHU2vi5urfujkIy_m553v4NFKJ-Frdx6ao7SsBmo6NSOWhHtSCbEOspxP3Z0TeXmzjMW20BF_SYb0OLO_n1xdJ7KuX8cIkXXENlAJhTf3cAW9WVhfxbHrEVx1a9Hg6-XCX0lAx8HqmjPGQHg8XGiQben9PTWiFEuLZUF0Csk6E-D85Ss0cDl7YJzK3uuHkx3TkbG3nOMExSAFQrTMrzjKrKgv7zmyVH1UmGX8" alt="" class="w-full h-full object-cover">
+                </div>
+              </td>
+              <td class="px-4 py-3 font-mono-code font-bold text-[#1F2A33] tracking-wider">B6Z-812</td>
+              <td class="px-4 py-3">
+                <div class="font-semibold text-[#1F2A33]">Mitsubishi L200 4x4</div>
+                <div class="text-[#7A756D] text-[11px]">Doble Cabina GLS</div>
+              </td>
+              <td class="px-4 py-3 text-[#4E4A45] font-mono-code">2022</td>
+              <td class="px-4 py-3 text-[#4E4A45]">Pick-up 4x4</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F0FDF4] text-[#1E7D4B] border border-[#DCFCE7]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#1E7D4B]"></span>
+                  Disponible
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right font-mono-code font-bold text-[#1F2A33]">S/ 330.00</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-center gap-2">
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Editar">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                  </button>
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Cambiar estado">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 3: Chevrolet Colorado — RENTED -->
+            <tr class="bg-[#FFFEF8] hover:bg-[#FFFDF2] transition-colors">
+              <td class="px-4 py-3">
+                <div class="w-12 h-10 rounded bg-[#F5F4F0] border border-[#E5E2DC] overflow-hidden">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1WELvpdJtAWyJ8500LXrK63d_USEEDRzvxGyHmW1Lg484aG_ec-pPGjYON1CvpggbU_jADMLiRWEwROMharo8K727VhPoWxn_t13IcXCjSCrbLGeRmUtSltkBwvw8s8GKt708YXu4QbjcZYMD_WPLdKzo_BzwELEvpksle-2o2iviohD1SMiA5HgvIxrbB-KL9TzGSKz6GYlk-3FAJxKUkXvMdjrHAgwBw6GnTb2JXlZorFK-nnib2m9lE" alt="" class="w-full h-full object-cover">
+                </div>
+              </td>
+              <td class="px-4 py-3 font-mono-code font-bold text-[#1F2A33] tracking-wider">C3M-901</td>
+              <td class="px-4 py-3">
+                <div class="font-semibold text-[#1F2A33]">Chevrolet Colorado 4x4</div>
+                <div class="text-[#7A756D] text-[11px]">High Country 2.8 Diesel Automática</div>
+              </td>
+              <td class="px-4 py-3 text-[#4E4A45] font-mono-code">2024</td>
+              <td class="px-4 py-3 text-[#4E4A45]">Pick-up 4x4</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFFDF7] text-[#B5720A] border border-[#FAD8A8]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B5720A]"></span>
+                  En alquiler
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right font-mono-code font-bold text-[#1F2A33]">S/ 360.00</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-center gap-2">
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Ver expediente">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                  </button>
+                  <button class="p-1.5 border border-[#E5E2DC] rounded bg-[#FAF9F5] text-[#C0BAB3] cursor-not-allowed" disabled title="No editable durante alquiler activo">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 4: Toyota Fortuner — AVAILABLE -->
+            <tr class="bg-white hover:bg-[#FAFAF9] transition-colors">
+              <td class="px-4 py-3">
+                <div class="w-12 h-10 rounded bg-[#F5F4F0] border border-[#E5E2DC] overflow-hidden">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1V6slIWPGGGbILTH-rG2ejvEuTGWI0sx7jX5cvyuM0CiJhic6gkybpDhAgXhcuCkkQ_3_rOfwVFGnzragcDoUTf6K9yZEvAvlhEhdzULV8WY2cFsOq4oY_MJFqlnOOUl21HZf3QOH3RdwDdpYEsVbB2aSy_obUAp-IgGJOVAuIOWzq0ts6RVHh0MdIhHt5HWjW_VE-WOlDtiYHyuZuGE" alt="" class="w-full h-full object-cover">
+                </div>
+              </td>
+              <td class="px-4 py-3 font-mono-code font-bold text-[#1F2A33] tracking-wider">F8T-992</td>
+              <td class="px-4 py-3">
+                <div class="font-semibold text-[#1F2A33]">Toyota Fortuner 4x4</div>
+                <div class="text-[#7A756D] text-[11px]">SUV 7 Pasajeros 2.8 Diesel</div>
+              </td>
+              <td class="px-4 py-3 text-[#4E4A45] font-mono-code">2023</td>
+              <td class="px-4 py-3 text-[#4E4A45]">SUV</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F0FDF4] text-[#1E7D4B] border border-[#DCFCE7]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#1E7D4B]"></span>
+                  Disponible
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right font-mono-code font-bold text-[#1F2A33]">S/ 420.00</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-center gap-2">
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Editar">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                  </button>
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Cambiar estado">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 5: Toyota Hilux H5K-210 — MAINTENANCE -->
+            <tr class="bg-[#FFF9F9] hover:bg-[#FFF5F5] transition-colors">
+              <td class="px-4 py-3">
+                <div class="w-12 h-10 rounded bg-[#F5F4F0] border border-[#E5E2DC] overflow-hidden">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1XQGl7bpkFoomS6fd6551Q_AQkeMlyjGY-fpXiFOYAib4w0cVe-lPk0UtlOBHenIrfH_Pun-feMfbT3eErTl-_GYUFtPu7-hViTyiUYOOukUaBbhsstZJVtPBUSlM4pg6F5uFOYJwkrFjC0Vd6JifOGC4wCQ_v0W_lFQeSZbfqOeKAAEGCYB9eSYfCiRg75Mq89InF-RQNjBZhTGJbM4fmxHRPKlJkdwXCiRtjpbJvvDXkk3UNzJaZ_snI" alt="" class="w-full h-full object-cover filter grayscale-[50%]">
+                </div>
+              </td>
+              <td class="px-4 py-3 font-mono-code font-bold text-[#1F2A33] tracking-wider">H5K-210</td>
+              <td class="px-4 py-3">
+                <div class="font-semibold text-[#1F2A33]">Toyota Hilux 4x4</div>
+                <div class="text-[#7A756D] text-[11px]">Doble Cabina SRV 4x4</div>
+              </td>
+              <td class="px-4 py-3 text-[#4E4A45] font-mono-code">2021</td>
+              <td class="px-4 py-3 text-[#4E4A45]">Pick-up 4x4</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FEF2F2] text-[#C22B2B] border border-[#FECACA]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#C22B2B]"></span>
+                  Mantenimiento
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right font-mono-code font-bold text-[#7A756D]">S/ 350.00</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-center gap-2">
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Editar datos">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                  </button>
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Cambiar estado (ej. Disponible)">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Row 6: Hyundai Creta — AVAILABLE -->
+            <tr class="bg-white hover:bg-[#FAFAF9] transition-colors">
+              <td class="px-4 py-3">
+                <div class="w-12 h-10 rounded bg-[#F5F4F0] border border-[#E5E2DC] overflow-hidden">
+                  <img src="https://lh3.googleusercontent.com/aida/AEtjO1UCV2UtCiQQZKCqeRobu0HrAfEQEP5cJvCNAtVUftpuJDAv_7VgDMQRVSNaRQ6Z0xvMHjRAzlWycTflANJHUMk7DVujebGXnTpQ-2kYDSy3AAADXaiN2_NwW-3MTP0rrGRTINKSLoulOy6CNu21Br38yRdpokAkxuXZlX0yr2R6p-Ymwm8Ng5pay1rI99wyDDFQPV7TWSlRCyJl-2uhLdX1hiX7p5zpBcMOsmlHtRxynqbggQ9ossfz97o" alt="" class="w-full h-full object-cover">
+                </div>
+              </td>
+              <td class="px-4 py-3 font-mono-code font-bold text-[#1F2A33] tracking-wider">B4T-312</td>
+              <td class="px-4 py-3">
+                <div class="font-semibold text-[#1F2A33]">Hyundai Creta 1.6</div>
+                <div class="text-[#7A756D] text-[11px]">SUV Compacta Automática</div>
+              </td>
+              <td class="px-4 py-3 text-[#4E4A45] font-mono-code">2022</td>
+              <td class="px-4 py-3 text-[#4E4A45]">SUV</td>
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#F0FDF4] text-[#1E7D4B] border border-[#DCFCE7]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#1E7D4B]"></span>
+                  Disponible
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right font-mono-code font-bold text-[#1F2A33]">S/ 240.00</td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-center gap-2">
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Editar">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                  </button>
+                  <button class="p-1.5 border border-[#E5E2DC] rounded hover:bg-[#FAF9F5] text-[#4E4A45] transition-colors" title="Cambiar estado">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#7A756D]">
+        <span>Mostrando <strong class="text-[#1F2A33] font-mono-code">1 - 6</strong> de <strong class="text-[#1F2A33] font-mono-code">18</strong> vehículos</span>
+        <div class="flex items-center gap-1 font-mono-code">
+          <button class="px-2.5 py-1 border border-[#E5E2DC] rounded bg-white text-[#7A756D] cursor-not-allowed" disabled>Anterior</button>
+          <button class="px-2.5 py-1 border border-[#1F2A33] bg-[#1F2A33] text-white rounded font-bold">1</button>
+          <button class="px-2.5 py-1 border border-[#E5E2DC] bg-white text-[#1F2A33] hover:bg-[#FAF9F5] rounded">2</button>
+          <button class="px-2.5 py-1 border border-[#E5E2DC] bg-white text-[#1F2A33] hover:bg-[#FAF9F5] rounded">3</button>
+          <button class="px-2.5 py-1 border border-[#E5E2DC] bg-white text-[#1F2A33] hover:bg-[#FAF9F5] rounded">Siguiente</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER INSTITUCIONAL -->
+  <footer class="mt-auto border-t border-[#E5E2DC] bg-[#FAF9F5] py-4 text-xs text-[#7A756D]">
+    <div class="max-w-[1440px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-4">
+        <span><strong>VeloxRent</strong> © 2026</span>
+        <span class="text-[#D5D1C8]">•</span>
+        <span>Sistema de Gestión Comercial y Flotas</span>
+        <span class="text-[#D5D1C8]">•</span>
+        <span>Módulo Flota / Gestión de flota</span>
+      </div>
+      <div class="flex items-center gap-6">
+        <span>Mesa de Flota: <strong class="text-[#1F2A33] font-mono-code">anexo 108</strong></span>
+        <span>Soporte TI: <strong class="text-[#1F2A33] font-mono-code">anexo 101</strong></span>
+        <a href="#" class="inline-flex items-center gap-1 text-[#C22B2B] hover:underline">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+          Cerrar sesión
+        </a>
+      </div>
+    </div>
+  </footer>
+
+</body></html>
