@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useVehicleDetail } from './useVehicleDetail';
 import { NewVehicleModal } from './NewVehicleModal';
+import { useRolePermissions } from '../shared/useRolePermissions';
 import type { VehicleStatus } from './fleet-client';
 import type { VehicleFormData } from './useFleetList';
 import styles from './VehicleDetailScreen.module.css';
@@ -33,6 +34,8 @@ const STATUS_CLASSES: Record<VehicleStatus, string> = {
 
 export function VehicleDetailScreen() {
   const navigate = useNavigate();
+  const { can } = useRolePermissions();
+  const canWrite = can('FLEET', 'WRITE');
   const {
     state,
     vehicle,
@@ -68,7 +71,7 @@ export function VehicleDetailScreen() {
         <p className={styles.statusText}>
           No tienes permisos para ver este vehículo.
         </p>
-        <div style={{ textAlign: 'center' }}>
+        <div className={styles.statusActions}>
           <button type="button" className={styles.linkButton} onClick={() => navigate('/flota')}>
             Volver a Flota
           </button>
@@ -81,7 +84,7 @@ export function VehicleDetailScreen() {
     return (
       <main className={styles.wrapper}>
         <p className={styles.statusText}>No pudimos cargar este vehículo.</p>
-        <div style={{ textAlign: 'center', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+        <div className={styles.errorActions}>
           <button type="button" className={styles.retryButton} onClick={() => void reload()}>
             Reintentar
           </button>
@@ -111,13 +114,15 @@ export function VehicleDetailScreen() {
           Placa: <strong>{vehicle.plate}</strong>
         </span>
         <div className={styles.topBarActions}>
-          <button
-            type="button"
-            className={styles.primaryButton}
-            onClick={() => setEditModalOpen(true)}
-          >
-            Editar vehículo
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={() => setEditModalOpen(true)}
+            >
+              Editar vehículo
+            </button>
+          )}
         </div>
       </div>
 
@@ -187,7 +192,7 @@ export function VehicleDetailScreen() {
           <select
             className={styles.statusSelect}
             value={vehicle.status}
-            disabled={changingStatus}
+            disabled={changingStatus || !canWrite}
             onChange={(e) => void changeStatus(e.target.value as VehicleStatus)}
             aria-label="Cambiar estado operativo del vehículo"
           >

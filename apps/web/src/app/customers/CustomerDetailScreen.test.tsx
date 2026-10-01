@@ -18,6 +18,10 @@ const getCustomerMock = vi.fn();
 const updateCustomerMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
+vi.mock('../shared/useRolePermissions', () => ({
+  useRolePermissions: () => ({ can: () => true }),
+}));
+
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: {

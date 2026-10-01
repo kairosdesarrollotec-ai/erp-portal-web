@@ -329,3 +329,14 @@
   cursor: pointer;
   padding: 0;
 }
+
+.statusActions {
+  text-align: center;
+}
+
+.errorActions {
+  text-align: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Pencil } from 'lucide-react';
 import { useCustomerDetail } from './useCustomerDetail';
 import { NewCustomerModal } from './NewCustomerModal';
+import { useRolePermissions } from '../shared/useRolePermissions';
 import type { CustomerFormData } from './useCustomersList';
 import styles from './CustomerDetailScreen.module.css';
 
@@ -26,6 +27,8 @@ function getInitials(fullName: string): string {
 
 export function CustomerDetailScreen() {
   const navigate = useNavigate();
+  const { can } = useRolePermissions();
+  const canWrite = can('CUSTOMER', 'WRITE');
   const { state, customer, context, editSubmitting, editErrorMessage, editCustomer, reload } =
     useCustomerDetail();
 
@@ -94,14 +97,16 @@ export function CustomerDetailScreen() {
           {customer.documentType}: <strong>{customer.documentNumber}</strong>
         </span>
         <div className={styles.topBarActions}>
-          <button
-            type="button"
-            className={styles.editButton}
-            onClick={() => setEditModalOpen(true)}
-          >
-            <Pencil size={13} aria-hidden="true" />
-            Editar datos
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              className={styles.editButton}
+              onClick={() => setEditModalOpen(true)}
+            >
+              <Pencil size={13} aria-hidden="true" />
+              Editar datos
+            </button>
+          )}
         </div>
       </div>
 

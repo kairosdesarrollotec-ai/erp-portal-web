@@ -230,6 +230,7 @@ export function FleetListScreen() {
                               state: context ?? undefined,
                             })
                           }
+                          aria-label={`Ver detalle de ${v.plate}`}
                         >
                           Ver detalle
                         </button>
