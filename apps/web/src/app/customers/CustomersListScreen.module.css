@@ -162,3 +162,27 @@
 .editButton:hover {
   opacity: 0.85;
 }
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 6px;
+  padding: 0.35rem;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.iconButton:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}

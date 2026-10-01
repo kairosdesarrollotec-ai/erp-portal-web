@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, UserCheck } from 'lucide-react';
+import type { Customer } from './customers-client';
 import type { CustomerFormData } from './useCustomersList';
 import styles from './NewCustomerModal.module.css';
 
@@ -11,6 +12,9 @@ interface NewCustomerModalProps {
   error: string | null;
   mode?: 'create' | 'edit';
   initialData?: CustomerFormData;
+  duplicateCustomer?: Customer | null;
+  onViewExistingCustomer?: (customerId: string) => void;
+  onClearDuplicate?: () => void;
 }
 
 const DOCUMENT_TYPES = [
@@ -28,6 +32,9 @@ export function NewCustomerModal({
   error,
   mode = 'create',
   initialData,
+  duplicateCustomer,
+  onViewExistingCustomer,
+  onClearDuplicate,
 }: NewCustomerModalProps) {
   const [fullName, setFullName] = useState(initialData?.fullName ?? '');
   const [documentType, setDocumentType] = useState(initialData?.documentType ?? 'DNI');
@@ -53,10 +60,79 @@ export function NewCustomerModal({
     setPhone(initialData?.phone ?? '');
     setAddress(initialData?.address ?? '');
     setValidationError(null);
+    onClearDuplicate?.();
     /* eslint-enable react-hooks/set-state-in-effect */
+  // onClearDuplicate is intentionally excluded: it changes on every render and the effect only needs to fire on open/initialData change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialData]);
 
   if (!isOpen) return null;
+
+  // Panel de coincidencia de documento (SC-CLI-002 / PROTO-CLI-01-COINCIDENCIA-DNI)
+  if (duplicateCustomer) {
+    return (
+      <div className={styles.overlay} onClick={onClose}>
+        <div
+          className={styles.modal}
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="coincidencia-title"
+        >
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Cerrar modal"
+          >
+            <X size={18} />
+          </button>
+
+          <div className={styles.coincidenciaHeader}>
+            <UserCheck size={22} className={styles.coincidenciaIcon} aria-hidden="true" />
+            <h2 id="coincidencia-title" className={styles.title}>
+              Cliente ya registrado
+            </h2>
+          </div>
+          <p className={styles.description}>
+            Ya existe un cliente con el mismo tipo y número de documento en esta empresa.
+          </p>
+
+          <div className={styles.coincidenciaCard} role="region" aria-label="Datos del cliente existente">
+            <p className={styles.coincidenciaName}>{duplicateCustomer.fullName}</p>
+            <p className={styles.coincidenciaMeta}>
+              {duplicateCustomer.documentType} {duplicateCustomer.documentNumber}
+            </p>
+            {duplicateCustomer.phone && (
+              <p className={styles.coincidenciaMeta}>{duplicateCustomer.phone}</p>
+            )}
+            {duplicateCustomer.email && (
+              <p className={styles.coincidenciaMeta}>{duplicateCustomer.email}</p>
+            )}
+          </div>
+
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.cancelButton}
+              onClick={onClose}
+            >
+              Cancelar
+            </button>
+            {onViewExistingCustomer && (
+              <button
+                type="button"
+                className={styles.submitButton}
+                onClick={() => onViewExistingCustomer(duplicateCustomer.id)}
+              >
+                Ver ficha del cliente
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -14,6 +14,7 @@ import { NewInquiryScreen } from '../inquiries/NewInquiryScreen';
 import { InquiryVehiclesScreen } from '../inquiries/InquiryVehiclesScreen';
 import { InquiryDetailScreen } from '../inquiries/InquiryDetailScreen';
 import { CustomersListScreen } from '../customers/CustomersListScreen';
+import { CustomerDetailScreen } from '../customers/CustomerDetailScreen';
 import { AdminUsersScreen } from '../admin/AdminUsersScreen';
 import { AuditEventsScreen } from '../admin/AuditEventsScreen';
 import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
@@ -21,6 +22,7 @@ import { RolePermissionMatrixScreen } from '../admin/RolePermissionMatrixScreen'
 import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
 import { ModuleHubScreen } from '../modules/ModuleHubScreen';
 import { FleetListScreen } from '../fleet/FleetListScreen';
+import { VehicleDetailScreen } from '../fleet/VehicleDetailScreen';
 import { RentalsListScreen } from '../rentals/RentalsListScreen';
 import { NewRentalScreen } from '../rentals/NewRentalScreen';
 import { Stage1DocumentsScreen } from '../rentals/Stage1DocumentsScreen';
@@ -65,7 +67,9 @@ export const router = createBrowserRouter([
               { path: '/consultas/:id/vehiculos', element: <InquiryVehiclesScreen /> },
               { path: '/consultas/:id', element: <InquiryDetailScreen /> },
               { path: '/clientes', element: <CustomersListScreen /> },
+              { path: '/clientes/:id', element: <CustomerDetailScreen /> },
               { path: '/flota', element: <FleetListScreen /> },
+              { path: '/flota/:id', element: <VehicleDetailScreen /> },
               { path: '/alquileres', element: <RentalsListScreen /> },
               { path: '/alquileres/nuevo', element: <NewRentalScreen /> },
               { path: '/alquileres/:id/entrega-01', element: <Stage1DocumentsScreen /> },

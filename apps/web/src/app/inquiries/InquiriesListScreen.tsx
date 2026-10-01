@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useInquiriesList } from './useInquiriesList';
 import { INQUIRY_CHANNEL_LABELS, INQUIRY_STATUS_GROUP, INQUIRY_STATUS_GROUP_LABELS } from './inquiry-status';
 import { AppHeader } from '../shared/AppHeader';
+import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './InquiriesListScreen.module.css';
 
 /**
@@ -18,19 +19,22 @@ import styles from './InquiriesListScreen.module.css';
 export function InquiriesListScreen() {
   const { state, inquiries, customerNames, context, filters, setFilters } = useInquiriesList();
   const navigate = useNavigate();
+  const { can } = useRolePermissions();
 
   return (
     <main className={styles.wrapper}>
       <AppHeader
         pageTitle="Consultas"
         actions={
-          <button
-            type="button"
-            className={styles.newButton}
-            onClick={() => navigate('/consultas/nueva', { state: context ?? undefined })}
-          >
-            Nueva Consulta
-          </button>
+          can('INQUIRY', 'REGISTER') ? (
+            <button
+              type="button"
+              className={styles.newButton}
+              onClick={() => navigate('/consultas/nueva', { state: context ?? undefined })}
+            >
+              Nueva Consulta
+            </button>
+          ) : undefined
         }
       />
 

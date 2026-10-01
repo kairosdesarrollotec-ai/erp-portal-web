@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useInquiryDetail } from './useInquiryDetail';
 import { INQUIRY_STATUS_LABELS } from './inquiry-status';
 import { AppHeader } from '../shared/AppHeader';
+import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './InquiryDetailScreen.module.css';
 
 /**
@@ -28,6 +29,7 @@ import styles from './InquiryDetailScreen.module.css';
 export function InquiryDetailScreen() {
   const { navState, state, inquiry, customerName, saving, actionError, closeWithoutConversion, reload } = useInquiryDetail();
   const navigate = useNavigate();
+  const { can } = useRolePermissions();
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [closeReason, setCloseReason] = useState('');
 
@@ -140,7 +142,7 @@ export function InquiryDetailScreen() {
             </>
           )}
 
-          {!isClosed && !showCloseForm && (
+          {!isClosed && !showCloseForm && can('INQUIRY', 'CLOSE') && (
             <button type="button" className={styles.dangerLink} onClick={() => setShowCloseForm(true)}>
               Cerrar sin conversión
             </button>

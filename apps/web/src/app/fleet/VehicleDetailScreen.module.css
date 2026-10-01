@@ -1,0 +1,342 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.875rem 1.5rem;
+  border-bottom: 1px solid var(--color-surface-border, #e5e7eb);
+  background: var(--color-surface);
+  flex-wrap: wrap;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.backButton:hover {
+  text-decoration: underline;
+}
+
+.topBarDivider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-surface-border, #e5e7eb);
+}
+
+.topBarMeta {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.topBarActions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+}
+
+.statusText {
+  font-size: 14px;
+  color: var(--color-muted);
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.retryButton {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+/* ── Vehicle card ── */
+.vehicleCard {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  gap: 1.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .vehicleCard {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vehiclePhoto {
+  width: 140px;
+  height: 100px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--color-surface-container, #f3f4f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.vehiclePhotoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.vehiclePhotoPlaceholder {
+  width: 140px;
+  height: 100px;
+  border-radius: 6px;
+  background: var(--color-surface-container, #f3f4f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  font-size: 11px;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.plateLabelOnPhoto {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0,0,0,0.55);
+  padding: 2px 4px;
+}
+
+.photoWrapper {
+  position: relative;
+  width: 140px;
+  height: 100px;
+}
+
+.vehicleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.vehicleBadges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.categoryBadge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #dbeafe;
+  color: #1d4ed8;
+  letter-spacing: 0.02em;
+}
+
+.vehicleName {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.vehicleSubtitle {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.vehicleMeta {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.vehicleMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.vehicleMetaLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vehicleMetaValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.vehicleActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+/* ── Status change ── */
+.statusSection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-surface-border, #e5e7eb);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.statusLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.statusAvailable { background: #dcfce7; color: #15803d; }
+.statusRented    { background: #dbeafe; color: #1d4ed8; }
+.statusMaintenance { background: #fef3c7; color: #b45309; }
+.statusOutOfService { background: #fee2e2; color: #b91c1c; }
+
+.statusSelect {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-size: 13px;
+  color: var(--color-ink);
+  font-family: inherit;
+  background: var(--color-surface);
+  cursor: pointer;
+  outline: none;
+}
+
+.statusSelect:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(158, 76, 8, 0.12);
+}
+
+.statusSelect:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.errorText {
+  font-size: 13px;
+  color: var(--color-error, #b91c1c);
+  margin: 0;
+}
+
+/* ── Placeholder sections ── */
+.placeholderSection {
+  border: 1px solid var(--color-surface-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 2rem 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.placeholderTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink-subtle, #6b7280);
+  margin: 0 0 0.25rem;
+}
+
+.placeholderDesc {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+/* ── Buttons ── */
+.primaryButton {
+  background: var(--color-accent, #9e4c08);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 1.1rem;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.primaryButton:hover {
+  opacity: 0.9;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.statusActions {
+  text-align: center;
+}
+
+.errorActions {
+  text-align: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}

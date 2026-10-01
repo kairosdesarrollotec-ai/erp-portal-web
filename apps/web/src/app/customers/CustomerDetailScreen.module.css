@@ -1,0 +1,242 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+}
+
+/* ── Top bar ── */
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.875rem 1.5rem;
+  border-bottom: 1px solid var(--color-surface-border, #e5e7eb);
+  background: var(--color-surface);
+  flex-wrap: wrap;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.backButton:hover {
+  text-decoration: underline;
+}
+
+.topBarDivider {
+  width: 1px;
+  height: 16px;
+  background: var(--color-surface-border, #e5e7eb);
+}
+
+.topBarMeta {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.topBarActions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.editButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.editButton:hover {
+  background: var(--color-surface-container, #f3f4f6);
+}
+
+/* ── Status states ── */
+.statusText {
+  font-size: 14px;
+  color: var(--color-muted);
+  padding: 3rem 0;
+  text-align: center;
+}
+
+.statusActions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+.retryButton {
+  padding: 0.5rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ── Main content ── */
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+}
+
+/* ── Header card ── */
+.headerCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.headerMain {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.avatarWrap {
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  background: var(--color-surface-container, #f3f4f6);
+  border: 1px solid var(--color-surface-border, #e5e7eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: 0.02em;
+}
+
+.headerInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.customerName {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0 0 0.35rem;
+  line-height: 1.2;
+}
+
+.headerMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.metaLabel {
+  color: var(--color-muted);
+}
+
+.metaValue {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.metaDot {
+  color: var(--color-muted);
+  opacity: 0.5;
+}
+
+.headerAddress {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 0.4rem 0 0;
+}
+
+.headerFooter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-surface-border, #e5e7eb);
+}
+
+.footerMeta {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* ── Placeholder sections ── */
+.placeholderSection {
+  border: 1px solid var(--color-surface-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 2rem 1.5rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.placeholderTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink-subtle, #6b7280);
+  margin: 0 0 0.25rem;
+}
+
+.placeholderDesc {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .headerMain {
+    flex-direction: column;
+  }
+
+  .topBar {
+    padding: 0.75rem 1rem;
+  }
+
+  .content {
+    padding: 1rem 1rem 3rem;
+  }
+}

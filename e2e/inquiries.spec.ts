@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import {
   loginViaUI,
   interceptInquiries,
@@ -9,15 +9,21 @@ import {
  * CON-01 / CON-02 — bandeja y detalle de consultas.
  *
  * Asume login completado via loginViaUI (Firebase y backend interceptados).
+ * Navega al módulo via sidebar (SPA navigation) para preservar el rol en
+ * Zustand — page.goto() haría un full reload y perdería el estado.
  */
+
+async function navigateToInquiries(page: Page): Promise<void> {
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.getByRole('link', { name: 'Consultas' }).click();
+  await page.waitForURL('**/consultas', { timeout: 10_000 });
+}
 
 test.describe('Bandeja de Consultas (CON-01)', () => {
   test('muestra la lista de consultas con los datos del fixture', async ({ page }) => {
     await interceptInquiries(page);
     await loginViaUI(page);
-
-    await page.waitForURL('**/tablero', { timeout: 10_000 });
-    await page.goto('/consultas');
+    await navigateToInquiries(page);
 
     await expect(page.getByRole('heading', { name: 'Consultas' })).toBeVisible();
     await expect(page.getByText('María García')).toBeVisible();
@@ -26,9 +32,7 @@ test.describe('Bandeja de Consultas (CON-01)', () => {
   test('pantalla vacia cuando no hay consultas', async ({ page }) => {
     await interceptInquiries(page, { list: [] });
     await loginViaUI(page);
-
-    await page.waitForURL('**/tablero', { timeout: 10_000 });
-    await page.goto('/consultas');
+    await navigateToInquiries(page);
 
     await expect(page.getByText(/no hay consultas/i)).toBeVisible();
   });
@@ -36,9 +40,7 @@ test.describe('Bandeja de Consultas (CON-01)', () => {
   test('boton Nueva Consulta esta visible y navega al formulario', async ({ page }) => {
     await interceptInquiries(page);
     await loginViaUI(page);
-
-    await page.waitForURL('**/tablero', { timeout: 10_000 });
-    await page.goto('/consultas');
+    await navigateToInquiries(page);
 
     await expect(page.getByRole('button', { name: 'Nueva Consulta' })).toBeVisible();
     await page.getByRole('button', { name: 'Nueva Consulta' }).click();
@@ -49,12 +51,9 @@ test.describe('Bandeja de Consultas (CON-01)', () => {
   test('click en una consulta navega al detalle (CON-02)', async ({ page }) => {
     await interceptInquiries(page);
     await loginViaUI(page);
-
-    await page.waitForURL('**/tablero', { timeout: 10_000 });
-    await page.goto('/consultas');
+    await navigateToInquiries(page);
 
     await expect(page.getByText('María García')).toBeVisible();
-    // El link accesible de la fila incluye el id de la consulta en el href
     const link = page.getByRole('link', { name: /María García|Ver consulta/i }).first();
     await link.click();
 

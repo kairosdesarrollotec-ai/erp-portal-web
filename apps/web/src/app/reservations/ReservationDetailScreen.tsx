@@ -4,6 +4,7 @@ import { CheckCircle2, Circle } from 'lucide-react';
 import { useReservationDetail } from './useReservationDetail';
 import { RESERVATION_STATUS_LABELS } from './reservation-status';
 import { AppHeader } from '../shared/AppHeader';
+import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './ReservationDetailScreen.module.css';
 
 /**
@@ -25,6 +26,7 @@ export function ReservationDetailScreen() {
   const { state, reservation, savingRequirement, actionError, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
     useReservationDetail();
   const navigate = useNavigate();
+  const { can } = useRolePermissions();
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelNote, setCancelNote] = useState('');
 
@@ -122,7 +124,7 @@ export function ReservationDetailScreen() {
                 />
               </ul>
 
-              {paymentDone && documentsDone ? (
+              {paymentDone && documentsDone && can('RESERVATION', 'CONFIRM') ? (
                 <button
                   type="button"
                   className={styles.confirmButton}
@@ -153,11 +155,11 @@ export function ReservationDetailScreen() {
                 Disponible cuando exista el módulo de Alquiler (HU-28, todavía no construido).
               </p>
 
-              {!showCancelForm ? (
+              {!showCancelForm && can('RESERVATION', 'CANCEL_CUSTOMER_REQUESTED_CHANGE') ? (
                 <button type="button" className={styles.dangerLink} onClick={() => setShowCancelForm(true)}>
                   Cancelar por cambio solicitado
                 </button>
-              ) : (
+              ) : showCancelForm ? (
                 <div className={styles.cancelForm}>
                   <p className={styles.cancelWarning}>
                     Esto se procesará como cancelación — se pierde el monto de reserva (BR-RES-003).
@@ -182,7 +184,7 @@ export function ReservationDetailScreen() {
                     </button>
                   </div>
                 </div>
-              )}
+              ) : null}
             </>
           )}
         </div>
