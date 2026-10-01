@@ -1,4 +1,7 @@
-import { useState, useRef, type FormEvent, useEffect, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Camera } from 'lucide-react';
 import type { VehicleFormData } from './useFleetList';
 import type { FleetVehicle, VehicleStatus } from './fleet-client';
@@ -38,6 +41,24 @@ const STATUSES: { value: VehicleStatus; label: string }[] = [
   { value: 'OUT_OF_SERVICE', label: 'Fuera de Servicio' },
 ];
 
+const vehicleSchema = z.object({
+  plate: z.string(),
+  brand: z.string().min(1, 'La marca es obligatoria.'),
+  model: z.string().min(1, 'El modelo es obligatorio.'),
+  year: z.string().refine(
+    (v) => v === '' || (Number.isInteger(Number(v)) && Number(v) >= 1990 && Number(v) <= 2035),
+    { message: 'Ingrese un año válido entre 1990 y 2035.' },
+  ),
+  color: z.string(),
+  category: z.string(),
+  status: z.enum(['AVAILABLE', 'RENTED', 'MAINTENANCE', 'OUT_OF_SERVICE']),
+  dailyRate: z.string().refine((v) => v === '' || (Number(v) > 0 && !isNaN(Number(v))), {
+    message: 'La tarifa diaria debe ser mayor a 0.',
+  }),
+});
+
+type VehicleFormValues = z.infer<typeof vehicleSchema>;
+
 export function NewVehicleModal({
   isOpen,
   onClose,
@@ -48,93 +69,72 @@ export function NewVehicleModal({
   vehicle = null,
 }: NewVehicleModalProps) {
   const isEditMode = vehicle !== null;
-  const [plate, setPlate] = useState('');
-  const [brand, setBrand] = useState('');
-  const [model, setModel] = useState('');
-  const [year, setYear] = useState<string>('');
-  const [color, setColor] = useState('');
-  const [category, setCategory] = useState('SEDAN');
-  const [status, setStatus] = useState<VehicleStatus>('AVAILABLE');
-  const [dailyRate, setDailyRate] = useState<string>('');
-  const [existingPhotoUrl, setExistingPhotoUrl] = useState('');
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors },
+  } = useForm<VehicleFormValues>({
+    resolver: zodResolver(vehicleSchema),
+    defaultValues: {
+      plate: '',
+      brand: '',
+      model: '',
+      year: undefined,
+      color: '',
+      category: 'SEDAN',
+      status: 'AVAILABLE',
+      dailyRate: undefined,
+    },
+  });
+
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState('');
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.type !== 'image/jpeg' && file.type !== 'image/webp') {
-      setValidationError('Solo se admiten imágenes JPEG o WebP.');
-      e.target.value = '';
-      return;
-    }
-
-    if (file.size > MAX_PHOTO_BYTES) {
-      setValidationError(`El archivo supera el tamaño máximo de 12 MB.`);
-      e.target.value = '';
-      return;
-    }
-
-    if (photoPreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(photoPreviewUrl);
-    }
-
-    const blobUrl = URL.createObjectURL(file);
-    setPendingPhotoFile(file);
-    setPhotoPreviewUrl(blobUrl);
-    setExistingPhotoUrl('');
-    e.target.value = '';
-  }
-
-  function clearPhoto() {
-    if (photoPreviewUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(photoPreviewUrl);
-    }
-    setPendingPhotoFile(null);
-    setPhotoPreviewUrl('');
-    setExistingPhotoUrl('');
-  }
-
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     if (!isOpen) {
-      setPlate('');
-      setBrand('');
-      setModel('');
-      setYear('');
-      setColor('');
-      setCategory('SEDAN');
-      setStatus('AVAILABLE');
-      setDailyRate('');
+      reset({
+        plate: '',
+        brand: '',
+        model: '',
+        year: undefined,
+        color: '',
+        category: 'SEDAN',
+        status: 'AVAILABLE',
+        dailyRate: undefined,
+      });
       setPendingPhotoFile(null);
       setPhotoPreviewUrl((prev) => {
         if (prev.startsWith('blob:')) URL.revokeObjectURL(prev);
         return '';
       });
       setExistingPhotoUrl('');
-      setValidationError(null);
+      setPhotoError(null);
       onClearError();
       return;
     }
 
     if (vehicle) {
-      setPlate(vehicle.plate);
-      setBrand(vehicle.brand);
-      setModel(vehicle.model);
-      setYear(vehicle.year != null ? String(vehicle.year) : '');
-      setColor(vehicle.color ?? '');
-      setCategory(vehicle.category ?? 'SEDAN');
-      setStatus(vehicle.status);
-      setDailyRate(vehicle.dailyRate != null ? String(vehicle.dailyRate) : '');
+      reset({
+        plate: vehicle.plate,
+        brand: vehicle.brand,
+        model: vehicle.model,
+        year: vehicle.year != null ? String(vehicle.year) : '',
+        color: vehicle.color ?? '',
+        category: vehicle.category ?? 'SEDAN',
+        status: vehicle.status,
+        dailyRate: vehicle.dailyRate != null ? String(vehicle.dailyRate) : '',
+      });
       setPendingPhotoFile(null);
       setPhotoPreviewUrl('');
       setExistingPhotoUrl(vehicle.photoUrl ?? '');
     }
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, [isOpen, onClearError, vehicle]);
+  }, [isOpen, vehicle, reset, onClearError]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -148,58 +148,76 @@ export function NewVehicleModal({
 
   if (!isOpen) return null;
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setValidationError(null);
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const cleanPlate = plate.trim().toUpperCase();
-    if (!isEditMode && !cleanPlate) {
-      setValidationError('La placa es obligatoria.');
+    if (file.type !== 'image/jpeg' && file.type !== 'image/webp') {
+      setPhotoError('Solo se admiten imágenes JPEG o WebP.');
+      e.target.value = '';
       return;
     }
 
-    if (!brand.trim()) {
-      setValidationError('La marca es obligatoria.');
+    if (file.size > MAX_PHOTO_BYTES) {
+      setPhotoError('El archivo supera el tamaño máximo de 12 MB.');
+      e.target.value = '';
       return;
     }
 
-    if (!model.trim()) {
-      setValidationError('El modelo es obligatorio.');
+    if (photoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
+
+    const blobUrl = URL.createObjectURL(file);
+    setPendingPhotoFile(file);
+    setPhotoPreviewUrl(blobUrl);
+    setExistingPhotoUrl('');
+    setPhotoError(null);
+    e.target.value = '';
+  }
+
+  function clearPhoto() {
+    if (photoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(photoPreviewUrl);
+    }
+    setPendingPhotoFile(null);
+    setPhotoPreviewUrl('');
+    setExistingPhotoUrl('');
+  }
+
+  const onFormSubmit = handleSubmit((values) => {
+    if (!isEditMode && !values.plate.trim()) {
+      setError('plate', { message: 'La placa es obligatoria.' });
       return;
     }
 
-    const parsedYear = year ? parseInt(year, 10) : undefined;
-    if (parsedYear !== undefined && (isNaN(parsedYear) || parsedYear < 1990 || parsedYear > 2035)) {
-      setValidationError('Ingrese un año válido entre 1990 y 2035.');
-      return;
-    }
+    const parsedYear = values.year ? parseInt(values.year, 10) : undefined;
+    const parsedRate = values.dailyRate ? parseFloat(values.dailyRate) : undefined;
 
-    const parsedRate = dailyRate ? parseFloat(dailyRate) : undefined;
-    if (parsedRate !== undefined && (isNaN(parsedRate) || parsedRate <= 0)) {
-      setValidationError('La tarifa diaria debe ser un monto mayor a 0.');
-      return;
-    }
-
-    const success = await onSubmit({
-      plate: cleanPlate,
-      brand: brand.trim(),
-      model: model.trim(),
+    void onSubmit({
+      plate: values.plate.trim().toUpperCase(),
+      brand: values.brand.trim(),
+      model: values.model.trim(),
       year: parsedYear,
-      color: color.trim() || undefined,
-      category,
-      status,
+      color: values.color?.trim() || undefined,
+      category: values.category,
+      status: values.status as VehicleStatus,
       dailyRate: parsedRate,
       photoFile: pendingPhotoFile ?? undefined,
       photoUrl: pendingPhotoFile ? undefined : (existingPhotoUrl.trim() || undefined),
+    }).then((success) => {
+      if (success) onClose();
     });
+  });
 
-    if (success) {
-      onClose();
-    }
-  }
+  const firstFieldError =
+    errors.plate?.message ??
+    errors.brand?.message ??
+    errors.model?.message ??
+    errors.year?.message ??
+    errors.dailyRate?.message;
 
-
-  const activeError = validationError || errorMessage;
+  const activeError = photoError ?? firstFieldError ?? errorMessage;
 
   return (
     <div className={styles.overlay}>
@@ -230,20 +248,21 @@ export function NewVehicleModal({
 
         {activeError && <div className={styles.errorText}>{activeError}</div>}
 
-        <form onSubmit={handleSubmit} className={styles.form}>
+        <form onSubmit={onFormSubmit} className={styles.form}>
           <div className={styles.gridTwo}>
             <label className={styles.field}>
               Placa {isEditMode ? '' : '*'}
               <input
                 type="text"
                 className={styles.input}
-                value={plate}
-                onChange={(e) => setPlate(e.target.value.toUpperCase())}
+                {...register('plate', {
+                  setValueAs: (v: string) => v.toUpperCase(),
+                })}
                 placeholder="ABC-123"
                 maxLength={10}
-                required={!isEditMode}
                 disabled={isSubmitting || isEditMode}
                 readOnly={isEditMode}
+                aria-invalid={!!errors.plate}
               />
             </label>
 
@@ -251,8 +270,7 @@ export function NewVehicleModal({
               Categoría
               <select
                 className={styles.select}
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                {...register('category')}
                 disabled={isSubmitting}
               >
                 {CATEGORIES.map((cat) => (
@@ -270,11 +288,10 @@ export function NewVehicleModal({
               <input
                 type="text"
                 className={styles.input}
-                value={brand}
-                onChange={(e) => setBrand(e.target.value)}
+                {...register('brand')}
                 placeholder="Toyota, Hyundai, Nissan..."
-                required
                 disabled={isSubmitting}
+                aria-invalid={!!errors.brand}
               />
             </label>
 
@@ -283,11 +300,10 @@ export function NewVehicleModal({
               <input
                 type="text"
                 className={styles.input}
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
+                {...register('model')}
                 placeholder="Hilux, Tucson, Frontier..."
-                required
                 disabled={isSubmitting}
+                aria-invalid={!!errors.model}
               />
             </label>
           </div>
@@ -298,12 +314,12 @@ export function NewVehicleModal({
               <input
                 type="number"
                 className={styles.input}
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
+                {...register('year')}
                 placeholder="2024"
                 min={1990}
                 max={2035}
                 disabled={isSubmitting}
+                aria-invalid={!!errors.year}
               />
             </label>
 
@@ -312,8 +328,7 @@ export function NewVehicleModal({
               <input
                 type="text"
                 className={styles.input}
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
+                {...register('color')}
                 placeholder="Blanco, Gris, Rojo..."
                 disabled={isSubmitting}
               />
@@ -326,10 +341,10 @@ export function NewVehicleModal({
                 step="0.01"
                 min="1"
                 className={styles.input}
-                value={dailyRate}
-                onChange={(e) => setDailyRate(e.target.value)}
+                {...register('dailyRate')}
                 placeholder="250.00"
                 disabled={isSubmitting}
+                aria-invalid={!!errors.dailyRate}
               />
             </label>
           </div>
@@ -339,8 +354,7 @@ export function NewVehicleModal({
               Estado Inicial
               <select
                 className={styles.select}
-                value={status}
-                onChange={(e) => setStatus(e.target.value as VehicleStatus)}
+                {...register('status')}
                 disabled={isSubmitting}
               >
                 {STATUSES.map((st) => (

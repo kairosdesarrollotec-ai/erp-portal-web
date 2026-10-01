@@ -1,4 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
+import { setupServer } from 'msw/node';
+import { http, HttpResponse } from 'msw';
 import {
   listVehicles,
   getVehicle,
@@ -11,23 +13,25 @@ import {
   GcsUploadError,
 } from './fleet-client';
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+
+const server = setupServer();
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+
 describe('fleet-client', () => {
-  const fetchMock = vi.fn();
-
-  beforeEach(() => {
-    vi.stubGlobal('fetch', fetchMock);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   describe('listVehicles', () => {
     it('envía los parámetros de consulta correctos con Bearer token', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ items: [], total: 0 }),
-      });
+      let capturedRequest: Request | undefined;
+
+      server.use(
+        http.get(`${BASE_URL}/fleet/vehicles`, ({ request }) => {
+          capturedRequest = request;
+          return HttpResponse.json({ items: [], total: 0 });
+        }),
+      );
 
       const result = await listVehicles('token-123', {
         companyId: 'comp-1',
@@ -36,23 +40,21 @@ describe('fleet-client', () => {
         search: 'Hilux',
       });
 
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining('/fleet/vehicles?companyId=comp-1&branchId=branch-1&status=AVAILABLE&search=Hilux'),
-        expect.objectContaining({
-          headers: {
-            Authorization: 'Bearer token-123',
-            'Content-Type': 'application/json',
-          },
-        }),
-      );
+      expect(capturedRequest?.headers.get('Authorization')).toBe('Bearer token-123');
+      const url = new URL(capturedRequest!.url);
+      expect(url.searchParams.get('companyId')).toBe('comp-1');
+      expect(url.searchParams.get('branchId')).toBe('branch-1');
+      expect(url.searchParams.get('status')).toBe('AVAILABLE');
+      expect(url.searchParams.get('search')).toBe('Hilux');
       expect(result).toEqual({ items: [], total: 0 });
     });
 
     it('lanza FleetApiError cuando la respuesta no es ok', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 403,
-      });
+      server.use(
+        http.get(`${BASE_URL}/fleet/vehicles`, () =>
+          new HttpResponse(null, { status: 403 }),
+        ),
+      );
 
       await expect(
         listVehicles('token-123', { companyId: 'comp-1', branchId: 'branch-1' }),
@@ -62,17 +64,13 @@ describe('fleet-client', () => {
 
   describe('getVehicle', () => {
     it('retorna el vehículo cuando la respuesta es exitosa', async () => {
-      const mockVehicle = {
-        id: 'v-1',
-        plate: 'ABC-123',
-        brand: 'Toyota',
-        model: 'Hilux',
-        status: 'AVAILABLE',
-      };
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockVehicle,
-      });
+      const mockVehicle = { id: 'v-1', plate: 'ABC-123', brand: 'Toyota', model: 'Hilux', status: 'AVAILABLE' };
+
+      server.use(
+        http.get(`${BASE_URL}/fleet/vehicles/v-1`, () =>
+          HttpResponse.json(mockVehicle),
+        ),
+      );
 
       const res = await getVehicle('token-123', 'v-1', 'comp-1', 'branch-1');
       expect(res).toEqual(mockVehicle);
@@ -80,52 +78,39 @@ describe('fleet-client', () => {
   });
 
   describe('createVehicle', () => {
-    it('envía POST con payload y header de idempotencia opcional', async () => {
+    it('envía POST con payload y header de idempotencia', async () => {
       const mockVehicle = { id: 'v-1', plate: 'XYZ-789' };
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockVehicle,
-      });
+      let capturedRequest: Request | undefined;
+
+      server.use(
+        http.post(`${BASE_URL}/fleet/vehicles`, async ({ request }) => {
+          capturedRequest = request;
+          return HttpResponse.json(mockVehicle);
+        }),
+      );
 
       const res = await createVehicle(
         'token-123',
-        {
-          companyId: 'comp-1',
-          branchId: 'branch-1',
-          plate: 'XYZ-789',
-          brand: 'Hyundai',
-          model: 'Tucson',
-        },
+        { companyId: 'comp-1', branchId: 'branch-1', plate: 'XYZ-789', brand: 'Hyundai', model: 'Tucson' },
         'key-abc',
       );
 
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining('/fleet/vehicles'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: {
-            Authorization: 'Bearer token-123',
-            'Content-Type': 'application/json',
-            'Idempotency-Key': 'key-abc',
-          },
-          body: JSON.stringify({
-            companyId: 'comp-1',
-            branchId: 'branch-1',
-            plate: 'XYZ-789',
-            brand: 'Hyundai',
-            model: 'Tucson',
-          }),
-        }),
-      );
+      expect(capturedRequest?.headers.get('Authorization')).toBe('Bearer token-123');
+      expect(capturedRequest?.headers.get('Idempotency-Key')).toBe('key-abc');
+      const body = await capturedRequest?.json();
+      expect(body).toMatchObject({ companyId: 'comp-1', branchId: 'branch-1', plate: 'XYZ-789' });
       expect(res).toEqual(mockVehicle);
     });
 
     it('lanza FleetCommandError con detalle si el servidor responde con error', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 409,
-        json: async () => ({ code: 'VEHICLE_PLATE_ALREADY_EXISTS', detail: 'La placa ya existe' }),
-      });
+      server.use(
+        http.post(`${BASE_URL}/fleet/vehicles`, () =>
+          HttpResponse.json(
+            { code: 'VEHICLE_PLATE_ALREADY_EXISTS', detail: 'La placa ya existe' },
+            { status: 409 },
+          ),
+        ),
+      );
 
       await expect(
         createVehicle('token-123', {
@@ -145,7 +130,14 @@ describe('fleet-client', () => {
         uploadUrl: 'https://storage.googleapis.com/signed-url',
         objectUrl: 'https://storage.googleapis.com/bucket/photo.jpg',
       };
-      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => session });
+      let capturedBody: unknown;
+
+      server.use(
+        http.post(`${BASE_URL}/fleet/vehicles/photo-upload-sessions`, async ({ request }) => {
+          capturedBody = await request.json();
+          return HttpResponse.json(session);
+        }),
+      );
 
       const result = await requestPhotoUploadSession('token-123', {
         companyId: 'comp-1',
@@ -154,28 +146,24 @@ describe('fleet-client', () => {
         contentLength: 500_000,
       });
 
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining('/fleet/vehicles/photo-upload-sessions'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({ Authorization: 'Bearer token-123' }),
-          body: JSON.stringify({
-            companyId: 'comp-1',
-            branchId: 'branch-1',
-            contentType: 'image/jpeg',
-            contentLength: 500_000,
-          }),
-        }),
-      );
+      expect(capturedBody).toEqual({
+        companyId: 'comp-1',
+        branchId: 'branch-1',
+        contentType: 'image/jpeg',
+        contentLength: 500_000,
+      });
       expect(result).toEqual(session);
     });
 
     it('lanza FleetCommandError cuando el servidor responde con error', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 413,
-        json: async () => ({ code: 'PAYLOAD_TOO_LARGE', detail: 'El archivo supera 12 MB' }),
-      });
+      server.use(
+        http.post(`${BASE_URL}/fleet/vehicles/photo-upload-sessions`, () =>
+          HttpResponse.json(
+            { code: 'PAYLOAD_TOO_LARGE', detail: 'El archivo supera 12 MB' },
+            { status: 413 },
+          ),
+        ),
+      );
 
       await expect(
         requestPhotoUploadSession('token-123', {
@@ -190,36 +178,45 @@ describe('fleet-client', () => {
 
   describe('uploadPhotoToGcs', () => {
     it('envía PUT al uploadUrl con el archivo como body', async () => {
-      fetchMock.mockResolvedValueOnce({ ok: true });
-      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+      let capturedRequest: Request | undefined;
 
-      await uploadPhotoToGcs('https://storage.googleapis.com/signed', file);
-
-      expect(fetchMock).toHaveBeenCalledWith(
-        'https://storage.googleapis.com/signed',
-        expect.objectContaining({
-          method: 'PUT',
-          headers: { 'Content-Type': 'image/jpeg' },
-          body: file,
+      server.use(
+        http.put('https://storage.googleapis.com/signed', ({ request }) => {
+          capturedRequest = request;
+          return new HttpResponse(null, { status: 200 });
         }),
       );
+
+      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+      await uploadPhotoToGcs('https://storage.googleapis.com/signed', file);
+
+      expect(capturedRequest?.headers.get('Content-Type')).toBe('image/jpeg');
+      expect(capturedRequest?.method).toBe('PUT');
     });
 
     it('lanza GcsUploadError cuando GCS responde con error', async () => {
-      fetchMock.mockResolvedValueOnce({ ok: false, status: 403 });
-      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+      server.use(
+        http.put('https://storage.googleapis.com/signed-err', () =>
+          new HttpResponse(null, { status: 403 }),
+        ),
+      );
 
+      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
       await expect(
-        uploadPhotoToGcs('https://storage.googleapis.com/signed', file),
+        uploadPhotoToGcs('https://storage.googleapis.com/signed-err', file),
       ).rejects.toThrow(GcsUploadError);
     });
 
     it('GcsUploadError incluye el status HTTP de GCS', async () => {
-      fetchMock.mockResolvedValueOnce({ ok: false, status: 503 });
-      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
+      server.use(
+        http.put('https://storage.googleapis.com/signed-503', () =>
+          new HttpResponse(null, { status: 503 }),
+        ),
+      );
 
+      const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' });
       try {
-        await uploadPhotoToGcs('https://storage.googleapis.com/signed', file);
+        await uploadPhotoToGcs('https://storage.googleapis.com/signed-503', file);
       } catch (e) {
         expect(e).toBeInstanceOf(GcsUploadError);
         expect((e as GcsUploadError).status).toBe(503);
@@ -230,10 +227,14 @@ describe('fleet-client', () => {
   describe('updateVehicleStatus', () => {
     it('envía PATCH con nuevo estado del vehículo', async () => {
       const updated = { id: 'v-1', status: 'MAINTENANCE' };
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => updated,
-      });
+      let capturedRequest: Request | undefined;
+
+      server.use(
+        http.patch(`${BASE_URL}/fleet/vehicles/v-1/status`, async ({ request }) => {
+          capturedRequest = request;
+          return HttpResponse.json(updated);
+        }),
+      );
 
       const res = await updateVehicleStatus('token-123', 'v-1', {
         companyId: 'comp-1',
@@ -241,21 +242,36 @@ describe('fleet-client', () => {
         status: 'MAINTENANCE',
       });
 
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining('/fleet/vehicles/v-1/status'),
-        expect.objectContaining({
-          method: 'PATCH',
-          headers: {
-            Authorization: 'Bearer token-123',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            companyId: 'comp-1',
-            branchId: 'branch-1',
-            status: 'MAINTENANCE',
-          }),
+      expect(capturedRequest?.headers.get('Authorization')).toBe('Bearer token-123');
+      const body = await capturedRequest?.json();
+      expect(body).toMatchObject({ companyId: 'comp-1', branchId: 'branch-1', status: 'MAINTENANCE' });
+      expect(res).toEqual(updated);
+    });
+  });
+
+  describe('updateVehicle', () => {
+    it('envía PATCH al endpoint del vehículo con los campos de edición', async () => {
+      const updated = { id: 'v-1', brand: 'Toyota', model: 'Fortuner' };
+      let capturedRequest: Request | undefined;
+
+      server.use(
+        http.patch(`${BASE_URL}/fleet/vehicles/v-1`, async ({ request }) => {
+          capturedRequest = request;
+          return HttpResponse.json(updated);
         }),
       );
+
+      const { updateVehicle } = await import('./fleet-client');
+      const res = await updateVehicle('token-123', 'v-1', {
+        companyId: 'comp-1',
+        branchId: 'branch-1',
+        brand: 'Toyota',
+        model: 'Fortuner',
+      });
+
+      expect(capturedRequest?.headers.get('Authorization')).toBe('Bearer token-123');
+      const body = await capturedRequest?.json();
+      expect(body).toMatchObject({ companyId: 'comp-1', branchId: 'branch-1', brand: 'Toyota', model: 'Fortuner' });
       expect(res).toEqual(updated);
     });
   });
