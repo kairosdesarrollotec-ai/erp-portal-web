@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage4ChecklistScreen } from './Stage4ChecklistScreen';
 
@@ -15,6 +15,22 @@ const useRentalWizardMock = vi.fn();
 vi.mock('./useRentalWizard', () => ({
   useRentalWizard: () => useRentalWizardMock(),
 }));
+
+const listRentalEvidenceMock = vi.fn();
+const requestEvidenceUploadSessionMock = vi.fn();
+const uploadEvidenceToGcsMock = vi.fn();
+const recordEvidenceMock = vi.fn();
+
+vi.mock('./rentals-client', async () => {
+  const actual = await vi.importActual<typeof import('./rentals-client')>('./rentals-client');
+  return {
+    ...actual,
+    listRentalEvidence: (...args: unknown[]) => listRentalEvidenceMock(...args),
+    requestEvidenceUploadSession: (...args: unknown[]) => requestEvidenceUploadSessionMock(...args),
+    uploadEvidenceToGcs: (...args: unknown[]) => uploadEvidenceToGcsMock(...args),
+    recordEvidence: (...args: unknown[]) => recordEvidenceMock(...args),
+  };
+});
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
@@ -53,6 +69,18 @@ function makeWizard(overrides?: Record<string, unknown>) {
   };
 }
 
+function evidenceItem(type: 'PHOTO' | 'VIDEO', i: number) {
+  return {
+    id: `ev-${type}-${i}`,
+    rentalId: 'rent-1',
+    type,
+    zone: 'FRONTAL' as const,
+    objectUrl: `https://storage.googleapis.com/bucket/${type}-${i}.jpg`,
+    uploadedBy: 'uid-1',
+    uploadedAt: new Date().toISOString(),
+  };
+}
+
 const CHECKLIST_KEY = 'kairos.alquiler.rent-1.checklist';
 
 function renderScreen() {
@@ -75,6 +103,11 @@ function renderScreen() {
 describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
   beforeEach(() => {
     useRentalWizardMock.mockReset();
+    listRentalEvidenceMock.mockReset();
+    requestEvidenceUploadSessionMock.mockReset();
+    uploadEvidenceToGcsMock.mockReset();
+    recordEvidenceMock.mockReset();
+    listRentalEvidenceMock.mockResolvedValue([]);
     sessionStorage.removeItem(CHECKLIST_KEY);
   });
 
@@ -100,71 +133,92 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
 
   // ── estado: nominal ───────────────────────────────────────────────────────
 
-  it('renderiza el formulario de checklist en estado READY', () => {
+  it('renderiza el formulario de checklist en estado READY y carga la evidencia existente', async () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
-    expect(screen.getByText(/Fotos por zona/)).toBeInTheDocument();
+    expect(screen.getByText(/Fotos/)).toBeInTheDocument();
     expect(screen.getByText(/Videos/)).toBeInTheDocument();
     expect(screen.getByText(/Temporizador/)).toBeInTheDocument();
+    await waitFor(() => expect(listRentalEvidenceMock).toHaveBeenCalledWith('tok', 'rent-1', 'c1', 'b1'));
   });
 
-  it('Continuar está deshabilitado sin las fotos y videos mínimos', () => {
+  it('Continuar está deshabilitado sin las fotos y videos mínimos', async () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
+    await waitFor(() => expect(listRentalEvidenceMock).toHaveBeenCalled());
     expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
   });
 
   // ── validación: completar checklist habilita Continuar ────────────────────
 
-  it('Continuar se habilita al alcanzar 35 fotos y 3 videos (borrador pre-cargado en sessionStorage)', () => {
+  it('Continuar se habilita cuando el backend reporta 35 fotos y 3 videos', async () => {
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ photosCount: 35, videosCount: 3, technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
-    expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled());
   });
 
   // ── guardado: navegación a etapa 5 ───────────────────────────────────────
 
-  it('navega a etapa 5 al hacer clic en Continuar cuando el checklist está completo', () => {
+  it('navega a etapa 5 al hacer clic en Continuar cuando el checklist está completo', async () => {
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ photosCount: 35, videosCount: 3, technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
     expect(screen.getByText('etapa 5')).toBeInTheDocument();
   });
 
   // ── confirmación: modal de excepción de tiempo ───────────────────────────
 
-  it('abre el modal de excepción cuando el tiempo está por debajo del mínimo', () => {
+  it('abre el modal de excepción cuando el tiempo está por debajo del mínimo', async () => {
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ photosCount: 35, videosCount: 3, technicalMinutes: 10, documentaryMinutes: 5, exceptionReason: '', notes: '' }),
+      JSON.stringify({ technicalMinutes: 10, documentaryMinutes: 5, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText(/Tiempo por debajo del mínimo/)).toBeInTheDocument();
   });
 
-  it('permite continuar con excepción tras ingresar el motivo en el modal', () => {
+  it('permite continuar con excepción tras ingresar el motivo en el modal', async () => {
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ photosCount: 35, videosCount: 3, technicalMinutes: 10, documentaryMinutes: 5, exceptionReason: '', notes: '' }),
+      JSON.stringify({ technicalMinutes: 10, documentaryMinutes: 5, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
-    // El modal está abierto; ingresar motivo y confirmar
     const textarea = screen.getByRole('dialog').querySelector('textarea')!;
     fireEvent.change(textarea, { target: { value: 'Cliente solicitó acortar la inspección' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continuar con excepción' }));
@@ -174,26 +228,79 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
 
   // ── vacios: contadores parten en 0 ───────────────────────────────────────
 
-  it('los contadores muestran 0 fotos y 0 videos al iniciar sin borrador', () => {
+  it('los contadores muestran 0 fotos y 0 videos al iniciar sin evidencia', async () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
-    // "Fotos por zona (0/35)": regex específico para "0/35"
+    await waitFor(() => expect(listRentalEvidenceMock).toHaveBeenCalled());
     expect(screen.getByText(/0\/35/)).toBeInTheDocument();
-    // "Videos (0/3)": regex con lookahead negativo para no confundir con "0/35"
-    expect(screen.getByText(/\/3(?!\d)/)).toBeInTheDocument();
+    expect(screen.getByText(/0\/3(?!\d)/)).toBeInTheDocument();
   });
 
-  // ── persistencia de borrador ──────────────────────────────────────────────
+  // ── subida de archivos ────────────────────────────────────────────────────
 
-  it('incrementar el contador de fotos actualiza el display y guarda en sessionStorage', () => {
+  it('al seleccionar una foto: pide URL firmada, sube a GCS, confirma y refresca el progreso', async () => {
+    requestEvidenceUploadSessionMock.mockResolvedValue({
+      uploadUrl: 'https://storage.googleapis.com/bucket/upload-signed-url',
+      objectUrl: 'https://storage.googleapis.com/bucket/rental-evidence/rent-1/photo/frontal/uuid.jpg',
+    });
+    uploadEvidenceToGcsMock.mockResolvedValue(undefined);
+    recordEvidenceMock.mockResolvedValue(evidenceItem('PHOTO', 0));
+    listRentalEvidenceMock
+      .mockResolvedValueOnce([]) // carga inicial
+      .mockResolvedValueOnce([evidenceItem('PHOTO', 0)]); // tras subir
+
     useRentalWizardMock.mockReturnValue(makeWizard());
-    renderScreen();
+    const { container } = renderScreen();
+    await waitFor(() => expect(listRentalEvidenceMock).toHaveBeenCalledTimes(1));
 
-    const addButtons = screen.getAllByRole('button', { name: '+' });
-    fireEvent.click(addButtons[0]); // primer + corresponde a fotos
+    const file = new File(['data'], 'frontal.jpg', { type: 'image/jpeg' });
+    const photoInput = container.querySelector('input[type="file"][accept^="image"]') as HTMLInputElement;
+    fireEvent.change(photoInput, { target: { files: [file] } });
 
-    expect(screen.getByText(/1\/35/)).toBeInTheDocument();
-    const saved = JSON.parse(sessionStorage.getItem(CHECKLIST_KEY) ?? '{}') as { photosCount: number };
-    expect(saved.photosCount).toBe(1);
+    await waitFor(() => expect(recordEvidenceMock).toHaveBeenCalled());
+    expect(requestEvidenceUploadSessionMock).toHaveBeenCalledWith(
+      'tok',
+      'rent-1',
+      'c1',
+      'b1',
+      'PHOTO',
+      'FRONTAL',
+      'image/jpeg',
+      file.size,
+    );
+    expect(uploadEvidenceToGcsMock).toHaveBeenCalledWith('https://storage.googleapis.com/bucket/upload-signed-url', file);
+    await waitFor(() => expect(screen.getByText(/1\/35/)).toBeInTheDocument());
+  });
+
+  it('rechaza un tipo de archivo no permitido sin llamar al backend', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    const { container } = renderScreen();
+    await waitFor(() => expect(listRentalEvidenceMock).toHaveBeenCalled());
+
+    const file = new File(['data'], 'frontal.png', { type: 'image/png' });
+    const photoInput = container.querySelector('input[type="file"][accept^="image"]') as HTMLInputElement;
+    fireEvent.change(photoInput, { target: { files: [file] } });
+
+    expect(await screen.findByText(/Solo se admiten imágenes JPEG o WebP/)).toBeInTheDocument();
+    expect(requestEvidenceUploadSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('muestra un mensaje de error claro si falla la subida a GCS (sin conexión)', async () => {
+    requestEvidenceUploadSessionMock.mockResolvedValue({
+      uploadUrl: 'https://storage.googleapis.com/bucket/upload-signed-url',
+      objectUrl: 'https://storage.googleapis.com/bucket/x.jpg',
+    });
+    uploadEvidenceToGcsMock.mockRejectedValue(new Error('network error'));
+
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    const { container } = renderScreen();
+    await waitFor(() => expect(listRentalEvidenceMock).toHaveBeenCalled());
+
+    const file = new File(['data'], 'frontal.jpg', { type: 'image/jpeg' });
+    const photoInput = container.querySelector('input[type="file"][accept^="image"]') as HTMLInputElement;
+    fireEvent.change(photoInput, { target: { files: [file] } });
+
+    expect(await screen.findByText(/No pudimos subir el archivo/)).toBeInTheDocument();
+    expect(recordEvidenceMock).not.toHaveBeenCalled();
   });
 });
