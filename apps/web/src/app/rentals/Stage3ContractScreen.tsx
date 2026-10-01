@@ -95,13 +95,14 @@ export function Stage3ContractScreen() {
     setError(null);
     try {
       const idToken = await getIdToken();
+      // templateVersionId se omite: el backend resuelve la plantilla ACTIVE
+      // vigente de la empresa (BR-DOC-002).
       const updated = await formalizeContract(
         idToken,
         id,
         context.companyId,
         context.branchId,
         rental.version,
-        'plantilla-contrato-v1',
         `CONTRATO-${rental.id.slice(0, 8)}`,
         paymentAmount,
         'PEN',
