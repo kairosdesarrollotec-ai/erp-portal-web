@@ -3913,7 +3913,7 @@ screens:
   sha256: ff273503cb6111e8fcd51cca52906449ccd204642aee12b098bfe102275acd08
   bytes: 175694
   supersedes: null
-  note: 'PROVISIONAL (23 sep 2026): aprobado para destrabar HU-25 sin contrato UX/UI completo previo. Contrato TR-11 redactado post-hoc en PANTALLAS-V3-B-TRANSVERSAL.md. Sujeto a ajustes cuando se revise contra lineamientos completos (ver Decision_Log).'
+  note: 'APROBADO (DEC-TR-11-001, 2026-10-01): contrato formal disponible en docs/sources/ux-ui/PANTALLAS-V3-B-TRANSVERSAL.md. Reemplaza aprobacion provisional PROV-TR-11-001 (23-sep-2026). Implementacion ModuleHubScreen.tsx compatible con el contrato.'
   is_reference_asset: false
 - proto_id: PROTO-TR-11-MENU-MODULOS-MOVIL
   ux_id: TR-11
@@ -3937,5 +3937,5 @@ screens:
   sha256: 214adaafa9a6c8d6391eedfe81839950f9ddb1e0bad3f5ace5a73c0a1494d61e
   bytes: 165973
   supersedes: null
-  note: 'PROVISIONAL (23 sep 2026): aprobado para destrabar HU-25 sin contrato UX/UI completo previo. Contrato TR-11 redactado post-hoc en PANTALLAS-V3-B-TRANSVERSAL.md. Sujeto a ajustes cuando se revise contra lineamientos completos (ver Decision_Log).'
+  note: 'APROBADO (DEC-TR-11-001, 2026-10-01): contrato formal disponible en docs/sources/ux-ui/PANTALLAS-V3-B-TRANSVERSAL.md. Reemplaza aprobacion provisional PROV-TR-11-001 (23-sep-2026). Implementacion ModuleHubScreen.tsx compatible con el contrato.'
   is_reference_asset: false
