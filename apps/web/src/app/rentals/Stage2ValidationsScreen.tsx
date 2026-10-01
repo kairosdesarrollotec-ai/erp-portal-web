@@ -3,36 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
 import { registerAlcoholTest, RentalCommandError, AlcoholTestResult } from './rentals-client';
-import { useWorkSession } from '../shared/useWorkSession';
 import styles from './RentalStageForms.module.css';
 
-type ExternalCheckStatus = 'verified' | 'pending' | 'down';
-
 /**
- * ENTREGA-02 / ALQ-04 - Validaciones externas y alcoholímetro
- * (mapea a POST .../commands/register-alcohol-test). RENIEC/MTC no tienen
- * endpoint propio en el backend actual (fuera del alcance de rentals.module);
- * se simulan como verificados por defecto con un boton de reintento, tal
- * como pide el prototipo. Si MTC cae: bloqueo total, solo "Reintentar". Si
- * RENIEC cae: "Solicitar excepcion RENIEC" solo habilitado para Gerencia
- * (mismo gating de rol que EVALUATE_NOTARY/APPROVE_NOTARY_EXCEPTION en el
- * backend, application/policies/rental-role-policy.ts).
+ * ENTREGA-02 / ALQ-04 - Validaciones y alcoholímetro
+ * (mapea a POST .../commands/register-alcohol-test).
+ * RENIEC y MTC se muestran como verificados estáticamente; la integración
+ * con proveedores externos no está incluida en esta versión del MVP.
  */
 export function Stage2ValidationsScreen() {
   const { id, state, rental, context, getIdToken, setRental } = useRentalWizard();
   const navigate = useNavigate();
-  const role = useWorkSession((s) => s.role);
 
-  const [reniecStatus, setReniecStatus] = useState<ExternalCheckStatus>('verified');
-  const [mtcStatus, setMtcStatus] = useState<ExternalCheckStatus>('verified');
   const [result, setResult] = useState<AlcoholTestResult | null>(null);
   const [testTime, setTestTime] = useState('');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isGerencia = role === 'GERENCIA' || role === 'PLATFORM_ADMIN';
-  const canContinue = mtcStatus === 'verified' && reniecStatus !== 'down' && result === 'FAVORABLE' && !!testTime;
+  const canContinue = result === 'FAVORABLE' && !!testTime;
 
   async function handleContinue() {
     if (!rental || !context || result !== 'FAVORABLE') return;
@@ -76,33 +65,12 @@ export function Stage2ValidationsScreen() {
       <div className={styles.statusCards}>
         <div className={styles.statusCard}>
           <p className={styles.statusCardTitle}>RENIEC</p>
-          <span className={`${styles.statusBadge} ${styles[`statusBadge_${reniecStatus}`]}`}>
-            {reniecStatus === 'verified' ? 'Verificado' : reniecStatus === 'pending' ? 'Pendiente' : 'Caído'}
-          </span>
-          {reniecStatus === 'down' && (
-            <div>
-              <p className={styles.blockedNotice}>
-                RENIEC no responde. {isGerencia ? '' : 'Solo Gerencia puede solicitar excepción.'}
-              </p>
-              <button type="button" className={styles.retryButton} disabled={!isGerencia}>
-                Solicitar excepción RENIEC
-              </button>
-            </div>
-          )}
-          <button type="button" className={styles.retryButton} onClick={() => setReniecStatus('verified')}>
-            Reintentar
-          </button>
+          <span className={`${styles.statusBadge} ${styles.statusBadge_verified}`}>Verificado</span>
         </div>
 
         <div className={styles.statusCard}>
           <p className={styles.statusCardTitle}>MTC</p>
-          <span className={`${styles.statusBadge} ${styles[`statusBadge_${mtcStatus}`]}`}>
-            {mtcStatus === 'verified' ? 'Verificado' : mtcStatus === 'pending' ? 'Pendiente' : 'Caído'}
-          </span>
-          {mtcStatus === 'down' && <p className={styles.blockedNotice}>MTC caído: no es posible continuar.</p>}
-          <button type="button" className={styles.retryButton} onClick={() => setMtcStatus('verified')}>
-            Reintentar
-          </button>
+          <span className={`${styles.statusBadge} ${styles.statusBadge_verified}`}>Verificado</span>
         </div>
       </div>
 

@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage2ValidationsScreen } from './Stage2ValidationsScreen';
-import { useWorkSession } from '../shared/useWorkSession';
 
 // ── mocks de infraestructura ────────────────────────────────────────────────
 
@@ -81,8 +80,6 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
   beforeEach(() => {
     registerAlcoholTestMock.mockReset();
     useRentalWizardMock.mockReset();
-    // Resetea el store de Zustand a rol nulo antes de cada prueba
-    useWorkSession.setState({ role: null });
   });
 
   // ── estado: carga ─────────────────────────────────────────────────────────
@@ -202,10 +199,4 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
     expect(await screen.findByText(/No pudimos registrar la validación/)).toBeInTheDocument();
   });
 
-  // ── permisos: botón de excepción RENIEC requiere rol GERENCIA ─────────────
-  // Nota: reniecStatus se inicializa como 'verified' en el componente; la
-  // excepción RENIEC solo se muestra cuando reniecStatus === 'down', estado
-  // interno no triggerable desde la UI actual (BR-ALQ-004 pendiente de botón
-  // de simulación). Se prueba el gating de rol a nivel de texto cuando
-  // el estado interno es accesible.
 });

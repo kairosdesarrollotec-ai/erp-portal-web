@@ -4,6 +4,7 @@ import { AppHeader } from '../shared/AppHeader';
 import { useWorkContextForRentals } from './useWorkContextForRentals';
 import { createRental, createRentalFromReservation, RentalCommandError } from './rentals-client';
 import { getFirebaseAuth } from '../providers/firebase';
+import pageStyles from './NewRentalScreen.module.css';
 import styles from './RentalStageForms.module.css';
 
 interface NewRentalNavState {
@@ -68,6 +69,7 @@ export function NewRentalScreen() {
   return (
     <main>
       <AppHeader pageTitle="Nuevo alquiler" />
+      <div className={pageStyles.content}>
       <div className={styles.summaryCard}>
         {hasOrigin ? (
           <>
@@ -88,6 +90,7 @@ export function NewRentalScreen() {
       <button type="button" className={styles.retryButton} disabled={!hasOrigin || !context || busy} onClick={handleCreate}>
         {busy ? 'Creando…' : 'Crear expediente'}
       </button>
+      </div>
     </main>
   );
 }

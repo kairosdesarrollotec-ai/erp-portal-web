@@ -185,6 +185,150 @@ export async function interceptBackendAuth(
   );
 }
 
+export const RENTAL_FIXTURE = {
+  id: 'rent-e2e-001',
+  status: 'DRAFT',
+  customerName: 'Carlos López',
+  customerDocNumber: '12345678',
+  vehicleBrand: 'Toyota',
+  vehicleModel: 'Hilux',
+  vehiclePlate: 'ABC-123',
+  planCode: 'NORMAL',
+  startAt: '2026-10-01T09:00:00Z',
+  expectedEndAt: '2026-10-05T09:00:00Z',
+  alcoholTestResult: null,
+  notaryEvaluation: null,
+  contract: null,
+  deposit: null,
+  version: 1,
+};
+
+/**
+ * Intercepta los endpoints del módulo rentals:
+ * GET /rentals, GET /rentals/:id, POST /rentals, POST /rentals/from-reservation/:id,
+ * y todos los comandos del asistente de entrega.
+ */
+export async function interceptRentals(
+  page: Page,
+  options: { list?: object[]; detail?: object } = {},
+): Promise<void> {
+  const list = options.list ?? [RENTAL_FIXTURE];
+  const detail = options.detail ?? RENTAL_FIXTURE;
+
+  const notaryDetail = {
+    ...RENTAL_FIXTURE,
+    version: 2,
+    notaryEvaluation: {
+      result: 'MANDATORY',
+      reason: 'Vehículo de categoría que requiere notaría obligatoria.',
+      approvedBy: null,
+    },
+  };
+
+  const contractDetail = {
+    ...notaryDetail,
+    version: 3,
+    contract: { documentRef: `CONTRATO-${RENTAL_FIXTURE.id.slice(0, 8)}` },
+    deposit: { originalAmount: '500.00', currency: 'PEN' },
+  };
+
+  // Command: validate-documents
+  await page.route(/\/rentals\/[^/]+\/commands\/validate-documents/, (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ ...RENTAL_FIXTURE, status: 'VALIDATION', version: 2 }),
+    }),
+  );
+
+  // Command: register-alcohol-test
+  await page.route(/\/rentals\/[^/]+\/commands\/register-alcohol-test/, (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ...RENTAL_FIXTURE,
+        status: 'NOTARY_EVALUATION',
+        alcoholTestResult: 'FAVORABLE',
+        version: 2,
+      }),
+    }),
+  );
+
+  // Command: evaluate-notary
+  await page.route(/\/rentals\/[^/]+\/commands\/evaluate-notary/, (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ rental: notaryDetail, evaluation: notaryDetail.notaryEvaluation }),
+    }),
+  );
+
+  // Command: approve-notary-exception
+  await page.route(/\/rentals\/[^/]+\/commands\/approve-notary-exception/, (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ ...notaryDetail, notaryEvaluation: { ...notaryDetail.notaryEvaluation, approvedBy: 'fake-uid-e2e' } }),
+    }),
+  );
+
+  // Command: formalize-contract
+  await page.route(/\/rentals\/[^/]+\/commands\/formalize-contract/, (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify(contractDetail),
+    }),
+  );
+
+  // Command: complete-delivery
+  await page.route(/\/rentals\/[^/]+\/commands\/complete-delivery/, (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({ ...contractDetail, status: 'ACTIVE', version: 4 }),
+    }),
+  );
+
+  // POST /rentals/from-reservation/:id
+  await page.route(/\/rentals\/from-reservation\/[^?/]+/, (route) =>
+    route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify(detail),
+    }),
+  );
+
+  // POST /rentals (create)
+  await page.route(/\/rentals$/, (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify(detail),
+    });
+  });
+
+  // GET /rentals/:id (detail — registered after POST to have lower priority)
+  await page.route(/\/rentals\/[^?/]+(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(detail),
+    }),
+  );
+
+  // GET /rentals (list — registered last)
+  await page.route(/\/rentals(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ rentals: list, total: list.length }),
+    }),
+  );
+}
+
 /** Intercepta GET /reservations y GET /reservations/:id. */
 export async function interceptReservations(
   page: Page,
