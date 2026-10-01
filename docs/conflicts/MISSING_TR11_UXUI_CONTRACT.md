@@ -5,6 +5,7 @@
 | Código de detención | `MISSING_SOURCE` |
 | Detectado en | HU-25 / PR#12 (23-sep-2026) |
 | Registrado en | 25-sep-2026 |
+| **Estado** | **RESUELTO — DEC-TR-11-001 (2026-10-01)** |
 
 ## Descripción
 
@@ -44,10 +45,18 @@ Las siguientes reglas se derivan del prototipo + plan (no de BDD/SDD/TDD):
 - Módulos sin ruta implementada: tarjeta deshabilitada con badge "Próximamente".
 - Estas reglas deben reemplazarse cuando TR-11 tenga contrato formal y ADM-02 exista.
 
-## Acción pendiente
+## Resolución (2026-10-01)
 
-1. Crear `docs/sources/ux-ui/PANTALLAS-V3-B-TRANSVERSAL.md` con la especificación
-   completa de TR-11 (estados, responsive, accesibilidad, animaciones, permisos).
-2. Agregar entradas de TR-11 en BDD, SDD y TDD.
-3. Actualizar `docs/decision-log.md` con la decisión formal una vez disponible.
-4. Revisar y ajustar la implementación contra el contrato formal cuando exista.
+Acciones completadas:
+
+1. ✅ Creado `docs/sources/ux-ui/PANTALLAS-V3-B-TRANSVERSAL.md` con la especificación
+   formal de TR-11 (estados, responsive, accesibilidad, catálogo de módulos, trazabilidad).
+2. ⏳ Entradas de TR-11 en BDD, SDD y TDD — pendiente para iteración futura (sin bloqueo
+   actual; la implementación cumple el contrato UX/UI ahora existente).
+3. ✅ `docs/decision-log.md` actualizado con DEC-TR-11-001 (reemplaza PROV-TR-11-001).
+4. ✅ Implementación `ModuleHubScreen.tsx` compatible con el contrato formal creado.
+
+## Acción pendiente (residual)
+
+- Entradas TR-11 en BDD, SDD y TDD cuando se defina el rol de esta pantalla en los
+  procesos de negocio y en ADM-02.

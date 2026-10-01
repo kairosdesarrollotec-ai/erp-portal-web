@@ -324,7 +324,7 @@ export async function interceptRentals(
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ rentals: list, total: list.length }),
+      body: JSON.stringify(list),
     }),
   );
 }

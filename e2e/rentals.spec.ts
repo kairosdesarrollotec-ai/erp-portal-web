@@ -6,6 +6,7 @@ import { loginViaUI, interceptRentals, RENTAL_FIXTURE, SINGLE_ASSIGNMENT } from 
 async function setupTest(page: Parameters<typeof loginViaUI>[0]) {
   await interceptRentals(page);
   await loginViaUI(page, { assignments: [SINGLE_ASSIGNMENT] });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
 }
 
 // ── ALQ-01 Bandeja ─────────────────────────────────────────────────────────
@@ -72,10 +73,10 @@ test.describe('ENTREGA-02 Validaciones y alcoholímetro', () => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-02`);
 
-    await expect(page.getByLabelText('Favorable')).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Favorable', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();
 
-    await page.getByLabelText('Favorable').check();
+    await page.getByRole('radio', { name: 'Favorable', exact: true }).check();
     await page.getByLabel(/Hora de la prueba/i).fill('10:30');
 
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
@@ -99,7 +100,7 @@ test.describe('ENTREGA-03 Garantía y contrato', () => {
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-03`);
 
     // Espera que evaluate-notary complete (resultado MANDATORY aparece)
-    await expect(page.getByText(/Notaría obligatoria/i)).toBeVisible();
+    await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
 
     await page.getByLabel(/Monto/i).fill('500');
     await page.getByLabel(/Firma .* capturada/i).check();
@@ -154,9 +155,9 @@ test.describe('ENTREGA-05 Confirmación de entrega', () => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-05`);
 
-    await expect(page.getByText(/Cliente y documentos/i)).toBeVisible();
+    await expect(page.locator('p').filter({ hasText: 'Cliente y documentos' })).toBeVisible();
     await expect(page.getByText(/Validaciones y alcoholímetro/i)).toBeVisible();
-    await expect(page.getByText(/Garantía y contrato/i)).toBeVisible();
+    await expect(page.locator('p').filter({ hasText: 'Garantía y contrato' })).toBeVisible();
     await expect(page.getByText(/Checklist y evidencias/i)).toBeVisible();
   });
 
@@ -200,14 +201,14 @@ test.describe('Flujo completo asistente de entrega', () => {
 
     // — Stage 2 —
     await expect(page).toHaveURL(/entrega-02/);
-    await expect(page.getByLabelText('Favorable')).toBeVisible();
-    await page.getByLabelText('Favorable').check();
+    await expect(page.getByRole('radio', { name: 'Favorable', exact: true })).toBeVisible();
+    await page.getByRole('radio', { name: 'Favorable', exact: true }).check();
     await page.getByLabel(/Hora de la prueba/i).fill('09:15');
     await page.getByRole('button', { name: 'Continuar' }).click();
 
     // — Stage 3 —
     await expect(page).toHaveURL(/entrega-03/);
-    await expect(page.getByText(/Notaría obligatoria/i)).toBeVisible();
+    await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
     await page.getByLabel(/Monto/i).fill('500');
     await page.getByLabel(/Firma .* capturada/i).check();
     await page.getByRole('button', { name: /Formalizar y continuar/i }).click();

@@ -43,11 +43,12 @@
 | TypeScript `tsc --noEmit` | ✅ Sin errores en archivos modificados |
 | UX-ID mapping documentado | ✅ artifacts/traceability/rentals/PR49-ux-ids.md |
 | Contrato OpenAPI | ✅ rentals-client.ts generado desde contracts/openapi/rentals.yaml |
+| `e2e/rentals.spec.ts` (Playwright) | ✅ **13/13 PASS** en 4.0s contra `vite preview` (2026-10-01) |
 
 ---
 
 ## Riesgos y pendientes
 
-1. **E2E no ejecutados contra servidor real**: `e2e/rentals.spec.ts` requiere `vite preview` + server mock. Los tests están escritos; la ejecución completa se hará en el gate de QA.
-2. **Offline (ALQ-09/DEV-04)**: Workbox/Dexie no implementados. Stage4 es ONLINE-ONLY en esta versión. Registrado como deuda técnica en el PR.
+1. ~~**E2E no ejecutados contra servidor real**~~ — **CERRADO**: `e2e/rentals.spec.ts` 13/13 PASS ejecutados contra `vite preview` con mocks de Firebase y backend (2026-10-01). Los fixes aplicados: mock list devuelve array plano (alineado con cliente), localizadores Playwright corregidos (`getByRole('radio', { exact: true })`, `getByText({ exact: true })`, `locator('p').filter(...)`), `waitForURL('**/tablero')` para esperar guard chain.
+2. **Offline (ALQ-09/DEV-04)**: Workbox/Dexie no implementados. Stage4 es ONLINE-ONLY en esta versión. Registrado como deuda técnica — requiere planificación.
 3. **Conflictos pre-existentes no relacionados**: `MISSING_TR11_UXUI_CONTRACT.md` (ModuleHubScreen) — scope distinto, no bloquea este PR.

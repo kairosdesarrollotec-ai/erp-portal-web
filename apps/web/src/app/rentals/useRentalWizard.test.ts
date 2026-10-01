@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { RentalResponse } from './rentals-client';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
@@ -39,16 +40,31 @@ vi.mock('./useWorkContextForRentals', () => ({
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
-const baseRental = {
+const baseRental: RentalResponse = {
   id: 'rent-1',
-  status: 'DRAFT',
+  organizationId: 'org-1',
+  operatingCompanyId: 'comp-1',
+  branchId: 'branch-1',
+  inquiryId: null,
+  reservationId: null,
+  customerId: 'cust-1',
   customerName: 'Maria Quispe',
   customerDocNumber: '12345678',
+  vehicleId: 'veh-1',
+  vehiclePlate: 'D0Y-704',
   vehicleBrand: 'Toyota',
   vehicleModel: 'Hilux',
-  vehiclePlate: 'D0Y-704',
+  planCode: 'NORMAL',
+  status: 'DRAFT',
+  startAt: '2026-10-01T09:00:00Z',
+  expectedEndAt: '2026-10-05T09:00:00Z',
   alcoholTestResult: null,
+  createdAt: '2026-10-01T00:00:00Z',
+  createdBy: 'user-1',
+  updatedAt: '2026-10-01T00:00:00Z',
+  updatedBy: 'user-1',
   version: 1,
+  etag: '"1"',
 };
 
 const baseContext = {
