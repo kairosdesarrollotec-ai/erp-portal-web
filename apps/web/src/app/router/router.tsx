@@ -20,7 +20,6 @@ import { AuditEventsScreen } from '../admin/AuditEventsScreen';
 import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
 import { RolePermissionMatrixScreen } from '../admin/RolePermissionMatrixScreen';
 import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
-import { ContractTemplatesScreen } from '../admin/ContractTemplatesScreen';
 import { ModuleHubScreen } from '../modules/ModuleHubScreen';
 import { FleetListScreen } from '../fleet/FleetListScreen';
 import { VehicleDetailScreen } from '../fleet/VehicleDetailScreen';
@@ -83,7 +82,6 @@ export const router = createBrowserRouter([
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
               { path: '/admin/permisos', element: <RolePermissionMatrixScreen /> },
               { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
-              { path: '/admin/plantillas-contrato', element: <ContractTemplatesScreen /> },
               { path: '/modulos', element: <ModuleHubScreen /> },
             ],
           },

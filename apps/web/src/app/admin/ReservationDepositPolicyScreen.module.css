@@ -140,3 +140,23 @@
   border-bottom: 1px solid #F0EEE9;
   color: var(--color-ink);
 }
+
+.badgeActive {
+  display: inline-block;
+  background: #E6F4EA;
+  color: #1E7E34;
+  border-radius: 4px;
+  padding: 0.125rem 0.5rem;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badgeRetired {
+  display: inline-block;
+  background: #F0EEE9;
+  color: var(--color-muted);
+  border-radius: 4px;
+  padding: 0.125rem 0.5rem;
+  font-size: 11px;
+  font-weight: 600;
+}
