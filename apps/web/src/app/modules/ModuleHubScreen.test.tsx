@@ -91,9 +91,11 @@ describe('ModuleHubScreen', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
     renderHub();
     const badges = screen.getAllByText(/próximamente/i);
-    // 6 módulos sin ruta implementada (Alquileres, Devoluciones,
-    // Pagos, Incidentes, Personal, Reportes) = 6 sin admin
-    expect(badges.length).toBe(6);
+    // 5 módulos sin ruta implementada (Devoluciones, Pagos, Incidentes,
+    // Personal, Reportes) = 5 sin admin. Alquileres salió de esta lista
+    // en esta misma sesión (module-definitions.tsx, path: '/alquileres'
+    // en vez de null) - el modulo ya esta construido y mergeado.
+    expect(badges.length).toBe(5);
   });
 
   it('muestra el label de sede en el header', () => {

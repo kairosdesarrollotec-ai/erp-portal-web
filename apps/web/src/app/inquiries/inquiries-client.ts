@@ -21,6 +21,18 @@ export interface InquirySummary {
   customerId: string | null;
   touristUse: boolean;
   createdAt: string;
+  /**
+   * El backend (InquirySummaryResponse) ya envia estos campos desde
+   * siempre - faltaban en este tipo (no reflejaban el shape real de la
+   * respuesta), lo que hacia que la recuperacion de deep link en
+   * useInquiryVehicles.ts no pudiera leerlos y los pisara con '' / 1,
+   * rompiendo "Cotizar este vehiculo" (400 INVALID por destination vacio)
+   * cada vez que se entraba a CON-03 sin navState previo (recarga de
+   * pagina o link directo).
+   */
+  destination: string | null;
+  estimatedDays: number | null;
+  travelStartDate: string | null;
 }
 
 export interface InquiryQuotation {

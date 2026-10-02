@@ -7,6 +7,7 @@ const getInquiryMock = vi.fn();
 const closeInquiryMock = vi.fn();
 const convertInquiryToReservationMock = vi.fn();
 const getCustomerMock = vi.fn();
+const getVehicleMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
 vi.mock('../shared/useRolePermissions', () => ({
@@ -37,6 +38,14 @@ vi.mock('../customers/customers-client', async () => {
   };
 });
 
+vi.mock('../fleet/fleet-client', async () => {
+  const actual = await vi.importActual<typeof import('../fleet/fleet-client')>('../fleet/fleet-client');
+  return {
+    ...actual,
+    getVehicle: (...args: unknown[]) => getVehicleMock(...args),
+  };
+});
+
 vi.mock('../auth/work-context-client', () => ({
   getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
 }));
@@ -53,6 +62,7 @@ function buildInquiry(overrides: Record<string, unknown> = {}) {
     customerId: 'cust-1',
     touristUse: true,
     createdAt: '2026-09-16T00:00:00Z',
+    travelStartDate: '2026-10-10T00:00:00Z',
     interactions: [],
     quotations: [
       { id: 'quo-1', vehicleId: 'veh-mock-hilux', destination: 'Ayacucho', estimatedDays: 3, createdAt: '2026-09-16T01:00:00Z' },
@@ -84,22 +94,24 @@ describe('InquiryDetailScreen (CON-04)', () => {
     closeInquiryMock.mockReset();
     convertInquiryToReservationMock.mockReset();
     getCustomerMock.mockReset().mockResolvedValue({ id: 'cust-1', fullName: 'Maria Quispe' });
+    getVehicleMock.mockReset().mockResolvedValue({ id: 'veh-mock-hilux', brand: 'Toyota', model: 'Hilux' });
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
-  it('muestra el resumen y la cotizacion', async () => {
+  it('muestra el resumen y la cotizacion, resolviendo el nombre del vehiculo (no el UUID)', async () => {
     getInquiryMock.mockResolvedValue(buildInquiry());
     renderScreen();
 
     expect(await screen.findByText('Maria Quispe')).toBeInTheDocument();
-    expect(screen.getByText('veh-mock-hilux')).toBeInTheDocument();
+    expect(await screen.findByText('Toyota Hilux')).toBeInTheDocument();
+    expect(screen.queryByText('veh-mock-hilux')).not.toBeInTheDocument();
   });
 
   // Reactivado: "Reservar este vehiculo" abre un formulario corto
   // (modalidad + fecha de inicio, los 2 datos que le faltaban a
   // convert-to-reservation) y, al confirmar, crea la Reservation real y
   // navega a /reservas/:id.
-  it('cuando hay cotizacion, "Reservar este vehiculo" captura modalidad/fecha y crea la reserva real', async () => {
+  it('cuando hay cotizacion, "Reservar este vehiculo" prellena la fecha de Consulta, pide modalidad solo si no se puede calcular, y crea la reserva real', async () => {
     getInquiryMock.mockResolvedValue(buildInquiry());
     convertInquiryToReservationMock.mockResolvedValue({
       inquiry: { ...buildInquiry(), status: 'CONVERTIDA', version: 2 },
@@ -110,9 +122,18 @@ describe('InquiryDetailScreen (CON-04)', () => {
     await screen.findByText('Maria Quispe');
     fireEvent.click(screen.getByText('Reservar este vehículo'));
 
-    fireEvent.change(screen.getByLabelText('Fecha y hora de inicio'), {
-      target: { value: '2026-10-10T10:00' },
-    });
+    // La fecha viene prellenada desde inquiry.travelStartDate (CON-02) -
+    // nunca se pide vacia.
+    expect(screen.getByLabelText('Fecha y hora de inicio')).toHaveValue('2026-10-10T09:00');
+
+    // El boton queda deshabilitado hasta responder la pregunta de
+    // modalidad (BR-RES-005: se calcula por ubicacion del cliente: como
+    // ese dato aun no se captura en Consulta, cae en el caso de excepcion
+    // documentado en RES-04 - pregunta explicita, no un selector libre).
+    expect(screen.getByText('Confirmar reserva')).toBeDisabled();
+    fireEvent.click(screen.getByText('Sí — presencial'));
+    expect(screen.getByText('Confirmar reserva')).toBeEnabled();
+
     fireEvent.click(screen.getByText('Confirmar reserva'));
 
     expect(await screen.findByText('detalle de reserva')).toBeInTheDocument();

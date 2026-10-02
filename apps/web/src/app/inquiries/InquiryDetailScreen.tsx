@@ -23,20 +23,51 @@ import styles from './InquiryDetailScreen.module.css';
  * PANTALLAS-V3-B-RESERVA.md. Exige ademas `inquiry.customerId` (una
  * consulta de prospecto sin cliente formal no puede convertirse -
  * `CUSTOMER_REQUIRED_FOR_CONVERSION`, ver decision-log.md NOTA-PR7).
+ *
+ * Correccion (oct 2026, a pedido de Russbel):
+ * - El vehiculo cotizado se mostraba como UUID crudo - se resuelve ahora
+ *   via Flota (ver useInquiryDetail.ts, mismo patron que customerName).
+ * - La fecha de inicio se pedia vacia, aunque CON-02 ya captura una
+ *   fecha de viaje aproximada (`inquiry.travelStartDate`) - PANTALLAS-V3-B-
+ *   RESERVA.md (RES-04, punto 15) es tajante: "Cliente, vehiculo, fechas,
+ *   destino - vienen de CON-02/CON-03, nunca se vuelven a pedir". Se
+ *   prellena con esa fecha; el usuario solo confirma/ajusta la hora
+ *   exacta de inicio (dato que CON-02 nunca captura - "periodo" es
+ *   duracion estimada, no una hora de recojo).
+ * - La modalidad (presencial/remota) NO es una pregunta libre segun el
+ *   diseno: BR-RES-005/DAT-RES-001 la calculan a partir de la ubicacion
+ *   del cliente (Ayacucho + puede acercarse -> presencial; si no,
+ *   remota). Ese dato de ubicacion no se captura todavia en Consulta, asi
+ *   que esto cae exactamente en la excepcion que el propio contrato de
+ *   RES-04 prevé ("revelado progresivo": la modalidad "solo se convierte
+ *   en pregunta editable si el sistema no puede determinarla
+ *   automaticamente") - se reformula con esa pregunta exacta en vez de un
+ *   selector generico Presencial/Virtual.
  */
 export function InquiryDetailScreen() {
-  const { navState, state, inquiry, customerName, saving, actionError, closeWithoutConversion, convertToReservation, reload } =
+  const { navState, state, inquiry, customerName, vehicleLabel, saving, actionError, closeWithoutConversion, convertToReservation, reload } =
     useInquiryDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [closeReason, setCloseReason] = useState('');
   const [showReserveForm, setShowReserveForm] = useState(false);
-  const [channelMode, setChannelMode] = useState<'PRESENCIAL' | 'VIRTUAL'>('PRESENCIAL');
+  /** null = sin responder todavia (caso excepcional, ver nota arriba). */
+  const [canComeToOffice, setCanComeToOffice] = useState<boolean | null>(null);
   const [startAt, setStartAt] = useState('');
 
+  // Prellena con la fecha de viaje ya capturada en CON-02 (si existe) -
+  // el usuario solo ajusta la hora, nunca se le pide la fecha de cero.
+  function openReserveForm() {
+    if (inquiry?.travelStartDate && !startAt) {
+      setStartAt(`${inquiry.travelStartDate.slice(0, 10)}T09:00`);
+    }
+    setShowReserveForm(true);
+  }
+
   async function handleReserve() {
-    if (!startAt) return;
+    if (!startAt || canComeToOffice === null) return;
+    const channelMode = canComeToOffice ? 'PRESENCIAL' : 'VIRTUAL';
     const reservationId = await convertToReservation(channelMode, new Date(startAt).toISOString());
     if (reservationId) navigate(`/reservas/${reservationId}`);
   }
@@ -73,7 +104,11 @@ export function InquiryDetailScreen() {
     })),
     ...(inquiry.quotations ?? []).map((item) => ({
       id: item.id,
-      label: `Cotización — ${item.vehicleId}`,
+      // UUID crudo quitado del label (mismo bug que el panel de resumen) -
+      // el timeline no resuelve nombre por cada cotizacion historica
+      // (podria haber varias, solo se resuelve la vigente), asi que se deja
+      // generico en vez de un UUID sin contexto.
+      label: 'Cotización registrada',
       detail: item.destination,
       at: item.createdAt,
     })),
@@ -104,7 +139,7 @@ export function InquiryDetailScreen() {
           <dl className={styles.summaryList}>
             <div>
               <dt>Vehículo cotizado</dt>
-              <dd>{latestQuotation ? latestQuotation.vehicleId : 'Sin cotizar todavía'}</dd>
+              <dd>{latestQuotation ? (vehicleLabel ?? 'Cargando…') : 'Sin cotizar todavía'}</dd>
             </div>
             <div>
               <dt>Fecha de registro</dt>
@@ -140,31 +175,59 @@ export function InquiryDetailScreen() {
           )}
 
           {canReserve && inquiry.customerId && !showReserveForm && (
-            <button type="button" className={styles.primaryButton} onClick={() => setShowReserveForm(true)}>
+            <button type="button" className={styles.primaryButton} onClick={openReserveForm}>
               Reservar este vehículo
             </button>
           )}
 
           {canReserve && inquiry.customerId && showReserveForm && (
-            <div className={styles.closeForm}>
-              <label htmlFor="reserve-channel-mode">Modalidad</label>
-              <select
-                id="reserve-channel-mode"
-                value={channelMode}
-                onChange={(event) => setChannelMode(event.target.value as 'PRESENCIAL' | 'VIRTUAL')}
-              >
-                <option value="PRESENCIAL">Presencial</option>
-                <option value="VIRTUAL">Virtual</option>
-              </select>
-              <label htmlFor="reserve-start-at">Fecha y hora de inicio</label>
-              <input
-                id="reserve-start-at"
-                type="datetime-local"
-                value={startAt}
-                onChange={(event) => setStartAt(event.target.value)}
-              />
+            <div className={styles.reserveForm}>
+              <p className={styles.reserveFormTitle}>Confirmar datos de la reserva</p>
+
+              <div className={styles.fieldGroup}>
+                <label htmlFor="reserve-start-at" className={styles.fieldLabel}>
+                  Fecha y hora de inicio
+                </label>
+                <p className={styles.fieldHint}>
+                  Tomada de la fecha de viaje ya registrada en la consulta — solo ajusta la hora si hace falta.
+                </p>
+                <input
+                  id="reserve-start-at"
+                  type="datetime-local"
+                  className={styles.fieldInput}
+                  value={startAt}
+                  onChange={(event) => setStartAt(event.target.value)}
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <p className={styles.fieldLabel}>No pudimos determinar la modalidad automáticamente</p>
+                <p className={styles.fieldHint}>¿El cliente puede acercarse a oficina?</p>
+                <div className={styles.modalityButtons}>
+                  <button
+                    type="button"
+                    className={canComeToOffice === true ? styles.modalityButtonActive : styles.modalityButton}
+                    onClick={() => setCanComeToOffice(true)}
+                  >
+                    Sí — presencial
+                  </button>
+                  <button
+                    type="button"
+                    className={canComeToOffice === false ? styles.modalityButtonActive : styles.modalityButton}
+                    onClick={() => setCanComeToOffice(false)}
+                  >
+                    No — remota
+                  </button>
+                </div>
+              </div>
+
               <div className={styles.closeActions}>
-                <button type="button" className={styles.primaryButton} disabled={!startAt || saving} onClick={() => void handleReserve()}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  disabled={!startAt || canComeToOffice === null || saving}
+                  onClick={() => void handleReserve()}
+                >
                   {saving ? 'Creando reserva…' : 'Confirmar reserva'}
                 </button>
                 <button type="button" className={styles.linkButton} onClick={() => setShowReserveForm(false)}>

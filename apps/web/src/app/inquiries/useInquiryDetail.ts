@@ -3,6 +3,7 @@ import { useLocation, useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { closeInquiry, convertInquiryToReservation, getInquiry, InquiryCommandError, InquiryDetail } from './inquiries-client';
 import { getCustomer } from '../customers/customers-client';
+import { getVehicle } from '../fleet/fleet-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
 import type { InquiryNavState } from './inquiries-nav-state';
 
@@ -22,6 +23,14 @@ export function useInquiryDetail() {
    * aparte con `GET /customers/{id}`.
    */
   const [customerName, setCustomerName] = useState<string | null>(null);
+  /**
+   * Bug fix (Consultas, hallazgo de Russbel): CON-04 mostraba el UUID
+   * crudo del vehiculo cotizado ("Vehiculo cotizado: 6d695f5f-...")
+   * porque Quotation solo persiste vehicleId (snapshot del tarifario, ver
+   * quote.handler.ts) - nunca el nombre. Igual causa raiz que
+   * customerName arriba: se resuelve aparte con GET /fleet/vehicles/{id}.
+   */
+  const [vehicleLabel, setVehicleLabel] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -47,6 +56,17 @@ export function useInquiryDetail() {
         }
       } else {
         setCustomerName(null);
+      }
+      const latestQuotation = result.quotations?.[result.quotations.length - 1] ?? null;
+      if (latestQuotation) {
+        try {
+          const vehicle = await getVehicle(idToken, latestQuotation.vehicleId, context.companyId, context.branchId);
+          setVehicleLabel(`${vehicle.brand} ${vehicle.model}`.trim());
+        } catch {
+          setVehicleLabel(null);
+        }
+      } else {
+        setVehicleLabel(null);
       }
     } catch {
       setState('RECOVERABLE_ERROR');
@@ -124,6 +144,7 @@ export function useInquiryDetail() {
     state,
     inquiry,
     customerName,
+    vehicleLabel,
     saving,
     actionError,
     closeWithoutConversion,
