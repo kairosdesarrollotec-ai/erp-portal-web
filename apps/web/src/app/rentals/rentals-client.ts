@@ -235,22 +235,26 @@ export function approveNotaryException(
   });
 }
 
-/** ENTREGA-03 - formaliza el contrato (accion irreversible). */
+/**
+ * ENTREGA-03 - formaliza el contrato (accion irreversible).
+ * `templateVersionId` es opcional: si se omite, el backend resuelve
+ * automaticamente la plantilla ACTIVE vigente de la empresa (BR-DOC-002).
+ */
 export function formalizeContract(
   idToken: string,
   id: string,
   companyId: string,
   branchId: string,
   version: number,
-  templateVersionId: string,
   documentRef: string,
   depositAmount: string,
   depositCurrency: 'PEN' | 'USD',
+  templateVersionId?: string,
 ): Promise<RentalResponse> {
   return postCommand(idToken, `/rentals/${id}/commands/formalize-contract`, version, {
     companyId,
     branchId,
-    templateVersionId,
+    ...(templateVersionId ? { templateVersionId } : {}),
     documentRef,
     depositAmount,
     depositCurrency,
