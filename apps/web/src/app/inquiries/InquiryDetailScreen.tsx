@@ -15,23 +15,31 @@ import styles from './InquiryDetailScreen.module.css';
  *
  * Hallazgo de revision PR#11 (Critico #4, "conversión/reserva
  * incompleta"): antes "Reservar este vehículo" llamaba al comando
- * `convert-to-reservation` (que deja la consulta en CONVERTIDA, un estado
- * TERMINAL) y navegaba a /reservas como si la reserva ya existiera - sin
- * crear ninguna Reservation real (ese comando exige `customerId`,
- * fechas y `branchId` que este frontend no captura en ningún flujo
- * todavía, ver inquiries-client.ts). Convertir la consulta sin una
- * reserva asociada es una pérdida de integridad de datos irreversible.
- * Ahora la acción se muestra deshabilitada con una explicación honesta -
- * la consulta se queda en COTIZADA, que es su estado real, hasta que
- * exista una pantalla de creación de Reserva que junte los datos que
- * faltan.
+ * `convert-to-reservation` sin capturar `channelMode`/`startAt`, que el
+ * backend exige para crear la Reservation real en la misma transaccion
+ * (ver inquiries-client.ts). Reactivado: este formulario captura esos 2
+ * datos (los unicos que faltaban) y crea la reserva real, navegando a
+ * RES-04/05 (`/reservas/:id`), consistente con el flujo documentado en
+ * PANTALLAS-V3-B-RESERVA.md. Exige ademas `inquiry.customerId` (una
+ * consulta de prospecto sin cliente formal no puede convertirse -
+ * `CUSTOMER_REQUIRED_FOR_CONVERSION`, ver decision-log.md NOTA-PR7).
  */
 export function InquiryDetailScreen() {
-  const { navState, state, inquiry, customerName, saving, actionError, closeWithoutConversion, reload } = useInquiryDetail();
+  const { navState, state, inquiry, customerName, saving, actionError, closeWithoutConversion, convertToReservation, reload } =
+    useInquiryDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [closeReason, setCloseReason] = useState('');
+  const [showReserveForm, setShowReserveForm] = useState(false);
+  const [channelMode, setChannelMode] = useState<'PRESENCIAL' | 'VIRTUAL'>('PRESENCIAL');
+  const [startAt, setStartAt] = useState('');
+
+  async function handleReserve() {
+    if (!startAt) return;
+    const reservationId = await convertToReservation(channelMode, new Date(startAt).toISOString());
+    if (reservationId) navigate(`/reservas/${reservationId}`);
+  }
 
   if (state === 'LOADING') {
     return (
@@ -124,22 +132,46 @@ export function InquiryDetailScreen() {
 
           {actionError && <p className={styles.errorText}>{actionError}</p>}
 
-          {canReserve && (
-            <>
-              <button
-                type="button"
-                className={styles.primaryButton}
-                disabled
-                title="Disponible cuando exista la pantalla de creación de Reserva (captura de cliente y fechas)"
+          {canReserve && !inquiry.customerId && (
+            <p className={styles.helperText}>
+              Esta consulta no tiene un cliente formal asociado (fue registrada como prospecto), así que no se
+              puede convertir en reserva. Vincula un cliente para continuar.
+            </p>
+          )}
+
+          {canReserve && inquiry.customerId && !showReserveForm && (
+            <button type="button" className={styles.primaryButton} onClick={() => setShowReserveForm(true)}>
+              Reservar este vehículo
+            </button>
+          )}
+
+          {canReserve && inquiry.customerId && showReserveForm && (
+            <div className={styles.closeForm}>
+              <label htmlFor="reserve-channel-mode">Modalidad</label>
+              <select
+                id="reserve-channel-mode"
+                value={channelMode}
+                onChange={(event) => setChannelMode(event.target.value as 'PRESENCIAL' | 'VIRTUAL')}
               >
-                Crear reserva — no disponible todavía
-              </button>
-              <p className={styles.helperText}>
-                Esta consulta ya tiene una cotización, pero crear la reserva requiere datos que esta pantalla
-                todavía no captura (cliente formal y fechas de recojo/devolución). La consulta se mantiene en
-                Cotizada hasta que ese flujo exista.
-              </p>
-            </>
+                <option value="PRESENCIAL">Presencial</option>
+                <option value="VIRTUAL">Virtual</option>
+              </select>
+              <label htmlFor="reserve-start-at">Fecha y hora de inicio</label>
+              <input
+                id="reserve-start-at"
+                type="datetime-local"
+                value={startAt}
+                onChange={(event) => setStartAt(event.target.value)}
+              />
+              <div className={styles.closeActions}>
+                <button type="button" className={styles.primaryButton} disabled={!startAt || saving} onClick={() => void handleReserve()}>
+                  {saving ? 'Creando reserva…' : 'Confirmar reserva'}
+                </button>
+                <button type="button" className={styles.linkButton} onClick={() => setShowReserveForm(false)}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
           )}
 
           {!latestQuotation && !isClosed && (

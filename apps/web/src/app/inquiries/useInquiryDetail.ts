@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
-import { closeInquiry, getInquiry, InquiryCommandError, InquiryDetail } from './inquiries-client';
+import { closeInquiry, convertInquiryToReservation, getInquiry, InquiryCommandError, InquiryDetail } from './inquiries-client';
 import { getCustomer } from '../customers/customers-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
 import type { InquiryNavState } from './inquiries-nav-state';
@@ -86,6 +86,37 @@ export function useInquiryDetail() {
     }
   }
 
+  async function convertToReservation(channelMode: 'PRESENCIAL' | 'VIRTUAL', startAt: string) {
+    if (!inquiry || !context) return null;
+    setSaving(true);
+    setActionError(null);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible.');
+      const idToken = await user.getIdToken();
+      const result = await convertInquiryToReservation(
+        idToken,
+        inquiry.id,
+        inquiry.version,
+        context.companyId,
+        context.branchId,
+        channelMode,
+        startAt,
+      );
+      setInquiry({ ...inquiry, ...result.inquiry });
+      return result.reservation.id;
+    } catch (error) {
+      if (error instanceof InquiryCommandError && (error.status === 412 || error.status === 409)) {
+        setState('SYNC_CONFLICT');
+      } else {
+        setActionError(error instanceof Error ? error.message : 'No se pudo crear la reserva.');
+      }
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return {
     id,
     navState,
@@ -96,6 +127,7 @@ export function useInquiryDetail() {
     saving,
     actionError,
     closeWithoutConversion,
+    convertToReservation,
     reload,
   };
 }
