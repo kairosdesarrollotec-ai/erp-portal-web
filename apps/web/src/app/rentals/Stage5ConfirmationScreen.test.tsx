@@ -17,11 +17,13 @@ vi.mock('./useRentalWizard', () => ({
 }));
 
 const completeDeliveryMock = vi.fn();
+const listRentalEvidenceMock = vi.fn();
 vi.mock('./rentals-client', async () => {
   const actual = await vi.importActual<typeof import('./rentals-client')>('./rentals-client');
   return {
     ...actual,
     completeDelivery: (...args: unknown[]) => completeDeliveryMock(...args),
+    listRentalEvidence: (...args: unknown[]) => listRentalEvidenceMock(...args),
   };
 });
 
@@ -100,6 +102,8 @@ describe('Stage5ConfirmationScreen (ENTREGA-05 / ALQ-09)', () => {
   beforeEach(() => {
     completeDeliveryMock.mockReset();
     useRentalWizardMock.mockReset();
+    listRentalEvidenceMock.mockReset();
+    listRentalEvidenceMock.mockResolvedValue([]);
     sessionStorage.removeItem(CHECKLIST_KEY);
   });
 
@@ -141,15 +145,31 @@ describe('Stage5ConfirmationScreen (ENTREGA-05 / ALQ-09)', () => {
     expect(screen.getByText(/500 PEN/)).toBeInTheDocument();
   });
 
-  it('muestra el resumen del borrador del checklist (fotos y videos)', () => {
-    sessionStorage.setItem(
-      CHECKLIST_KEY,
-      JSON.stringify({ photosCount: 35, videosCount: 3, technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
-    );
+  it('muestra el resumen de evidencia (fotos y videos) leído del backend', async () => {
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => ({
+        id: `ev-p-${i}`,
+        rentalId: 'rent-1',
+        type: 'PHOTO' as const,
+        zone: 'FRONTAL' as const,
+        objectUrl: `https://storage.googleapis.com/bucket/p-${i}.jpg`,
+        uploadedBy: 'uid-1',
+        uploadedAt: new Date().toISOString(),
+      })),
+      ...Array.from({ length: 3 }, (_, i) => ({
+        id: `ev-v-${i}`,
+        rentalId: 'rent-1',
+        type: 'VIDEO' as const,
+        zone: 'FRONTAL' as const,
+        objectUrl: `https://storage.googleapis.com/bucket/v-${i}.mp4`,
+        uploadedBy: 'uid-1',
+        uploadedAt: new Date().toISOString(),
+      })),
+    ]);
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
-    expect(screen.getByText(/35 fotos/)).toBeInTheDocument();
+    expect(await screen.findByText(/35 fotos/)).toBeInTheDocument();
     expect(screen.getByText(/3 videos/)).toBeInTheDocument();
   });
 
@@ -201,8 +221,6 @@ describe('Stage5ConfirmationScreen (ENTREGA-05 / ALQ-09)', () => {
       'c1',
       'b1',
       5,
-      35,
-      3,
       expect.stringContaining('Sin novedades'),
     );
     // Borrador debe haberse limpiado

@@ -261,22 +261,130 @@ export function formalizeContract(
   });
 }
 
-/** ENTREGA-04/05 - checklist y confirmacion de entrega (accion irreversible). */
+/**
+ * ENTREGA-04/05 - confirmacion de entrega (accion irreversible). BR-INS-003/004
+ * ya no se valida con photosCount/videosCount (quedan deprecados en el
+ * backend) sino contra la evidencia real registrada via
+ * POST /rentals/:id/evidence - ver Stage4ChecklistScreen.
+ */
 export function completeDelivery(
   idToken: string,
   id: string,
   companyId: string,
   branchId: string,
   version: number,
-  photosCount: number,
-  videosCount: number,
   notes?: string,
 ): Promise<RentalResponse> {
   return postCommand(idToken, `/rentals/${id}/commands/complete-delivery`, version, {
     companyId,
     branchId,
-    photosCount,
-    videosCount,
     notes,
   });
+}
+
+// --- ALQ-09 / BR-INS-003/004 - evidencia real (foto/video) de entrega ---
+// Mismo patron de 2 pasos que Fleet (requestPhotoUploadSession +
+// uploadPhotoToGcs en fleet-client.ts): pedir URL firmada, subir directo a
+// GCS, confirmar con un registro en backend.
+
+export type RentalEvidenceType = 'PHOTO' | 'VIDEO';
+export type RentalEvidenceZone = 'FRONTAL' | 'LATERAL_IZQUIERDO' | 'LATERAL_DERECHO' | 'POSTERIOR' | 'INTERIOR';
+export type RentalEvidenceContentType = 'image/jpeg' | 'image/webp' | 'video/mp4' | 'video/webm';
+
+export interface EvidenceUploadSessionResponse {
+  uploadUrl: string;
+  objectUrl: string;
+}
+
+export interface RentalEvidenceResponse {
+  id: string;
+  rentalId: string;
+  type: RentalEvidenceType;
+  zone: RentalEvidenceZone;
+  objectUrl: string;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
+export class GcsEvidenceUploadError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+export async function requestEvidenceUploadSession(
+  idToken: string,
+  rentalId: string,
+  companyId: string,
+  branchId: string,
+  type: RentalEvidenceType,
+  zone: RentalEvidenceZone,
+  contentType: RentalEvidenceContentType,
+  contentLength: number,
+): Promise<EvidenceUploadSessionResponse> {
+  const headers: Record<string, string> = { ...(authHeaders(idToken) as Record<string, string>) };
+  headers['Idempotency-Key'] = crypto.randomUUID();
+  const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}/evidence/upload-url`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ companyId, branchId, type, zone, contentType, contentLength }),
+  });
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null);
+    throw new RentalCommandError(response.status, problem);
+  }
+  return (await response.json()) as EvidenceUploadSessionResponse;
+}
+
+export async function uploadEvidenceToGcs(uploadUrl: string, file: File): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!response.ok) {
+    throw new GcsEvidenceUploadError(`Error al subir el archivo a GCS (${response.status})`, response.status);
+  }
+}
+
+export async function recordEvidence(
+  idToken: string,
+  rentalId: string,
+  companyId: string,
+  branchId: string,
+  type: RentalEvidenceType,
+  zone: RentalEvidenceZone,
+  objectUrl: string,
+): Promise<RentalEvidenceResponse> {
+  const headers: Record<string, string> = { ...(authHeaders(idToken) as Record<string, string>) };
+  headers['Idempotency-Key'] = crypto.randomUUID();
+  const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}/evidence`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ companyId, branchId, type, zone, objectUrl }),
+  });
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null);
+    throw new RentalCommandError(response.status, problem);
+  }
+  return (await response.json()) as RentalEvidenceResponse;
+}
+
+export async function listRentalEvidence(
+  idToken: string,
+  rentalId: string,
+  companyId: string,
+  branchId: string,
+): Promise<RentalEvidenceResponse[]> {
+  const params = new URLSearchParams({ companyId, branchId });
+  const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}/evidence?${params.toString()}`, {
+    headers: authHeaders(idToken),
+  });
+  if (!response.ok) {
+    throw new RentalApiError(response.status);
+  }
+  return (await response.json()) as RentalEvidenceResponse[];
 }
