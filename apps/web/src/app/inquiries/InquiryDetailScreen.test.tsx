@@ -83,6 +83,7 @@ function renderScreen() {
         <Route path="/consultas" element={<div>bandeja</div>} />
         <Route path="/reservas" element={<div>reservas</div>} />
         <Route path="/reservas/:id" element={<div>detalle de reserva</div>} />
+        <Route path="/consultas/:id/vehiculos" element={<div>pantalla de vehiculos</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -94,7 +95,7 @@ describe('InquiryDetailScreen (CON-04)', () => {
     closeInquiryMock.mockReset();
     convertInquiryToReservationMock.mockReset();
     getCustomerMock.mockReset().mockResolvedValue({ id: 'cust-1', fullName: 'Maria Quispe' });
-    getVehicleMock.mockReset().mockResolvedValue({ id: 'veh-mock-hilux', brand: 'Toyota', model: 'Hilux' });
+    getVehicleMock.mockReset().mockResolvedValue({ id: 'veh-mock-hilux', brand: 'Toyota', model: 'Hilux', photoUrl: 'https://cdn.example.com/hilux.jpg' });
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
@@ -105,6 +106,20 @@ describe('InquiryDetailScreen (CON-04)', () => {
     expect(await screen.findByText('Maria Quispe')).toBeInTheDocument();
     expect(await screen.findByText('Toyota Hilux')).toBeInTheDocument();
     expect(screen.queryByText('veh-mock-hilux')).not.toBeInTheDocument();
+  });
+
+  // Hallazgo Russbel (ronda 2): el vehiculo cotizado no se veia (solo
+  // texto) y no habia forma de corregir una seleccion equivocada.
+  it('muestra una foto del vehiculo cotizado y permite cambiarlo antes de reservar', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry());
+    renderScreen();
+
+    await screen.findByText('Toyota Hilux');
+    const photo = await screen.findByAltText('Toyota Hilux');
+    expect(photo).toHaveAttribute('src', 'https://cdn.example.com/hilux.jpg');
+
+    fireEvent.click(screen.getByText('Cambiar vehículo'));
+    expect(await screen.findByText('pantalla de vehiculos')).toBeInTheDocument();
   });
 
   // Reactivado: "Reservar este vehiculo" abre un formulario corto

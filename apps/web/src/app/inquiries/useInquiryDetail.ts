@@ -31,6 +31,10 @@ export function useInquiryDetail() {
    * customerName arriba: se resuelve aparte con GET /fleet/vehicles/{id}.
    */
   const [vehicleLabel, setVehicleLabel] = useState<string | null>(null);
+  /** Foto del vehiculo cotizado (hallazgo Russbel oct 2026): el panel de
+   * resumen solo mostraba el nombre, sin ningun indicio visual - mismo
+   * patron `photoUrl` que InquiryVehiclesScreen/useInquiryVehicles.ts. */
+  const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -62,11 +66,14 @@ export function useInquiryDetail() {
         try {
           const vehicle = await getVehicle(idToken, latestQuotation.vehicleId, context.companyId, context.branchId);
           setVehicleLabel(`${vehicle.brand} ${vehicle.model}`.trim());
+          setVehiclePhotoUrl(vehicle.photoUrl ?? null);
         } catch {
           setVehicleLabel(null);
+          setVehiclePhotoUrl(null);
         }
       } else {
         setVehicleLabel(null);
+        setVehiclePhotoUrl(null);
       }
     } catch {
       setState('RECOVERABLE_ERROR');
@@ -145,6 +152,7 @@ export function useInquiryDetail() {
     inquiry,
     customerName,
     vehicleLabel,
+    vehiclePhotoUrl,
     saving,
     actionError,
     closeWithoutConversion,
