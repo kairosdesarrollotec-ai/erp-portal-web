@@ -67,7 +67,7 @@ export const MODULE_ITEMS: ModuleItem[] = [
     id: 'alquileres',
     label: 'Alquileres',
     description: 'ALQ-01',
-    path: null,
+    path: '/alquileres',
     icon: (
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="7.5" cy="15.5" r="4.5" />
