@@ -142,6 +142,21 @@ export function InquiryDetailScreen() {
             </>
           )}
 
+          {!latestQuotation && !isClosed && (
+            <>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => navigate(`/consultas/${inquiry.id}/vehiculos`, { state: navState ?? undefined })}
+              >
+                Cotizar vehículo
+              </button>
+              <p className={styles.helperText}>
+                Esta consulta todavía no tiene una cotización. Continúa para elegir el vehículo y generar el precio.
+              </p>
+            </>
+          )}
+
           {!isClosed && !showCloseForm && can('INQUIRY', 'CLOSE') && (
             <button type="button" className={styles.dangerLink} onClick={() => setShowCloseForm(true)}>
               Cerrar sin conversión

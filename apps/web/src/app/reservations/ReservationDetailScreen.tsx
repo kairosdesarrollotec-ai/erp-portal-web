@@ -19,11 +19,12 @@ import styles from './ReservationDetailScreen.module.css';
  * (payment_validated_at, documents_completed_at), no 4 documentos
  * separados con carga de archivo individual - "Subir" aqui marca el
  * requisito como completo (no hay almacenamiento de archivos todavia).
- * "Continuar con alquiler" (RES-05) queda deshabilitado: el modulo
- * Alquiler (ALQ-02, HU-28) todavia no existe.
+ * "Continuar con alquiler" (RES-05) navega a /alquileres/nuevo (ALQ-02)
+ * pasando cliente, vehiculo y periodo heredados de la reserva confirmada
+ * via location.state (ver NewRentalScreen.tsx).
  */
 export function ReservationDetailScreen() {
-  const { state, reservation, savingRequirement, actionError, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
+  const { state, reservation, context, savingRequirement, actionError, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
     useReservationDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
@@ -148,12 +149,26 @@ export function ReservationDetailScreen() {
                 alquiler o la entrega.
               </p>
 
-              <button type="button" className={styles.confirmButton} disabled title="Disponible cuando exista el módulo de Alquiler (HU-28)">
+              <button
+                type="button"
+                className={styles.confirmButton}
+                onClick={() =>
+                  navigate('/alquileres/nuevo', {
+                    state: {
+                      ...context,
+                      reservationId: reservation.id,
+                      customerId: reservation.customer.id,
+                      customerName: reservation.customer.name,
+                      vehicleId: reservation.vehicle.id,
+                      vehicleLabel: reservation.vehicle.label,
+                      startAt: reservation.startAt,
+                      expectedEndAt: reservation.endAt,
+                    },
+                  })
+                }
+              >
                 Continuar con alquiler
               </button>
-              <p className={styles.helperText}>
-                Disponible cuando exista el módulo de Alquiler (HU-28, todavía no construido).
-              </p>
 
               {!showCancelForm && can('RESERVATION', 'CANCEL_CUSTOMER_REQUESTED_CHANGE') ? (
                 <button type="button" className={styles.dangerLink} onClick={() => setShowCancelForm(true)}>
