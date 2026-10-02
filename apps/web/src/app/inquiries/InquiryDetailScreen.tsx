@@ -95,6 +95,23 @@ export function InquiryDetailScreen() {
   const canReserve = Boolean(latestQuotation) && inquiry.status !== 'CONVERTIDA' && inquiry.status !== 'CERRADA_SIN_CONVERSION';
   const isClosed = inquiry.status === 'CERRADA_SIN_CONVERSION';
 
+  /**
+   * Bug (hallazgo Russbel, ronda 2 - "Cambiar vehiculo" dejaba CON-03
+   * bloqueada con el aviso de staleness sin importar cuantas veces se
+   * actualizara): `navState` es el estado de navegacion CON-02->CON-03
+   * original, congelado desde que se entro a esta pantalla - su
+   * `version` nunca se actualiza cuando `inquiry.version` avanza (por
+   * ejemplo, al cotizar un vehiculo, que es justo lo que pasa antes de
+   * poder pulsar "Cambiar vehiculo"). Reenviar ese `navState` tal cual
+   * mandaba a CON-03 un `version` desactualizado, que el backend
+   * rechazaba con 409/412 en cuanto se intentaba cotizar - y
+   * "Actualizar ahora" en CON-03 solo reconsulta Flota, nunca la version
+   * de la consulta, asi que el error no se podia resolver desde ahi. Se
+   * corrige mezclando siempre la `version` vigente de `inquiry` (la que
+   * SI se mantiene actualizada via reload()) sobre el navState heredado.
+   */
+  const vehiclesNavState = navState ? { ...navState, version: inquiry.version } : undefined;
+
   const timelineEvents = [
     ...(inquiry.interactions ?? []).map((item) => ({
       id: item.id,
@@ -148,7 +165,7 @@ export function InquiryDetailScreen() {
                   <button
                     type="button"
                     className={styles.linkButton}
-                    onClick={() => navigate(`/consultas/${inquiry.id}/vehiculos`, { state: navState ?? undefined })}
+                    onClick={() => navigate(`/consultas/${inquiry.id}/vehiculos`, { state: vehiclesNavState })}
                   >
                     Cambiar vehículo
                   </button>
@@ -260,7 +277,7 @@ export function InquiryDetailScreen() {
               <button
                 type="button"
                 className={styles.primaryButton}
-                onClick={() => navigate(`/consultas/${inquiry.id}/vehiculos`, { state: navState ?? undefined })}
+                onClick={() => navigate(`/consultas/${inquiry.id}/vehiculos`, { state: vehiclesNavState })}
               >
                 Cotizar vehículo
               </button>
