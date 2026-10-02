@@ -45,7 +45,7 @@ import styles from './InquiryDetailScreen.module.css';
  *   selector generico Presencial/Virtual.
  */
 export function InquiryDetailScreen() {
-  const { navState, state, inquiry, customerName, vehicleLabel, saving, actionError, closeWithoutConversion, convertToReservation, reload } =
+  const { navState, state, inquiry, customerName, vehicleLabel, vehiclePhotoUrl, saving, actionError, closeWithoutConversion, convertToReservation, reload } =
     useInquiryDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
@@ -139,7 +139,21 @@ export function InquiryDetailScreen() {
           <dl className={styles.summaryList}>
             <div>
               <dt>Vehículo cotizado</dt>
-              <dd>{latestQuotation ? (vehicleLabel ?? 'Cargando…') : 'Sin cotizar todavía'}</dd>
+              <dd className={styles.vehicleSummary}>
+                {latestQuotation && vehiclePhotoUrl && (
+                  <img className={styles.vehicleThumb} src={vehiclePhotoUrl} alt={vehicleLabel ?? 'Vehículo cotizado'} />
+                )}
+                <span>{latestQuotation ? (vehicleLabel ?? 'Cargando…') : 'Sin cotizar todavía'}</span>
+                {latestQuotation && !isClosed && inquiry.status !== 'CONVERTIDA' && (
+                  <button
+                    type="button"
+                    className={styles.linkButton}
+                    onClick={() => navigate(`/consultas/${inquiry.id}/vehiculos`, { state: navState ?? undefined })}
+                  >
+                    Cambiar vehículo
+                  </button>
+                )}
+              </dd>
             </div>
             <div>
               <dt>Fecha de registro</dt>
@@ -201,8 +215,12 @@ export function InquiryDetailScreen() {
               </div>
 
               <div className={styles.fieldGroup}>
-                <p className={styles.fieldLabel}>No pudimos determinar la modalidad automáticamente</p>
-                <p className={styles.fieldHint}>¿El cliente puede acercarse a oficina?</p>
+                <p className={styles.fieldLabel}>¿El cliente puede acercarse a oficina?</p>
+                <p className={styles.fieldHint}>
+                  Esta modalidad es distinta a la registrada en Consulta (esa es sobre cómo se mostró el
+                  vehículo). Aquí se trata de la ubicación del cliente para firmar y recibir el vehículo —
+                  un dato que todavía no capturamos antes de este paso.
+                </p>
                 <div className={styles.modalityButtons}>
                   <button
                     type="button"
