@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { InquiryDetailScreen } from './InquiryDetailScreen';
+import { useLocation } from 'react-router-dom';
+
+// Hallazgo Russbel (ronda 2): "Cambiar vehiculo" reenviaba el navState
+// original con una `version` congelada, que ya no coincidia con
+// `inquiry.version` tras cotizar - CON-03 quedaba bloqueada con el aviso
+// de staleness sin forma de recuperarse. Esta sonda deja verificar que
+// la version que viaja en location.state es siempre la vigente.
+function LocationStateProbe() {
+  const location = useLocation();
+  const state = location.state as { version?: number } | null;
+  return <div>pantalla de vehiculos (version {state?.version})</div>;
+}
 
 const getInquiryMock = vi.fn();
 const closeInquiryMock = vi.fn();
@@ -83,7 +95,10 @@ function renderScreen() {
         <Route path="/consultas" element={<div>bandeja</div>} />
         <Route path="/reservas" element={<div>reservas</div>} />
         <Route path="/reservas/:id" element={<div>detalle de reserva</div>} />
-        <Route path="/consultas/:id/vehiculos" element={<div>pantalla de vehiculos</div>} />
+        <Route
+          path="/consultas/:id/vehiculos"
+          element={<LocationStateProbe />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -119,7 +134,9 @@ describe('InquiryDetailScreen (CON-04)', () => {
     expect(photo).toHaveAttribute('src', 'https://cdn.example.com/hilux.jpg');
 
     fireEvent.click(screen.getByText('Cambiar vehículo'));
-    expect(await screen.findByText('pantalla de vehiculos')).toBeInTheDocument();
+    // La consulta de prueba tiene version: 1 (ver buildInquiry) - se debe
+    // reenviar esa version vigente, no una heredada/congelada del navState.
+    expect(await screen.findByText('pantalla de vehiculos (version 1)')).toBeInTheDocument();
   });
 
   // Reactivado: "Reservar este vehiculo" abre un formulario corto
