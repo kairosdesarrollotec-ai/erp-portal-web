@@ -5,6 +5,8 @@ import { ReservationDepositPolicyScreen } from './ReservationDepositPolicyScreen
 
 const getReservationDepositPolicyMock = vi.fn();
 const updateReservationDepositPolicyMock = vi.fn();
+const listContractTemplatesMock = vi.fn();
+const createContractTemplateMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -18,6 +20,15 @@ vi.mock('./parameters-client', async () => {
     ...actual,
     getReservationDepositPolicy: (...args: unknown[]) => getReservationDepositPolicyMock(...args),
     updateReservationDepositPolicy: (...args: unknown[]) => updateReservationDepositPolicyMock(...args),
+  };
+});
+
+vi.mock('./contract-templates-client', async () => {
+  const actual = await vi.importActual<typeof import('./contract-templates-client')>('./contract-templates-client');
+  return {
+    ...actual,
+    listContractTemplates: (...args: unknown[]) => listContractTemplatesMock(...args),
+    createContractTemplate: (...args: unknown[]) => createContractTemplateMock(...args),
   };
 });
 
@@ -39,6 +50,12 @@ describe('ReservationDepositPolicyScreen (ADM-03)', () => {
   beforeEach(() => {
     getReservationDepositPolicyMock.mockReset();
     updateReservationDepositPolicyMock.mockReset();
+    // Fusion (oct 2026): esta pantalla ahora tambien carga plantillas de
+    // contrato (ver comentario en el componente) - por defecto, sin
+    // plantillas, para no afectar los tests que solo cubren el monto de
+    // reserva.
+    listContractTemplatesMock.mockReset().mockResolvedValue([]);
+    createContractTemplateMock.mockReset();
   });
 
   it('muestra el monto vigente y el historial', async () => {
@@ -90,5 +107,96 @@ describe('ReservationDepositPolicyScreen (ADM-03)', () => {
     renderScreen();
 
     expect(await screen.findByText(/No pudimos cargar los parámetros/)).toBeInTheDocument();
+  });
+
+  // Hallazgo Russbel (oct 2026): "Plantillas de contrato" vivia aparte,
+  // sin forma real de entrar (ver comentario del componente) - se
+  // fusiona en esta pantalla. Tests migrados de
+  // ContractTemplatesScreen.test.tsx (eliminado).
+  describe('plantillas de contrato (fusionado de ContractTemplatesScreen)', () => {
+    function readyDepositPolicy() {
+      getReservationDepositPolicyMock.mockResolvedValue({
+        current: { version: 1, amount: '300.00', currency: 'PEN', effectiveFrom: null },
+        history: [{ version: 1, amount: '300.00', currency: 'PEN', effectiveFrom: null }],
+      });
+    }
+
+    it('muestra la plantilla ACTIVE vigente y el historial', async () => {
+      readyDepositPolicy();
+      listContractTemplatesMock.mockReset().mockResolvedValue([
+        {
+          id: 'tpl-2',
+          companyId: 'c1',
+          type: 'RENTAL_CONTRACT',
+          version: 2,
+          effectiveFrom: '2026-09-23T12:00:00.000Z',
+          effectiveTo: null,
+          status: 'ACTIVE',
+          createdAt: '2026-09-23T12:00:00.000Z',
+        },
+        {
+          id: 'tpl-1',
+          companyId: 'c1',
+          type: 'RENTAL_CONTRACT',
+          version: 1,
+          effectiveFrom: '2026-01-01T00:00:00.000Z',
+          effectiveTo: '2026-09-23T12:00:00.000Z',
+          status: 'RETIRED',
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+      ]);
+      renderScreen();
+
+      expect(await screen.findByText(/Versión 2/)).toBeInTheDocument();
+      expect(screen.getByText('Vigente')).toBeInTheDocument();
+      expect(screen.getByText('Retirada')).toBeInTheDocument();
+    });
+
+    it('sin plantilla ACTIVE avisa que la formalizacion fallara', async () => {
+      readyDepositPolicy();
+      listContractTemplatesMock.mockReset().mockResolvedValue([]);
+      renderScreen();
+
+      expect(await screen.findByText(/No hay una plantilla vigente configurada/)).toBeInTheDocument();
+    });
+
+    it('crea una nueva version pasando por el paso de confirmacion', async () => {
+      readyDepositPolicy();
+      listContractTemplatesMock
+        .mockReset()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            id: 'tpl-1',
+            companyId: 'c1',
+            type: 'RENTAL_CONTRACT',
+            version: 1,
+            effectiveFrom: '2026-09-23T12:00:00.000Z',
+            effectiveTo: null,
+            status: 'ACTIVE',
+            createdAt: '2026-09-23T12:00:00.000Z',
+          },
+        ]);
+      createContractTemplateMock.mockResolvedValue({
+        id: 'tpl-1',
+        companyId: 'c1',
+        type: 'RENTAL_CONTRACT',
+        version: 1,
+        effectiveFrom: '2026-09-23T12:00:00.000Z',
+        effectiveTo: null,
+        status: 'ACTIVE',
+        createdAt: '2026-09-23T12:00:00.000Z',
+      });
+      renderScreen();
+
+      await screen.findByText(/No hay una plantilla vigente configurada/);
+      fireEvent.click(screen.getByText('Crear nueva versión'));
+      fireEvent.click(screen.getByText('Confirmar nueva versión'));
+
+      await waitFor(() => {
+        expect(createContractTemplateMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1', 'RENTAL_CONTRACT');
+      });
+      expect(await screen.findByText('Vigente')).toBeInTheDocument();
+    });
   });
 });
