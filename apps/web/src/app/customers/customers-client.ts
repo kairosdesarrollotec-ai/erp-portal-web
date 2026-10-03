@@ -1,6 +1,5 @@
 import type { components } from '../../api/customers.generated';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { customersApiClient } from '../../api/customers-api-client';
 
 export type Customer = components['schemas']['CustomerResponse'];
 export type CreateCustomerPayload = components['schemas']['CreateCustomerRequest'];
@@ -14,13 +13,6 @@ export interface ListCustomersParams {
   search?: string;
   limit?: number;
   offset?: number;
-}
-
-function authHeaders(idToken: string): HeadersInit {
-  return {
-    Authorization: `Bearer ${idToken}`,
-    'Content-Type': 'application/json',
-  };
 }
 
 export class CustomerApiError extends Error {
@@ -48,27 +40,26 @@ export async function listCustomers(
   params: ListCustomersParams,
   signal?: AbortSignal,
 ): Promise<ListCustomersResponse> {
-  const query = new URLSearchParams({
-    companyId: params.companyId,
-    branchId: params.branchId,
-  });
-  if (params.search) query.set('search', params.search);
-  if (params.limit !== undefined) query.set('limit', String(params.limit));
-  if (params.offset !== undefined) query.set('offset', String(params.offset));
-
-  const response = await fetch(`${API_BASE_URL}/customers?${query.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await customersApiClient.GET('/customers', {
+    params: {
+      query: {
+        companyId: params.companyId,
+        branchId: params.branchId,
+        ...(params.search !== undefined ? { search: params.search } : {}),
+        ...(params.limit !== undefined ? { limit: params.limit } : {}),
+        ...(params.offset !== undefined ? { offset: params.offset } : {}),
+      },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
     signal,
   });
-
-  if (!response.ok) {
+  if (error || !data) {
     throw new CustomerApiError(
       `No se pudo obtener el listado de clientes (${response.status})`,
       response.status,
     );
   }
-
-  return (await response.json()) as ListCustomersResponse;
+  return data;
 }
 
 export async function getCustomer(
@@ -77,19 +68,17 @@ export async function getCustomer(
   companyId: string,
   branchId: string,
 ): Promise<Customer> {
-  const query = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/customers/${id}?${query.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await customersApiClient.GET('/customers/{id}', {
+    params: { path: { id }, query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-
-  if (!response.ok) {
+  if (error || !data) {
     throw new CustomerApiError(
       `No se pudo obtener el detalle del cliente (${response.status})`,
       response.status,
     );
   }
-
-  return (await response.json()) as Customer;
+  return data;
 }
 
 export async function createCustomer(
@@ -97,31 +86,20 @@ export async function createCustomer(
   payload: CreateCustomerPayload,
   idempotencyKey?: string,
 ): Promise<Customer> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${idToken}`,
-    'Content-Type': 'application/json',
-  };
-  if (idempotencyKey) {
-    headers['Idempotency-Key'] = idempotencyKey;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/customers`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
+  const { data, error, response } = await customersApiClient.POST('/customers', {
+    params: {
+      header: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: payload,
   });
-
-  if (!response.ok) {
-    let problem: KairosErrorResponse | null = null;
-    try {
-      problem = await response.json();
-    } catch {
-      // response might not be JSON
-    }
-    throw new CustomerCommandError(response.status, problem);
+  if (error || !data) {
+    throw new CustomerCommandError(
+      response.status,
+      (error as unknown as KairosErrorResponse | null) ?? null,
+    );
   }
-
-  return (await response.json()) as Customer;
+  return data;
 }
 
 export async function updateCustomer(
@@ -130,29 +108,19 @@ export async function updateCustomer(
   payload: UpdateCustomerPayload,
   idempotencyKey?: string,
 ): Promise<Customer> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${idToken}`,
-    'Content-Type': 'application/json',
-  };
-  if (idempotencyKey) {
-    headers['Idempotency-Key'] = idempotencyKey;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(payload),
+  const { data, error, response } = await customersApiClient.PATCH('/customers/{id}', {
+    params: {
+      path: { id },
+      header: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: payload,
   });
-
-  if (!response.ok) {
-    let problem: KairosErrorResponse | null = null;
-    try {
-      problem = await response.json();
-    } catch {
-      // response might not be JSON
-    }
-    throw new CustomerCommandError(response.status, problem);
+  if (error || !data) {
+    throw new CustomerCommandError(
+      response.status,
+      (error as unknown as KairosErrorResponse | null) ?? null,
+    );
   }
-
-  return (await response.json()) as Customer;
+  return data;
 }

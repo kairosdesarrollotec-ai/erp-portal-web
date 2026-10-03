@@ -1,7 +1,18 @@
 import type { RentalStatus, NotaryResult, AlcoholTestResult } from './rental-status';
+import { rentalsApiClient } from '../../api/rentals-api-client';
+import type { components } from '../../api/rentals.generated';
 export type { RentalStatus, NotaryResult, AlcoholTestResult };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+type CreateRentalBody = components['schemas']['CreateRentalRequest'];
+type CreateRentalFromReservationBody = components['schemas']['CreateRentalFromReservationRequest'];
+type ValidateDocumentsBody = components['schemas']['ValidateDocumentsRequest'];
+type RegisterAlcoholTestBody = components['schemas']['RegisterAlcoholTestRequest'];
+type EvaluateNotaryBody = components['schemas']['EvaluateNotaryRequest'];
+type ApproveNotaryExceptionBody = components['schemas']['ApproveNotaryExceptionRequest'];
+type FormalizeContractBody = components['schemas']['FormalizeContractRequest'];
+type CompleteDeliveryBody = components['schemas']['CompleteDeliveryRequest'];
+type RequestEvidenceUploadSessionBody = components['schemas']['RequestEvidenceUploadSessionRequest'];
+type RecordEvidenceBody = components['schemas']['RecordEvidenceRequest'];
 
 /** Error HTTP de lectura (GET) - mismo patron que ReservationApiError. */
 export class RentalApiError extends Error {
@@ -86,10 +97,6 @@ export interface RentalResponse {
   deposit?: RentalDepositResponse | null;
 }
 
-function authHeaders(idToken: string): HeadersInit {
-  return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
-}
-
 /** ALQ-01 - bandeja de alquileres (GET /rentals). */
 export async function listRentals(
   idToken: string,
@@ -97,13 +104,18 @@ export async function listRentals(
   branchId: string,
   status?: RentalStatus,
 ): Promise<RentalResponse[]> {
-  const params = new URLSearchParams({ companyId, branchId });
-  if (status) params.set('status', status);
-  const response = await fetch(`${API_BASE_URL}/rentals?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await rentalsApiClient.GET('/rentals', {
+    params: {
+      query: {
+        companyId,
+        branchId,
+        ...(status ? { status } : {}),
+      },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) throw new RentalApiError(response.status);
-  return (await response.json()) as RentalResponse[];
+  if (error || !data) throw new RentalApiError(response.status);
+  return data as unknown as RentalResponse[];
 }
 
 /** Detalle de un alquiler - fuente de verdad de cada etapa del asistente. */
@@ -113,37 +125,16 @@ export async function getRental(
   companyId: string,
   branchId: string,
 ): Promise<RentalResponse> {
-  const params = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/rentals/${id}?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await rentalsApiClient.GET('/rentals/{id}', {
+    params: { path: { id }, query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) throw new RentalApiError(response.status);
-  return (await response.json()) as RentalResponse;
-}
-
-async function postCommand<T>(
-  idToken: string,
-  path: string,
-  version: number | undefined,
-  body: Record<string, unknown>,
-): Promise<T> {
-  const headers: Record<string, string> = { ...(authHeaders(idToken) as Record<string, string>) };
-  headers['Idempotency-Key'] = crypto.randomUUID();
-  if (version !== undefined) headers['If-Match'] = `"${version}"`;
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
-    throw new RentalCommandError(response.status, problem);
-  }
-  return (await response.json()) as T;
+  if (error || !data) throw new RentalApiError(response.status);
+  return data as unknown as RentalResponse;
 }
 
 /** ALQ-02 - crea un expediente de alquiler desde cero. */
-export function createRental(
+export async function createRental(
   idToken: string,
   companyId: string,
   branchId: string,
@@ -151,26 +142,39 @@ export function createRental(
   vehicleId: string,
   opts?: { planCode?: string; startAt?: string; expectedEndAt?: string; inquiryId?: string },
 ): Promise<RentalResponse> {
-  return postCommand(idToken, '/rentals', undefined, { companyId, branchId, customerId, vehicleId, ...opts });
+  const { data, error, response } = await rentalsApiClient.POST('/rentals', {
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, customerId, vehicleId, ...opts } as unknown as CreateRentalBody,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
 }
 
 /** ALQ-02 - crea el expediente a partir de una Reserva ("Continuar con alquiler"). */
-export function createRentalFromReservation(
+export async function createRentalFromReservation(
   idToken: string,
   companyId: string,
   branchId: string,
   reservationId: string,
   planCode?: string,
 ): Promise<RentalResponse> {
-  return postCommand(idToken, `/rentals/from-reservation/${reservationId}`, undefined, {
-    companyId,
-    branchId,
-    ...(planCode ? { planCode } : {}),
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/from-reservation/{reservationId}', {
+    params: { path: { reservationId } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, ...(planCode ? { planCode } : {}) } as unknown as CreateRentalFromReservationBody,
   });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
 }
 
 /** ENTREGA-01. */
-export function validateDocuments(
+export async function validateDocuments(
   idToken: string,
   id: string,
   companyId: string,
@@ -183,15 +187,20 @@ export function validateDocuments(
     notes?: string;
   },
 ): Promise<RentalResponse> {
-  return postCommand(idToken, `/rentals/${id}/commands/validate-documents`, version, {
-    companyId,
-    branchId,
-    ...payload,
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/validate-documents', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, ...payload } as unknown as ValidateDocumentsBody,
   });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
 }
 
 /** ENTREGA-02. */
-export function registerAlcoholTest(
+export async function registerAlcoholTest(
   idToken: string,
   id: string,
   companyId: string,
@@ -200,27 +209,40 @@ export function registerAlcoholTest(
   result: AlcoholTestResult,
   notes?: string,
 ): Promise<RentalResponse> {
-  return postCommand(idToken, `/rentals/${id}/commands/register-alcohol-test`, version, {
-    companyId,
-    branchId,
-    result,
-    notes,
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/register-alcohol-test', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, result, notes } as unknown as RegisterAlcoholTestBody,
   });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
 }
 
 /** ENTREGA-03 - matriz notarial. */
-export function evaluateNotary(
+export async function evaluateNotary(
   idToken: string,
   id: string,
   companyId: string,
   branchId: string,
   version: number,
 ): Promise<{ rental: RentalResponse; evaluation: NotaryEvaluationResponse }> {
-  return postCommand(idToken, `/rentals/${id}/commands/evaluate-notary`, version, { companyId, branchId });
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/evaluate-notary', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId } as unknown as EvaluateNotaryBody,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as { rental: RentalResponse; evaluation: NotaryEvaluationResponse };
 }
 
 /** ENTREGA-03 - excepcion notarial (solo Gerencia, BR-ALQ-004). */
-export function approveNotaryException(
+export async function approveNotaryException(
   idToken: string,
   id: string,
   companyId: string,
@@ -228,11 +250,16 @@ export function approveNotaryException(
   version: number,
   justification: string,
 ): Promise<RentalResponse> {
-  return postCommand(idToken, `/rentals/${id}/commands/approve-notary-exception`, version, {
-    companyId,
-    branchId,
-    justification,
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/approve-notary-exception', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, justification } as unknown as ApproveNotaryExceptionBody,
   });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
 }
 
 /**
@@ -240,7 +267,7 @@ export function approveNotaryException(
  * `templateVersionId` es opcional: si se omite, el backend resuelve
  * automaticamente la plantilla ACTIVE vigente de la empresa (BR-DOC-002).
  */
-export function formalizeContract(
+export async function formalizeContract(
   idToken: string,
   id: string,
   companyId: string,
@@ -251,14 +278,23 @@ export function formalizeContract(
   depositCurrency: 'PEN' | 'USD',
   templateVersionId?: string,
 ): Promise<RentalResponse> {
-  return postCommand(idToken, `/rentals/${id}/commands/formalize-contract`, version, {
-    companyId,
-    branchId,
-    ...(templateVersionId ? { templateVersionId } : {}),
-    documentRef,
-    depositAmount,
-    depositCurrency,
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/formalize-contract', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: {
+      companyId,
+      branchId,
+      ...(templateVersionId ? { templateVersionId } : {}),
+      documentRef,
+      depositAmount,
+      depositCurrency,
+    } as unknown as FormalizeContractBody,
   });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
 }
 
 /**
@@ -267,7 +303,7 @@ export function formalizeContract(
  * backend) sino contra la evidencia real registrada via
  * POST /rentals/:id/evidence - ver Stage4ChecklistScreen.
  */
-export function completeDelivery(
+export async function completeDelivery(
   idToken: string,
   id: string,
   companyId: string,
@@ -275,11 +311,16 @@ export function completeDelivery(
   version: number,
   notes?: string,
 ): Promise<RentalResponse> {
-  return postCommand(idToken, `/rentals/${id}/commands/complete-delivery`, version, {
-    companyId,
-    branchId,
-    notes,
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/complete-delivery', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, notes } as unknown as CompleteDeliveryBody,
   });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
 }
 
 // --- ALQ-09 / BR-INS-003/004 - evidencia real (foto/video) de entrega ---
@@ -325,20 +366,26 @@ export async function requestEvidenceUploadSession(
   contentType: RentalEvidenceContentType,
   contentLength: number,
 ): Promise<EvidenceUploadSessionResponse> {
-  const headers: Record<string, string> = { ...(authHeaders(idToken) as Record<string, string>) };
-  headers['Idempotency-Key'] = crypto.randomUUID();
-  const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}/evidence/upload-url`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ companyId, branchId, type, zone, contentType, contentLength }),
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/evidence/upload-url', {
+    params: {
+      path: { id: rentalId },
+      header: { 'Idempotency-Key': crypto.randomUUID() },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, type, zone, contentType, contentLength } as unknown as RequestEvidenceUploadSessionBody,
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new RentalCommandError(response.status, problem);
   }
-  return (await response.json()) as EvidenceUploadSessionResponse;
+  return data as unknown as EvidenceUploadSessionResponse;
 }
 
+/**
+ * Sube el archivo directamente a GCS (no al API KAIROS).
+ * Se mantiene como fetch manual: la URL es de GCS, no del API,
+ * y no existe un contrato OpenAPI para este destino externo.
+ */
 export async function uploadEvidenceToGcs(uploadUrl: string, file: File): Promise<void> {
   const response = await fetch(uploadUrl, {
     method: 'PUT',
@@ -359,18 +406,19 @@ export async function recordEvidence(
   zone: RentalEvidenceZone,
   objectUrl: string,
 ): Promise<RentalEvidenceResponse> {
-  const headers: Record<string, string> = { ...(authHeaders(idToken) as Record<string, string>) };
-  headers['Idempotency-Key'] = crypto.randomUUID();
-  const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}/evidence`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ companyId, branchId, type, zone, objectUrl }),
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/evidence', {
+    params: {
+      path: { id: rentalId },
+      header: { 'Idempotency-Key': crypto.randomUUID() },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, type, zone, objectUrl } as unknown as RecordEvidenceBody,
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new RentalCommandError(response.status, problem);
   }
-  return (await response.json()) as RentalEvidenceResponse;
+  return data as unknown as RentalEvidenceResponse;
 }
 
 export async function listRentalEvidence(
@@ -379,12 +427,12 @@ export async function listRentalEvidence(
   companyId: string,
   branchId: string,
 ): Promise<RentalEvidenceResponse[]> {
-  const params = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/rentals/${rentalId}/evidence?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await rentalsApiClient.GET('/rentals/{id}/evidence', {
+    params: { path: { id: rentalId }, query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new RentalApiError(response.status);
   }
-  return (await response.json()) as RentalEvidenceResponse[];
+  return data as unknown as RentalEvidenceResponse[];
 }

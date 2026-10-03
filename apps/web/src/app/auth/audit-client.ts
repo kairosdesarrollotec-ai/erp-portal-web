@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { transversalApiClient } from '../../api/transversal-api-client';
 
 /**
  * TR-01, punto 11 (eventos auditables): registra el intento de login
@@ -17,10 +17,8 @@ export async function recordLoginAttempt(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 3000);
   try {
-    await fetch(`${API_BASE_URL}/audit/login-attempts`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, outcome, reason: reason ?? undefined }),
+    await transversalApiClient.POST('/audit/login-attempts', {
+      body: { email, outcome, reason: reason ?? undefined },
       signal: controller.signal,
     });
   } catch {

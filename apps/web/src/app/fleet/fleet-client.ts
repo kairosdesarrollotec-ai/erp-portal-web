@@ -1,6 +1,5 @@
 import type { components } from '../../api/fleet.generated';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { fleetApiClient } from '../../api/fleet-api-client';
 
 export type VehicleStatus = components['schemas']['VehicleStatus'];
 export type FleetVehicle = components['schemas']['VehicleResponse'];
@@ -20,13 +19,6 @@ export interface ListVehiclesParams {
   search?: string;
   limit?: number;
   offset?: number;
-}
-
-function authHeaders(idToken: string): HeadersInit {
-  return {
-    Authorization: `Bearer ${idToken}`,
-    'Content-Type': 'application/json',
-  };
 }
 
 export class FleetApiError extends Error {
@@ -64,29 +56,28 @@ export async function listVehicles(
   params: ListVehiclesParams,
   signal?: AbortSignal,
 ): Promise<ListVehiclesResponse> {
-  const query = new URLSearchParams({
-    companyId: params.companyId,
-    branchId: params.branchId,
-  });
-  if (params.filterBranchId) query.set('filterBranchId', params.filterBranchId);
-  if (params.status) query.set('status', params.status);
-  if (params.search) query.set('search', params.search);
-  if (params.limit !== undefined) query.set('limit', String(params.limit));
-  if (params.offset !== undefined) query.set('offset', String(params.offset));
-
-  const response = await fetch(`${API_BASE_URL}/fleet/vehicles?${query.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await fleetApiClient.GET('/fleet/vehicles', {
+    params: {
+      query: {
+        companyId: params.companyId,
+        branchId: params.branchId,
+        ...(params.filterBranchId ? { filterBranchId: params.filterBranchId } : {}),
+        ...(params.status ? { status: params.status } : {}),
+        ...(params.search ? { search: params.search } : {}),
+        ...(params.limit !== undefined ? { limit: params.limit } : {}),
+        ...(params.offset !== undefined ? { offset: params.offset } : {}),
+      },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
     signal,
   });
-
-  if (!response.ok) {
+  if (error || !data) {
     throw new FleetApiError(
       `No se pudo obtener el catálogo de vehículos (${response.status})`,
       response.status,
     );
   }
-
-  return (await response.json()) as ListVehiclesResponse;
+  return data;
 }
 
 export async function getVehicle(
@@ -95,19 +86,17 @@ export async function getVehicle(
   companyId: string,
   branchId: string,
 ): Promise<FleetVehicle> {
-  const query = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/fleet/vehicles/${id}?${query.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await fleetApiClient.GET('/fleet/vehicles/{id}', {
+    params: { path: { id }, query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-
-  if (!response.ok) {
+  if (error || !data) {
     throw new FleetApiError(
       `No se pudo obtener el detalle del vehículo (${response.status})`,
       response.status,
     );
   }
-
-  return (await response.json()) as FleetVehicle;
+  return data;
 }
 
 export async function createVehicle(
@@ -115,31 +104,20 @@ export async function createVehicle(
   payload: CreateVehiclePayload,
   idempotencyKey?: string,
 ): Promise<FleetVehicle> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${idToken}`,
-    'Content-Type': 'application/json',
-  };
-  if (idempotencyKey) {
-    headers['Idempotency-Key'] = idempotencyKey;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/fleet/vehicles`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
+  const { data, error, response } = await fleetApiClient.POST('/fleet/vehicles', {
+    params: {
+      header: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: payload,
   });
-
-  if (!response.ok) {
-    let problem: KairosErrorResponse | null = null;
-    try {
-      problem = await response.json();
-    } catch {
-      // response might not be JSON
-    }
-    throw new FleetCommandError(response.status, problem);
+  if (error || !data) {
+    throw new FleetCommandError(
+      response.status,
+      (error as unknown as KairosErrorResponse | null) ?? null,
+    );
   }
-
-  return (await response.json()) as FleetVehicle;
+  return data;
 }
 
 export async function updateVehicleStatus(
@@ -148,56 +126,45 @@ export async function updateVehicleStatus(
   payload: UpdateVehicleStatusPayload,
   idempotencyKey?: string,
 ): Promise<FleetVehicle> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${idToken}`,
-    'Content-Type': 'application/json',
-  };
-  if (idempotencyKey) {
-    headers['Idempotency-Key'] = idempotencyKey;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/fleet/vehicles/${id}/status`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(payload),
+  const { data, error, response } = await fleetApiClient.PATCH('/fleet/vehicles/{id}/status', {
+    params: {
+      path: { id },
+      header: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: payload,
   });
-
-  if (!response.ok) {
-    let problem: KairosErrorResponse | null = null;
-    try {
-      problem = await response.json();
-    } catch {
-      // response might not be JSON
-    }
-    throw new FleetCommandError(response.status, problem);
+  if (error || !data) {
+    throw new FleetCommandError(
+      response.status,
+      (error as unknown as KairosErrorResponse | null) ?? null,
+    );
   }
-
-  return (await response.json()) as FleetVehicle;
+  return data;
 }
 
 export async function requestPhotoUploadSession(
   idToken: string,
   payload: PhotoUploadSessionRequest,
 ): Promise<PhotoUploadSessionResponse> {
-  const response = await fetch(`${API_BASE_URL}/fleet/vehicles/photo-upload-sessions`, {
-    method: 'POST',
-    headers: authHeaders(idToken),
-    body: JSON.stringify(payload),
+  const { data, error, response } = await fleetApiClient.POST('/fleet/vehicles/photo-upload-sessions', {
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: payload,
   });
-
-  if (!response.ok) {
-    let problem: KairosErrorResponse | null = null;
-    try {
-      problem = await response.json();
-    } catch {
-      // response might not be JSON
-    }
-    throw new FleetCommandError(response.status, problem);
+  if (error || !data) {
+    throw new FleetCommandError(
+      response.status,
+      (error as unknown as KairosErrorResponse | null) ?? null,
+    );
   }
-
-  return (await response.json()) as PhotoUploadSessionResponse;
+  return data;
 }
 
+/**
+ * Sube el archivo directamente a GCS (no al API KAIROS).
+ * Se mantiene como fetch manual: la URL es de GCS, no del API,
+ * y no existe un contrato OpenAPI para este destino externo.
+ */
 export async function uploadPhotoToGcs(uploadUrl: string, file: File): Promise<void> {
   const response = await fetch(uploadUrl, {
     method: 'PUT',
@@ -216,29 +183,19 @@ export async function updateVehicle(
   payload: UpdateVehiclePayload,
   idempotencyKey?: string,
 ): Promise<FleetVehicle> {
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${idToken}`,
-    'Content-Type': 'application/json',
-  };
-  if (idempotencyKey) {
-    headers['Idempotency-Key'] = idempotencyKey;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/fleet/vehicles/${id}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(payload),
+  const { data, error, response } = await fleetApiClient.PATCH('/fleet/vehicles/{id}', {
+    params: {
+      path: { id },
+      header: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: payload,
   });
-
-  if (!response.ok) {
-    let problem: KairosErrorResponse | null = null;
-    try {
-      problem = await response.json();
-    } catch {
-      // response might not be JSON
-    }
-    throw new FleetCommandError(response.status, problem);
+  if (error || !data) {
+    throw new FleetCommandError(
+      response.status,
+      (error as unknown as KairosErrorResponse | null) ?? null,
+    );
   }
-
-  return (await response.json()) as FleetVehicle;
+  return data;
 }

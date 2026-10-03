@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { transversalApiClient } from '../../api/transversal-api-client';
 
 export interface ActivationStatus {
   requiresPasswordChange: boolean;
@@ -13,21 +13,20 @@ export interface ActivationStatus {
  * validacion formal del equipo.
  */
 export async function getActivationStatus(idToken: string): Promise<ActivationStatus> {
-  const response = await fetch(`${API_BASE_URL}/users/me/activation-status`, {
+  const { data, error, response } = await transversalApiClient.GET('/users/me/activation-status', {
     headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener el estado de activacion (${response.status})`);
   }
-  return response.json();
+  return data as unknown as ActivationStatus;
 }
 
 export async function completeActivation(idToken: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/users/me/complete-activation`, {
-    method: 'POST',
+  const { error, response } = await transversalApiClient.POST('/users/me/complete-activation', {
     headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error) {
     throw new Error(`No se pudo completar la activacion (${response.status})`);
   }
 }

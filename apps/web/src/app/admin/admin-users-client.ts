@@ -1,6 +1,5 @@
 import type { WorkerRole } from '../dashboard/worker-role';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { adminApiClient } from '../../api/admin-api-client';
 
 export interface OrganizationUserAssignment {
   id: string;
@@ -13,10 +12,6 @@ export interface OrganizationUserAssignment {
   role: WorkerRole;
   active: boolean;
   mfaEnrolled: boolean;
-}
-
-function authHeaders(idToken: string): HeadersInit {
-  return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
 }
 
 /**
@@ -52,15 +47,14 @@ export async function listOrganizationUsers(
   companyId: string,
   branchId: string,
 ): Promise<OrganizationUserAssignment[]> {
-  const params = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/admin/users?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await adminApiClient.GET('/admin/users', {
+    params: { query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener la bandeja de usuarios (${response.status})`);
   }
-  const body = (await response.json()) as { users: OrganizationUserAssignment[] };
-  return body.users;
+  return data.users as unknown as OrganizationUserAssignment[];
 }
 
 export interface AssignUserInput {
@@ -95,15 +89,14 @@ export async function getOrganizationCompanies(
   companyId: string,
   branchId: string,
 ): Promise<OrganizationCompany[]> {
-  const params = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/admin/companies?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await adminApiClient.GET('/admin/companies', {
+    params: { query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener la lista de empresas (${response.status})`);
   }
-  const body = (await response.json()) as { companies: OrganizationCompany[] };
-  return body.companies;
+  return data.companies as unknown as OrganizationCompany[];
 }
 
 /** ADM-01 - accion primaria "Agregar usuario" (POST /admin/assignments). */
@@ -111,16 +104,15 @@ export async function assignUserToCompany(
   idToken: string,
   input: AssignUserInput,
 ): Promise<{ id: string }> {
-  const response = await fetch(`${API_BASE_URL}/admin/assignments`, {
-    method: 'POST',
-    headers: authHeaders(idToken),
-    body: JSON.stringify(input),
+  const { data, error, response } = await adminApiClient.POST('/admin/assignments', {
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: input,
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new AdminCommandError(response.status, problem);
   }
-  return (await response.json()) as { id: string };
+  return data as { id: string };
 }
 
 /** ADM-01 - "Dar de baja" (POST /admin/assignments/:id/deactivate). */
@@ -130,13 +122,13 @@ export async function deactivateAssignment(
   companyId: string,
   branchId: string,
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/admin/assignments/${assignmentId}/deactivate`, {
-    method: 'POST',
-    headers: authHeaders(idToken),
-    body: JSON.stringify({ companyId, branchId }),
+  const { error, response } = await adminApiClient.POST('/admin/assignments/{id}/deactivate', {
+    params: { path: { id: assignmentId } },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId },
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new AdminCommandError(response.status, problem);
   }
 }

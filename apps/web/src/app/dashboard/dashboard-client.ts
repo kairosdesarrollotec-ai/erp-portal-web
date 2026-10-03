@@ -1,6 +1,5 @@
 import type { WorkerRole } from './worker-role';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { transversalApiClient } from '../../api/transversal-api-client';
 
 export interface DashboardTaskItem {
   id: string;
@@ -34,12 +33,12 @@ export async function getDashboard(
   companyId: string,
   branchId: string,
 ): Promise<DashboardResult> {
-  const response = await fetch(
-    `${API_BASE_URL}/users/me/dashboard?companyId=${encodeURIComponent(companyId)}&branchId=${encodeURIComponent(branchId)}`,
-    { headers: { Authorization: `Bearer ${idToken}` } },
-  );
-  if (!response.ok) {
+  const { data, error, response } = await transversalApiClient.GET('/users/me/dashboard', {
+    params: { query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (error || !data) {
     throw new Error(`No se pudo obtener el tablero (${response.status})`);
   }
-  return (await response.json()) as DashboardResult;
+  return data as unknown as DashboardResult;
 }

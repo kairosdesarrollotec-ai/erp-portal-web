@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { adminApiClient } from '../../api/admin-api-client';
+import type { components } from '../../api/admin.generated';
 
 export interface ReservationDepositPolicyItem {
   version: number;
@@ -10,10 +11,6 @@ export interface ReservationDepositPolicyItem {
 export interface ReservationDepositPolicy {
   current: ReservationDepositPolicyItem;
   history: ReservationDepositPolicyItem[];
-}
-
-function authHeaders(idToken: string): HeadersInit {
-  return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
 }
 
 export class ParameterCommandError extends Error {
@@ -31,14 +28,14 @@ export async function getReservationDepositPolicy(
   companyId: string,
   branchId: string,
 ): Promise<ReservationDepositPolicy> {
-  const params = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/admin/parameters/reservation-deposit-policy?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await adminApiClient.GET('/admin/parameters/reservation-deposit-policy', {
+    params: { query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener el monto de reserva (${response.status})`);
   }
-  return (await response.json()) as ReservationDepositPolicy;
+  return data as unknown as ReservationDepositPolicy;
 }
 
 /** ADM-03 - "Guardar cambios" (POST .../reservation-deposit-policy). Inserta una version nueva, nunca edita la vigente. */
@@ -49,14 +46,13 @@ export async function updateReservationDepositPolicy(
   amount: string,
   currency: string,
 ): Promise<ReservationDepositPolicyItem> {
-  const response = await fetch(`${API_BASE_URL}/admin/parameters/reservation-deposit-policy`, {
-    method: 'POST',
-    headers: authHeaders(idToken),
-    body: JSON.stringify({ companyId, branchId, amount, currency }),
+  const { data, error, response } = await adminApiClient.POST('/admin/parameters/reservation-deposit-policy', {
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, amount, currency } as unknown as components['schemas']['UpdateReservationDepositPolicyRequest'],
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new ParameterCommandError(response.status, problem);
   }
-  return (await response.json()) as ReservationDepositPolicyItem;
+  return data as unknown as ReservationDepositPolicyItem;
 }
