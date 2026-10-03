@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReservationDepositPolicyScreen } from './ReservationDepositPolicyScreen';
 
 const getReservationDepositPolicyMock = vi.fn();
@@ -33,16 +34,19 @@ vi.mock('./contract-templates-client', async () => {
 });
 
 function renderScreen() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter
-      initialEntries={[
-        { pathname: '/admin/parametros', state: { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' } },
-      ]}
-    >
-      <Routes>
-        <Route path="/admin/parametros" element={<ReservationDepositPolicyScreen />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter
+        initialEntries={[
+          { pathname: '/admin/parametros', state: { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' } },
+        ]}
+      >
+        <Routes>
+          <Route path="/admin/parametros" element={<ReservationDepositPolicyScreen />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
