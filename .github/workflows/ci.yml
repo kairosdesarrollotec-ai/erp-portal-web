@@ -16,7 +16,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --include=optional
 
       - name: Lint (no correctivo)
         run: npm run lint --workspace apps/web
@@ -47,7 +47,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --include=optional
 
       - name: Instalar navegadores Playwright (solo Chromium)
         run: npx playwright install --with-deps chromium
