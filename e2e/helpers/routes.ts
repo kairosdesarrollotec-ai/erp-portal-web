@@ -407,6 +407,270 @@ export async function interceptInquiries(
   );
 }
 
+/** Intercepta GET /customers y GET /customers/:id */
+export async function interceptCustomers(
+  page: Page,
+  options: { list?: object[]; detail?: object } = {},
+): Promise<void> {
+  const list = options.list ?? [CUSTOMER_FIXTURE];
+  const detail = options.detail ?? CUSTOMER_FIXTURE;
+
+  await page.route(/\/customers\/[^?/]+(\?.*)?$/, (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(detail),
+    });
+  });
+
+  await page.route(/\/customers(\?.*)?$/, (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ customers: list, total: list.length }),
+    });
+  });
+}
+
+export const VEHICLE_FIXTURE = {
+  id: 'veh-e2e-001',
+  organizationId: 'org-001',
+  operatingCompanyId: 'company-001',
+  branchId: 'branch-001',
+  plate: 'ABC-123',
+  brand: 'Toyota',
+  model: 'Hilux',
+  year: 2023,
+  status: 'AVAILABLE',
+  dailyRate: 150,
+  category: 'CAMIONETA',
+  transmission: 'AUTOMATICA',
+  fuelType: 'DIESEL',
+  seatCount: 5,
+  hasAirConditioning: true,
+  createdAt: '2026-09-20T00:00:00Z',
+  updatedAt: '2026-09-20T00:00:00Z',
+};
+
+/** Intercepta GET /fleet/vehicles y GET /fleet/vehicles/:id */
+export async function interceptFleet(
+  page: Page,
+  options: { list?: object[]; detail?: object } = {},
+): Promise<void> {
+  const list = options.list ?? [VEHICLE_FIXTURE];
+  const detail = options.detail ?? VEHICLE_FIXTURE;
+
+  await page.route(/\/fleet\/vehicles\/[^?/]+(\?.*)?$/, (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(detail),
+    });
+  });
+
+  await page.route(/\/fleet\/vehicles(\?.*)?$/, (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ vehicles: list, total: list.length }),
+    });
+  });
+}
+
+/** Intercepta endpoints administrativos (usuarios, auditoria, parametros, permisos, plantillas) */
+export async function interceptAdmin(page: Page): Promise<void> {
+  await page.route(/\/admin\/users(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        users: [
+          {
+            assignmentId: 'assign-001',
+            userId: 'user-001',
+            email: 'agente@veloxrent.pe',
+            companyId: 'company-001',
+            companyName: 'VeloxRent Lima',
+            branchId: 'branch-001',
+            branchName: 'Sede Miraflores',
+            role: 'FRONT_OFFICE',
+            status: 'ACTIVE',
+            assignedAt: '2026-09-01T00:00:00Z',
+          },
+          {
+            assignmentId: 'assign-002',
+            userId: 'user-002',
+            email: 'admin@veloxrent.pe',
+            companyId: 'company-001',
+            companyName: 'VeloxRent Lima',
+            branchId: 'branch-001',
+            branchName: 'Sede Miraflores',
+            role: 'ADMINISTRACION',
+            status: 'ACTIVE',
+            assignedAt: '2026-09-01T00:00:00Z',
+          },
+        ],
+      }),
+    }),
+  );
+
+  await page.route(/\/admin\/companies(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        companies: [
+          {
+            companyId: 'company-001',
+            companyName: 'VeloxRent Lima',
+            branches: [{ branchId: 'branch-001', branchName: 'Sede Miraflores' }],
+          },
+        ],
+      }),
+    }),
+  );
+
+  await page.route(/\/admin\/audit-events(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        events: [
+          {
+            id: 'audit-001',
+            actorFirebaseUid: 'fake-uid-e2e',
+            actorEmail: 'admin@veloxrent.pe',
+            entityType: 'Rental',
+            entityId: 'rent-001',
+            action: 'FORMALIZE_CONTRACT',
+            changes: { status: 'PENDING_DELIVERY' },
+            createdAt: '2026-10-02T15:30:00Z',
+          },
+          {
+            id: 'audit-002',
+            actorFirebaseUid: 'fake-uid-e2e',
+            actorEmail: 'admin@veloxrent.pe',
+            entityType: 'Vehicle',
+            entityId: 'veh-001',
+            action: 'UPDATE_STATUS',
+            changes: { status: 'AVAILABLE' },
+            createdAt: '2026-10-02T14:10:00Z',
+          },
+        ],
+      }),
+    }),
+  );
+
+  await page.route(/\/admin\/parameters\/reservation-deposit-policy(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        current: {
+          version: 2,
+          amount: '350.00',
+          currency: 'PEN',
+          effectiveFrom: '2026-09-15T00:00:00Z',
+        },
+        history: [
+          {
+            version: 1,
+            amount: '300.00',
+            currency: 'PEN',
+            effectiveFrom: '2026-01-01T00:00:00Z',
+          },
+        ],
+      }),
+    }),
+  );
+
+  await page.route(/\/admin\/contract-templates(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        templates: [
+          {
+            id: 'tpl-001',
+            companyId: 'company-001',
+            type: 'RENTAL_CONTRACT',
+            version: 1,
+            status: 'ACTIVE',
+            effectiveFrom: '2026-09-01T00:00:00Z',
+            effectiveTo: null,
+            createdAt: '2026-09-01T00:00:00Z',
+          },
+        ],
+      }),
+    }),
+  );
+
+  await page.route(/\/admin\/permissions(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        version: 1,
+        entries: [
+          { role: 'FRONT_OFFICE', module: 'RESERVATION', action: 'CREATE', allowed: true },
+          { role: 'FRONT_OFFICE', module: 'RESERVATION', action: 'READ', allowed: true },
+          { role: 'FRONT_OFFICE', module: 'INQUIRY', action: 'CREATE', allowed: true },
+          { role: 'FRONT_OFFICE', module: 'INQUIRY', action: 'READ', allowed: true },
+          { role: 'ADMINISTRACION', module: 'ADMIN', action: 'WRITE', allowed: true },
+          { role: 'ADMINISTRACION', module: 'ADMIN', action: 'READ', allowed: true },
+        ],
+        actionCatalog: [
+          { module: 'RESERVATION', action: 'CREATE', label: 'Crear reserva' },
+          { module: 'RESERVATION', action: 'READ', label: 'Ver reservas' },
+          { module: 'INQUIRY', action: 'CREATE', label: 'Crear consulta' },
+          { module: 'INQUIRY', action: 'READ', label: 'Ver consultas' },
+          { module: 'ADMIN', action: 'WRITE', label: 'Modificar configuración' },
+          { module: 'ADMIN', action: 'READ', label: 'Consultar configuración' },
+        ],
+      }),
+    }),
+  );
+
+  await page.route(/\/admin\/notification-templates(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        templates: [
+          {
+            eventType: 'RESERVATION_CONFIRMED',
+            label: 'Reserva confirmada',
+            current: {
+              eventType: 'RESERVATION_CONFIRMED',
+              version: 1,
+              channels: ['EMAIL', 'SMS'],
+              body: 'Estimado/a {cliente}, su reserva {codigo_reserva} ha sido confirmada.',
+            },
+            history: [],
+          },
+          {
+            eventType: 'RENTAL_DELIVERED',
+            label: 'Vehículo entregado',
+            current: {
+              eventType: 'RENTAL_DELIVERED',
+              version: 1,
+              channels: ['EMAIL'],
+              body: 'Hola {cliente}, se ha registrado la entrega del vehículo con placa {placa}.',
+            },
+            history: [],
+          },
+        ],
+        allowedVariables: ['cliente', 'codigo_reserva', 'placa', 'fecha_inicio'],
+        channels: ['EMAIL', 'PUSH', 'SMS'],
+      }),
+    }),
+  );
+}
+
 /** Realiza el flujo de login completo via UI (Firebase y backend interceptados). */
 export async function loginViaUI(
   page: Page,

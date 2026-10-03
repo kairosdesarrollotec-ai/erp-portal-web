@@ -137,3 +137,161 @@ test('12 — Consulta: detalle', async ({ page }) => {
   await page.waitForLoadState('networkidle');
   await page.screenshot({ path: ss('12-consulta-detalle'), fullPage: true });
 });
+
+test('13 — Activación de cuenta: cambio de contraseña', async ({ page }) => {
+  await interceptFirebaseAuth(page);
+  await interceptBackendAuth(page);
+  await page.route('**/users/me/activation-status', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ requiresPasswordChange: true, requiresMfaEnrollment: true }),
+    }),
+  );
+  await page.goto('/');
+  await page.getByLabel('Correo o usuario').fill('agente@veloxrent.pe');
+  await page.getByLabel('Contraseña', { exact: true }).fill('Velox2026!');
+  await page.getByRole('button', { name: 'Ingresar' }).click();
+  await page.waitForURL('**/activar-cuenta', { timeout: 10_000 });
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('13-activacion-cuenta'), fullPage: false });
+});
+
+test('14 — Clientes: directorio y listado', async ({ page }) => {
+  const { interceptCustomers } = await import('./helpers/routes');
+  await interceptCustomers(page);
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/clientes');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('14-clientes-bandeja'), fullPage: false });
+});
+
+test('15 — Clientes: ficha 360 y detalle', async ({ page }) => {
+  const { interceptCustomers, CUSTOMER_FIXTURE } = await import('./helpers/routes');
+  await interceptCustomers(page);
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/clientes/${CUSTOMER_FIXTURE.id}`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('15-cliente-detalle'), fullPage: true });
+});
+
+test('16 — Flota: catálogo de vehículos', async ({ page }) => {
+  const { interceptFleet } = await import('./helpers/routes');
+  await interceptFleet(page);
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/flota');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('16-flota-bandeja'), fullPage: false });
+});
+
+test('17 — Flota: detalle de vehículo', async ({ page }) => {
+  const { interceptFleet, VEHICLE_FIXTURE } = await import('./helpers/routes');
+  await interceptFleet(page);
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/flota/${VEHICLE_FIXTURE.id}`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('17-vehiculo-detalle'), fullPage: true });
+});
+
+test('18 — Alquileres: bandeja de expedientes', async ({ page }) => {
+  const { interceptRentals } = await import('./helpers/routes');
+  await interceptRentals(page);
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/alquileres');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('18-alquileres-bandeja'), fullPage: false });
+});
+
+test('19 — Alquileres: Entrega Etapa 1 Documentos', async ({ page }) => {
+  const { interceptRentals, RENTAL_FIXTURE } = await import('./helpers/routes');
+  await interceptRentals(page);
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-01`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('19-alquiler-etapa-01-documentos'), fullPage: true });
+});
+
+test('20 — Alquileres: Entrega Etapa 2 Validaciones y alcoholímetro', async ({ page }) => {
+  const { interceptRentals, RENTAL_FIXTURE } = await import('./helpers/routes');
+  await interceptRentals(page);
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-02`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('20-alquiler-etapa-02-validaciones'), fullPage: true });
+});
+
+test('21 — Alquileres: Entrega Etapa 3 Contrato y garantía', async ({ page }) => {
+  const { interceptRentals, RENTAL_FIXTURE } = await import('./helpers/routes');
+  await interceptRentals(page);
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-03`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('21-alquiler-etapa-03-contrato'), fullPage: true });
+});
+
+test('22 — Alquileres: Entrega Etapa 4 Checklist y fotos', async ({ page }) => {
+  const { interceptRentals, RENTAL_FIXTURE, makeEvidenceFixture } = await import('./helpers/routes');
+  await interceptRentals(page, { evidence: makeEvidenceFixture(RENTAL_FIXTURE.id, 5, 1) });
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-04`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('22-alquiler-etapa-04-checklist'), fullPage: true });
+});
+
+test('23 — Alquileres: Entrega Etapa 5 Confirmación de entrega', async ({ page }) => {
+  const { interceptRentals, RENTAL_FIXTURE } = await import('./helpers/routes');
+  await interceptRentals(page);
+  await loginViaUI(page);
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-05`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('23-alquiler-etapa-05-confirmacion'), fullPage: true });
+});
+
+test('24 — Administración: Gestión de usuarios y sedes', async ({ page }) => {
+  const { interceptAdmin } = await import('./helpers/routes');
+  await interceptAdmin(page);
+  await loginViaUI(page, { role: 'ADMINISTRACION' });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/admin/usuarios');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('24-admin-usuarios'), fullPage: true });
+});
+
+test('25 — Administración: Registro de auditoría', async ({ page }) => {
+  const { interceptAdmin } = await import('./helpers/routes');
+  await interceptAdmin(page);
+  await loginViaUI(page, { role: 'ADMINISTRACION' });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/admin/auditoria');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('25-admin-auditoria'), fullPage: true });
+});
+
+test('26 — Administración: Parámetros y contratos', async ({ page }) => {
+  const { interceptAdmin } = await import('./helpers/routes');
+  await interceptAdmin(page);
+  await loginViaUI(page, { role: 'ADMINISTRACION' });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/admin/parametros');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('26-admin-parametros'), fullPage: true });
+});
+
+test('27 — Centro de Módulos (Hub)', async ({ page }) => {
+  await loginViaUI(page, { role: 'ADMINISTRACION' });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/modulos');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('27-hub-modulos'), fullPage: true });
+});
+
