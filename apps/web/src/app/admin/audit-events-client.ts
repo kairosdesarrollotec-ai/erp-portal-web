@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { adminApiClient } from '../../api/admin-api-client';
 
 export interface AuditEvent {
   id: string;
@@ -18,10 +18,6 @@ export interface AuditEventsFilter {
   dateTo?: string;
 }
 
-function authHeaders(idToken: string): HeadersInit {
-  return { Authorization: `Bearer ${idToken}` };
-}
-
 /** ADM-04 - auditoria administrativa, solo lectura (GET /admin/audit-events). */
 export async function listAuditEvents(
   idToken: string,
@@ -29,18 +25,21 @@ export async function listAuditEvents(
   branchId: string,
   filter: AuditEventsFilter = {},
 ): Promise<AuditEvent[]> {
-  const params = new URLSearchParams({ companyId, branchId });
-  if (filter.actorUid) params.set('actorUid', filter.actorUid);
-  if (filter.entityType) params.set('entityType', filter.entityType);
-  if (filter.dateFrom) params.set('dateFrom', filter.dateFrom);
-  if (filter.dateTo) params.set('dateTo', filter.dateTo);
-
-  const response = await fetch(`${API_BASE_URL}/admin/audit-events?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await adminApiClient.GET('/admin/audit-events', {
+    params: {
+      query: {
+        companyId,
+        branchId,
+        ...(filter.actorUid ? { actorUid: filter.actorUid } : {}),
+        ...(filter.entityType ? { entityType: filter.entityType } : {}),
+        ...(filter.dateFrom ? { dateFrom: filter.dateFrom } : {}),
+        ...(filter.dateTo ? { dateTo: filter.dateTo } : {}),
+      },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener el historial de auditoria (${response.status})`);
   }
-  const body = (await response.json()) as { events: AuditEvent[] };
-  return body.events;
+  return data.events as unknown as AuditEvent[];
 }

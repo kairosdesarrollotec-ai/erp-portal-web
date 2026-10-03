@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { notificationsApiClient } from '../../api/notifications-api-client';
 
 export interface NotificationItem {
   id: string;
@@ -10,10 +10,6 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-function authHeaders(idToken: string): HeadersInit {
-  return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
-}
-
 /** TR-07 - lista de notificaciones del propio usuario autenticado. */
 export async function getMyNotifications(
   idToken: string,
@@ -21,27 +17,29 @@ export async function getMyNotifications(
   branchId: string,
   unreadOnly?: boolean,
 ): Promise<NotificationItem[]> {
-  const params = new URLSearchParams({ companyId, branchId });
-  if (unreadOnly) params.set('unreadOnly', 'true');
-
-  const response = await fetch(`${API_BASE_URL}/notifications?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await notificationsApiClient.GET('/notifications', {
+    params: {
+      query: {
+        companyId,
+        branchId,
+        ...(unreadOnly ? { unreadOnly: 'true' as const } : {}),
+      },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener las notificaciones (${response.status})`);
   }
-  const body = (await response.json()) as { notifications: NotificationItem[] };
-  return body.notifications;
+  return data.notifications as unknown as NotificationItem[];
 }
 
 /** TR-07 - "Marcar todas como leídas" (contrato punto 7, acción secundaria). */
 export async function markAllNotificationsRead(idToken: string, companyId: string, branchId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
-    method: 'POST',
-    headers: authHeaders(idToken),
-    body: JSON.stringify({ companyId, branchId }),
+  const { error, response } = await notificationsApiClient.POST('/notifications/read-all', {
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId },
   });
-  if (!response.ok) {
+  if (error) {
     throw new Error(`No se pudo marcar las notificaciones como leídas (${response.status})`);
   }
 }

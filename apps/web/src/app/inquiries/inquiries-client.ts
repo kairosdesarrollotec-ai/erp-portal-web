@@ -1,6 +1,11 @@
 import type { InquiryStatus } from './inquiry-status';
+import { inquiriesApiClient } from '../../api/inquiries-api-client';
+import type { components } from '../../api/inquiries.generated';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+type RegisterBody = components['schemas']['RegisterInquiryRequest'];
+type QuoteBody = components['schemas']['QuoteRequest'];
+type CloseBody = components['schemas']['CloseInquiryRequest'];
+type ConvertBody = components['schemas']['ConvertToReservationRequest'];
 
 export interface InquirySummary {
   id: string;
@@ -55,10 +60,6 @@ export interface InquiryDetail extends InquirySummary {
   quotations: InquiryQuotation[];
 }
 
-function authHeaders(idToken: string): HeadersInit {
-  return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
-}
-
 /** Igual patron que ReservationApiError (reservations-client.ts) - permite
  * distinguir un fallo tecnico (401/403/404/5xx) de datos validos en
  * listInquiries/getInquiry, en vez de la comprobacion fragil por texto
@@ -97,20 +98,25 @@ export async function listInquiries(
   },
   signal?: AbortSignal,
 ): Promise<InquirySummary[]> {
-  const params = new URLSearchParams({ companyId, branchId });
-  if (filters?.customerId) params.set('customerId', filters.customerId);
-  if (filters?.channel) params.set('channel', filters.channel);
-  if (filters?.status) params.set('status', filters.status);
-  if (filters?.createdFrom) params.set('createdFrom', filters.createdFrom);
-  if (filters?.createdTo) params.set('createdTo', filters.createdTo);
-  const response = await fetch(`${API_BASE_URL}/inquiries?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await inquiriesApiClient.GET('/inquiries', {
+    params: {
+      query: {
+        companyId,
+        branchId,
+        ...(filters?.customerId ? { customerId: filters.customerId } : {}),
+        ...(filters?.channel ? { channel: filters.channel as components['schemas']['InquiryChannel'] } : {}),
+        ...(filters?.status ? { status: filters.status as components['schemas']['InquiryStatus'] } : {}),
+        ...(filters?.createdFrom ? { createdFrom: filters.createdFrom } : {}),
+        ...(filters?.createdTo ? { createdTo: filters.createdTo } : {}),
+      },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
     signal,
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new InquiryApiError(`No se pudo obtener la bandeja de consultas (${response.status})`, response.status);
   }
-  return (await response.json()) as InquirySummary[];
+  return data as unknown as InquirySummary[];
 }
 
 /** CON-04 - detalle de una consulta (incluye interactions/quotations). */
@@ -120,14 +126,14 @@ export async function getInquiry(
   companyId: string,
   branchId: string,
 ): Promise<InquiryDetail> {
-  const params = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/inquiries/${id}?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await inquiriesApiClient.GET('/inquiries/{id}', {
+    params: { path: { id }, query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new InquiryApiError(`No se pudo obtener la consulta (${response.status})`, response.status);
   }
-  return (await response.json()) as InquiryDetail;
+  return data as unknown as InquiryDetail;
 }
 
 /** Cuerpo `problem+json` que el backend devuelve en 409/412/422 (mismo contrato que reservations-client.ts). */
@@ -175,45 +181,20 @@ export async function createInquiry(
     partySize?: number;
   },
 ): Promise<InquirySummary> {
-  const response = await fetch(`${API_BASE_URL}/inquiries`, {
-    method: 'POST',
-    headers: { ...authHeaders(idToken), 'Idempotency-Key': crypto.randomUUID() },
-    body: JSON.stringify(body),
+  const { data, error, response } = await inquiriesApiClient.POST('/inquiries', {
+    params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: body as unknown as RegisterBody,
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new InquiryCommandError(response.status, problem);
   }
-  return (await response.json()) as InquirySummary;
-}
-
-async function postCommand(
-  idToken: string,
-  id: string,
-  command: string,
-  version: number,
-  body: Record<string, unknown>,
-): Promise<InquirySummary> {
-  const response = await fetch(`${API_BASE_URL}/inquiries/${id}/commands/${command}`, {
-    method: 'POST',
-    headers: {
-      ...authHeaders(idToken),
-      'If-Match': `"${version}"`,
-      // TDD-CON-001.md 15: la idempotencia aplica a register/quote/close -
-      // antes el cliente no mandaba este header en ningun comando mutable.
-      'Idempotency-Key': crypto.randomUUID(),
-    },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
-    throw new InquiryCommandError(response.status, problem);
-  }
-  return (await response.json()) as InquirySummary;
+  return data as unknown as InquirySummary;
 }
 
 /** CON-03 - cotiza un vehiculo del catalogo mock, pasa la Consulta a COTIZADA. */
-export function quoteInquiry(
+export async function quoteInquiry(
   idToken: string,
   id: string,
   version: number,
@@ -223,14 +204,26 @@ export function quoteInquiry(
   destination: string,
   estimatedDays: number,
 ): Promise<InquirySummary> {
-  return postCommand(idToken, id, 'quote', version, { companyId, branchId, vehicleId, destination, estimatedDays });
+  const { data, error, response } = await inquiriesApiClient.POST('/inquiries/{id}/commands/quote', {
+    params: {
+      path: { id },
+      header: { 'If-Match': `"${version}"`, 'Idempotency-Key': crypto.randomUUID() },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, vehicleId, destination, estimatedDays } as unknown as QuoteBody,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new InquiryCommandError(response.status, problem);
+  }
+  return data as unknown as InquirySummary;
 }
 
 /** CON-04 - cierra sin conversion (motivo obligatorio, BR-CON-003).
  *  Requiere companyId y branchId para que el backend valide el contexto de trabajo
  *  (CloseInquiryDto exige ambos campos con @IsUUID()).
  */
-export function closeInquiry(
+export async function closeInquiry(
   idToken: string,
   id: string,
   version: number,
@@ -239,7 +232,19 @@ export function closeInquiry(
   reason: string,
   note?: string,
 ): Promise<InquirySummary> {
-  return postCommand(idToken, id, 'close', version, { companyId, branchId, reason, note });
+  const { data, error, response } = await inquiriesApiClient.POST('/inquiries/{id}/commands/close', {
+    params: {
+      path: { id },
+      header: { 'If-Match': `"${version}"`, 'Idempotency-Key': crypto.randomUUID() },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, reason, note } as unknown as CloseBody,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new InquiryCommandError(response.status, problem);
+  }
+  return data as unknown as InquirySummary;
 }
 
 /**
@@ -278,18 +283,17 @@ export async function convertInquiryToReservation(
   channelMode: 'PRESENCIAL' | 'VIRTUAL',
   startAt: string,
 ): Promise<ConvertToReservationResult> {
-  const response = await fetch(`${API_BASE_URL}/inquiries/${id}/commands/convert-to-reservation`, {
-    method: 'POST',
-    headers: {
-      ...authHeaders(idToken),
-      'If-Match': `"${version}"`,
-      'Idempotency-Key': crypto.randomUUID(),
+  const { data, error, response } = await inquiriesApiClient.POST('/inquiries/{id}/commands/convert-to-reservation', {
+    params: {
+      path: { id },
+      header: { 'If-Match': `"${version}"`, 'Idempotency-Key': crypto.randomUUID() },
     },
-    body: JSON.stringify({ companyId, branchId, channelMode, startAt }),
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, channelMode, startAt } as unknown as ConvertBody,
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new InquiryCommandError(response.status, problem);
   }
-  return (await response.json()) as ConvertToReservationResult;
+  return data as unknown as ConvertToReservationResult;
 }

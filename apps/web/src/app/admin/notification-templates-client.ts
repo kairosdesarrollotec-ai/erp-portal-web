@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { adminApiClient } from '../../api/admin-api-client';
 
 export type NotificationChannel = 'EMAIL' | 'PUSH' | 'SMS';
 
@@ -22,10 +22,6 @@ export interface NotificationTemplates {
   channels: NotificationChannel[];
 }
 
-function authHeaders(idToken: string): HeadersInit {
-  return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
-}
-
 export class NotificationTemplateCommandError extends Error {
   constructor(
     public readonly status: number,
@@ -41,14 +37,14 @@ export async function getNotificationTemplates(
   companyId: string,
   branchId: string,
 ): Promise<NotificationTemplates> {
-  const params = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/admin/notification-templates?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await adminApiClient.GET('/admin/notification-templates', {
+    params: { query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener las plantillas de notificacion (${response.status})`);
   }
-  return (await response.json()) as NotificationTemplates;
+  return data as unknown as NotificationTemplates;
 }
 
 /** ADM-05 - "Guardar plantilla" (POST). Inserta una version nueva para ese evento. */
@@ -60,14 +56,13 @@ export async function saveNotificationTemplate(
   channels: NotificationChannel[],
   body: string,
 ): Promise<NotificationTemplateItem> {
-  const response = await fetch(`${API_BASE_URL}/admin/notification-templates`, {
-    method: 'POST',
-    headers: authHeaders(idToken),
-    body: JSON.stringify({ companyId, branchId, eventType, channels, body }),
+  const { data, error, response } = await adminApiClient.POST('/admin/notification-templates', {
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, eventType, channels, body },
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new NotificationTemplateCommandError(response.status, problem);
   }
-  return (await response.json()) as NotificationTemplateItem;
+  return data as unknown as NotificationTemplateItem;
 }

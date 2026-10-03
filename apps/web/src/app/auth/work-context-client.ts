@@ -1,6 +1,5 @@
 import type { WorkerRole } from '../dashboard/worker-role';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { transversalApiClient } from '../../api/transversal-api-client';
 
 export interface WorkContextAssignment {
   companyId: string;
@@ -18,14 +17,13 @@ export interface WorkContextAssignment {
 export async function getWorkContextAssignments(
   idToken: string,
 ): Promise<WorkContextAssignment[]> {
-  const response = await fetch(`${API_BASE_URL}/users/me/assignments`, {
+  const { data, error, response } = await transversalApiClient.GET('/users/me/assignments', {
     headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener las asignaciones de empresa/sede (${response.status})`);
   }
-  const body = (await response.json()) as { assignments: WorkContextAssignment[] };
-  return body.assignments;
+  return data.assignments as unknown as WorkContextAssignment[];
 }
 
 /**
@@ -39,12 +37,11 @@ export async function selectWorkContext(
   companyId: string,
   branchId: string,
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/users/me/work-context`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ companyId, branchId }),
+  const { error, response } = await transversalApiClient.POST('/users/me/work-context', {
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId },
   });
-  if (!response.ok) {
+  if (error) {
     throw new Error(`No se pudo fijar el contexto de trabajo (${response.status})`);
   }
 }

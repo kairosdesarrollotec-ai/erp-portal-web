@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { adminApiClient } from '../../api/admin-api-client';
+import type { components } from '../../api/admin.generated';
 
 export type PermissionModule = 'RESERVATION' | 'INQUIRY' | 'ADMIN';
 
@@ -21,10 +22,6 @@ export interface RolePermissionMatrix {
   actionCatalog: PermissionActionDescriptor[];
 }
 
-function authHeaders(idToken: string): HeadersInit {
-  return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
-}
-
 export class PermissionCommandError extends Error {
   constructor(
     public readonly status: number,
@@ -40,14 +37,14 @@ export async function getRolePermissionMatrix(
   companyId: string,
   branchId: string,
 ): Promise<RolePermissionMatrix> {
-  const params = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/admin/permissions?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await adminApiClient.GET('/admin/permissions', {
+    params: { query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener la matriz de permisos (${response.status})`);
   }
-  return (await response.json()) as RolePermissionMatrix;
+  return data as unknown as RolePermissionMatrix;
 }
 
 /** ADM-02 - "Guardar cambios" (POST /admin/permissions). Inserta una version nueva completa. */
@@ -57,14 +54,13 @@ export async function saveRolePermissionMatrix(
   branchId: string,
   entries: RolePermissionEntry[],
 ): Promise<RolePermissionMatrix> {
-  const response = await fetch(`${API_BASE_URL}/admin/permissions`, {
-    method: 'POST',
-    headers: authHeaders(idToken),
-    body: JSON.stringify({ companyId, branchId, entries }),
+  const { data, error, response } = await adminApiClient.POST('/admin/permissions', {
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, entries } as unknown as components['schemas']['SaveRolePermissionMatrixRequest'],
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new PermissionCommandError(response.status, problem);
   }
-  return (await response.json()) as RolePermissionMatrix;
+  return data as unknown as RolePermissionMatrix;
 }
