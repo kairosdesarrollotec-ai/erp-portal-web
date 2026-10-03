@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
-import { completeDelivery, RentalCommandError } from './rentals-client';
+import { completeDelivery, listRentalEvidence, RentalCommandError, RentalEvidenceResponse } from './rentals-client';
 import { loadChecklistDraft, clearChecklistDraft } from './rental-checklist-draft';
 import styles from './RentalStageForms.module.css';
 
@@ -18,6 +18,22 @@ export function Stage5ConfirmationScreen() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [evidence, setEvidence] = useState<RentalEvidenceResponse[]>([]);
+
+  const loadEvidence = useCallback(async () => {
+    if (!context || !id) return;
+    try {
+      const idToken = await getIdToken();
+      setEvidence(await listRentalEvidence(idToken, id, context.companyId, context.branchId));
+    } catch {
+      // resumen de solo lectura - un fallo aqui no bloquea la confirmacion,
+      // el backend vuelve a validar BR-INS-003/004 igual al confirmar.
+    }
+  }, [context, id, getIdToken]);
+
+  useEffect(() => {
+    void loadEvidence();
+  }, [loadEvidence]);
 
   async function handleConfirm() {
     if (!rental || !context) return;
@@ -32,8 +48,6 @@ export function Stage5ConfirmationScreen() {
         context.companyId,
         context.branchId,
         rental.version,
-        draft.photosCount,
-        draft.videosCount,
         [draft.notes, draft.exceptionReason && `Excepción de tiempo: ${draft.exceptionReason}`]
           .filter(Boolean)
           .join(' | ') || undefined,
@@ -110,7 +124,8 @@ export function Stage5ConfirmationScreen() {
           </a>
         </p>
         <p className={styles.summaryLine}>
-          {draft.photosCount} fotos · {draft.videosCount} videos
+          {evidence.filter((e) => e.type === 'PHOTO').length} fotos ·{' '}
+          {evidence.filter((e) => e.type === 'VIDEO').length} videos
           {draft.exceptionReason ? ` · excepción de tiempo: ${draft.exceptionReason}` : ''}
         </p>
       </section>

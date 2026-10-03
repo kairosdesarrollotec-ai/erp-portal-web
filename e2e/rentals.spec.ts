@@ -1,10 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { loginViaUI, interceptRentals, RENTAL_FIXTURE, SINGLE_ASSIGNMENT } from './helpers/routes';
+import { loginViaUI, interceptRentals, makeEvidenceFixture, RENTAL_FIXTURE, SINGLE_ASSIGNMENT } from './helpers/routes';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
-async function setupTest(page: Parameters<typeof loginViaUI>[0]) {
-  await interceptRentals(page);
+async function setupTest(
+  page: Parameters<typeof loginViaUI>[0],
+  rentalOptions: Parameters<typeof interceptRentals>[1] = {},
+) {
+  await interceptRentals(page, rentalOptions);
   await loginViaUI(page, { assignments: [SINGLE_ASSIGNMENT] });
   await page.waitForURL('**/tablero', { timeout: 10_000 });
 }
@@ -116,32 +119,24 @@ test.describe('ENTREGA-04 Checklist y evidencias', () => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-04`);
 
-    await expect(page.getByText(/Fotos por zona/i)).toBeVisible();
-    await expect(page.getByText(/Videos/i)).toBeVisible();
+    await expect(page.getByText(/Fotos \(/)).toBeVisible();
+    await expect(page.getByText(/Videos \(/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();
   });
 
-  test('Continuar se habilita con checklist completo (pre-cargado en sessionStorage)', async ({ page }) => {
-    // Pre-populate sessionStorage before the page loads
+  test('Continuar se habilita con checklist completo (evidencia real pre-cargada)', async ({ page }) => {
     await page.addInitScript((rentalId: string) => {
       try {
         sessionStorage.setItem(
           `kairos.alquiler.${rentalId}.checklist`,
-          JSON.stringify({
-            photosCount: 35,
-            videosCount: 3,
-            technicalMinutes: 30,
-            documentaryMinutes: 15,
-            exceptionReason: '',
-            notes: '',
-          }),
+          JSON.stringify({ technicalMinutes: 30, documentaryMinutes: 15, exceptionReason: '', notes: '' }),
         );
       } catch {
         // sessionStorage may not be available in some contexts
       }
     }, RENTAL_FIXTURE.id);
 
-    await setupTest(page);
+    await setupTest(page, { evidence: makeEvidenceFixture() });
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-04`);
 
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
@@ -180,17 +175,18 @@ test.describe('ENTREGA-05 Confirmación de entrega', () => {
 
 test.describe('Flujo completo asistente de entrega', () => {
   test('completa las 5 etapas y navega de vuelta a la bandeja', async ({ page }) => {
-    // Pre-populate sessionStorage for Stage4 before any navigation
     await page.addInitScript((rentalId: string) => {
       try {
         sessionStorage.setItem(
           `kairos.alquiler.${rentalId}.checklist`,
-          JSON.stringify({ photosCount: 35, videosCount: 3, technicalMinutes: 30, documentaryMinutes: 15, exceptionReason: '', notes: '' }),
+          JSON.stringify({ technicalMinutes: 30, documentaryMinutes: 15, exceptionReason: '', notes: '' }),
         );
-      } catch { /* no-op */ }
+      } catch {
+        // no-op
+      }
     }, RENTAL_FIXTURE.id);
 
-    await setupTest(page);
+    await setupTest(page, { evidence: makeEvidenceFixture() });
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-01`);
 
     // — Stage 1 —

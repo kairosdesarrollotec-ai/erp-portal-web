@@ -15,23 +15,62 @@ import styles from './InquiryDetailScreen.module.css';
  *
  * Hallazgo de revision PR#11 (Critico #4, "conversión/reserva
  * incompleta"): antes "Reservar este vehículo" llamaba al comando
- * `convert-to-reservation` (que deja la consulta en CONVERTIDA, un estado
- * TERMINAL) y navegaba a /reservas como si la reserva ya existiera - sin
- * crear ninguna Reservation real (ese comando exige `customerId`,
- * fechas y `branchId` que este frontend no captura en ningún flujo
- * todavía, ver inquiries-client.ts). Convertir la consulta sin una
- * reserva asociada es una pérdida de integridad de datos irreversible.
- * Ahora la acción se muestra deshabilitada con una explicación honesta -
- * la consulta se queda en COTIZADA, que es su estado real, hasta que
- * exista una pantalla de creación de Reserva que junte los datos que
- * faltan.
+ * `convert-to-reservation` sin capturar `channelMode`/`startAt`, que el
+ * backend exige para crear la Reservation real en la misma transaccion
+ * (ver inquiries-client.ts). Reactivado: este formulario captura esos 2
+ * datos (los unicos que faltaban) y crea la reserva real, navegando a
+ * RES-04/05 (`/reservas/:id`), consistente con el flujo documentado en
+ * PANTALLAS-V3-B-RESERVA.md. Exige ademas `inquiry.customerId` (una
+ * consulta de prospecto sin cliente formal no puede convertirse -
+ * `CUSTOMER_REQUIRED_FOR_CONVERSION`, ver decision-log.md NOTA-PR7).
+ *
+ * Correccion (oct 2026, a pedido de Russbel):
+ * - El vehiculo cotizado se mostraba como UUID crudo - se resuelve ahora
+ *   via Flota (ver useInquiryDetail.ts, mismo patron que customerName).
+ * - La fecha de inicio se pedia vacia, aunque CON-02 ya captura una
+ *   fecha de viaje aproximada (`inquiry.travelStartDate`) - PANTALLAS-V3-B-
+ *   RESERVA.md (RES-04, punto 15) es tajante: "Cliente, vehiculo, fechas,
+ *   destino - vienen de CON-02/CON-03, nunca se vuelven a pedir". Se
+ *   prellena con esa fecha; el usuario solo confirma/ajusta la hora
+ *   exacta de inicio (dato que CON-02 nunca captura - "periodo" es
+ *   duracion estimada, no una hora de recojo).
+ * - La modalidad (presencial/remota) NO es una pregunta libre segun el
+ *   diseno: BR-RES-005/DAT-RES-001 la calculan a partir de la ubicacion
+ *   del cliente (Ayacucho + puede acercarse -> presencial; si no,
+ *   remota). Ese dato de ubicacion no se captura todavia en Consulta, asi
+ *   que esto cae exactamente en la excepcion que el propio contrato de
+ *   RES-04 prevé ("revelado progresivo": la modalidad "solo se convierte
+ *   en pregunta editable si el sistema no puede determinarla
+ *   automaticamente") - se reformula con esa pregunta exacta en vez de un
+ *   selector generico Presencial/Virtual.
  */
 export function InquiryDetailScreen() {
-  const { navState, state, inquiry, customerName, saving, actionError, closeWithoutConversion, reload } = useInquiryDetail();
+  const { navState, state, inquiry, customerName, vehicleLabel, vehiclePhotoUrl, saving, actionError, closeWithoutConversion, convertToReservation, reload } =
+    useInquiryDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
   const [showCloseForm, setShowCloseForm] = useState(false);
   const [closeReason, setCloseReason] = useState('');
+  const [showReserveForm, setShowReserveForm] = useState(false);
+  /** null = sin responder todavia (caso excepcional, ver nota arriba). */
+  const [canComeToOffice, setCanComeToOffice] = useState<boolean | null>(null);
+  const [startAt, setStartAt] = useState('');
+
+  // Prellena con la fecha de viaje ya capturada en CON-02 (si existe) -
+  // el usuario solo ajusta la hora, nunca se le pide la fecha de cero.
+  function openReserveForm() {
+    if (inquiry?.travelStartDate && !startAt) {
+      setStartAt(`${inquiry.travelStartDate.slice(0, 10)}T09:00`);
+    }
+    setShowReserveForm(true);
+  }
+
+  async function handleReserve() {
+    if (!startAt || canComeToOffice === null) return;
+    const channelMode = canComeToOffice ? 'PRESENCIAL' : 'VIRTUAL';
+    const reservationId = await convertToReservation(channelMode, new Date(startAt).toISOString());
+    if (reservationId) navigate(`/reservas/${reservationId}`);
+  }
 
   if (state === 'LOADING') {
     return (
@@ -56,6 +95,23 @@ export function InquiryDetailScreen() {
   const canReserve = Boolean(latestQuotation) && inquiry.status !== 'CONVERTIDA' && inquiry.status !== 'CERRADA_SIN_CONVERSION';
   const isClosed = inquiry.status === 'CERRADA_SIN_CONVERSION';
 
+  /**
+   * Bug (hallazgo Russbel, ronda 2 - "Cambiar vehiculo" dejaba CON-03
+   * bloqueada con el aviso de staleness sin importar cuantas veces se
+   * actualizara): `navState` es el estado de navegacion CON-02->CON-03
+   * original, congelado desde que se entro a esta pantalla - su
+   * `version` nunca se actualiza cuando `inquiry.version` avanza (por
+   * ejemplo, al cotizar un vehiculo, que es justo lo que pasa antes de
+   * poder pulsar "Cambiar vehiculo"). Reenviar ese `navState` tal cual
+   * mandaba a CON-03 un `version` desactualizado, que el backend
+   * rechazaba con 409/412 en cuanto se intentaba cotizar - y
+   * "Actualizar ahora" en CON-03 solo reconsulta Flota, nunca la version
+   * de la consulta, asi que el error no se podia resolver desde ahi. Se
+   * corrige mezclando siempre la `version` vigente de `inquiry` (la que
+   * SI se mantiene actualizada via reload()) sobre el navState heredado.
+   */
+  const vehiclesNavState = navState ? { ...navState, version: inquiry.version } : undefined;
+
   const timelineEvents = [
     ...(inquiry.interactions ?? []).map((item) => ({
       id: item.id,
@@ -65,7 +121,11 @@ export function InquiryDetailScreen() {
     })),
     ...(inquiry.quotations ?? []).map((item) => ({
       id: item.id,
-      label: `Cotización — ${item.vehicleId}`,
+      // UUID crudo quitado del label (mismo bug que el panel de resumen) -
+      // el timeline no resuelve nombre por cada cotizacion historica
+      // (podria haber varias, solo se resuelve la vigente), asi que se deja
+      // generico en vez de un UUID sin contexto.
+      label: 'Cotización registrada',
       detail: item.destination,
       at: item.createdAt,
     })),
@@ -96,7 +156,21 @@ export function InquiryDetailScreen() {
           <dl className={styles.summaryList}>
             <div>
               <dt>Vehículo cotizado</dt>
-              <dd>{latestQuotation ? latestQuotation.vehicleId : 'Sin cotizar todavía'}</dd>
+              <dd className={styles.vehicleSummary}>
+                {latestQuotation && vehiclePhotoUrl && (
+                  <img className={styles.vehicleThumb} src={vehiclePhotoUrl} alt={vehicleLabel ?? 'Vehículo cotizado'} />
+                )}
+                <span>{latestQuotation ? (vehicleLabel ?? 'Cargando…') : 'Sin cotizar todavía'}</span>
+                {latestQuotation && !isClosed && inquiry.status !== 'CONVERTIDA' && (
+                  <button
+                    type="button"
+                    className={styles.linkButton}
+                    onClick={() => navigate(`/consultas/${inquiry.id}/vehiculos`, { state: vehiclesNavState })}
+                  >
+                    Cambiar vehículo
+                  </button>
+                )}
+              </dd>
             </div>
             <div>
               <dt>Fecha de registro</dt>
@@ -124,20 +198,91 @@ export function InquiryDetailScreen() {
 
           {actionError && <p className={styles.errorText}>{actionError}</p>}
 
-          {canReserve && (
+          {canReserve && !inquiry.customerId && (
+            <p className={styles.helperText}>
+              Esta consulta no tiene un cliente formal asociado (fue registrada como prospecto), así que no se
+              puede convertir en reserva. Vincula un cliente para continuar.
+            </p>
+          )}
+
+          {canReserve && inquiry.customerId && !showReserveForm && (
+            <button type="button" className={styles.primaryButton} onClick={openReserveForm}>
+              Reservar este vehículo
+            </button>
+          )}
+
+          {canReserve && inquiry.customerId && showReserveForm && (
+            <div className={styles.reserveForm}>
+              <p className={styles.reserveFormTitle}>Confirmar datos de la reserva</p>
+
+              <div className={styles.fieldGroup}>
+                <label htmlFor="reserve-start-at" className={styles.fieldLabel}>
+                  Fecha y hora de inicio
+                </label>
+                <p className={styles.fieldHint}>
+                  Tomada de la fecha de viaje ya registrada en la consulta — solo ajusta la hora si hace falta.
+                </p>
+                <input
+                  id="reserve-start-at"
+                  type="datetime-local"
+                  className={styles.fieldInput}
+                  value={startAt}
+                  onChange={(event) => setStartAt(event.target.value)}
+                />
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <p className={styles.fieldLabel}>¿El cliente puede acercarse a oficina?</p>
+                <p className={styles.fieldHint}>
+                  Esta modalidad es distinta a la registrada en Consulta (esa es sobre cómo se mostró el
+                  vehículo). Aquí se trata de la ubicación del cliente para firmar y recibir el vehículo —
+                  un dato que todavía no capturamos antes de este paso.
+                </p>
+                <div className={styles.modalityButtons}>
+                  <button
+                    type="button"
+                    className={canComeToOffice === true ? styles.modalityButtonActive : styles.modalityButton}
+                    onClick={() => setCanComeToOffice(true)}
+                  >
+                    Sí — presencial
+                  </button>
+                  <button
+                    type="button"
+                    className={canComeToOffice === false ? styles.modalityButtonActive : styles.modalityButton}
+                    onClick={() => setCanComeToOffice(false)}
+                  >
+                    No — remota
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.closeActions}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  disabled={!startAt || canComeToOffice === null || saving}
+                  onClick={() => void handleReserve()}
+                >
+                  {saving ? 'Creando reserva…' : 'Confirmar reserva'}
+                </button>
+                <button type="button" className={styles.linkButton} onClick={() => setShowReserveForm(false)}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!latestQuotation && !isClosed && (
             <>
               <button
                 type="button"
                 className={styles.primaryButton}
-                disabled
-                title="Disponible cuando exista la pantalla de creación de Reserva (captura de cliente y fechas)"
+                onClick={() => navigate(`/consultas/${inquiry.id}/vehiculos`, { state: vehiclesNavState })}
               >
-                Crear reserva — no disponible todavía
+                Cotizar vehículo
               </button>
               <p className={styles.helperText}>
-                Esta consulta ya tiene una cotización, pero crear la reserva requiere datos que esta pantalla
-                todavía no captura (cliente formal y fechas de recojo/devolución). La consulta se mantiene en
-                Cotizada hasta que ese flujo exista.
+                Esta consulta todavía no tiene una cotización. Continúa para elegir el vehículo y generar el precio.
               </p>
             </>
           )}

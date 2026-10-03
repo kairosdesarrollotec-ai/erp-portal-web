@@ -1,15 +1,13 @@
 /**
  * ENTREGA-04/05 - el backend no tiene un endpoint de guardado parcial del
- * checklist de entrega (POST .../commands/complete-delivery solo recibe
- * photosCount/videosCount/notes, en un unico envio final). Para que
- * ENTREGA-04 "autoguarde" su avance y ENTREGA-05 pueda mostrarlo y
- * confirmarlo sin perderlo, el borrador se guarda en sessionStorage por
- * expediente. Se limpia al confirmar la entrega (complete-delivery) o al
- * cambiar de expediente.
+ * checklist de entrega mas alla de la evidencia misma (fotos/videos, que ya
+ * se persisten en el backend via POST /rentals/:id/evidence apenas se
+ * suben - ver Stage4ChecklistScreen). Lo que SI falta persistir en backend
+ * es el temporizador/notas/excepcion, asi que ese resto del borrador se
+ * guarda en sessionStorage por expediente. Se limpia al confirmar la
+ * entrega (complete-delivery) o al cambiar de expediente.
  */
 export interface RentalChecklistDraft {
-  photosCount: number;
-  videosCount: number;
   technicalMinutes: number;
   documentaryMinutes: number;
   exceptionReason: string;
@@ -17,8 +15,6 @@ export interface RentalChecklistDraft {
 }
 
 export const EMPTY_CHECKLIST_DRAFT: RentalChecklistDraft = {
-  photosCount: 0,
-  videosCount: 0,
   technicalMinutes: 0,
   documentaryMinutes: 0,
   exceptionReason: '',

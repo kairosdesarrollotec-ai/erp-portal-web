@@ -1727,7 +1727,7 @@ screens:
   approved_by_role: PRODUCTO
   approved_at: '2026-10-01'
   sha256: d020f31120ed9052bf4754cd03589acb9e6cdc49dbae802b9bcd250139905dd8
-  bytes: 155648
+  bytes: 155355
   supersedes: null
   note: gestion flota operador — tabla con registro, edicion y cambio de estado
   is_reference_asset: false

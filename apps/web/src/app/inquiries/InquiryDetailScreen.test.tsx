@@ -2,10 +2,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { InquiryDetailScreen } from './InquiryDetailScreen';
+import { useLocation } from 'react-router-dom';
+
+// Hallazgo Russbel (ronda 2): "Cambiar vehiculo" reenviaba el navState
+// original con una `version` congelada, que ya no coincidia con
+// `inquiry.version` tras cotizar - CON-03 quedaba bloqueada con el aviso
+// de staleness sin forma de recuperarse. Esta sonda deja verificar que
+// la version que viaja en location.state es siempre la vigente.
+function LocationStateProbe() {
+  const location = useLocation();
+  const state = location.state as { version?: number } | null;
+  return <div>pantalla de vehiculos (version {state?.version})</div>;
+}
 
 const getInquiryMock = vi.fn();
 const closeInquiryMock = vi.fn();
+const convertInquiryToReservationMock = vi.fn();
 const getCustomerMock = vi.fn();
+const getVehicleMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
 vi.mock('../shared/useRolePermissions', () => ({
@@ -24,6 +38,7 @@ vi.mock('./inquiries-client', async () => {
     ...actual,
     getInquiry: (...args: unknown[]) => getInquiryMock(...args),
     closeInquiry: (...args: unknown[]) => closeInquiryMock(...args),
+    convertInquiryToReservation: (...args: unknown[]) => convertInquiryToReservationMock(...args),
   };
 });
 
@@ -32,6 +47,14 @@ vi.mock('../customers/customers-client', async () => {
   return {
     ...actual,
     getCustomer: (...args: unknown[]) => getCustomerMock(...args),
+  };
+});
+
+vi.mock('../fleet/fleet-client', async () => {
+  const actual = await vi.importActual<typeof import('../fleet/fleet-client')>('../fleet/fleet-client');
+  return {
+    ...actual,
+    getVehicle: (...args: unknown[]) => getVehicleMock(...args),
   };
 });
 
@@ -51,6 +74,7 @@ function buildInquiry(overrides: Record<string, unknown> = {}) {
     customerId: 'cust-1',
     touristUse: true,
     createdAt: '2026-09-16T00:00:00Z',
+    travelStartDate: '2026-10-10T00:00:00Z',
     interactions: [],
     quotations: [
       { id: 'quo-1', vehicleId: 'veh-mock-hilux', destination: 'Ayacucho', estimatedDays: 3, createdAt: '2026-09-16T01:00:00Z' },
@@ -70,6 +94,11 @@ function renderScreen() {
         <Route path="/consultas/:id" element={<InquiryDetailScreen />} />
         <Route path="/consultas" element={<div>bandeja</div>} />
         <Route path="/reservas" element={<div>reservas</div>} />
+        <Route path="/reservas/:id" element={<div>detalle de reserva</div>} />
+        <Route
+          path="/consultas/:id/vehiculos"
+          element={<LocationStateProbe />}
+        />
       </Routes>
     </MemoryRouter>,
   );
@@ -79,30 +108,86 @@ describe('InquiryDetailScreen (CON-04)', () => {
   beforeEach(() => {
     getInquiryMock.mockReset();
     closeInquiryMock.mockReset();
+    convertInquiryToReservationMock.mockReset();
     getCustomerMock.mockReset().mockResolvedValue({ id: 'cust-1', fullName: 'Maria Quispe' });
+    getVehicleMock.mockReset().mockResolvedValue({ id: 'veh-mock-hilux', brand: 'Toyota', model: 'Hilux', photoUrl: 'https://cdn.example.com/hilux.jpg' });
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
-  it('muestra el resumen y la cotizacion', async () => {
+  it('muestra el resumen y la cotizacion, resolviendo el nombre del vehiculo (no el UUID)', async () => {
     getInquiryMock.mockResolvedValue(buildInquiry());
     renderScreen();
 
     expect(await screen.findByText('Maria Quispe')).toBeInTheDocument();
-    expect(screen.getByText('veh-mock-hilux')).toBeInTheDocument();
+    expect(await screen.findByText('Toyota Hilux')).toBeInTheDocument();
+    expect(screen.queryByText('veh-mock-hilux')).not.toBeInTheDocument();
   });
 
-  // Hallazgo Critico #4: ya no existe un boton que "reserve" de verdad -
-  // se muestra deshabilitado con una explicacion honesta, y la consulta
-  // permanece Cotizada (nunca se llama a convert-to-reservation).
-  it('cuando hay cotizacion, muestra "Crear reserva" deshabilitado con una explicacion, sin convertir la consulta', async () => {
+  // Hallazgo Russbel (ronda 2): el vehiculo cotizado no se veia (solo
+  // texto) y no habia forma de corregir una seleccion equivocada.
+  it('muestra una foto del vehiculo cotizado y permite cambiarlo antes de reservar', async () => {
     getInquiryMock.mockResolvedValue(buildInquiry());
     renderScreen();
 
+    await screen.findByText('Toyota Hilux');
+    const photo = await screen.findByAltText('Toyota Hilux');
+    expect(photo).toHaveAttribute('src', 'https://cdn.example.com/hilux.jpg');
+
+    fireEvent.click(screen.getByText('Cambiar vehículo'));
+    // La consulta de prueba tiene version: 1 (ver buildInquiry) - se debe
+    // reenviar esa version vigente, no una heredada/congelada del navState.
+    expect(await screen.findByText('pantalla de vehiculos (version 1)')).toBeInTheDocument();
+  });
+
+  // Reactivado: "Reservar este vehiculo" abre un formulario corto
+  // (modalidad + fecha de inicio, los 2 datos que le faltaban a
+  // convert-to-reservation) y, al confirmar, crea la Reservation real y
+  // navega a /reservas/:id.
+  it('cuando hay cotizacion, "Reservar este vehiculo" prellena la fecha de Consulta, pide modalidad solo si no se puede calcular, y crea la reserva real', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry());
+    convertInquiryToReservationMock.mockResolvedValue({
+      inquiry: { ...buildInquiry(), status: 'CONVERTIDA', version: 2 },
+      reservation: { id: 'res-1', status: 'BORRADOR', version: 1 },
+    });
+    renderScreen();
+
     await screen.findByText('Maria Quispe');
-    const createButton = screen.getByText('Crear reserva — no disponible todavía');
-    expect(createButton.closest('button')).toBeDisabled();
-    expect(screen.getByText(/requiere datos que esta pantalla todavía no captura/)).toBeInTheDocument();
-    expect(screen.getByText('Cotizada')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Reservar este vehículo'));
+
+    // La fecha viene prellenada desde inquiry.travelStartDate (CON-02) -
+    // nunca se pide vacia.
+    expect(screen.getByLabelText('Fecha y hora de inicio')).toHaveValue('2026-10-10T09:00');
+
+    // El boton queda deshabilitado hasta responder la pregunta de
+    // modalidad (BR-RES-005: se calcula por ubicacion del cliente: como
+    // ese dato aun no se captura en Consulta, cae en el caso de excepcion
+    // documentado en RES-04 - pregunta explicita, no un selector libre).
+    expect(screen.getByText('Confirmar reserva')).toBeDisabled();
+    fireEvent.click(screen.getByText('Sí — presencial'));
+    expect(screen.getByText('Confirmar reserva')).toBeEnabled();
+
+    fireEvent.click(screen.getByText('Confirmar reserva'));
+
+    expect(await screen.findByText('detalle de reserva')).toBeInTheDocument();
+    expect(convertInquiryToReservationMock).toHaveBeenCalledWith(
+      'fake-id-token',
+      'con-1',
+      1,
+      'c1',
+      'b1',
+      'PRESENCIAL',
+      expect.any(String),
+    );
+  });
+
+  it('bloquea la conversion a reserva si la consulta no tiene cliente formal (prospecto)', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry({ customerId: null }));
+    getCustomerMock.mockReset();
+    renderScreen();
+
+    await screen.findByText('Cotizada');
+    expect(screen.queryByText('Reservar este vehículo')).not.toBeInTheDocument();
+    expect(screen.getByText(/no tiene un cliente formal asociado/)).toBeInTheDocument();
   });
 
   it('no permite confirmar el cierre sin motivo', async () => {

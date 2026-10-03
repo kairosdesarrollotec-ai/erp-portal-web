@@ -21,6 +21,18 @@ export interface InquirySummary {
   customerId: string | null;
   touristUse: boolean;
   createdAt: string;
+  /**
+   * El backend (InquirySummaryResponse) ya envia estos campos desde
+   * siempre - faltaban en este tipo (no reflejaban el shape real de la
+   * respuesta), lo que hacia que la recuperacion de deep link en
+   * useInquiryVehicles.ts no pudiera leerlos y los pisara con '' / 1,
+   * rompiendo "Cotizar este vehiculo" (400 INVALID por destination vacio)
+   * cada vez que se entraba a CON-03 sin navState previo (recarga de
+   * pagina o link directo).
+   */
+  destination: string | null;
+  estimatedDays: number | null;
+  travelStartDate: string | null;
 }
 
 export interface InquiryQuotation {
@@ -245,7 +257,39 @@ export function closeInquiry(
  * NO se invoca desde la UI (ver useInquiryDetail.ts) hasta que exista una
  * pantalla real de creacion de Reserva que junte los datos que faltan; se
  * mantiene exportada para cuando ese flujo se construya.
+ *
+ * Reactivado: ya existe el lugar en la UI que captura los 2 datos que
+ * faltaban (modalidad y fecha de inicio) - ver InquiryDetailScreen.tsx.
+ * Firma propia porque la respuesta real no es un InquirySummary: el
+ * backend crea la Reservation en la misma transaccion y devuelve ambas
+ * entidades (TDD-CON-001.md 15 / inquiries.controller.ts).
  */
-export function convertInquiryToReservation(idToken: string, id: string, version: number): Promise<InquirySummary> {
-  return postCommand(idToken, id, 'convert-to-reservation', version, {});
+export interface ConvertToReservationResult {
+  inquiry: InquirySummary;
+  reservation: { id: string; status: string; version: number };
+}
+
+export async function convertInquiryToReservation(
+  idToken: string,
+  id: string,
+  version: number,
+  companyId: string,
+  branchId: string,
+  channelMode: 'PRESENCIAL' | 'VIRTUAL',
+  startAt: string,
+): Promise<ConvertToReservationResult> {
+  const response = await fetch(`${API_BASE_URL}/inquiries/${id}/commands/convert-to-reservation`, {
+    method: 'POST',
+    headers: {
+      ...authHeaders(idToken),
+      'If-Match': `"${version}"`,
+      'Idempotency-Key': crypto.randomUUID(),
+    },
+    body: JSON.stringify({ companyId, branchId, channelMode, startAt }),
+  });
+  if (!response.ok) {
+    const problem = await response.json().catch(() => null);
+    throw new InquiryCommandError(response.status, problem);
+  }
+  return (await response.json()) as ConvertToReservationResult;
 }

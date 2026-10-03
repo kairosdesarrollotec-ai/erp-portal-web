@@ -121,10 +121,17 @@ export function useInquiryVehicles() {
           // no esta disponible sin una llamada extra a GET /customers/{id} que
           // este flujo de recuperacion no hace; queda vacio a proposito.
           customerName: '',
-          destination: '',
-          travelDate: '',
+          // Bug fix: destination/travelDays SI vienen en la respuesta de
+          // GET /inquiries/{id} (InquirySummaryResponse) - antes se
+          // pisaban con '' / 1 sin usarlos, lo que hacia que "Cotizar este
+          // vehiculo" fallara con 400 (destination vacio no pasa
+          // @IsNotEmpty() en QuoteDto) cada vez que se entraba a esta
+          // pantalla por link directo o recarga, en vez de navegando desde
+          // CON-02 con el formulario recien lleno.
+          destination: inquiry.destination ?? '',
+          travelDate: inquiry.travelStartDate ?? '',
           travelers: 1,
-          travelDays: 1,
+          travelDays: inquiry.estimatedDays ?? 1,
           displayMode: 'PRESENCIAL',
           channel: inquiry.channel as InquiryNavState['channel'],
           touristUse: inquiry.touristUse,

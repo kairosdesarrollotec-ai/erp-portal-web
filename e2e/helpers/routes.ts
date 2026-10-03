@@ -209,12 +209,50 @@ export const RENTAL_FIXTURE = {
  * GET /rentals, GET /rentals/:id, POST /rentals, POST /rentals/from-reservation/:id,
  * y todos los comandos del asistente de entrega.
  */
+export function makeEvidenceFixture(
+  rentalId = RENTAL_FIXTURE.id,
+  photos = 35,
+  videos = 3,
+): object[] {
+  const items: object[] = [];
+  for (let i = 0; i < photos; i++) {
+    items.push({
+      id: `evidence-photo-${i}`,
+      rentalId,
+      type: 'PHOTO',
+      zone: 'FRONTAL',
+      objectUrl: `https://storage.test/evidence-photo-${i}.jpg`,
+      uploadedBy: 'fake-uid-e2e',
+      uploadedAt: '2026-10-01T09:00:00Z',
+    });
+  }
+  for (let i = 0; i < videos; i++) {
+    items.push({
+      id: `evidence-video-${i}`,
+      rentalId,
+      type: 'VIDEO',
+      zone: 'FRONTAL',
+      objectUrl: `https://storage.test/evidence-video-${i}.mp4`,
+      uploadedBy: 'fake-uid-e2e',
+      uploadedAt: '2026-10-01T09:00:00Z',
+    });
+  }
+  return items;
+}
+
 export async function interceptRentals(
   page: Page,
-  options: { list?: object[]; detail?: object } = {},
+  options: { list?: object[]; detail?: object; evidence?: object[] } = {},
 ): Promise<void> {
   const list = options.list ?? [RENTAL_FIXTURE];
   const detail = options.detail ?? RENTAL_FIXTURE;
+  const evidence = options.evidence ?? [];
+
+  // GET /rentals/:id/evidence - ALQ-09, lista de evidencia real (foto/video).
+  await page.route(/\/rentals\/[^/]+\/evidence(\?.*)?$/, (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(evidence) });
+  });
 
   const notaryDetail = {
     ...RENTAL_FIXTURE,
