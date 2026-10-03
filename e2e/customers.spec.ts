@@ -27,7 +27,7 @@ test.describe('Módulo de Clientes (CLI-01 / CLI-02)', () => {
     await page.goto('/clientes');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText(/no hay clientes registrados/i)).toBeVisible();
+    await expect(page.getByText(/no hay clientes registrados en esta empresa/i)).toBeVisible();
   });
 
   test('CLI-02: detalle y ficha 360 del cliente', async ({ page }) => {
@@ -39,7 +39,7 @@ test.describe('Módulo de Clientes (CLI-01 / CLI-02)', () => {
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: 'María García' })).toBeVisible();
-    await expect(page.getByText('12345678')).toBeVisible();
+    await expect(page.locator('strong', { hasText: '12345678' }).first()).toBeVisible();
     await expect(page.getByText('maria.garcia@example.com')).toBeVisible();
   });
 });

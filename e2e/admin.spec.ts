@@ -14,8 +14,8 @@ test.describe('Módulo de Administración (ADM-01 / ADM-03 / ADM-04)', () => {
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: /Usuarios y asignaciones/i })).toBeVisible();
-    await expect(page.getByText('agente@veloxrent.pe')).toBeVisible();
-    await expect(page.getByText('admin@veloxrent.pe')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'agente@veloxrent.pe' })).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'admin@veloxrent.pe' })).toBeVisible();
   });
 
   test('ADM-04: historial de auditoría del sistema', async ({ page }) => {
