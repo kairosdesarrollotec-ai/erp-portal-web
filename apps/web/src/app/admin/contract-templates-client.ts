@@ -1,19 +1,7 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { rentalsApiClient } from '../../api/rentals-api-client';
+import type { components } from '../../api/rentals.generated';
 
-export interface ContractTemplate {
-  id: string;
-  companyId: string;
-  type: string;
-  version: number;
-  effectiveFrom: string;
-  effectiveTo: string | null;
-  status: string;
-  createdAt: string;
-}
-
-function authHeaders(idToken: string): HeadersInit {
-  return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
-}
+export type ContractTemplate = components['schemas']['ContractTemplateResponse'];
 
 export class ContractTemplateCommandError extends Error {
   constructor(
@@ -30,14 +18,14 @@ export async function listContractTemplates(
   companyId: string,
   branchId: string,
 ): Promise<ContractTemplate[]> {
-  const params = new URLSearchParams({ companyId, branchId });
-  const response = await fetch(`${API_BASE_URL}/rentals/contract-templates?${params.toString()}`, {
-    headers: authHeaders(idToken),
+  const { data, error, response } = await rentalsApiClient.GET('/rentals/contract-templates', {
+    params: { query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
   });
-  if (!response.ok) {
+  if (error || !data) {
     throw new Error(`No se pudo obtener las plantillas de contrato (${response.status})`);
   }
-  return (await response.json()) as ContractTemplate[];
+  return data;
 }
 
 /**
@@ -50,14 +38,14 @@ export async function createContractTemplate(
   branchId: string,
   type: string,
 ): Promise<ContractTemplate> {
-  const response = await fetch(`${API_BASE_URL}/rentals/contract-templates`, {
-    method: 'POST',
-    headers: { ...(authHeaders(idToken) as Record<string, string>), 'Idempotency-Key': crypto.randomUUID() },
-    body: JSON.stringify({ companyId, branchId, type }),
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/contract-templates', {
+    params: { header: { 'Idempotency-Key': crypto.randomUUID() } },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, type },
   });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
     throw new ContractTemplateCommandError(response.status, problem);
   }
-  return (await response.json()) as ContractTemplate;
+  return data;
 }

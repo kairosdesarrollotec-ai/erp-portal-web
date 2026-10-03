@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getFirebaseAuth } from '../providers/firebase';
 import {
-  ContractTemplate,
   ContractTemplateCommandError,
   createContractTemplate,
   listContractTemplates,
@@ -10,60 +9,76 @@ import { useWorkContextForAdmin } from './useWorkContextForAdmin';
 
 export type ContractTemplatesState = 'LOADING' | 'READY' | 'RECOVERABLE_ERROR';
 
+const TEMPLATES_KEY = (companyId: string, branchId: string) =>
+  ['contract-templates', companyId, branchId] as const;
+
 export function useContractTemplates() {
   const { context, loading: contextLoading } = useWorkContextForAdmin();
-  const [state, setState] = useState<ContractTemplatesState>('LOADING');
-  const [templates, setTemplates] = useState<ContractTemplate[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const reload = useCallback(async () => {
-    if (!context) return;
-    setState('LOADING');
-    try {
+  const query = useQuery({
+    queryKey: context
+      ? TEMPLATES_KEY(context.companyId, context.branchId)
+      : (['contract-templates', 'none'] as const),
+    queryFn: async () => {
       const user = getFirebaseAuth().currentUser;
-      if (!user) {
-        setState('RECOVERABLE_ERROR');
-        return;
-      }
+      if (!user || !context) throw new Error('No auth or context');
       const idToken = await user.getIdToken();
-      const result = await listContractTemplates(idToken, context.companyId, context.branchId);
-      setTemplates(result);
-      setState('READY');
-    } catch {
-      setState('RECOVERABLE_ERROR');
-    }
-  }, [context]);
+      return listContractTemplates(idToken, context.companyId, context.branchId);
+    },
+    enabled: !contextLoading && !!context,
+    retry: false,
+  });
 
-  useEffect(() => {
-    if (!contextLoading && context) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      void reload();
-    } else if (!contextLoading && !context) {
-      queueMicrotask(() => setState('RECOVERABLE_ERROR'));
-    }
-  }, [context, contextLoading, reload]);
+  const createMutation = useMutation({
+    mutationFn: async (type: string) => {
+      const user = getFirebaseAuth().currentUser;
+      if (!user || !context) throw new Error('No auth or context');
+      const idToken = await user.getIdToken();
+      return createContractTemplate(idToken, context.companyId, context.branchId, type);
+    },
+    onSuccess: () => {
+      if (context) {
+        void queryClient.invalidateQueries({
+          queryKey: TEMPLATES_KEY(context.companyId, context.branchId),
+        });
+      }
+    },
+  });
+
+  let state: ContractTemplatesState = 'LOADING';
+  if (contextLoading || query.isPending) {
+    state = 'LOADING';
+  } else if (query.isError) {
+    state = 'RECOVERABLE_ERROR';
+  } else if (query.isSuccess) {
+    state = 'READY';
+  }
 
   async function createVersion(type: string): Promise<boolean> {
-    if (!context) return false;
-    setSaving(true);
-    setSaveError(null);
     try {
-      const user = getFirebaseAuth().currentUser;
-      if (!user) throw new Error('Sesion no disponible.');
-      const idToken = await user.getIdToken();
-      await createContractTemplate(idToken, context.companyId, context.branchId, type);
-      await reload();
+      await createMutation.mutateAsync(type);
       return true;
-    } catch (error) {
-      setSaveError(
-        error instanceof ContractTemplateCommandError ? error.message : 'No se pudo crear la nueva version.',
-      );
+    } catch {
       return false;
-    } finally {
-      setSaving(false);
     }
   }
 
-  return { state, templates, context, saving, saveError, createVersion, reload };
+  function reload() {
+    void query.refetch();
+  }
+
+  return {
+    state,
+    templates: query.data ?? [],
+    context,
+    saving: createMutation.isPending,
+    saveError: createMutation.error
+      ? createMutation.error instanceof ContractTemplateCommandError
+        ? createMutation.error.message
+        : 'No se pudo crear la nueva versión.'
+      : null,
+    createVersion,
+    reload,
+  };
 }
