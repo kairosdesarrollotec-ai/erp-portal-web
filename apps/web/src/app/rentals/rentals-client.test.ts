@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { listRentals, getRental, createRental, validateDocuments, RentalApiError, RentalCommandError } from './rentals-client';
 
+function jsonResponse(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+}
+
 const fetchMock = vi.fn();
 
 beforeEach(() => {
@@ -11,39 +15,40 @@ beforeEach(() => {
 
 describe('rentals-client', () => {
   it('listRentals hace GET /rentals con companyId/branchId', async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => [] });
+    fetchMock.mockResolvedValue(jsonResponse(200, []));
     await listRentals('token', 'c1', 'b1');
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining('/rentals?companyId=c1&branchId=b1'),
-      expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer token' }) }),
-    );
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.url).toContain('/rentals?companyId=c1&branchId=b1');
+    expect(request.headers.get('Authorization')).toBe('Bearer token');
   });
 
   it('listRentals lanza RentalApiError en respuesta no OK', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 500 });
+    fetchMock.mockResolvedValue(jsonResponse(500, {}));
     await expect(listRentals('token', 'c1', 'b1')).rejects.toBeInstanceOf(RentalApiError);
   });
 
   it('getRental hace GET /rentals/:id', async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: 'r1' }) });
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1' }));
     const result = await getRental('token', 'r1', 'c1', 'b1');
     expect(result).toEqual({ id: 'r1' });
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('/rentals/r1?'), expect.any(Object));
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.url).toContain('/rentals/r1?');
   });
 
   it('createRental hace POST /rentals sin If-Match (recurso nuevo)', async () => {
-    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ id: 'r1' }) });
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1' }));
     await createRental('token', 'c1', 'b1', 'cust1', 'veh1');
-    const [, options] = fetchMock.mock.calls[0];
-    expect(options.method).toBe('POST');
-    expect(options.headers['If-Match']).toBeUndefined();
-    expect(JSON.parse(options.body)).toMatchObject({ companyId: 'c1', branchId: 'b1', customerId: 'cust1', vehicleId: 'veh1' });
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.method).toBe('POST');
+    expect(request.headers.get('If-Match')).toBeNull();
+    const body = await request.json();
+    expect(body).toMatchObject({ companyId: 'c1', branchId: 'b1', customerId: 'cust1', vehicleId: 'veh1' });
   });
 
   it('validateDocuments envia If-Match con la version y lanza RentalCommandError en 409', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 409, json: async () => ({ code: 'VERSION_MISMATCH' }) });
+    fetchMock.mockResolvedValue(jsonResponse(409, { code: 'VERSION_MISMATCH' }));
     await expect(validateDocuments('token', 'r1', 'c1', 'b1', 3)).rejects.toBeInstanceOf(RentalCommandError);
-    const [, options] = fetchMock.mock.calls[0];
-    expect(options.headers['If-Match']).toBe('"3"');
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.headers.get('If-Match')).toBe('"3"');
   });
 });

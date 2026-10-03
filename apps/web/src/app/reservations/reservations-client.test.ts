@@ -17,12 +17,10 @@ import {
  * mutable manda un header Idempotency-Key distinto en cada llamada
  * (TDD-RES-001.md 11, finding #6).
  */
-function mockFetchOnce(status: number, body: unknown, ok = status >= 200 && status < 300) {
-  return vi.fn().mockResolvedValue({
-    ok,
-    status,
-    json: async () => body,
-  });
+function mockFetchOnce(status: number, body: unknown) {
+  return vi.fn().mockResolvedValue(
+    new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }),
+  );
 }
 
 describe('reservations-client', () => {
@@ -40,7 +38,7 @@ describe('reservations-client', () => {
 
     await listReservations('token', 'c1', 'b1');
 
-    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    const calledUrl = (fetchMock.mock.calls[0][0] as Request).url;
     expect(calledUrl).toContain('companyId=c1');
     expect(calledUrl).toContain('branchId=b1');
   });
@@ -61,31 +59,24 @@ describe('reservations-client', () => {
   });
 
   it('un comando mutable manda un Idempotency-Key distinto en cada intento (finding #6)', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: 'res-1' }) });
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify({ id: 'res-1' }), { status: 200, headers: { 'Content-Type': 'application/json' } })),
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     await registerPayment('token', 'res-1', 'c1', 'b1', 1);
     await confirmReservation('token', 'res-1', 'c1', 'b1', 2);
 
-    const firstHeaders = fetchMock.mock.calls[0][1].headers as Record<string, string>;
-    const secondHeaders = fetchMock.mock.calls[1][1].headers as Record<string, string>;
-    expect(firstHeaders['Idempotency-Key']).toBeTruthy();
-    expect(secondHeaders['Idempotency-Key']).toBeTruthy();
-    expect(firstHeaders['Idempotency-Key']).not.toBe(secondHeaders['Idempotency-Key']);
-    expect(firstHeaders['If-Match']).toBe('"1"');
+    const firstRequest = fetchMock.mock.calls[0][0] as Request;
+    const secondRequest = fetchMock.mock.calls[1][0] as Request;
+    expect(firstRequest.headers.get('Idempotency-Key')).toBeTruthy();
+    expect(secondRequest.headers.get('Idempotency-Key')).toBeTruthy();
+    expect(firstRequest.headers.get('Idempotency-Key')).not.toBe(secondRequest.headers.get('Idempotency-Key'));
+    expect(firstRequest.headers.get('If-Match')).toBe('"1"');
   });
 
   it('un comando mutable que falla lanza ReservationCommandError con el problem+json (finding #7)', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 422,
-        json: async () => ({ code: 'REQUIREMENTS_INCOMPLETE', detail: 'faltan', missingRequirements: ['DOCUMENTS_COMPLETE'] }),
-      }),
-    );
+    vi.stubGlobal('fetch', mockFetchOnce(422, { code: 'REQUIREMENTS_INCOMPLETE', detail: 'faltan', missingRequirements: ['DOCUMENTS_COMPLETE'] }));
 
     await expect(registerPayment('token', 'res-1', 'c1', 'b1', 1)).rejects.toMatchObject({
       status: 422,
