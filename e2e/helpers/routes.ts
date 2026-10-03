@@ -429,7 +429,7 @@ export async function interceptCustomers(
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ customers: list, total: list.length }),
+      body: JSON.stringify({ items: list, total: list.length }),
     });
   });
 }
@@ -476,7 +476,7 @@ export async function interceptFleet(
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ vehicles: list, total: list.length }),
+      body: JSON.stringify({ items: list, total: list.length }),
     });
   });
 }
@@ -588,24 +588,22 @@ export async function interceptAdmin(page: Page): Promise<void> {
     }),
   );
 
-  await page.route(/\/admin\/contract-templates(\?.*)?$/, (route) =>
+  await page.route(/\/rentals\/contract-templates(\?.*)?$/, (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        templates: [
-          {
-            id: 'tpl-001',
-            companyId: 'company-001',
-            type: 'RENTAL_CONTRACT',
-            version: 1,
-            status: 'ACTIVE',
-            effectiveFrom: '2026-09-01T00:00:00Z',
-            effectiveTo: null,
-            createdAt: '2026-09-01T00:00:00Z',
-          },
-        ],
-      }),
+      body: JSON.stringify([
+        {
+          id: 'tpl-001',
+          companyId: 'company-001',
+          type: 'RENTAL_CONTRACT',
+          version: 1,
+          status: 'ACTIVE',
+          effectiveFrom: '2026-09-01T00:00:00Z',
+          effectiveTo: null,
+          createdAt: '2026-09-01T00:00:00Z',
+        },
+      ]),
     }),
   );
 

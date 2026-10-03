@@ -14,10 +14,10 @@ test.describe('Módulo de Flota (FLO-01 / FLO-02)', () => {
     await page.goto('/flota');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByRole('heading', { name: 'Flota' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Flota/i })).toBeVisible();
     await expect(page.getByText('Toyota Hilux')).toBeVisible();
     await expect(page.getByText('ABC-123')).toBeVisible();
-    await expect(page.getByText('Disponible')).toBeVisible();
+    await expect(page.locator('span').filter({ hasText: /^Disponible$/ })).toBeVisible();
   });
 
   test('FLO-01: estado vacío cuando no hay vehículos', async ({ page }) => {
@@ -28,7 +28,7 @@ test.describe('Módulo de Flota (FLO-01 / FLO-02)', () => {
     await page.goto('/flota');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText(/no hay vehículos registrados/i)).toBeVisible();
+    await expect(page.getByText(/no hay vehículos registrados en la flota de esta empresa/i)).toBeVisible();
   });
 
   test('FLO-02: detalle técnico del vehículo', async ({ page }) => {
@@ -39,8 +39,8 @@ test.describe('Módulo de Flota (FLO-01 / FLO-02)', () => {
     await page.goto(`/flota/${VEHICLE_FIXTURE.id}`);
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByText('ABC-123')).toBeVisible();
+    await expect(page.locator('strong', { hasText: 'ABC-123' }).first()).toBeVisible();
     await expect(page.getByText('Toyota Hilux')).toBeVisible();
-    await expect(page.getByText(/Disponible/i)).toBeVisible();
+    await expect(page.getByText(/Disponible/i).first()).toBeVisible();
   });
 });
