@@ -221,57 +221,58 @@ export function FleetListScreen() {
                       </select>
                     </td>
                     <td>
-                      <span className={styles.rowActions}>
-                        <button
-                          type="button"
-                          className={styles.linkButton}
-                          onClick={() =>
-                            navigate(`/flota/${v.id}`, {
-                              state: context ?? undefined,
-                            })
-                          }
-                          aria-label={`Ver detalle de ${v.plate}`}
-                        >
-                          Ver detalle
-                        </button>
-                      </span>
-                      {canWrite && v.status !== 'OUT_OF_SERVICE' &&
-                        (deactivatingConfirmId === v.id ? (
-                          <span className={styles.confirmGroup}>
-                            <button
-                              type="button"
-                              className={styles.dangerButton}
-                              disabled={deactivatingId === v.id}
-                              onClick={() => void handleConfirmDeactivate(v.id)}
-                            >
-                              {deactivatingId === v.id ? 'Dando de baja…' : 'Confirmar baja'}
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.linkButton}
-                              onClick={() => setDeactivatingConfirmId(null)}
-                            >
-                              Volver
-                            </button>
-                          </span>
-                        ) : (
-                          <span className={styles.rowActions}>
-                            <button
-                              type="button"
-                              className={styles.linkButton}
-                              onClick={() => openEditModal(v)}
-                            >
-                              Editar
-                            </button>
-                            <button
-                              type="button"
-                              className={styles.dangerLink}
-                              onClick={() => setDeactivatingConfirmId(v.id)}
-                            >
-                              Dar de baja
-                            </button>
-                          </span>
-                        ))}
+                      {canWrite && v.status !== 'OUT_OF_SERVICE' && deactivatingConfirmId === v.id ? (
+                        <span className={styles.confirmGroup}>
+                          <button
+                            type="button"
+                            className={styles.dangerButton}
+                            disabled={deactivatingId === v.id}
+                            onClick={() => void handleConfirmDeactivate(v.id)}
+                          >
+                            {deactivatingId === v.id ? 'Dando de baja…' : 'Confirmar baja'}
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.linkButton}
+                            onClick={() => setDeactivatingConfirmId(null)}
+                          >
+                            Volver
+                          </button>
+                        </span>
+                      ) : (
+                        <span className={styles.rowActions}>
+                          <button
+                            type="button"
+                            className={styles.linkButton}
+                            onClick={() =>
+                              navigate(`/flota/${v.id}`, {
+                                state: context ?? undefined,
+                              })
+                            }
+                            aria-label={`Ver detalle de ${v.plate}`}
+                          >
+                            Ver detalle
+                          </button>
+                          {canWrite && v.status !== 'OUT_OF_SERVICE' && (
+                            <>
+                              <button
+                                type="button"
+                                className={styles.linkButton}
+                                onClick={() => openEditModal(v)}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.dangerLink}
+                                onClick={() => setDeactivatingConfirmId(v.id)}
+                              >
+                                Dar de baja
+                              </button>
+                            </>
+                          )}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -16,12 +16,14 @@ export function Stage2ValidationsScreen() {
   const navigate = useNavigate();
 
   const [result, setResult] = useState<AlcoholTestResult | null>(null);
-  const [testTime, setTestTime] = useState('');
+  const [testDateTime, setTestDateTime] = useState('');
   const [notes, setNotes] = useState('');
+  const [reniecConfirmed, setReniecConfirmed] = useState(false);
+  const [mtcConfirmed, setMtcConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canContinue = result === 'FAVORABLE' && !!testTime;
+  const canContinue = result === 'FAVORABLE' && !!testDateTime;
 
   async function handleContinue() {
     if (!rental || !context || result !== 'FAVORABLE') return;
@@ -36,7 +38,7 @@ export function Stage2ValidationsScreen() {
         context.branchId,
         rental.version,
         result,
-        notes ? `${notes} (hora: ${testTime})` : `hora: ${testTime}`,
+        notes ? `${notes} (fecha/hora: ${testDateTime})` : `fecha/hora: ${testDateTime}`,
       );
       setRental(updated);
       navigate(`/alquileres/${id}/entrega-03`, { state: context });
@@ -65,12 +67,24 @@ export function Stage2ValidationsScreen() {
       <div className={styles.statusCards}>
         <div className={styles.statusCard}>
           <p className={styles.statusCardTitle}>RENIEC</p>
-          <span className={`${styles.statusBadge} ${styles.statusBadge_verified}`}>Verificado</span>
+          <span className={`${styles.statusBadge} ${reniecConfirmed ? styles.statusBadge_verified : styles.statusBadge_pending}`}>
+            {reniecConfirmed ? 'Verificado' : 'Pendiente de verificación'}
+          </span>
+          <label className={styles.checkboxRow} style={{ marginTop: '0.5rem', fontSize: '12px' }}>
+            <input type="checkbox" checked={reniecConfirmed} onChange={(e) => setReniecConfirmed(e.target.checked)} />
+            Confirmar verificación manual
+          </label>
         </div>
 
         <div className={styles.statusCard}>
           <p className={styles.statusCardTitle}>MTC</p>
-          <span className={`${styles.statusBadge} ${styles.statusBadge_verified}`}>Verificado</span>
+          <span className={`${styles.statusBadge} ${mtcConfirmed ? styles.statusBadge_verified : styles.statusBadge_pending}`}>
+            {mtcConfirmed ? 'Verificado' : 'Pendiente de verificación'}
+          </span>
+          <label className={styles.checkboxRow} style={{ marginTop: '0.5rem', fontSize: '12px' }}>
+            <input type="checkbox" checked={mtcConfirmed} onChange={(e) => setMtcConfirmed(e.target.checked)} />
+            Confirmar verificación manual
+          </label>
         </div>
       </div>
 
@@ -90,8 +104,8 @@ export function Stage2ValidationsScreen() {
           ))}
         </div>
         <label className={styles.fieldLabel}>
-          Hora de la prueba
-          <input type="time" className={styles.input} value={testTime} onChange={(e) => setTestTime(e.target.value)} />
+          Fecha y hora de la prueba
+          <input type="datetime-local" className={styles.input} value={testDateTime} onChange={(e) => setTestDateTime(e.target.value)} />
         </label>
         <label className={styles.fieldLabel}>
           Evidencia / notas

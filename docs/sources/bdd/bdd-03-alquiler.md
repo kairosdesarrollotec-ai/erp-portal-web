@@ -269,6 +269,60 @@ Feature: Evidencia fotográfica mínima del checklist
     And el vehículo no puede entregarse hasta completar la evidencia
 ```
 
+### BR-ALQ-017: Carga de documentos de alquiler vía GCS (Entrega-01)
+
+**Prioridad:** Alta
+
+Los documentos que el operador debe adjuntar durante la etapa de entrega (licencia, DNI, etc.) se almacenan en Google Cloud Storage mediante el patrón de dos pasos aprobado (ADR-KAI-005 / PROP-011):
+1. Frontend solicita URL firmada: `POST /rentals/{id}/documents/upload-url`.
+2. Frontend sube directamente a GCS.
+3. Frontend notifica al backend: `POST /rentals/{id}/documents`.
+
+Los documentos son accesibles mediante `GET /rentals/{id}/documents`. El almacenamiento local (base64) está prohibido en producción.
+
+### BR-ALQ-018: Firma digital del cliente en contrato (Entrega-03)
+
+**Prioridad:** Alta
+
+La firma digital del cliente (canvas base64, `signatureData`) es un requisito obligatorio para formalizar el contrato de alquiler. El sistema debe bloquear el botón "Formalizar" si no se ha capturado la firma. La firma se persiste en la tabla `rental_contracts` como evidencia operativa. **Nota:** la validez legal formal de esta firma está pendiente de aprobación del área Legal (ver PROP-012 en decision-log).
+
+### BR-ALQ-019: Monto mínimo de garantía en formalización (Entrega-03)
+
+**Prioridad:** Alta
+
+Si el vehículo tiene `depositMinimum` definido, el monto de garantía registrado al formalizar el contrato debe ser ≥ `depositMinimum`. El sistema bloquea la formalización si el monto es inferior, mostrando el valor mínimo requerido. Este control opera en el frontend y es validado por el backend al recibir el comando `formalize-contract`.
+
+### SC-ALQ-DOC-01: Carga de documento de licencia en Entrega-01
+
+**Dado** que el alquiler está en estado DRAFT o VALIDATION
+**Y** el operador autenticado tiene acceso a la sede
+**Cuando** carga el documento de licencia de conducir mediante el flujo GCS de dos pasos
+**Entonces** el sistema retorna URL firmada válida por 15 minutos
+**Y** tras la carga, `GET /rentals/{id}/documents` lista el documento adjunto
+
+### SC-ALQ-FIRMA-01: Formalización bloqueada sin firma del cliente
+
+**Dado** que el alquiler está en etapa Entrega-03 (Stage3)
+**Cuando** el operador intenta formalizar sin capturar la firma digital del cliente
+**Entonces** el botón "Formalizar" permanece deshabilitado
+**Y** se muestra el mensaje "La firma del cliente es obligatoria para continuar"
+
+### SC-ALQ-DEP-01: Formalización bloqueada por monto de garantía inferior al mínimo
+
+**Dado** que el vehículo tiene `depositMinimum: 500.00`
+**Y** el operador ingresa un monto de garantía de 300.00
+**Cuando** intenta formalizar el contrato
+**Entonces** el botón "Formalizar" permanece deshabilitado
+**Y** se muestra el error "El monto es inferior al mínimo de garantía (S/ 500.00)"
+
+### SC-ALQ-DEP-02: Formalización exitosa con monto de garantía ≥ mínimo
+
+**Dado** que el vehículo tiene `depositMinimum: 500.00`
+**Y** el operador ingresa un monto de garantía de 600.00
+**Y** la firma del cliente ha sido capturada
+**Cuando** formaliza el contrato
+**Entonces** el sistema acepta la operación y avanza a Entrega-04
+
 > 📌 La trazabilidad de este proceso vive en `BDD-KAIROS-TRACEABILITY.md`, sección 18.1.
 
 ### 19.1 Alquiler

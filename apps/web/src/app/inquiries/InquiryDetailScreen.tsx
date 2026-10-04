@@ -69,7 +69,7 @@ export function InquiryDetailScreen() {
     if (!startAt || canComeToOffice === null) return;
     const channelMode = canComeToOffice ? 'PRESENCIAL' : 'VIRTUAL';
     const reservationId = await convertToReservation(channelMode, new Date(startAt).toISOString());
-    if (reservationId) navigate(`/reservas/${reservationId}`);
+    if (reservationId) navigate('/reservas');
   }
 
   if (state === 'LOADING') {
@@ -93,7 +93,7 @@ export function InquiryDetailScreen() {
 
   const latestQuotation = inquiry.quotations?.[inquiry.quotations.length - 1] ?? null;
   const canReserve = Boolean(latestQuotation) && inquiry.status !== 'CONVERTIDA' && inquiry.status !== 'CERRADA_SIN_CONVERSION';
-  const isClosed = inquiry.status === 'CERRADA_SIN_CONVERSION';
+  const isTerminal = inquiry.status === 'CERRADA_SIN_CONVERSION' || inquiry.status === 'CONVERTIDA';
 
   /**
    * Bug (hallazgo Russbel, ronda 2 - "Cambiar vehiculo" dejaba CON-03
@@ -161,7 +161,7 @@ export function InquiryDetailScreen() {
                   <img className={styles.vehicleThumb} src={vehiclePhotoUrl} alt={vehicleLabel ?? 'Vehículo cotizado'} />
                 )}
                 <span>{latestQuotation ? (vehicleLabel ?? 'Cargando…') : 'Sin cotizar todavía'}</span>
-                {latestQuotation && !isClosed && inquiry.status !== 'CONVERTIDA' && (
+                {latestQuotation && !isTerminal && inquiry.status !== 'CONVERTIDA' && (
                   <button
                     type="button"
                     className={styles.linkButton}
@@ -272,7 +272,7 @@ export function InquiryDetailScreen() {
             </div>
           )}
 
-          {!latestQuotation && !isClosed && (
+          {!latestQuotation && !isTerminal && (
             <>
               <button
                 type="button"
@@ -287,7 +287,7 @@ export function InquiryDetailScreen() {
             </>
           )}
 
-          {!isClosed && !showCloseForm && can('INQUIRY', 'CLOSE') && (
+          {!isTerminal && !showCloseForm && can('INQUIRY', 'CLOSE') && (
             <button type="button" className={styles.dangerLink} onClick={() => setShowCloseForm(true)}>
               Cerrar sin conversión
             </button>
@@ -318,7 +318,7 @@ export function InquiryDetailScreen() {
             </div>
           )}
 
-          {isClosed && <p className={styles.closedMessage}>Esta consulta fue cerrada sin conversión.</p>}
+          {inquiry.status === 'CERRADA_SIN_CONVERSION' && <p className={styles.closedMessage}>Esta consulta fue cerrada sin conversión.</p>}
         </div>
       </div>
     </main>

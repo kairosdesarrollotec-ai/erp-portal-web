@@ -199,6 +199,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rentals/{id}/documents/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Obtener URL firmada de GCS para subir un documento del cliente (Bug-04 / ALQ-02)
+         * @description Devuelve una URL de carga firmada de GCS para subir el archivo directamente desde el navegador. Después de subir el archivo, llamar a POST /rentals/{id}/documents para registrar el documento. Requiere Idempotency-Key.
+         */
+        post: operations["requestRentalDocumentUploadSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rentals/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar documentos del cliente adjuntos a un alquiler */
+        get: operations["listRentalDocuments"];
+        put?: never;
+        /** Registrar un documento del cliente ya subido a GCS (Bug-04 / ALQ-02) */
+        post: operations["recordRentalDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rentals/{id}/commands/request-extension": {
         parameters: {
             query?: never;
@@ -381,6 +419,8 @@ export interface components {
             depositAmount: string;
             /** @enum {string} */
             depositCurrency: "PEN" | "USD";
+            /** @description Firma digital del cliente capturada en canvas como PNG base64 (data URI sin el prefijo "data:image/png;base64,"). Opcional - se almacena junto al contrato cuando se proporciona. */
+            signatureData?: string | null;
         };
         CompleteDeliveryRequest: {
             /** Format: uuid */
@@ -545,6 +585,8 @@ export interface components {
             vehiclePlate: string;
             vehicleBrand: string;
             vehicleModel: string;
+            /** @description Monto mínimo de garantía configurado para el vehículo (PEN). */
+            vehicleDepositMinimum?: number | null;
             planCode: string;
             status: components["schemas"]["RentalStatus"];
             /** Format: date-time */
@@ -609,6 +651,59 @@ export interface components {
              * @enum {string}
              */
             status: "ACTIVE" | "SUPERSEDED";
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /**
+         * @description Tipo de documento del cliente adjunto a un alquiler.
+         * @enum {string}
+         */
+        RentalDocumentType: "LICENSE" | "ID_DOCUMENT" | "PROOF_OF_ADDRESS" | "BANK_STATEMENT" | "OTHER";
+        RequestRentalDocumentUploadSessionRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            documentType: components["schemas"]["RentalDocumentType"];
+            /** @description MIME type del archivo (image/jpeg, image/png, application/pdf). */
+            contentType: string;
+            /** @description Tamaño en bytes del archivo. Máximo 10 MB. */
+            contentLength: number;
+        };
+        DocumentUploadSessionResponse: {
+            /**
+             * Format: uri
+             * @description URL firmada de GCS para PUT directo (válida 15 minutos).
+             */
+            uploadUrl: string;
+            /**
+             * Format: uri
+             * @description URL permanente del objeto en GCS. Pasar a POST /rentals/{id}/documents.
+             */
+            objectUrl: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        RecordRentalDocumentRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            documentType: components["schemas"]["RentalDocumentType"];
+            /**
+             * Format: uri
+             * @description objectUrl devuelto por POST /rentals/{id}/documents/upload-url, ya subido a GCS.
+             */
+            objectUrl: string;
+        };
+        RentalDocumentResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            rentalId: string;
+            documentType: components["schemas"]["RentalDocumentType"];
+            /** Format: uri */
+            objectUrl: string;
             /** Format: date-time */
             createdAt: string;
         };
@@ -1443,6 +1538,146 @@ export interface operations {
             };
             /** @description Estado incompatible (debe estar en PENDING_DELIVERY) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestRentalDocumentUploadSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestRentalDocumentUploadSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description URL de carga generada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentUploadSessionResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listRentalDocuments: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de documentos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalDocumentResponse"][];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordRentalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordRentalDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Documento registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalDocumentResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

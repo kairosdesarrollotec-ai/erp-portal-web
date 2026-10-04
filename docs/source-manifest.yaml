@@ -217,24 +217,24 @@ sources:
   path: docs/sources/tdd/tdd-02-reserva.md
   type: TDD
   module: Reserva
-  version: '2.2'
-  date: 31 de agosto de 2026
+  version: '2.3'
+  date: '2026-10-03'
   status: draft_pending_review
-  estado_original: Completo en contenido, pendiente de revisión formal
-  sha256: 1bcb1efaa2040a874a7a5c8d87686971254e467a37f82a0bbb07226e51dc1a1b
+  estado_original: v2.3 — Bug 3: ReservationDocumentStoragePort, ReservationDocumentRepositoryPort, ReservationDocumentsController, tabla reservation_documents (GCS).
+  sha256: unknown
   authority: technical
-  supersedes: null
+  supersedes: TDD-KAIROS-MVP-002-RES-V2.2
 - id: TDD-KAIROS-MVP-002-ALQ
   path: docs/sources/tdd/tdd-03-alquiler.md
   type: TDD
   module: Alquiler
-  version: '2.1'
-  date: 31 de agosto de 2026
+  version: '2.2'
+  date: '2026-10-03'
   status: draft_pending_review
-  estado_original: Completo en contenido, pendiente de revisión formal
-  sha256: 2613c8d423267f8c7fe802b5c0036ec2631ac1463fece220446fc3ed2b8a0acb
+  estado_original: v2.2 — Bug 4 (RentalDocumentsController/GCS), Bug 7 (signatureData en rental_contracts), Bug 8 (vehicleDepositMinimum en RentalResponse).
+  sha256: unknown
   authority: technical
-  supersedes: null
+  supersedes: TDD-KAIROS-MVP-002-ALQ-V2.1
 - id: TDD-KAIROS-MVP-002-DEV
   path: docs/sources/tdd/tdd-04-devolucion.md
   type: TDD

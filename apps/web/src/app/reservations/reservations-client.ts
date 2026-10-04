@@ -160,3 +160,72 @@ export function cancelReservation(
       return data as unknown as ReservationSummary;
     });
 }
+
+export type ReservationDocumentType = 'PAYMENT_VOUCHER' | 'ID_DOCUMENT' | 'OTHER';
+export type ReservationDocumentContentType = 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf';
+
+export interface ReservationDocumentRecord {
+  id: string;
+  reservationId: string;
+  documentType: ReservationDocumentType;
+  objectUrl: string;
+  createdAt: string;
+}
+
+export class GcsDocumentUploadError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+  }
+}
+
+export async function requestReservationDocumentUploadSession(
+  idToken: string,
+  reservationId: string,
+  companyId: string,
+  branchId: string,
+  documentType: ReservationDocumentType,
+  contentType: ReservationDocumentContentType,
+  contentLength: number,
+): Promise<{ uploadUrl: string; objectUrl: string }> {
+  const { data, error, response } = await reservationsApiClient.POST('/reservations/{id}/documents/upload-url', {
+    params: { path: { id: reservationId } },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId, documentType, contentType, contentLength } as never,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new ReservationCommandError(response.status, problem);
+  }
+  return data as unknown as { uploadUrl: string; objectUrl: string };
+}
+
+export async function uploadReservationFileToGcs(uploadUrl: string, file: File): Promise<void> {
+  const res = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': file.type },
+    body: file,
+  });
+  if (!res.ok) {
+    throw new GcsDocumentUploadError(`Error al subir el archivo a GCS (${res.status})`, res.status);
+  }
+}
+
+export async function recordReservationDocument(
+  idToken: string,
+  reservationId: string,
+  companyId: string,
+  branchId: string,
+  documentType: ReservationDocumentType,
+  objectUrl: string,
+): Promise<ReservationDocumentRecord> {
+  const { data, error, response } = await reservationsApiClient.POST('/reservations/{id}/documents', {
+    params: { path: { id: reservationId } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, documentType, objectUrl } as never,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new ReservationCommandError(response.status, problem);
+  }
+  return data as unknown as ReservationDocumentRecord;
+}

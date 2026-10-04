@@ -147,6 +147,8 @@ export interface components {
             status?: components["schemas"]["VehicleStatus"];
             /** @description Tarifa diaria de alquiler en moneda local. */
             dailyRate?: number | null;
+            /** @description Monto mínimo de garantía para este vehículo (PEN). Si se omite no se configura mínimo. */
+            depositMinimum?: number | null;
             /**
              * Format: uri
              * @description URL HTTPS de Google Cloud Storage del objeto ya cargado. Obtener previamente via POST /fleet/vehicles/photo-upload-sessions. No se acepta data: URI ni URL de otro proveedor.
@@ -169,6 +171,8 @@ export interface components {
             color?: string | null;
             category?: string | null;
             dailyRate?: number | null;
+            /** @description Monto mínimo de garantía (PEN). Si se omite, el valor existente no cambia. */
+            depositMinimum?: number | null;
             /**
              * Format: uri
              * @description URL HTTPS de GCS del objeto ya cargado. Si no se proporciona, la foto existente del vehículo no cambia.
@@ -209,6 +213,8 @@ export interface components {
             category?: string | null;
             status: components["schemas"]["VehicleStatus"];
             dailyRate?: number | null;
+            /** @description Monto mínimo de garantía configurado para este vehículo (PEN). */
+            depositMinimum?: number | null;
             photoUrl?: string | null;
             /**
              * Format: date-time

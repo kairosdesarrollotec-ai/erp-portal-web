@@ -429,6 +429,78 @@ Error relevante si falta evidencia:
 
 ---
 
+### Bug 4 — Documentos de alquiler vía GCS (2026-10-03)
+
+**Nuevos puertos de aplicación:**
+```typescript
+interface RentalDocumentStoragePort {
+  generateUploadUrl(rentalId: string, fileName: string): Promise<{ uploadUrl: string; objectPath: string }>;
+}
+interface RentalDocumentRepositoryPort {
+  save(doc: RentalDocument): Promise<RentalDocument>;
+  listByRentalId(rentalId: string): Promise<RentalDocument[]>;
+}
+```
+
+**Nuevos endpoints (RentalDocumentsController):**
+- `POST /rentals/:id/documents/upload-url` → `GenerateRentalDocumentUploadUrlHandler`
+- `POST /rentals/:id/documents` → `SaveRentalDocumentHandler`
+- `GET /rentals/:id/documents` → `ListRentalDocumentsHandler`
+
+**DDL:**
+```sql
+CREATE TABLE rental_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rental_id UUID NOT NULL REFERENCES rentals(id),
+  object_url TEXT NOT NULL,
+  document_type VARCHAR(50) NOT NULL DEFAULT 'DOCUMENT',
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  uploaded_by VARCHAR(255),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+**Prefijo GCS:** `rental-documents/{rentalId}/`
+
+### Bug 7 — signatureData en rental_contracts (2026-10-03)
+
+**DDL (migración forward-safe):**
+```sql
+ALTER TABLE rental_contracts ADD COLUMN IF NOT EXISTS signature_data TEXT NULL;
+```
+
+**Cambios en comando:**
+- `FormalizeContractCommand` gana campo `signatureData?: string`.
+- Handler persiste en `rental_contracts.signature_data`.
+- `RentalResponse` (y su DTO) no expone `signatureData` al frontend por defecto — solo se almacena internamente.
+
+**Frontend:** `SignaturePad` en `apps/web/src/app/shared/SignaturePad.tsx` (canvas con touch/mouse support); `signatureData` (base64 PNG) enviado a `formalize-contract` vía `rentals.yaml` OpenAPI.
+
+**Nota legal:** validez jurídica formal pendiente de revisión Legal (PROP-012).
+
+### Bug 8 — depositMinimum en vehicles / vehicleDepositMinimum en rentals (2026-10-03)
+
+**DDL (migración forward-safe):**
+```sql
+ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS deposit_minimum DECIMAL(12,2) NULL;
+```
+
+**Prisma:** `depositMinimum Decimal? @db.Decimal(12,2)` en el modelo `Vehicle`.
+
+**Propagación:**
+- `rental-persistence.mapper.ts` → `vehicleDepositMinimum: row.vehicle.depositMinimum != null ? Number(row.vehicle.depositMinimum) : null`
+- `RentalRecord.vehicleDepositMinimum: number | null`
+- `RentalResponse.vehicleDepositMinimum: number | null`
+- `rentals.yaml` OpenAPI: campo `vehicleDepositMinimum` en `RentalResponse` (nullable, no en `required`).
+- `rentals.generated.ts`: `vehicleDepositMinimum?: number | null`
+- `rentals-client.ts`: `vehicleDepositMinimum: number | null`
+
+**Validación frontend:** `Stage3ContractScreen.tsx` — bloquea formalización si `paymentAmountNum < depositMinimum`.
+
+**Tests relacionados:** `SC-FLT-011`, `SC-FLT-012`, `SC-ALQ-DEP-01`, `SC-ALQ-DEP-02`.
+
+---
+
 ## 14. Eventos
 
 | Evento | Productor | Consumidores |
