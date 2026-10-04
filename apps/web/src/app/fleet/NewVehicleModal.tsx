@@ -113,6 +113,8 @@ export function NewVehicleModal({
         dailyRate: undefined,
         depositMinimum: undefined,
       });
+      // Las siguientes llamadas setState se batchean en una sola re-render (React 18).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPendingPhotoFile(null);
       setPhotoPreviewUrl((prev) => {
         if (prev.startsWith('blob:')) URL.revokeObjectURL(prev);

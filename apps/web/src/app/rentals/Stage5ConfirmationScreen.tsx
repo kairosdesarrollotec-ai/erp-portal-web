@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
-import { completeDelivery, listRentalEvidence, RentalCommandError, RentalEvidenceResponse } from './rentals-client';
+import { completeDelivery, listRentalEvidence, RentalCommandError } from './rentals-client';
 import { loadChecklistDraft, clearChecklistDraft } from './rental-checklist-draft';
 import styles from './RentalStageForms.module.css';
 
@@ -18,22 +19,15 @@ export function Stage5ConfirmationScreen() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [evidence, setEvidence] = useState<RentalEvidenceResponse[]>([]);
-
-  const loadEvidence = useCallback(async () => {
-    if (!context || !id) return;
-    try {
+  // D2 — sustituye useState/useCallback/useEffect (evita setState-in-effect warning)
+  const { data: evidence = [] } = useQuery({
+    queryKey: ['rental', id, 'evidence'] as const,
+    queryFn: async () => {
       const idToken = await getIdToken();
-      setEvidence(await listRentalEvidence(idToken, id, context.companyId, context.branchId));
-    } catch {
-      // resumen de solo lectura - un fallo aqui no bloquea la confirmacion,
-      // el backend vuelve a validar BR-INS-003/004 igual al confirmar.
-    }
-  }, [context, id, getIdToken]);
-
-  useEffect(() => {
-    void loadEvidence();
-  }, [loadEvidence]);
+      return listRentalEvidence(idToken, id, context!.companyId, context!.branchId);
+    },
+    enabled: !!context,
+  });
 
   async function handleConfirm() {
     if (!rental || !context) return;
