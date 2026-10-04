@@ -15,6 +15,7 @@
 | Versión | Cambio | Autor | Estado |
 | --- | --- | --- | --- |
 | 2.0 | Extraído de `SDD-KAIROS-Consolidado-Detallado.md` (secciones 9.1, 10.1-10.2, 11.1, 11.4, 12.1, 12.3, 18.5, 24.2, 27.1) hacia un documento propio de Alquiler, siguiendo el ejemplo de referencia | Russbel (BA), a pedido del usuario | Candidato |
+| 2.2 | 2026-10-03 | Bugs 4, 7, 8: Se agregan endpoints de documentos de alquiler vía GCS (UC-ALQ-007), campo signatureData en UC-ALQ-004, validación depositMinimum en Stage3. | Implementación técnica | Candidato |
 
 ### 1.2 Estado de decisiones
 
@@ -154,6 +155,10 @@ Alquiler usa la arquitectura ya definida en `SDD-KAIROS-TRANSVERSAL.md` (seccion
 | Errores | Monto de garantía inconsistente con el tarifario |
 | Idempotencia | Sí |
 
+**Campos adicionales en UC-ALQ-004 (formalizar contrato):**
+- `signatureData` (string, opcional): firma digital del cliente capturada en canvas. Se persiste en `rental_contracts.signature_data` como evidencia operativa. Validez legal pendiente (ver PROP-012).
+- Validación de `depositMinimum`: el monto de garantía debe ser ≥ `vehicle.depositMinimum` si este campo está definido (BR-ALQ-ZZZ / PROP-013).
+
 ### UC-ALQ-005 — Completar entrega
 
 | Aspecto | Diseño |
@@ -183,6 +188,40 @@ Alquiler usa la arquitectura ya definida en `SDD-KAIROS-TRANSVERSAL.md` (seccion
 | Eventos | — |
 | Errores | `EXTENSION_LIMIT_REACHED` |
 | Idempotencia | Sí |
+
+### UC-ALQ-007 — Gestión de documentos de alquiler (Entrega-01)
+
+| Aspecto | Diseño |
+| --- | --- |
+| Paso BDD | Soporte documental complementario a UC-ALQ-005 (entrega) |
+| Actor | Administrador / Operador |
+| Autorización | `rental:deliver`, alcance de empresa/sede |
+| Coordinación | Rentals → GCS (URL firmada) → RentalDocumentRepository |
+| Consistencia | El documento se registra solo después de que el cliente lo haya subido directamente a GCS |
+| Resultado | Documento adjunto al alquiler y accesible vía listado |
+| Idempotencia | Sí (registro por `objectUrl` único) |
+
+#### Endpoints de documentos de alquiler
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/rentals/{id}/documents/upload-url` | POST | Solicita URL firmada PUT para cargar un documento al bucket GCS. |
+| `/rentals/{id}/documents` | POST | Registra un documento ya cargado en GCS (recibe `objectUrl`). |
+| `/rentals/{id}/documents` | GET | Lista los documentos adjuntos al alquiler. |
+
+**RentalDocument** (entidad):
+- `id`: UUID
+- `rentalId`: UUID, FK a `rentals`
+- `objectUrl`: URL HTTPS de GCS
+- `documentType`: string (LICENCIA, DNI, etc.)
+- `uploadedAt`: timestamp
+- `uploadedBy`: userId
+
+**Puertos de aplicación:**
+- `RentalDocumentStoragePort`: genera URL firmada PUT (prefijo `rental-documents/`)
+- `RentalDocumentRepositoryPort`: persiste y consulta referencias de documentos
+
+**Nota:** sigue el patrón GCS aprobado en SDD-00 §16.5 y PROP-011.
 
 ---
 

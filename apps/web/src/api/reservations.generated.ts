@@ -111,6 +111,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reservations/{id}/documents/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Obtener URL firmada de GCS para subir un comprobante de pago u otro documento (Bug-03)
+         * @description Devuelve una URL de carga firmada de GCS. Después de subir, llamar a POST /reservations/{id}/documents para registrar el documento.
+         */
+        post: operations["requestReservationDocumentUploadSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reservations/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar documentos adjuntos a una reserva */
+        get: operations["listReservationDocuments"];
+        put?: never;
+        /** Registrar un documento ya subido a GCS (comprobante de pago, etc.) (Bug-03) */
+        post: operations["recordReservationDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -184,6 +222,56 @@ export interface components {
             missingRequirements?: string[];
             /** Format: date-time */
             confirmedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /**
+         * @description Tipo de documento adjunto a una reserva.
+         * @enum {string}
+         */
+        ReservationDocumentType: "PAYMENT_VOUCHER" | "ID_DOCUMENT" | "OTHER";
+        RequestReservationDocumentUploadSessionRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            documentType: components["schemas"]["ReservationDocumentType"];
+            /** @description MIME type del archivo (image/jpeg, image/png, application/pdf). */
+            contentType: string;
+            /** @description Tamaño en bytes. Máximo 10 MB. */
+            contentLength: number;
+        };
+        ReservationDocumentUploadSessionResponse: {
+            /**
+             * Format: uri
+             * @description URL firmada de GCS para PUT directo (válida 15 minutos).
+             */
+            uploadUrl: string;
+            /**
+             * Format: uri
+             * @description URL permanente del objeto. Pasar a POST /reservations/:id/documents.
+             */
+            objectUrl: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        RecordReservationDocumentRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            documentType: components["schemas"]["ReservationDocumentType"];
+            /** Format: uri */
+            objectUrl: string;
+        };
+        ReservationDocumentResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            reservationId: string;
+            documentType: components["schemas"]["ReservationDocumentType"];
+            /** Format: uri */
+            objectUrl: string;
             /** Format: date-time */
             createdAt: string;
         };
@@ -532,6 +620,146 @@ export interface operations {
             };
             /** @description IF_MATCH_REQUIRED */
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestReservationDocumentUploadSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestReservationDocumentUploadSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description URL de carga generada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationDocumentUploadSessionResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reserva no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listReservationDocuments: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de documentos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationDocumentResponse"][];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reserva no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordReservationDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordReservationDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Documento registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationDocumentResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reserva no encontrada */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

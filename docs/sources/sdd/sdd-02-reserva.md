@@ -15,6 +15,7 @@
 | Versión | Cambio | Autor | Estado |
 | --- | --- | --- | --- |
 | 2.0 | Extraído de `SDD-KAIROS-Consolidado-Detallado.md` (secciones 9.4, 10.6-10.7, 11.5-11.8, 12.5-12.6, 18.8, 24.5, 27.4-27.5) hacia un documento propio de Reserva, siguiendo el ejemplo de referencia. Incorpora la confirmación de Fiorella del 31 ago sobre OQ-RES-105 (sin flexibilidad de fecha) | Russbel (BA), a pedido del usuario | Candidato |
+| 2.3 | 2026-10-03 | Bug 3: Se agregan endpoints de gestión de documentos de reserva vía GCS. Nuevas entidades: ReservationDocument. Nuevos puertos: ReservationDocumentStoragePort, ReservationDocumentRepositoryPort. | Implementación técnica | Candidato |
 
 ### 1.2 Estado de decisiones
 
@@ -178,6 +179,40 @@ La estrategia seleccionada transversalmente (restricción temporal + transacció
 | Eventos | `ReservaConvertida` |
 | Errores | — |
 | Idempotencia | Sí |
+
+### UC-RES-006 — Gestión de documentos de reserva (GCS)
+
+| Aspecto | Diseño |
+| --- | --- |
+| Paso BDD | Soporte documental complementario a UC-RES-002 |
+| Actor | Administrador |
+| Autorización | `reservation:create`, alcance de empresa/sede |
+| Coordinación | Reservations → GCS (URL firmada) → ReservationDocumentRepository |
+| Consistencia | El documento se registra solo después de que el cliente lo haya subido directamente a GCS |
+| Resultado | Documento adjunto a la reserva y accesible vía listado |
+| Idempotencia | Sí (registro por `objectUrl` único) |
+
+#### Endpoints de documentos de reserva
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/reservations/{id}/documents/upload-url` | POST | Solicita URL firmada PUT para cargar un documento al bucket GCS. |
+| `/reservations/{id}/documents` | POST | Registra un documento ya cargado en GCS (recibe `objectUrl`). |
+| `/reservations/{id}/documents` | GET | Lista los documentos adjuntos a la reserva. |
+
+**ReservationDocument** (entidad):
+- `id`: UUID
+- `reservationId`: UUID, FK a `reservations`
+- `objectUrl`: URL HTTPS de GCS (validada contra `GCS_BUCKET_NAME`)
+- `documentType`: string (tipo de documento: COMPROBANTE_PAGO, ACUERDO, etc.)
+- `uploadedAt`: timestamp
+- `uploadedBy`: userId
+
+**Puertos de aplicación:**
+- `ReservationDocumentStoragePort`: genera URL firmada PUT (prefijo `reservation-documents/`, TTL 15 min)
+- `ReservationDocumentRepositoryPort`: persiste y consulta referencias de documentos
+
+**Nota:** sigue el patrón GCS aprobado en SDD-00 §16.5 y PROP-010.
 
 ---
 

@@ -1,8 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
-import { validateDocuments, RentalCommandError } from './rentals-client';
+import {
+  validateDocuments,
+  RentalCommandError,
+  requestRentalDocumentUploadSession,
+  uploadFileToGcs,
+  recordRentalDocument,
+  RentalDocumentType,
+} from './rentals-client';
 import styles from './RentalStageForms.module.css';
 
 type DriverType = 'TITULAR' | 'ACOMPANANTE' | 'JURIDICA';
@@ -25,8 +32,34 @@ export function Stage1DocumentsScreen() {
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [uploadDocError, setUploadDocError] = useState<string | null>(null);
+  const [uploadedDocs, setUploadedDocs] = useState<{ name: string; type: RentalDocumentType }[]>([]);
+  const [selectedDocType, setSelectedDocType] = useState<RentalDocumentType>('LICENSE');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const canContinue = useMemo(() => licenseValid && idDocValid, [licenseValid, idDocValid]);
+
+  async function handleFileUpload(file: File) {
+    if (!rental || !context) return;
+    const contentType = file.type as 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf';
+    setUploadingDoc(true);
+    setUploadDocError(null);
+    try {
+      const idToken = await getIdToken();
+      const session = await requestRentalDocumentUploadSession(
+        idToken, id, context.companyId, context.branchId,
+        selectedDocType, contentType, file.size,
+      );
+      await uploadFileToGcs(session.uploadUrl, file);
+      await recordRentalDocument(idToken, id, context.companyId, context.branchId, selectedDocType, session.objectUrl);
+      setUploadedDocs((prev) => [...prev, { name: file.name, type: selectedDocType }]);
+    } catch {
+      setUploadDocError('No pudimos subir el documento. Intenta de nuevo.');
+    } finally {
+      setUploadingDoc(false);
+    }
+  }
 
   async function handleContinue() {
     if (!rental || !context) return;
@@ -122,6 +155,51 @@ export function Stage1DocumentsScreen() {
           <input type="checkbox" checked={addressValid} onChange={(e) => setAddressValid(e.target.checked)} />
           Comprobante de domicilio / estadía válido
         </label>
+      </fieldset>
+
+      <fieldset className={styles.fieldset}>
+        <legend>Documentos adjuntos (opcional)</legend>
+        <label className={styles.fieldLabel}>
+          Tipo de documento
+          <select
+            className={styles.select}
+            value={selectedDocType}
+            onChange={(e) => setSelectedDocType(e.target.value as RentalDocumentType)}
+          >
+            <option value="LICENSE">Licencia de conducir</option>
+            <option value="ID_DOCUMENT">Documento de identidad</option>
+            <option value="PROOF_OF_ADDRESS">Comprobante de domicilio</option>
+            <option value="BANK_STATEMENT">Estado de cuenta</option>
+            <option value="OTHER">Otro</option>
+          </select>
+        </label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/webp,image/png,application/pdf"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void handleFileUpload(file);
+            e.target.value = '';
+          }}
+        />
+        <button
+          type="button"
+          className={styles.retryButton}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingDoc}
+        >
+          {uploadingDoc ? 'Subiendo…' : 'Adjuntar documento'}
+        </button>
+        {uploadDocError && <p className={styles.evidenceError}>{uploadDocError}</p>}
+        {uploadedDocs.length > 0 && (
+          <ul className={styles.uploadedList}>
+            {uploadedDocs.map((d, i) => (
+              <li key={i} className={styles.uploadedItem}>✓ {d.name}</li>
+            ))}
+          </ul>
+        )}
       </fieldset>
 
       <label className={styles.fieldLabel}>

@@ -54,6 +54,7 @@ const baseRental: RentalResponse = {
   vehiclePlate: 'D0Y-704',
   vehicleBrand: 'Toyota',
   vehicleModel: 'Hilux',
+  vehicleDepositMinimum: null,
   planCode: 'NORMAL',
   status: 'DRAFT',
   startAt: '2026-10-01T09:00:00Z',

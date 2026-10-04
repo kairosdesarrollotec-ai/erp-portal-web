@@ -149,6 +149,17 @@ export function CustomerDetailScreen() {
                     </span>
                   </>
                 )}
+                {customer.nationality === 'EXTRANJERO' && customer.countryEntryDate && (
+                  <>
+                    <span className={styles.metaDot}>•</span>
+                    <span>
+                      <span className={styles.metaLabel}>Ingresó al país:</span>{' '}
+                      <strong className={styles.metaValue}>
+                        {new Date(customer.countryEntryDate).toLocaleDateString('es-PE')}
+                      </strong>
+                    </span>
+                  </>
+                )}
               </div>
               {customer.address && (
                 <p className={styles.headerAddress}>{customer.address}</p>

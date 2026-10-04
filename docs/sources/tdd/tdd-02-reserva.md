@@ -433,6 +433,46 @@ Respuesta `201` con el `rentalId` nuevo — ✅ **resuelto 03 sep 2026 (cierra h
 
 ---
 
+### Bug 3 — Documentos de reserva vía GCS (2026-10-03)
+
+**Nuevos puertos de aplicación:**
+```typescript
+// ReservationDocumentStoragePort
+interface ReservationDocumentStoragePort {
+  generateUploadUrl(reservationId: string, fileName: string): Promise<{ uploadUrl: string; objectPath: string }>;
+}
+
+// ReservationDocumentRepositoryPort
+interface ReservationDocumentRepositoryPort {
+  save(doc: ReservationDocument): Promise<ReservationDocument>;
+  listByReservationId(reservationId: string): Promise<ReservationDocument[]>;
+}
+```
+
+**Nuevos endpoints (ReservationDocumentsController):**
+- `POST /reservations/:id/documents/upload-url` → `GenerateReservationDocumentUploadUrlHandler`
+- `POST /reservations/:id/documents` → `SaveReservationDocumentHandler`
+- `GET /reservations/:id/documents` → `ListReservationDocumentsHandler`
+
+**DDL (migración forward-safe):**
+```sql
+CREATE TABLE reservation_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reservation_id UUID NOT NULL REFERENCES reservations(id),
+  object_url TEXT NOT NULL,
+  document_type VARCHAR(50) NOT NULL DEFAULT 'DOCUMENT',
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  uploaded_by VARCHAR(255),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+**Prefijo GCS:** `reservation-documents/{reservationId}/`
+**Validación:** `objectUrl` debe comenzar con `https://storage.googleapis.com/{GCS_BUCKET_NAME}/reservation-documents/`.
+**Estrategia de test:** integración contra bucket GCS con credenciales de test; stub en unit tests.
+
+---
+
 ## 14. Eventos
 
 | Evento | Productor | Consumidores | Payload mínimo |

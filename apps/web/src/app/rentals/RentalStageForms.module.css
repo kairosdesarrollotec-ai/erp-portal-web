@@ -306,3 +306,23 @@
   color: var(--color-error);
   margin: 0.25rem 0 0;
 }
+
+.fieldHint {
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+  margin: 0.25rem 0 0;
+}
+
+.uploadedList {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.uploadedItem {
+  font-size: 0.8rem;
+  color: var(--color-success, #2e7d32);
+}

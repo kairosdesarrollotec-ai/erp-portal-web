@@ -264,6 +264,32 @@ Feature: Dos clientes compiten por el mismo vehículo
 
 > 📌 Fuente: transcripciones de reunión con José Pariona (03 sep, 08:56) y con Fiorella (03 sep, 12:17), ambas confirmando el mismo tratamiento.
 
+### BR-RES-010: Carga de documentos de reserva vía GCS
+
+**Prioridad:** Alta
+
+Los comprobantes y documentos asociados a una reserva (pago de depósito, acuerdos adicionales) se almacenan en Google Cloud Storage mediante el patrón de dos pasos aprobado (ADR-KAI-005 / PROP-010):
+1. El frontend solicita una URL firmada PUT (`POST /reservations/{id}/documents/upload-url`).
+2. El frontend sube el archivo directamente a GCS.
+3. El frontend notifica al backend con la URL resultante (`POST /reservations/{id}/documents`).
+
+El backend valida que la URL pertenezca al bucket configurado (`GCS_BUCKET_NAME`) antes de persistir la referencia. Los documentos son accesibles mediante `GET /reservations/{id}/documents`. El almacenamiento local de documentos (base64 o multipart al API) está prohibido en producción.
+
+### SC-RES-DOC-01: Carga de comprobante de pago de reserva
+
+**Dado** que la reserva existe y está en estado CONFIRMED
+**Y** el usuario autenticado tiene acceso a la sede de la reserva
+**Cuando** solicita una URL firmada para el comprobante de pago
+**Entonces** el sistema retorna `{ uploadUrl, objectPath }` válidos por 15 minutos
+**Y** después de que el frontend sube el archivo a GCS y notifica al backend
+**Y** `GET /reservations/{id}/documents` lista el documento con su `objectUrl`
+
+### SC-RES-DOC-02: Listado vacío de documentos sin adjuntos
+
+**Dado** que la reserva existe pero no tiene documentos adjuntos
+**Cuando** el usuario consulta `GET /reservations/{id}/documents`
+**Entonces** el sistema retorna una lista vacía `[]` con HTTP 200
+
 | ID | Pregunta | Opciones | Propietario | Impacto | Estado |
 | --- | --- | --- | --- | --- | --- |
 | OQ-RES-101 | ¿Cuánto dura el bloqueo provisional del vehículo? | — | Operación | Disponibilidad del vehículo | `RESUELTO` 27 ago — **La pregunta parte de una premisa incorrecta: no existe bloqueo provisional.** |

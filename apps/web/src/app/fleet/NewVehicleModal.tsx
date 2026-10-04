@@ -55,6 +55,9 @@ const vehicleSchema = z.object({
   dailyRate: z.string().refine((v) => v === '' || (Number(v) > 0 && !isNaN(Number(v))), {
     message: 'La tarifa diaria debe ser mayor a 0.',
   }),
+  depositMinimum: z.string().refine((v) => v === '' || (Number(v) >= 0 && !isNaN(Number(v))), {
+    message: 'El monto mínimo de garantía debe ser mayor o igual a 0.',
+  }),
 });
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
@@ -87,6 +90,7 @@ export function NewVehicleModal({
       category: 'SEDAN',
       status: 'AVAILABLE',
       dailyRate: undefined,
+      depositMinimum: undefined,
     },
   });
 
@@ -107,6 +111,7 @@ export function NewVehicleModal({
         category: 'SEDAN',
         status: 'AVAILABLE',
         dailyRate: undefined,
+        depositMinimum: undefined,
       });
       setPendingPhotoFile(null);
       setPhotoPreviewUrl((prev) => {
@@ -129,6 +134,7 @@ export function NewVehicleModal({
         category: vehicle.category ?? 'SEDAN',
         status: vehicle.status,
         dailyRate: vehicle.dailyRate != null ? String(vehicle.dailyRate) : '',
+        depositMinimum: vehicle.depositMinimum != null ? String(vehicle.depositMinimum) : '',
       });
       setPendingPhotoFile(null);
       setPhotoPreviewUrl('');
@@ -193,6 +199,7 @@ export function NewVehicleModal({
 
     const parsedYear = values.year ? parseInt(values.year, 10) : undefined;
     const parsedRate = values.dailyRate ? parseFloat(values.dailyRate) : undefined;
+    const parsedDepositMinimum = values.depositMinimum ? parseFloat(values.depositMinimum) : undefined;
 
     void onSubmit({
       plate: values.plate.trim().toUpperCase(),
@@ -203,6 +210,7 @@ export function NewVehicleModal({
       category: values.category,
       status: values.status as VehicleStatus,
       dailyRate: parsedRate,
+      depositMinimum: parsedDepositMinimum,
       photoFile: pendingPhotoFile ?? undefined,
       photoUrl: pendingPhotoFile ? undefined : (existingPhotoUrl.trim() || undefined),
     }).then((success) => {
@@ -215,7 +223,8 @@ export function NewVehicleModal({
     errors.brand?.message ??
     errors.model?.message ??
     errors.year?.message ??
-    errors.dailyRate?.message;
+    errors.dailyRate?.message ??
+    errors.depositMinimum?.message;
 
   const activeError = photoError ?? firstFieldError ?? errorMessage;
 
@@ -348,6 +357,20 @@ export function NewVehicleModal({
               />
             </label>
           </div>
+
+          <label className={styles.field}>
+            Garantía mínima (S/)
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              className={styles.input}
+              {...register('depositMinimum')}
+              placeholder="500.00"
+              disabled={isSubmitting}
+              aria-invalid={!!errors.depositMinimum}
+            />
+          </label>
 
           {!isEditMode && (
             <label className={styles.field}>

@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { useReservationDetail } from './useReservationDetail';
 import { RESERVATION_STATUS_LABELS } from './reservation-status';
 import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
+import {
+  requestReservationDocumentUploadSession,
+  uploadReservationFileToGcs,
+  recordReservationDocument,
+} from './reservations-client';
+import { getFirebaseAuth } from '../providers/firebase';
 import styles from './ReservationDetailScreen.module.css';
 
 /**
@@ -30,6 +36,43 @@ export function ReservationDetailScreen() {
   const { can } = useRolePermissions();
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelNote, setCancelNote] = useState('');
+  const [uploadingVoucher, setUploadingVoucher] = useState(false);
+  const [voucherUploadError, setVoucherUploadError] = useState<string | null>(null);
+  const voucherFileRef = useRef<HTMLInputElement>(null);
+
+  async function handleVoucherFile(file: File) {
+    if (!reservation || !context) return;
+    setUploadingVoucher(true);
+    setVoucherUploadError(null);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible.');
+      const idToken = await user.getIdToken();
+      const session = await requestReservationDocumentUploadSession(
+        idToken,
+        reservation.id,
+        context.companyId,
+        context.branchId,
+        'PAYMENT_VOUCHER',
+        file.type as 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf',
+        file.size,
+      );
+      await uploadReservationFileToGcs(session.uploadUrl, file);
+      await recordReservationDocument(
+        idToken,
+        reservation.id,
+        context.companyId,
+        context.branchId,
+        'PAYMENT_VOUCHER',
+        session.objectUrl,
+      );
+      await uploadPaymentVoucher();
+    } catch {
+      setVoucherUploadError('No pudimos subir el comprobante. Intenta de nuevo.');
+    } finally {
+      setUploadingVoucher(false);
+    }
+  }
 
   if (state === 'LOADING') {
     return (
@@ -109,8 +152,8 @@ export function ReservationDetailScreen() {
                   label="Pago del monto de reserva vigente"
                   detail={`S/ ${reservation.requiredPayment.amount}`}
                   done={paymentDone}
-                  saving={savingRequirement === 'PAYMENT_VALIDATION'}
-                  onUpload={() => void uploadPaymentVoucher()}
+                  saving={uploadingVoucher || savingRequirement === 'PAYMENT_VALIDATION'}
+                  onUpload={() => voucherFileRef.current?.click()}
                 />
                 <ChecklistItem
                   label="Documentos / contrato"
@@ -124,6 +167,18 @@ export function ReservationDetailScreen() {
                   onUpload={() => void uploadDocuments()}
                 />
               </ul>
+              <input
+                ref={voucherFileRef}
+                type="file"
+                accept="image/jpeg,image/webp,image/png,application/pdf"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleVoucherFile(file);
+                  e.target.value = '';
+                }}
+              />
+              {voucherUploadError && <p className={styles.errorText}>{voucherUploadError}</p>}
 
               {paymentDone && documentsDone && can('RESERVATION', 'CONFIRM') ? (
                 <button

@@ -30,6 +30,7 @@ export interface VehicleFormData {
   category?: string;
   status?: VehicleStatus;
   dailyRate?: number;
+  depositMinimum?: number;
   photoUrl?: string;
   photoFile?: File;
 }
@@ -41,6 +42,7 @@ export interface VehicleEditFormData {
   color?: string;
   category?: string;
   dailyRate?: number;
+  depositMinimum?: number;
   photoUrl?: string;
   photoFile?: File;
 }
@@ -166,6 +168,7 @@ export function useFleetList() {
           category: formData.category?.trim() || 'SEDAN',
           status: formData.status ?? 'AVAILABLE',
           dailyRate: formData.dailyRate || undefined,
+          depositMinimum: formData.depositMinimum || undefined,
           photoUrl,
         },
         idempotencyKey,
@@ -224,6 +227,7 @@ export function useFleetList() {
         color: formData.color?.trim() || undefined,
         category: formData.category?.trim() || undefined,
         dailyRate: formData.dailyRate || undefined,
+        depositMinimum: formData.depositMinimum || undefined,
         photoUrl,
       });
     },

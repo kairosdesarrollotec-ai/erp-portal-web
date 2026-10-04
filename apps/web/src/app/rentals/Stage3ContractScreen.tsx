@@ -10,6 +10,7 @@ import {
   NotaryEvaluationResponse,
 } from './rentals-client';
 import { useWorkSession } from '../shared/useWorkSession';
+import { SignaturePad } from '../shared/SignaturePad';
 import styles from './RentalStageForms.module.css';
 
 const NOTARY_RESULT_LABELS: Record<string, string> = {
@@ -36,7 +37,7 @@ export function Stage3ContractScreen() {
   const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [payer, setPayer] = useState<'TITULAR' | 'AGENTE_EXTERNO'>('TITULAR');
-  const [signed, setSigned] = useState(false);
+  const [signatureData, setSignatureData] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +64,10 @@ export function Stage3ContractScreen() {
 
   const needsException = evaluation && (evaluation.result === 'MANUAL_REVIEW' || evaluation.result === 'THIRD_PATH_ELIGIBLE');
   const exceptionResolved = !needsException || !!evaluation?.approvedBy;
-  const canFormalize = exceptionResolved && signed && !!paymentAmount && !rental?.contract;
+  const depositMinimum = rental?.vehicleDepositMinimum ?? null;
+  const paymentAmountNum = paymentAmount ? parseFloat(paymentAmount) : null;
+  const depositBelowMinimum = depositMinimum != null && paymentAmountNum != null && paymentAmountNum < depositMinimum;
+  const canFormalize = exceptionResolved && !!signatureData && !!paymentAmount && !depositBelowMinimum && !rental?.contract;
 
   async function handleApproveException() {
     if (!rental || !context || justification.trim().length < 10) return;
@@ -106,6 +110,8 @@ export function Stage3ContractScreen() {
         `CONTRATO-${rental.id.slice(0, 8)}`,
         paymentAmount,
         'PEN',
+        undefined,
+        signatureData ?? undefined,
       );
       setRental(updated);
       setConfirmOpen(false);
@@ -113,6 +119,7 @@ export function Stage3ContractScreen() {
     } catch (err) {
       if (err instanceof RentalCommandError) setError(err.message);
       else setError('No pudimos formalizar el contrato.');
+      setConfirmOpen(false);
     } finally {
       setBusy(false);
     }
@@ -167,14 +174,11 @@ export function Stage3ContractScreen() {
       )}
 
       <fieldset className={styles.fieldset}>
-        <legend>Plantilla de contrato</legend>
-        <div className={styles.summaryCard}>
-          <p className={styles.summaryLine}>Plantilla estándar VeloxRent v1 (visor simulado - no se encontró un componente de firma reutilizable en el repo).</p>
-        </div>
-        <label className={styles.checkboxRow}>
-          <input type="checkbox" checked={signed} onChange={(e) => setSigned(e.target.checked)} />
-          Firma / huella del cliente capturada
-        </label>
+        <legend>Firma del contrato</legend>
+        <SignaturePad onChange={setSignatureData} />
+        {!signatureData && (
+          <p className={styles.fieldHint}>La firma del cliente es obligatoria para continuar.</p>
+        )}
       </fieldset>
 
       <fieldset className={styles.fieldset}>
@@ -189,6 +193,9 @@ export function Stage3ContractScreen() {
         </label>
         <label className={styles.fieldLabel}>
           Monto (PEN)
+          {depositMinimum != null && (
+            <span className={styles.fieldHint}>Mínimo requerido: S/ {depositMinimum.toFixed(2)}</span>
+          )}
           <input
             className={styles.input}
             type="number"
@@ -196,7 +203,13 @@ export function Stage3ContractScreen() {
             step="0.01"
             value={paymentAmount}
             onChange={(e) => setPaymentAmount(e.target.value)}
+            aria-invalid={depositBelowMinimum}
           />
+          {depositBelowMinimum && (
+            <span className={styles.evidenceError}>
+              El monto es inferior al mínimo de garantía (S/ {depositMinimum!.toFixed(2)}).
+            </span>
+          )}
         </label>
         <div className={styles.chipRow}>
           <button
