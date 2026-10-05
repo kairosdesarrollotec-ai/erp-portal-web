@@ -129,7 +129,7 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
     fireEvent.click(screen.getByLabelText('Favorable'));
     expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled(); // aún falta la hora
 
-    fireEvent.change(screen.getByLabelText(/Hora de la prueba/), { target: { value: '10:30' } });
+    fireEvent.change(screen.getByLabelText(/Fecha y hora de la prueba/), { target: { value: '2024-01-01T10:30' } });
     expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled();
   });
 
@@ -152,7 +152,7 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
     renderScreen();
 
     fireEvent.click(screen.getByLabelText('Favorable'));
-    fireEvent.change(screen.getByLabelText(/Hora de la prueba/), { target: { value: '10:30' } });
+    fireEvent.change(screen.getByLabelText(/Fecha y hora de la prueba/), { target: { value: '2024-01-01T10:30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(await screen.findByText('etapa 3')).toBeInTheDocument();
@@ -180,7 +180,7 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
     renderScreen();
 
     fireEvent.click(screen.getByLabelText('Favorable'));
-    fireEvent.change(screen.getByLabelText(/Hora de la prueba/), { target: { value: '10:30' } });
+    fireEvent.change(screen.getByLabelText(/Fecha y hora de la prueba/), { target: { value: '2024-01-01T10:30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(await screen.findByText('Conflicto de versión detectado')).toBeInTheDocument();
@@ -193,7 +193,7 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
     renderScreen();
 
     fireEvent.click(screen.getByLabelText('Favorable'));
-    fireEvent.change(screen.getByLabelText(/Hora de la prueba/), { target: { value: '10:30' } });
+    fireEvent.change(screen.getByLabelText(/Fecha y hora de la prueba/), { target: { value: '2024-01-01T10:30' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(await screen.findByText(/No pudimos registrar la validación/)).toBeInTheDocument();

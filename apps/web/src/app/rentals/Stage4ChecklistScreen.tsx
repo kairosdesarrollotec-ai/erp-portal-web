@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
@@ -9,7 +10,6 @@ import {
   requestEvidenceUploadSession,
   uploadEvidenceToGcs,
   RentalCommandError,
-  RentalEvidenceResponse,
   RentalEvidenceType,
   RentalEvidenceZone,
 } from './rentals-client';
@@ -44,31 +44,20 @@ export function Stage4ChecklistScreen() {
   const [draft, setDraft] = useState<RentalChecklistDraft>(() => loadChecklistDraft(id));
   const [showExceptionModal, setShowExceptionModal] = useState(false);
   const [zone, setZone] = useState<RentalEvidenceZone>('FRONTAL');
-  const [evidence, setEvidence] = useState<RentalEvidenceResponse[]>([]);
-  const [evidenceLoaded, setEvidenceLoaded] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: evidence = [], isSuccess: evidenceLoaded } = useQuery({
+    queryKey: ['rental', id, 'evidence'] as const,
+    queryFn: async () => {
+      const idToken = await getIdToken();
+      return listRentalEvidence(idToken, id, context!.companyId, context!.branchId);
+    },
+    enabled: !!context,
+  });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-
-  const loadEvidence = useCallback(async () => {
-    if (!context || !id) return;
-    try {
-      const idToken = await getIdToken();
-      const records = await listRentalEvidence(idToken, id, context.companyId, context.branchId);
-      setEvidence(records);
-    } catch {
-      // ver nota de clase: version online-only, un fallo de lectura no bloquea
-      // la pantalla, solo deja el progreso en 0 hasta el proximo reintento.
-    } finally {
-      setEvidenceLoaded(true);
-    }
-  }, [context, id, getIdToken]);
-
-  useEffect(() => {
-    void loadEvidence();
-  }, [loadEvidence]);
 
   function update(patch: Partial<RentalChecklistDraft>) {
     setDraft((prev) => {
@@ -117,7 +106,7 @@ export function Stage4ChecklistScreen() {
       );
       await uploadEvidenceToGcs(session.uploadUrl, file);
       await recordEvidence(idToken, id, context.companyId, context.branchId, type, zone, session.objectUrl);
-      await loadEvidence();
+      await queryClient.invalidateQueries({ queryKey: ['rental', id, 'evidence'] });
     } catch (err) {
       if (err instanceof RentalCommandError) setUploadError(err.message);
       else setUploadError('No pudimos subir el archivo. Verifica tu conexión e intenta de nuevo.');
