@@ -1,25 +1,9 @@
 {
-  "_description": "Known HIGH/CRITICAL vulnerabilities pending major framework upgrades. Each entry must have a tracked remediation and a target_date. Review monthly and remove entries as they are fixed. Adding an entry here means committing to a remediation plan — it is NOT a permanent exemption.",
-  "_sla": {
-    "critical": "7 days",
-    "high": "30 days from discovery; entries here have an approved extension",
-    "moderate": "90 days"
-  },
-  "entries": [
-    {
-      "id": "REACT-ROUTER-MODERATE-2026-10-03",
-      "severity": "moderate",
-      "package": "react-router / react-router-dom 6.x–7.17.x",
-      "advisories": [
-        "CVE-2025-68470 — Open redirect via backslash in <Link> and useNavigate",
-        "GHSA-337j-9hxr-rhxg — Arbitrary Constructor Injection via deserializeErrors() in SSR hydration"
-      ],
-      "scope": "production — react-router-dom is a direct runtime dependency",
-      "reason": "CVE-2025-68470 is a real open-redirect risk for SPA use. GHSA-337j-9hxr-rhxg only affects SSR hydration (deserializeErrors); this app is a pure SPA (no SSR), so that advisory has no runtime impact. Fix requires react-router-dom@7.18.4 (semver non-major but flagged as breaking by npm audit --force).",
-      "remediation": "Upgrade react-router-dom to 7.18.4. Verify all <Link> usages, useNavigate calls, and router config are compatible with the new version. Run full E2E Playwright suite after upgrade.",
-      "target_date": "2027-01-03",
-      "owner": "frontend-team",
-      "discovered_at": "2026-10-03"
-    }
-  ]
+    "_description": "Known HIGH/CRITICAL vulnerabilities pending major framework upgrades. Each entry must have a tracked remediation and a target_date. Review monthly and remove entries as they are fixed. Adding an entry here means committing to a remediation plan — it is NOT a permanent exemption.",
+    "_sla": {
+        "critical": "7 days",
+        "high": "30 days from discovery; entries here have an approved extension",
+        "moderate": "90 days"
+    },
+    "entries": []
 }
