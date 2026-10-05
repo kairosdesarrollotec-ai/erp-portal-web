@@ -52,7 +52,7 @@ test.describe('ENTREGA-01 Cliente y documentos', () => {
     // Espera que el formulario cargue
     await expect(page.getByLabel(/Licencia de conducir válida/i)).toBeVisible();
 
-    await page.getByLabel(/Licencia de conducir/i).check();
+    await page.getByRole('checkbox', { name: /Licencia de conducir válida/i }).check();
     await page.getByLabel(/DNI válido/i).check();
 
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
@@ -62,14 +62,17 @@ test.describe('ENTREGA-01 Cliente y documentos', () => {
 // ── ENTREGA-02 Stage 2 ─────────────────────────────────────────────────────
 
 test.describe('ENTREGA-02 Validaciones y alcoholímetro', () => {
-  test('muestra RENIEC y MTC como verificados estáticamente', async ({ page }) => {
+  test('muestra RENIEC y MTC con verificación manual por checkbox', async ({ page }) => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-02`);
 
     await expect(page.getByText('RENIEC')).toBeVisible();
     await expect(page.getByText('MTC')).toBeVisible();
-    // Ambas tarjetas muestran "Verificado" (aparece dos veces)
-    expect(await page.getByText('Verificado').count()).toBe(2);
+    // Inician como "Pendiente de verificación"; al marcar cambian a "Verificado"
+    await expect(page.getByText('Pendiente de verificación')).toHaveCount(2);
+    await page.getByLabel(/Confirmar verificación manual/).first().check();
+    await page.getByLabel(/Confirmar verificación manual/).last().check();
+    await expect(page.getByText('Verificado')).toHaveCount(2);
   });
 
   test('Continuar se habilita con resultado Favorable y hora', async ({ page }) => {
@@ -80,7 +83,7 @@ test.describe('ENTREGA-02 Validaciones y alcoholímetro', () => {
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();
 
     await page.getByRole('radio', { name: 'Favorable', exact: true }).check();
-    await page.getByLabel(/Hora de la prueba/i).fill('10:30');
+    await page.getByLabel(/Fecha y hora de la prueba/i).fill('2026-10-05T10:30');
 
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
   });
@@ -106,7 +109,16 @@ test.describe('ENTREGA-03 Garantía y contrato', () => {
     await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
 
     await page.getByLabel(/Monto/i).fill('500');
-    await page.getByLabel(/Firma .* capturada/i).check();
+
+    // SignaturePad usa canvas — simular trazo con eventos de ratón
+    const canvas = page.locator('canvas').first();
+    const box = await canvas.boundingBox();
+    if (box) {
+      await page.mouse.move(box.x + 50, box.y + 50);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 100, box.y + 80);
+      await page.mouse.up();
+    }
 
     await expect(page.getByRole('button', { name: /Formalizar y continuar/i })).toBeEnabled();
   });
@@ -191,7 +203,7 @@ test.describe('Flujo completo asistente de entrega', () => {
 
     // — Stage 1 —
     await expect(page.getByText('Carlos López')).toBeVisible();
-    await page.getByLabel(/Licencia de conducir/i).check();
+    await page.getByRole('checkbox', { name: /Licencia de conducir válida/i }).check();
     await page.getByLabel(/DNI válido/i).check();
     await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -199,14 +211,24 @@ test.describe('Flujo completo asistente de entrega', () => {
     await expect(page).toHaveURL(/entrega-02/);
     await expect(page.getByRole('radio', { name: 'Favorable', exact: true })).toBeVisible();
     await page.getByRole('radio', { name: 'Favorable', exact: true }).check();
-    await page.getByLabel(/Hora de la prueba/i).fill('09:15');
+    await page.getByLabel(/Fecha y hora de la prueba/i).fill('2026-10-05T09:15');
     await page.getByRole('button', { name: 'Continuar' }).click();
 
     // — Stage 3 —
     await expect(page).toHaveURL(/entrega-03/);
     await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
     await page.getByLabel(/Monto/i).fill('500');
-    await page.getByLabel(/Firma .* capturada/i).check();
+
+    // SignaturePad usa canvas — simular trazo con eventos de ratón
+    const canvas3 = page.locator('canvas').first();
+    const box3 = await canvas3.boundingBox();
+    if (box3) {
+      await page.mouse.move(box3.x + 50, box3.y + 50);
+      await page.mouse.down();
+      await page.mouse.move(box3.x + 100, box3.y + 80);
+      await page.mouse.up();
+    }
+
     await page.getByRole('button', { name: /Formalizar y continuar/i }).click();
     // Modal de confirmación
     await page.getByRole('dialog').getByRole('button', { name: /Formalizar/i }).click();
