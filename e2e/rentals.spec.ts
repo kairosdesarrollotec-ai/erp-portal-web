@@ -41,7 +41,7 @@ test.describe('ENTREGA-01 Cliente y documentos', () => {
 
     await expect(page.getByText('Carlos López')).toBeVisible();
     await expect(page.getByText('ABC-123')).toBeVisible();
-    await expect(page.getByText(/Licencia de conducir/i)).toBeVisible();
+    await expect(page.getByLabel(/Licencia de conducir válida/i)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();
   });
 
@@ -50,7 +50,7 @@ test.describe('ENTREGA-01 Cliente y documentos', () => {
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-01`);
 
     // Espera que el formulario cargue
-    await expect(page.getByText(/Licencia de conducir/i)).toBeVisible();
+    await expect(page.getByLabel(/Licencia de conducir válida/i)).toBeVisible();
 
     await page.getByLabel(/Licencia de conducir/i).check();
     await page.getByLabel(/DNI válido/i).check();
