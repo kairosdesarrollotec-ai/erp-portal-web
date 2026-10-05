@@ -33,3 +33,9 @@ Cada entrada: `ID | Fecha | Fuentes en conflicto | Decision | Aprobado por | Alc
 | DEC-ALQ-STG1-001 | 2026-10-03 | Bug 4 frontend — `Stage1DocumentsScreen.tsx` implementa flujo GCS de dos pasos (igual que flota): solicita URL firmada al API, sube directamente a GCS, notifica al backend con la URL resultante. | Claude Code (sesión 2026-10-03) | `apps/web/src/app/rentals/Stage1DocumentsScreen.tsx` |
 | DEC-RES-DOC-001 | 2026-10-03 | Bug 3 frontend — `ReservationDetailScreen.tsx` implementa carga de comprobante de pago/reserva mediante el mismo patrón GCS de dos pasos. | Claude Code (sesión 2026-10-03) | `apps/web/src/app/reservations/ReservationDetailScreen.tsx` |
 
+
+## Upgrade react-router-dom v6 → v7 — sesión 2026-10-05
+
+| ID | Fecha | Decisión | Estado | Alcance afectado |
+|---|---|---|---|---|
+| SEC-RR-UPGRADE-v7 | 2026-10-05 | **Upgrade react-router-dom v6 → v7.18.4 para resolver 2 vulnerabilidades MODERATE (CVE-2025-68470, GHSA-337j-9hxr-rhxg).** CVE-2025-68470 (open redirect via backslash en `<Link>` / `useNavigate`) es explotable en esta SPA. GHSA-337j-9hxr-rhxg (constructor injection vía `deserializeErrors()` en SSR) no aplica a esta SPA, pero se resuelve de paso. La migración fue trivial porque el app ya usaba la API `createBrowserRouter` + `RouterProvider` (v6.4+), idéntica en v7. No se requirió cambio en ningún archivo de código ni de tests. Se añadió `jsdom ^30.1.1` al root `package.json` para corregir un error de resolución de módulo pre-existente (vitest hoisted en root, jsdom solo en `apps/web/node_modules`). Suite completa: 40 archivos, 285 tests ✅. `npm audit`: 0 vulnerabilidades. Entrada `REACT-ROUTER-MODERATE-2026-10-03` eliminada del `audit-allowlist.json`. | RESUELTO — 0 vulnerabilidades. `audit-allowlist.json` sin entradas pendientes | `apps/web/package.json` (react-router-dom ^7.18.4); `package.json` root (jsdom ^30.1.1 añadido); `package-lock.json`; `audit-allowlist.json` (entrada eliminada) |
