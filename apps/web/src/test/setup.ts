@@ -11,6 +11,27 @@ configure({ asyncUtilTimeout: 4000 });
 // las pruebas de accesibilidad (*.a11y.test.tsx).
 expect.extend(toHaveNoViolations);
 
+// jsdom no implementa HTMLCanvasElement.toDataURL ni getContext('2d').
+// Sin este mock, cualquier test que interactúe con SignaturePad imprime
+// "Not implemented: HTMLCanvasElement.prototype.toDataURL" porque jsdom
+// llama not-implemented() antes de que el try/catch del componente pueda
+// interceptarlo.
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.toDataURL = () => 'data:image/png;base64,mock-signature';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (HTMLCanvasElement.prototype as any).getContext = () => ({
+    strokeStyle: '',
+    lineWidth: 0,
+    lineCap: '',
+    lineJoin: '',
+    beginPath: () => {},
+    moveTo: () => {},
+    lineTo: () => {},
+    stroke: () => {},
+    clearRect: () => {},
+  });
+}
+
 // jsdom no implementa window.matchMedia - lo necesitan useMediaQuery
 // (MfaChallengeModal) y cualquier componente que renderice una sola
 // variante segun el viewport. Por defecto "no matchea" (equivalente a
