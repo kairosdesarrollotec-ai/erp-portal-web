@@ -297,3 +297,48 @@ export async function convertInquiryToReservation(
   }
   return data as unknown as ConvertToReservationResult;
 }
+
+/**
+ * CON-04 - "Convertir a Alquiler". Todo alquiler nace de una Consulta.
+ * Contrato esperado (backend en construccion): POST
+ * /inquiries/{id}/commands/convert-to-rental, sin body relevante, headers
+ * `Idempotency-Key` e `If-Match` (version de la consulta), respuesta con el
+ * rental creado (`rental.id`; tambien se acepta el rental en la raiz, con
+ * `id`). Errores de dominio llegan como problem+json (409/412/422).
+ * El path aun no existe en inquiries.generated.ts, de ahi el cast.
+ */
+export interface ConvertToRentalResult {
+  inquiry?: InquirySummary;
+  rental: { id: string; status?: string; version?: number };
+}
+
+export async function convertInquiryToRental(
+  idToken: string,
+  id: string,
+  version: number,
+  companyId: string,
+  branchId: string,
+): Promise<ConvertToRentalResult> {
+  const client = inquiriesApiClient as unknown as {
+    POST: (
+      path: string,
+      init: unknown,
+    ) => Promise<{ data?: unknown; error?: unknown; response: Response }>;
+  };
+  const { data, error, response } = await client.POST('/inquiries/{id}/commands/convert-to-rental', {
+    params: {
+      path: { id },
+      header: { 'If-Match': `"${version}"`, 'Idempotency-Key': crypto.randomUUID() },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: { companyId, branchId },
+  });
+  if (error || !data) {
+    const problem = (error as { code?: string; detail?: string } | null | undefined) ?? null;
+    throw new InquiryCommandError(response.status, problem);
+  }
+  const payload = data as { rental?: ConvertToRentalResult['rental']; id?: string; status?: string; version?: number; inquiry?: InquirySummary };
+  const rental = payload.rental ?? (payload.id ? { id: payload.id, status: payload.status, version: payload.version } : null);
+  if (!rental?.id) throw new InquiryCommandError(response.status, { detail: 'La respuesta no incluyó el alquiler creado.' });
+  return { inquiry: payload.inquiry, rental };
+}

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useRentalsList } from './useRentalsList';
 import { RENTAL_STATUS_LABELS, rentalStageForStatus, rentalWizardPathForStatus } from './rental-status';
 import { AppHeader } from '../shared/AppHeader';
@@ -8,7 +8,9 @@ import styles from './RentalsListScreen.module.css';
  * ALQ-01 - Bandeja de Alquileres. Fuente: PANTALLAS-V3-B-ALQUILER.md.
  * Tabla (desktop) / tarjetas (movil, via CSS) con Cliente, Vehiculo, Etapa,
  * Empresa. El boton "Continuar" por fila lleva directo a la etapa del
- * asistente de Entrega donde se quedo el expediente.
+ * asistente de Entrega donde se quedo el expediente. No hay boton
+ * "Nuevo alquiler": todo alquiler nace de una Consulta (CON-04 ->
+ * "Convertir a Alquiler").
  */
 export function RentalsListScreen() {
   const { state, rentals, context } = useRentalsList();
@@ -35,14 +37,7 @@ export function RentalsListScreen() {
 
   return (
     <main className={styles.wrapper}>
-      <AppHeader
-        pageTitle="Alquileres"
-        actions={
-          <Link to="/alquileres/nuevo" state={context ?? undefined} className={styles.newButton}>
-            Nuevo alquiler
-          </Link>
-        }
-      />
+      <AppHeader pageTitle="Alquileres" />
 
       <div className={styles.content}>
         {state === 'LOADING' && <p className={styles.statusText}>Cargando alquileres…</p>}

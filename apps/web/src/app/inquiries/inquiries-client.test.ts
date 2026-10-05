@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { listInquiries, getInquiry, createInquiry, quoteInquiry, InquiryApiError, InquiryCommandError } from './inquiries-client';
+import { listInquiries, getInquiry, createInquiry, quoteInquiry, convertInquiryToRental, InquiryApiError, InquiryCommandError } from './inquiries-client';
 
 /**
  * Hallazgo de revision PR#11 ("Contexto incompleto" y "Verificacion
@@ -122,5 +122,28 @@ describe('inquiries-client', () => {
     const error = new InquiryCommandError(422, { code: 'BUSINESS_RULE', detail: 'motivo' });
     expect(error.status).toBe(422);
     expect(error.problem?.code).toBe('BUSINESS_RULE');
+  });
+
+  it('convertInquiryToRental hace POST a convert-to-rental con If-Match e Idempotency-Key y devuelve el rental', async () => {
+    const fetchMock = mockFetchOnce(200, { rental: { id: 'rent-1', status: 'DRAFT', version: 1 } });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await convertInquiryToRental('token', 'con-1', 3, 'c1', 'b1');
+
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.method).toBe('POST');
+    expect(request.url).toContain('/inquiries/con-1/commands/convert-to-rental');
+    expect(request.headers.get('If-Match')).toBe('"3"');
+    expect(request.headers.get('Idempotency-Key')).toBeTruthy();
+    expect(result.rental.id).toBe('rent-1');
+  });
+
+  it('convertInquiryToRental propaga el error de dominio como InquiryCommandError', async () => {
+    vi.stubGlobal('fetch', mockFetchOnce(422, { code: 'VEHICLE_NOT_AVAILABLE', detail: 'no disponible' }));
+
+    await expect(convertInquiryToRental('token', 'con-1', 1, 'c1', 'b1')).rejects.toMatchObject({
+      status: 422,
+      problem: { code: 'VEHICLE_NOT_AVAILABLE' },
+    });
   });
 });

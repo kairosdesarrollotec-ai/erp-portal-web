@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
-import { closeInquiry, convertInquiryToReservation, getInquiry, InquiryCommandError, InquiryDetail } from './inquiries-client';
+import { closeInquiry, convertInquiryToReservation, convertInquiryToRental, getInquiry, InquiryCommandError, InquiryDetail } from './inquiries-client';
 import { getCustomer } from '../customers/customers-client';
 import { getVehicle } from '../fleet/fleet-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
@@ -144,6 +144,30 @@ export function useInquiryDetail() {
     }
   }
 
+  /** "Convertir a Alquiler": devuelve el rental creado (id + status) o null. Errores de dominio -> actionError con el detalle del backend. */
+  async function convertToRental() {
+    if (!inquiry || !context) return null;
+    setSaving(true);
+    setActionError(null);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible.');
+      const idToken = await user.getIdToken();
+      const result = await convertInquiryToRental(idToken, inquiry.id, inquiry.version, context.companyId, context.branchId);
+      if (result.inquiry) setInquiry({ ...inquiry, ...result.inquiry });
+      return result.rental;
+    } catch (error) {
+      if (error instanceof InquiryCommandError && (error.status === 412 || (error.status === 409 && !error.problem?.code))) {
+        setState('SYNC_CONFLICT');
+      } else {
+        setActionError(error instanceof Error ? error.message : 'No se pudo convertir la consulta a alquiler.');
+      }
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return {
     id,
     navState,
@@ -157,6 +181,7 @@ export function useInquiryDetail() {
     actionError,
     closeWithoutConversion,
     convertToReservation,
+    convertToRental,
     reload,
   };
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInquiryDetail } from './useInquiryDetail';
 import { INQUIRY_STATUS_LABELS } from './inquiry-status';
+import { rentalWizardPathForStatus } from '../rentals/rental-status';
 import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './InquiryDetailScreen.module.css';
@@ -24,6 +25,11 @@ import styles from './InquiryDetailScreen.module.css';
  * consulta de prospecto sin cliente formal no puede convertirse -
  * `CUSTOMER_REQUIRED_FOR_CONVERSION`, ver decision-log.md NOTA-PR7).
  *
+ * "Convertir a Alquiler" (oct 2026, a pedido de Russbel): junto a "Reservar este
+ * vehiculo" se ofrecen SIEMPRE ambas salidas; todo alquiler pasa por Consulta
+ * (ya no existe "Nuevo alquiler" en ALQ-01). Llama a
+ * `convert-to-rental` y navega al expediente del alquiler creado.
+ *
  * Correccion (oct 2026, a pedido de Russbel):
  * - El vehiculo cotizado se mostraba como UUID crudo - se resuelve ahora
  *   via Flota (ver useInquiryDetail.ts, mismo patron que customerName).
@@ -45,7 +51,7 @@ import styles from './InquiryDetailScreen.module.css';
  *   selector generico Presencial/Virtual.
  */
 export function InquiryDetailScreen() {
-  const { navState, state, inquiry, customerName, vehicleLabel, vehiclePhotoUrl, saving, actionError, closeWithoutConversion, convertToReservation, reload } =
+  const { navState, context, state, inquiry, customerName, vehicleLabel, vehiclePhotoUrl, saving, actionError, closeWithoutConversion, convertToReservation, convertToRental, reload } =
     useInquiryDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
@@ -70,6 +76,15 @@ export function InquiryDetailScreen() {
     const channelMode = canComeToOffice ? 'PRESENCIAL' : 'VIRTUAL';
     const reservationId = await convertToReservation(channelMode, new Date(startAt).toISOString());
     if (reservationId) navigate(`/reservas/${reservationId}`);
+  }
+
+  async function handleConvertToRental() {
+    const rental = await convertToRental();
+    if (rental) {
+      navigate(rentalWizardPathForStatus(rental.id, (rental.status ?? 'DRAFT') as Parameters<typeof rentalWizardPathForStatus>[1]), {
+        state: context ?? undefined,
+      });
+    }
   }
 
   if (state === 'LOADING') {
@@ -206,9 +221,14 @@ export function InquiryDetailScreen() {
           )}
 
           {canReserve && inquiry.customerId && !showReserveForm && (
-            <button type="button" className={styles.primaryButton} onClick={openReserveForm}>
-              Reservar este vehículo
-            </button>
+            <div className={styles.closeActions}>
+              <button type="button" className={styles.primaryButton} onClick={openReserveForm} disabled={saving}>
+                Reservar este vehículo
+              </button>
+              <button type="button" className={styles.primaryButton} onClick={() => void handleConvertToRental()} disabled={saving}>
+                {saving ? 'Convirtiendo…' : 'Convertir a Alquiler'}
+              </button>
+            </div>
           )}
 
           {canReserve && inquiry.customerId && showReserveForm && (

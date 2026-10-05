@@ -23,12 +23,13 @@ test.describe('ALQ-01 Bandeja de alquileres', () => {
     await expect(page.getByText('ABC-123')).toBeVisible();
   });
 
-  test('el enlace Nuevo alquiler lleva a /alquileres/nuevo', async ({ page }) => {
+  test('no existe el enlace Nuevo alquiler (todo alquiler nace de una consulta)', async ({ page }) => {
     await setupTest(page);
     await page.goto('/alquileres');
 
-    await page.getByRole('link', { name: /nuevo alquiler/i }).click();
-    await expect(page).toHaveURL(/\/alquileres\/nuevo/);
+    await expect(page.getByText('Carlos López')).toBeVisible();
+    await expect(page.getByRole('link', { name: /nuevo alquiler/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /nuevo alquiler/i })).toHaveCount(0);
   });
 });
 
