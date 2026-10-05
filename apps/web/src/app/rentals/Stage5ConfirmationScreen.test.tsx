@@ -81,18 +81,25 @@ function makeWizard(overrides?: Record<string, unknown>) {
   };
 }
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 function renderScreen() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MemoryRouter
-      initialEntries={[
-        { pathname: '/alquileres/rent-1/entrega-05', state: baseContext },
-      ]}
-    >
-      <Routes>
-        <Route path="/alquileres/:id/entrega-05" element={<Stage5ConfirmationScreen />} />
-        <Route path="/alquileres" element={<div>bandeja de alquileres</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter
+        initialEntries={[
+          { pathname: '/alquileres/rent-1/entrega-05', state: baseContext },
+        ]}
+      >
+        <Routes>
+          <Route path="/alquileres/:id/entrega-05" element={<Stage5ConfirmationScreen />} />
+          <Route path="/alquileres" element={<div>bandeja de alquileres</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

@@ -81,20 +81,27 @@ function evidenceItem(type: 'PHOTO' | 'VIDEO', i: number) {
   };
 }
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 const CHECKLIST_KEY = 'kairos.alquiler.rent-1.checklist';
 
 function renderScreen() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return render(
-    <MemoryRouter
-      initialEntries={[
-        { pathname: '/alquileres/rent-1/entrega-04', state: baseContext },
-      ]}
-    >
-      <Routes>
-        <Route path="/alquileres/:id/entrega-04" element={<Stage4ChecklistScreen />} />
-        <Route path="/alquileres/:id/entrega-05" element={<div>etapa 5</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter
+        initialEntries={[
+          { pathname: '/alquileres/rent-1/entrega-04', state: baseContext },
+        ]}
+      >
+        <Routes>
+          <Route path="/alquileres/:id/entrega-04" element={<Stage4ChecklistScreen />} />
+          <Route path="/alquileres/:id/entrega-05" element={<div>etapa 5</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

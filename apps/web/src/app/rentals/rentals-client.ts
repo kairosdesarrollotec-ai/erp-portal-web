@@ -11,8 +11,6 @@ type EvaluateNotaryBody = components['schemas']['EvaluateNotaryRequest'];
 type ApproveNotaryExceptionBody = components['schemas']['ApproveNotaryExceptionRequest'];
 type FormalizeContractBody = components['schemas']['FormalizeContractRequest'];
 type CompleteDeliveryBody = components['schemas']['CompleteDeliveryRequest'];
-type RequestEvidenceUploadSessionBody = components['schemas']['RequestEvidenceUploadSessionRequest'];
-type RecordEvidenceBody = components['schemas']['RecordEvidenceRequest'];
 
 /** Error HTTP de lectura (GET) - mismo patron que ReservationApiError. */
 export class RentalApiError extends Error {
@@ -300,6 +298,90 @@ export async function formalizeContract(
   return data as unknown as RentalResponse;
 }
 
+/** UC-ALQ-006 / BR-ALQ-012 - Solicitar ampliacion de alquiler. */
+export async function requestExtension(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  requestedEndAt: string,
+): Promise<RentalResponse> {
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/request-extension', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, requestedEndAt } as never,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
+}
+
+/** UC-ALQ-006 / BR-ALQ-012 - Autorizar ampliacion de alquiler (solo Gerencia). */
+export async function authorizeExtension(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  paymentId?: string,
+  addendumDocumentRef?: string,
+): Promise<RentalResponse> {
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/authorize-extension', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, paymentId, addendumDocumentRef } as never,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
+}
+
+/** UC-ALQ-006 / BR-ALQ-012 - Rechazar ampliacion de alquiler. */
+export async function rejectExtension(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+): Promise<RentalResponse> {
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/reject-extension', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId } as never,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
+}
+
+/** UC-ALQ-006b / BR-ALQ-013 - Reportar falta grave de ampliacion (retiene 100% fianza y marca cliente Rojo). */
+export async function reportExtensionBreach(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  notes?: string,
+): Promise<RentalResponse> {
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/report-extension-breach', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, notes } as never,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
+}
+
 /**
  * ENTREGA-04/05 - confirmacion de entrega (accion irreversible). BR-INS-003/004
  * ya no se valida con photosCount/videosCount (quedan deprecados en el
@@ -326,195 +408,24 @@ export async function completeDelivery(
   return data as unknown as RentalResponse;
 }
 
-// --- ALQ-09 / BR-INS-003/004 - evidencia real (foto/video) de entrega ---
-// Mismo patron de 2 pasos que Fleet (requestPhotoUploadSession +
-// uploadPhotoToGcs en fleet-client.ts): pedir URL firmada, subir directo a
-// GCS, confirmar con un registro en backend.
-
-export type RentalEvidenceType = 'PHOTO' | 'VIDEO';
-export type RentalEvidenceZone = 'FRONTAL' | 'LATERAL_IZQUIERDO' | 'LATERAL_DERECHO' | 'POSTERIOR' | 'INTERIOR';
-export type RentalEvidenceContentType = 'image/jpeg' | 'image/webp' | 'video/mp4' | 'video/webm';
-
-export interface EvidenceUploadSessionResponse {
-  uploadUrl: string;
-  objectUrl: string;
-}
-
-export interface RentalEvidenceResponse {
-  id: string;
-  rentalId: string;
-  type: RentalEvidenceType;
-  zone: RentalEvidenceZone;
-  objectUrl: string;
-  uploadedBy: string;
-  uploadedAt: string;
-}
-
-export class GcsEvidenceUploadError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-  ) {
-    super(message);
-  }
-}
-
-export async function requestEvidenceUploadSession(
-  idToken: string,
-  rentalId: string,
-  companyId: string,
-  branchId: string,
-  type: RentalEvidenceType,
-  zone: RentalEvidenceZone,
-  contentType: RentalEvidenceContentType,
-  contentLength: number,
-): Promise<EvidenceUploadSessionResponse> {
-  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/evidence/upload-url', {
-    params: {
-      path: { id: rentalId },
-      header: { 'Idempotency-Key': crypto.randomUUID() },
-    },
-    headers: { Authorization: `Bearer ${idToken}` },
-    body: { companyId, branchId, type, zone, contentType, contentLength } as unknown as RequestEvidenceUploadSessionBody,
-  });
-  if (error || !data) {
-    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
-    throw new RentalCommandError(response.status, problem);
-  }
-  return data as unknown as EvidenceUploadSessionResponse;
-}
-
-/**
- * Sube el archivo directamente a GCS (no al API KAIROS).
- * Se mantiene como fetch manual: la URL es de GCS, no del API,
- * y no existe un contrato OpenAPI para este destino externo.
- */
-export async function uploadEvidenceToGcs(uploadUrl: string, file: File): Promise<void> {
-  const response = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type },
-    body: file,
-  });
-  if (!response.ok) {
-    throw new GcsEvidenceUploadError(`Error al subir el archivo a GCS (${response.status})`, response.status);
-  }
-}
-
-export async function recordEvidence(
-  idToken: string,
-  rentalId: string,
-  companyId: string,
-  branchId: string,
-  type: RentalEvidenceType,
-  zone: RentalEvidenceZone,
-  objectUrl: string,
-): Promise<RentalEvidenceResponse> {
-  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/evidence', {
-    params: {
-      path: { id: rentalId },
-      header: { 'Idempotency-Key': crypto.randomUUID() },
-    },
-    headers: { Authorization: `Bearer ${idToken}` },
-    body: { companyId, branchId, type, zone, objectUrl } as unknown as RecordEvidenceBody,
-  });
-  if (error || !data) {
-    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
-    throw new RentalCommandError(response.status, problem);
-  }
-  return data as unknown as RentalEvidenceResponse;
-}
-
-export async function listRentalEvidence(
-  idToken: string,
-  rentalId: string,
-  companyId: string,
-  branchId: string,
-): Promise<RentalEvidenceResponse[]> {
-  const { data, error, response } = await rentalsApiClient.GET('/rentals/{id}/evidence', {
-    params: { path: { id: rentalId }, query: { companyId, branchId } },
-    headers: { Authorization: `Bearer ${idToken}` },
-  });
-  if (error || !data) {
-    throw new RentalApiError(response.status);
-  }
-  return data as unknown as RentalEvidenceResponse[];
-}
-
-export type RentalDocumentType = 'LICENSE' | 'ID_DOCUMENT' | 'PROOF_OF_ADDRESS' | 'BANK_STATEMENT' | 'OTHER';
-export type RentalDocumentContentType = 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf';
-
-export interface RentalDocumentRecord {
-  id: string;
-  rentalId: string;
-  documentType: RentalDocumentType;
-  objectUrl: string;
-  createdAt: string;
-}
-
-export async function requestRentalDocumentUploadSession(
-  idToken: string,
-  rentalId: string,
-  companyId: string,
-  branchId: string,
-  documentType: RentalDocumentType,
-  contentType: RentalDocumentContentType,
-  contentLength: number,
-): Promise<{ uploadUrl: string; objectUrl: string }> {
-  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/documents/upload-url', {
-    params: { path: { id: rentalId } },
-    headers: { Authorization: `Bearer ${idToken}` },
-    body: { companyId, branchId, documentType, contentType, contentLength } as never,
-  });
-  if (error || !data) {
-    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
-    throw new RentalCommandError(response.status, problem);
-  }
-  return data as unknown as { uploadUrl: string; objectUrl: string };
-}
-
-export async function uploadFileToGcs(uploadUrl: string, file: File): Promise<void> {
-  const res = await fetch(uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': file.type },
-    body: file,
-  });
-  if (!res.ok) {
-    throw new GcsEvidenceUploadError(`Error al subir el archivo a GCS (${res.status})`, res.status);
-  }
-}
-
-export async function recordRentalDocument(
-  idToken: string,
-  rentalId: string,
-  companyId: string,
-  branchId: string,
-  documentType: RentalDocumentType,
-  objectUrl: string,
-): Promise<RentalDocumentRecord> {
-  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/documents', {
-    params: { path: { id: rentalId } },
-    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-    body: { companyId, branchId, documentType, objectUrl } as never,
-  });
-  if (error || !data) {
-    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
-    throw new RentalCommandError(response.status, problem);
-  }
-  return data as unknown as RentalDocumentRecord;
-}
-
-export async function listRentalDocuments(
-  idToken: string,
-  rentalId: string,
-  companyId: string,
-  branchId: string,
-): Promise<RentalDocumentRecord[]> {
-  const { data, error, response } = await rentalsApiClient.GET('/rentals/{id}/documents', {
-    params: { path: { id: rentalId }, query: { companyId, branchId } },
-    headers: { Authorization: `Bearer ${idToken}` },
-  });
-  if (error || !data) {
-    throw new RentalApiError(response.status);
-  }
-  return data as unknown as RentalDocumentRecord[];
-}
+// --- ALQ-09 / BR-INS-003/004 - evidencia y documentos de alquiler ---
+// Exportados desde rentals-documents-client.ts para cumplir con File Size Pattern (<500 líneas).
+export {
+  type RentalEvidenceType,
+  type RentalEvidenceZone,
+  type RentalEvidenceContentType,
+  type EvidenceUploadSessionResponse,
+  type RentalEvidenceResponse,
+  GcsEvidenceUploadError,
+  requestEvidenceUploadSession,
+  uploadEvidenceToGcs,
+  recordEvidence,
+  listRentalEvidence,
+  type RentalDocumentType,
+  type RentalDocumentContentType,
+  type RentalDocumentRecord,
+  requestRentalDocumentUploadSession,
+  uploadFileToGcs,
+  recordRentalDocument,
+  listRentalDocuments,
+} from './rentals-documents-client';

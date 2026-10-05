@@ -19,6 +19,10 @@ vi.mock('../providers/firebase', () => ({
   }),
 }));
 
+const requestReservationDocumentUploadSessionMock = vi.fn();
+const uploadReservationFileToGcsMock = vi.fn();
+const recordReservationDocumentMock = vi.fn();
+
 vi.mock('./reservations-client', async () => {
   const actual = await vi.importActual<typeof import('./reservations-client')>('./reservations-client');
   return {
@@ -28,6 +32,9 @@ vi.mock('./reservations-client', async () => {
     registerDocuments: (...args: unknown[]) => registerDocumentsMock(...args),
     confirmReservation: (...args: unknown[]) => confirmReservationMock(...args),
     cancelReservation: (...args: unknown[]) => cancelReservationMock(...args),
+    requestReservationDocumentUploadSession: (...args: unknown[]) => requestReservationDocumentUploadSessionMock(...args),
+    uploadReservationFileToGcs: (...args: unknown[]) => uploadReservationFileToGcsMock(...args),
+    recordReservationDocument: (...args: unknown[]) => recordReservationDocumentMock(...args),
   };
 });
 
@@ -85,15 +92,24 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
 
   it('al completar ambos requisitos habilita "Confirmar reserva" y no antes', async () => {
     getReservationMock.mockResolvedValue(buildReservation());
+    requestReservationDocumentUploadSessionMock.mockResolvedValue({
+      uploadUrl: 'https://storage.googleapis.com/upload',
+      objectUrl: 'gs://bucket/voucher.png',
+      expiresAt: '2026-09-16T01:00:00Z',
+    });
+    uploadReservationFileToGcsMock.mockResolvedValue(undefined);
+    recordReservationDocumentMock.mockResolvedValue(undefined);
     registerPaymentMock.mockResolvedValue(
       buildReservation({ requirements: { paymentValidatedAt: '2026-09-16T00:00:00Z', documentsCompletedAt: null } }),
     );
-    renderScreen();
+    const { container } = renderScreen();
 
     await screen.findByText('Borrador / No confirmada');
     expect(screen.queryByText('Confirmar reserva')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByText('Subir')[0]);
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['voucher'], 'voucher.png', { type: 'image/png' });
+    fireEvent.change(fileInput, { target: { files: [file] } });
 
     expect(await screen.findByText(/confirma automáticamente/)).toBeInTheDocument();
     expect(registerPaymentMock).toHaveBeenCalledWith('fake-id-token', 'res-1', 'c1', 'b1', 1);

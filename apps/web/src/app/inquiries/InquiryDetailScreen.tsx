@@ -69,7 +69,7 @@ export function InquiryDetailScreen() {
     if (!startAt || canComeToOffice === null) return;
     const channelMode = canComeToOffice ? 'PRESENCIAL' : 'VIRTUAL';
     const reservationId = await convertToReservation(channelMode, new Date(startAt).toISOString());
-    if (reservationId) navigate('/reservas');
+    if (reservationId) navigate(`/reservas/${reservationId}`);
   }
 
   if (state === 'LOADING') {

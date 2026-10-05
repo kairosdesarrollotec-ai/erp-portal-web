@@ -138,7 +138,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
 
     expect(screen.getByText('Notaría obligatoria')).toBeInTheDocument();
     expect(screen.getByText(/BR-ALQ-003/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Firma \/ huella del cliente/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Área de firma digital/)).toBeInTheDocument();
   });
 
   it('"Formalizar y continuar" está deshabilitado sin firma ni monto', () => {
@@ -202,7 +202,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
-    fireEvent.click(screen.getByLabelText(/Firma \/ huella del cliente/));
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     fireEvent.change(screen.getByLabelText(/Monto \(PEN\)/), { target: { value: '500' } });
 
     expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).not.toBeDisabled();
@@ -214,7 +214,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
-    fireEvent.click(screen.getByLabelText(/Firma \/ huella del cliente/));
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     fireEvent.change(screen.getByLabelText(/Monto \(PEN\)/), { target: { value: '500' } });
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
 
@@ -236,7 +236,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
 
     renderScreen();
 
-    fireEvent.click(screen.getByLabelText(/Firma \/ huella del cliente/));
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     fireEvent.change(screen.getByLabelText(/Monto \(PEN\)/), { target: { value: '500' } });
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
@@ -256,7 +256,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
 
     renderScreen();
 
-    fireEvent.click(screen.getByLabelText(/Firma \/ huella del cliente/));
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     fireEvent.change(screen.getByLabelText(/Monto \(PEN\)/), { target: { value: '500' } });
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
