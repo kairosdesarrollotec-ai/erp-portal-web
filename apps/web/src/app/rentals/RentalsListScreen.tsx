@@ -15,7 +15,22 @@ export function RentalsListScreen() {
   const navigate = useNavigate();
 
   function openRental(rental: (typeof rentals)[number]) {
+    // ACTIVE ya no pertenece al asistente de Entrega: el alquiler en curso se
+    // devuelve desde el modulo Devolucion (ALQ-10 -> DEV-02/DEV-01).
+    if (rental.status === 'RETURN_IN_PROGRESS') {
+      navigate('/devoluciones', { state: context ?? undefined });
+      return;
+    }
+    if (rental.status === 'ACTIVE') {
+      startReturn(rental);
+      return;
+    }
     navigate(rentalWizardPathForStatus(rental.id, rental.status), { state: context ?? undefined });
+  }
+
+  /** ALQ-10 -> DEV-02: "Iniciar devolucion" en 1 accion (PANTALLAS-V3-B-DEVOLUCION.md). */
+  function startReturn(rental: (typeof rentals)[number]) {
+    navigate(`/devoluciones/recepcion/${rental.id}`, { state: context ?? undefined });
   }
 
   return (
@@ -73,18 +88,47 @@ export function RentalsListScreen() {
                       </td>
                       <td data-label="Empresa">{context?.companyName ?? '—'}</td>
                       <td>
-                        {rental.status !== 'CLOSED' && rental.status !== 'CANCELLED' && (
+                        {rental.status === 'ACTIVE' && (
                           <button
                             type="button"
                             className={styles.continueButton}
+                            aria-label={`Iniciar devolución de ${rental.vehiclePlate}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              startReturn(rental);
+                            }}
+                          >
+                            Iniciar devolución
+                          </button>
+                        )}
+                        {rental.status === 'RETURN_IN_PROGRESS' && (
+                          <button
+                            type="button"
+                            className={styles.continueButton}
+                            aria-label={`Continuar devolución de ${rental.vehiclePlate}`}
                             onClick={(event) => {
                               event.stopPropagation();
                               openRental(rental);
                             }}
                           >
-                            Continuar
+                            Continuar devolución
                           </button>
                         )}
+                        {rental.status !== 'CLOSED' &&
+                          rental.status !== 'CANCELLED' &&
+                          rental.status !== 'ACTIVE' &&
+                          rental.status !== 'RETURN_IN_PROGRESS' && (
+                            <button
+                              type="button"
+                              className={styles.continueButton}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openRental(rental);
+                              }}
+                            >
+                              Continuar
+                            </button>
+                          )}
                       </td>
                     </tr>
                   );

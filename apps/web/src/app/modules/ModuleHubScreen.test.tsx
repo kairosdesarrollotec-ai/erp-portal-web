@@ -72,6 +72,12 @@ describe('ModuleHubScreen', () => {
     expect(screen.queryByText('Admin')).toBeNull();
   });
 
+  it('muestra Devoluciones como link navegable a /devoluciones', () => {
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
+    renderHub();
+    expect(screen.getByRole('link', { name: /devoluciones/i }).getAttribute('href')).toBe('/devoluciones');
+  });
+
   it('muestra Tablero, Consultas, Reservas, Clientes y Flota como links navegables', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
     renderHub();
@@ -91,11 +97,11 @@ describe('ModuleHubScreen', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
     renderHub();
     const badges = screen.getAllByText(/próximamente/i);
-    // 5 módulos sin ruta implementada (Devoluciones, Pagos, Incidentes,
-    // Personal, Reportes) = 5 sin admin. Alquileres salió de esta lista
-    // en esta misma sesión (module-definitions.tsx, path: '/alquileres'
-    // en vez de null) - el modulo ya esta construido y mergeado.
-    expect(badges.length).toBe(5);
+    // 4 módulos sin ruta implementada (Pagos, Incidentes, Personal,
+    // Reportes) = 4 sin admin. Alquileres y Devoluciones salieron de esta
+    // lista (module-definitions.tsx, path: '/alquileres' y '/devoluciones'
+    // en vez de null) - ambos modulos ya estan construidos.
+    expect(badges.length).toBe(4);
   });
 
   it('muestra el label de sede en el header', () => {
