@@ -110,7 +110,7 @@ export async function listReturns(
         ...(options.status ? { status: options.status } : {}),
         ...(options.limit !== undefined ? { limit: options.limit } : {}),
         ...(options.cursor ? { cursorCreatedAt: options.cursor.createdAt, cursorId: options.cursor.id } : {}),
-      } as Record<string, unknown>,
+      },
     },
     headers: authHeaders(idToken),
   });
@@ -189,7 +189,7 @@ export async function registerReturnAlcoholTest(
   notes?: string,
 ): Promise<ReturnResponse> {
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/register-alcohol-test', {
-    params: { path: { id } },
+    params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
     body: { companyId, branchId, result, ...(notes ? { notes } : {}) } as unknown as never,
   });
@@ -210,7 +210,7 @@ export async function completeInspection(
 ): Promise<ReturnResponse> {
   const { responsibilityDocument: doc } = input;
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/complete-inspection', {
-    params: { path: { id } },
+    params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
     body: {
       companyId,
@@ -242,7 +242,7 @@ export async function resolveAlcoholEscalation(
   input: ResolveAlcoholEscalationInput,
 ): Promise<ReturnResponse> {
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/resolve-alcohol-escalation', {
-    params: { path: { id } },
+    params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
     body: {
       companyId,
@@ -268,7 +268,7 @@ export async function assessDamage(
   input: AssessDamageInput,
 ): Promise<ReturnDamageResponse> {
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/assess-damage', {
-    params: { path: { id } },
+    params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
     body: { companyId, branchId, ...input } as unknown as never,
   });
@@ -288,7 +288,7 @@ export async function chargeImmobilization(
   input: { damageId?: string; daysCharged: number; notes?: string },
 ): Promise<ImmobilizationChargeResponse> {
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/charge-immobilization', {
-    params: { path: { id } },
+    params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
     body: { companyId, branchId, ...input } as unknown as never,
   });
@@ -321,7 +321,7 @@ export async function closeFinancial(
   notes?: string,
 ): Promise<ReturnResponse> {
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/close-financial', {
-    params: { path: { id } },
+    params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
     body: {
       companyId,
@@ -347,7 +347,7 @@ export async function closeReturn(
   input: { signatureData?: string; generateWarrantyAct?: boolean; notes?: string },
 ): Promise<ReturnResponse> {
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/close', {
-    params: { path: { id } },
+    params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
     body: { companyId, branchId, ...input } as unknown as never,
   });
@@ -372,7 +372,7 @@ export async function requestReturnEvidenceUploadSession(
   contentLength: number,
 ): Promise<ReturnEvidenceUploadSession> {
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/evidence/upload-url', {
-    params: { path: { id } },
+    params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken),
     body: { companyId, branchId, type, zone, contentType, contentLength } as unknown as never,
   });
@@ -404,7 +404,7 @@ export async function recordReturnEvidence(
   objectUrl: string,
 ): Promise<ReturnEvidenceResponse> {
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/evidence', {
-    params: { path: { id } },
+    params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken),
     body: { companyId, branchId, type, zone, objectUrl } as unknown as never,
   });

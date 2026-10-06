@@ -29,7 +29,8 @@ const DOC = { signerName: 'Maria Quispe', signerIsHolder: true, signatureData: '
 const server = setupServer();
 
 beforeAll(() => {
-  server.listen({ onUnhandledRequest: 'error' });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  server.listen({ onUnhandledRequest: 'error' } as any);
   vi.stubGlobal('crypto', { randomUUID: () => 'fixed-uuid' });
 });
 afterEach(() => server.resetHandlers());
