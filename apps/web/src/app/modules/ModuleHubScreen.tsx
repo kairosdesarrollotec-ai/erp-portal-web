@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useModuleHub } from './useModuleHub';
 import { AppHeader } from '../shared/AppHeader';
 import { MODULE_ITEMS } from './module-definitions';
+import { isModuleVisible } from './module-visibility';
 import styles from './ModuleHubScreen.module.css';
 
 /**
@@ -23,10 +24,7 @@ import styles from './ModuleHubScreen.module.css';
 export function ModuleHubScreen() {
   const { state, role } = useModuleHub();
 
-  const visibleModules = MODULE_ITEMS.filter((m) => {
-    if (m.adminOnly) return role === 'ADMINISTRACION';
-    return true;
-  });
+  const visibleModules = MODULE_ITEMS.filter((m) => isModuleVisible(m, role));
 
   return (
     <main className={styles.wrapper}>

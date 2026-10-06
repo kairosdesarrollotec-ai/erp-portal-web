@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeftRight, LogOut, X } from 'lucide-react';
 import { MODULE_ITEMS } from '../modules/module-definitions';
+import { isModuleVisible } from '../modules/module-visibility';
 import { useWorkSession } from './useWorkSession';
 import { useSignOut } from './useSignOut';
 import styles from './AppSidebar.module.css';
@@ -16,10 +17,7 @@ export function AppSidebar() {
   const { role, sidebarOpen, setSidebarOpen } = useWorkSession();
   const handleSignOut = useSignOut();
 
-  const visibleItems = MODULE_ITEMS.filter((m) => {
-    if (m.adminOnly) return role === null || role === 'ADMINISTRACION';
-    return true;
-  });
+  const visibleItems = MODULE_ITEMS.filter((m) => isModuleVisible(m, role, true));
 
   return (
     <>

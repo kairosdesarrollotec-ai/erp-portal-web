@@ -97,11 +97,23 @@ describe('ModuleHubScreen', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
     renderHub();
     const badges = screen.getAllByText(/próximamente/i);
-    // 4 módulos sin ruta implementada (Pagos, Incidentes, Personal,
-    // Reportes) = 4 sin admin. Alquileres y Devoluciones salieron de esta
-    // lista (module-definitions.tsx, path: '/alquileres' y '/devoluciones'
-    // en vez de null) - ambos modulos ya estan construidos.
-    expect(badges.length).toBe(4);
+    // 3 módulos sin ruta implementada (Pagos, Personal, Reportes) = 3 sin
+    // admin. Alquileres, Devoluciones e Incidencias salieron de esta lista
+    // (module-definitions.tsx, path en vez de null) - ya estan construidos.
+    expect(badges.length).toBe(3);
+  });
+
+  it('Incidencias es un módulo habilitado que lleva a /incidencias', () => {
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
+    renderHub();
+    const link = screen.getByRole('link', { name: 'Incidencias' });
+    expect(link.getAttribute('href')).toBe('/incidencias');
+  });
+
+  it('Incidencias se oculta a roles sin permiso de lectura (RRHH)', () => {
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'RRHH' });
+    renderHub();
+    expect(screen.queryByRole('link', { name: 'Incidencias' })).toBeNull();
   });
 
   it('muestra el label de sede en el header', () => {

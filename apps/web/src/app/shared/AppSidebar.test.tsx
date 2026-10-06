@@ -63,4 +63,22 @@ describe('AppSidebar', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/');
     });
   });
+
+  it('muestra el ítem Incidencias según permiso: visible para Front Office, oculto para RR. HH.', () => {
+    const { unmount } = render(
+      <MemoryRouter>
+        <AppSidebar />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: /Incidencias/ })).toHaveAttribute('href', '/incidencias');
+    unmount();
+
+    useWorkSession.setState({ role: 'RRHH', sidebarOpen: true });
+    render(
+      <MemoryRouter>
+        <AppSidebar />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: /Incidencias/ })).toBeNull();
+  });
 });
