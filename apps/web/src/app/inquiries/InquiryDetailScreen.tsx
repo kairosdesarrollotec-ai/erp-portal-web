@@ -225,9 +225,17 @@ export function InquiryDetailScreen() {
               <button type="button" className={styles.primaryButton} onClick={openReserveForm} disabled={saving}>
                 Reservar este vehículo
               </button>
-              <button type="button" className={styles.primaryButton} onClick={() => void handleConvertToRental()} disabled={saving}>
-                {saving ? 'Convirtiendo…' : 'Convertir a Alquiler'}
-              </button>
+              {can('INQUIRY', 'CONVERT') && (
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={() => void handleConvertToRental()}
+                  disabled={saving}
+                  aria-busy={saving}
+                >
+                  {saving ? 'Convirtiendo…' : 'Convertir a Alquiler'}
+                </button>
+              )}
             </div>
           )}
 

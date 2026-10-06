@@ -84,7 +84,7 @@ test.describe('Convertir consulta a alquiler (CON-04)', () => {
       const headers = route.request().headers();
       convertRequest = { method: route.request().method(), ifMatch: headers['if-match'] ?? null, idempotency: headers['idempotency-key'] ?? null };
       return route.fulfill({
-        status: 201,
+        status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ rental: { ...RENTAL_FIXTURE, id: 'rent-e2e-001' } }),
       });
