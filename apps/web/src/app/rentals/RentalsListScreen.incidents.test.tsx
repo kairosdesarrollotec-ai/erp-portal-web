@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route, useLocation, useSearchParams } from 'react-router-dom';
 import { RentalsListScreen } from './RentalsListScreen';
-import { useWorkSession } from '../shared/useWorkSession';
+import { setPermissions, INCIDENT_ALL } from '../../test/permissions';
 
 const listRentalsMock = vi.fn();
 
@@ -48,7 +48,7 @@ function renderScreen() {
 describe('RentalsListScreen - acceso a Incidencias (ALQ-10 -> INC-01)', () => {
   beforeEach(() => {
     listRentalsMock.mockReset();
-    useWorkSession.setState({ role: 'FRONT_OFFICE' });
+    setPermissions(INCIDENT_ALL);
   });
 
   it('un alquiler ACTIVE ofrece "Ver/Registrar incidencias" que lleva a /incidencias?rentalId= conservando el contexto', async () => {
@@ -59,14 +59,14 @@ describe('RentalsListScreen - acceso a Incidencias (ALQ-10 -> INC-01)', () => {
     expect(await screen.findByText('bandeja de incidencias rentalId=rent-1 ctx=c1')).toBeInTheDocument();
   });
 
-  it('un alquiler en borrador no ofrece el enlace, ni un rol sin permiso de lectura', async () => {
+  it('un alquiler en borrador no ofrece el enlace, ni quien no tiene INCIDENT.VIEW', async () => {
     listRentalsMock.mockResolvedValue([{ ...baseRental, id: 'rent-2', status: 'DRAFT' }]);
     const { unmount } = renderScreen();
     await screen.findByText('Maria Quispe');
     expect(screen.queryByRole('link', { name: /incidencias/i })).toBeNull();
     unmount();
 
-    useWorkSession.setState({ role: 'RRHH' });
+    setPermissions([]);
     listRentalsMock.mockResolvedValue([{ ...baseRental, id: 'rent-3', status: 'ACTIVE' }]);
     renderScreen();
     await screen.findByText('Maria Quispe');

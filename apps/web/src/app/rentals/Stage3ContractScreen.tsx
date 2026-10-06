@@ -9,7 +9,7 @@ import {
   RentalCommandError,
   NotaryEvaluationResponse,
 } from './rentals-client';
-import { useWorkSession } from '../shared/useWorkSession';
+import { usePermissions } from '../shared/usePermissions';
 import { SignaturePad } from '../shared/SignaturePad';
 import styles from './RentalStageForms.module.css';
 
@@ -29,8 +29,9 @@ const NOTARY_RESULT_LABELS: Record<string, string> = {
 export function Stage3ContractScreen() {
   const { id, state, rental, context, getIdToken, setRental } = useRentalWizard();
   const navigate = useNavigate();
-  const role = useWorkSession((s) => s.role);
-  const isGerencia = role === 'GERENCIA' || role === 'PLATFORM_ADMIN';
+  // Aprobar la excepcion notarial es un permiso explicito (RENTAL.APPROVE_NOTARY_EXCEPTION), no un rol.
+  const { can } = usePermissions();
+  const canApproveNotaryException = can('RENTAL', 'APPROVE_NOTARY_EXCEPTION');
 
   const [evaluation, setEvaluation] = useState<NotaryEvaluationResponse | null>(rental?.notaryEvaluation ?? null);
   const [justification, setJustification] = useState('');
@@ -163,12 +164,12 @@ export function Stage3ContractScreen() {
               rows={3}
             />
           </label>
-          {isGerencia ? (
+          {canApproveNotaryException ? (
             <button type="button" className={styles.retryButton} onClick={handleApproveException} disabled={busy}>
               Aprobar excepción
             </button>
           ) : (
-            <p className={styles.blockedNotice}>Solo Gerencia puede aprobar o rechazar esta excepción.</p>
+            <p className={styles.blockedNotice}>No tienes permiso para aprobar o rechazar esta excepción notarial.</p>
           )}
         </fieldset>
       )}

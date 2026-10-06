@@ -10,6 +10,7 @@ import { ReturnCommandError } from './returns-client';
 import { loadDamageSelection, saveDamageSelection, EMPTY_DAMAGE_SELECTION } from './return-session-draft';
 import { clearCosmeticTariffCache } from './useCosmeticTariff';
 import { useWorkSession } from '../shared/useWorkSession';
+import { roleRef } from '../../test/permissions';
 
 const flowMock = vi.fn();
 const assessDamageMock = vi.fn();
@@ -107,7 +108,7 @@ describe('DamageSeverityScreen (DEV-06)', () => {
   });
 
   it('un rol sin permiso (Front-office) ve el aviso y no puede continuar', () => {
-    useWorkSession.getState().setRole('FRONT_OFFICE');
+    useWorkSession.getState().setRole(roleRef('FRONT_OFFICE'));
     flowMock.mockReturnValue(makeFlow({ ret: conDanos() }));
     mount();
     expect(screen.getByText(/Solo Administración o Gerencia/)).toBeInTheDocument();

@@ -5,7 +5,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IncidentsListScreen } from './IncidentsListScreen';
 import { IncidentCommandError } from './incidents-client';
 import { baseContext, makeDetail, makeIncident, setupUser } from './test-utils';
-import { useWorkSession } from '../shared/useWorkSession';
+import { setPermissions, INCIDENT_ALL, INCIDENT_VIEW_ONLY } from '../../test/permissions';
 
 const listIncidentsMock = vi.fn();
 const resolveIncidentMock = vi.fn();
@@ -64,7 +64,7 @@ describe('IncidentsListScreen (INC-01)', () => {
     listRentalsMock.mockResolvedValue([]);
     listReturnsMock.mockResolvedValue([]);
     sessionStorage.clear();
-    useWorkSession.setState({ role: 'FRONT_OFFICE' });
+    setPermissions(INCIDENT_ALL);
   });
 
   it('muestra la tabla con tipo, severidad, expediente, estado y responsable', async () => {
@@ -258,8 +258,8 @@ describe('IncidentsListScreen (INC-01)', () => {
     expect(screen.queryByRole('button', { name: 'Cargar más' })).toBeNull();
   });
 
-  it('oculta "Registrar incidencia" y "Resolver" a roles de solo lectura (Auditoria)', async () => {
-    useWorkSession.setState({ role: 'AUDITORIA' });
+  it('oculta "Registrar incidencia" y "Resolver" a quien solo tiene INCIDENT.VIEW', async () => {
+    setPermissions(INCIDENT_VIEW_ONLY);
     listIncidentsMock.mockResolvedValue([leve]);
     renderScreen();
     await screen.findByRole('table');

@@ -3,6 +3,7 @@ import { ArrowLeftRight, LogOut, X } from 'lucide-react';
 import { MODULE_ITEMS } from '../modules/module-definitions';
 import { isModuleVisible } from '../modules/module-visibility';
 import { useWorkSession } from './useWorkSession';
+import { usePermissions } from './usePermissions';
 import { useSignOut } from './useSignOut';
 import styles from './AppSidebar.module.css';
 
@@ -14,10 +15,11 @@ function isModuleActive(modulePath: string | null, currentPath: string): boolean
 
 export function AppSidebar() {
   const location = useLocation();
-  const { role, sidebarOpen, setSidebarOpen } = useWorkSession();
+  const { sidebarOpen, setSidebarOpen } = useWorkSession();
+  const { can, status: permissionsStatus } = usePermissions();
   const handleSignOut = useSignOut();
 
-  const visibleItems = MODULE_ITEMS.filter((m) => isModuleVisible(m, role, true));
+  const visibleItems = MODULE_ITEMS.filter((m) => isModuleVisible(m, can));
 
   return (
     <>
@@ -32,6 +34,8 @@ export function AppSidebar() {
       <nav
         className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}
         aria-label="Módulos del sistema"
+        // Estado de carga de los permisos: lo usan los e2e para saber cuando es seguro afirmar que algo NO se muestra.
+        data-permissions-status={permissionsStatus}
       >
         <div className={styles.sidebarHeader}>
           <span className={styles.sidebarTitle}>Módulos</span>

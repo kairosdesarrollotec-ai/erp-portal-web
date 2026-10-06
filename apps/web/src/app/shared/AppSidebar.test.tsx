@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
 import { useWorkSession } from './useWorkSession';
+import { clearPermissions, setPermissions, INCIDENT_VIEW_ONLY } from '../../test/permissions';
 
 const signOutMock = vi.fn();
 const mockNavigate = vi.fn();
@@ -31,7 +32,9 @@ vi.mock('../providers/firebase', () => ({
 describe('AppSidebar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useWorkSession.setState({ role: 'FRONT_OFFICE', sidebarOpen: true });
+    clearPermissions();
+    setPermissions(INCIDENT_VIEW_ONLY);
+    useWorkSession.setState({ sidebarOpen: true });
     signOutMock.mockResolvedValue(undefined);
   });
 
@@ -64,7 +67,7 @@ describe('AppSidebar', () => {
     });
   });
 
-  it('muestra el ítem Incidencias según permiso: visible para Front Office, oculto para RR. HH.', () => {
+  it('muestra el ítem Incidencias según permiso INCIDENT.VIEW', () => {
     const { unmount } = render(
       <MemoryRouter>
         <AppSidebar />
@@ -73,12 +76,31 @@ describe('AppSidebar', () => {
     expect(screen.getByRole('link', { name: /Incidencias/ })).toHaveAttribute('href', '/incidencias');
     unmount();
 
-    useWorkSession.setState({ role: 'RRHH', sidebarOpen: true });
+    setPermissions([]);
     render(
       <MemoryRouter>
         <AppSidebar />
       </MemoryRouter>,
     );
     expect(screen.queryByRole('link', { name: /Incidencias/ })).toBeNull();
+  });
+
+  it('el ítem Admin aparece solo con algún permiso ADMIN.* y no mientras los permisos cargan', () => {
+    clearPermissions();
+    const { unmount } = render(
+      <MemoryRouter>
+        <AppSidebar />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: /Admin/ })).toBeNull();
+    unmount();
+
+    setPermissions(['ADMIN.MANAGE_PERMISSIONS']);
+    render(
+      <MemoryRouter>
+        <AppSidebar />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: /Admin/ })).toHaveAttribute('href', '/admin/usuarios');
   });
 });

@@ -7,6 +7,7 @@ import { AlcoholTestScreen } from './AlcoholTestScreen';
 import { baseContext, makeFlow, makeReturn, problem } from './test-utils';
 import { ReturnCommandError } from './returns-client';
 import { useWorkSession } from '../shared/useWorkSession';
+import { roleRef } from '../../test/permissions';
 
 const getRentalMock = vi.fn();
 const receiveProvisionalMock = vi.fn();
@@ -251,7 +252,7 @@ describe('AlcoholTestScreen (DEV-03) - decision de Gerencia', () => {
   });
 
   it('quien no es Gerencia ve "Pendiente de decisión de Gerencia" y no ve el formulario ni el boton de decision', () => {
-    useWorkSession.getState().setRole('ADMINISTRACION');
+    useWorkSession.getState().setRole(roleRef('ADMINISTRACION'));
     flowMock.mockReturnValue(makeFlow({ ret: escalated() }));
     renderAlcohol();
     expect(screen.getByRole('status')).toHaveTextContent('Pendiente de decisión de Gerencia');
@@ -260,7 +261,7 @@ describe('AlcoholTestScreen (DEV-03) - decision de Gerencia', () => {
   });
 
   it('quien no es Gerencia ve tambien la decision previa KEEP_IN_CUSTODY', () => {
-    useWorkSession.getState().setRole('CAMPO');
+    useWorkSession.getState().setRole(roleRef('CAMPO'));
     flowMock.mockReturnValue(
       makeFlow({
         ret: escalated({
@@ -281,7 +282,7 @@ describe('AlcoholTestScreen (DEV-03) - decision de Gerencia', () => {
   });
 
   it('Gerencia ve el formulario: casilla de cliente rojo sugerida activada, notas obligatorias (min 5) y confirmacion reforzada', async () => {
-    useWorkSession.getState().setRole('GERENCIA');
+    useWorkSession.getState().setRole(roleRef('GERENCIA'));
     const setRet = vi.fn();
     flowMock.mockReturnValue(makeFlow({ ret: escalated(), setRet }));
     resolveEscalationMock.mockResolvedValue(
@@ -319,7 +320,7 @@ describe('AlcoholTestScreen (DEV-03) - decision de Gerencia', () => {
   });
 
   it('CONTINUE_TO_INSPECTION (sin marcar rojo) pasa a INSPECCION y lleva al checklist', async () => {
-    useWorkSession.getState().setRole('GERENCIA');
+    useWorkSession.getState().setRole(roleRef('GERENCIA'));
     flowMock.mockReturnValue(makeFlow({ ret: escalated() }));
     resolveEscalationMock.mockResolvedValue(makeReturn({ status: 'INSPECCION', alcoholTestResult: 'DESFAVORABLE' }));
     renderAlcohol();
@@ -341,7 +342,7 @@ describe('AlcoholTestScreen (DEV-03) - decision de Gerencia', () => {
   });
 
   it('un 412 en la decision recarga el expediente y avisa en lenguaje de negocio', async () => {
-    useWorkSession.getState().setRole('GERENCIA');
+    useWorkSession.getState().setRole(roleRef('GERENCIA'));
     const reload = vi.fn().mockResolvedValue(undefined);
     flowMock.mockReturnValue(makeFlow({ ret: escalated(), reload }));
     resolveEscalationMock.mockRejectedValueOnce(new ReturnCommandError(412, { code: 'RETURN_VERSION_CONFLICT' }));
@@ -355,12 +356,12 @@ describe('AlcoholTestScreen (DEV-03) - decision de Gerencia', () => {
   });
 
   it('no tiene violaciones de accesibilidad (axe) en la vista de Gerencia ni en la pendiente', async () => {
-    useWorkSession.getState().setRole('GERENCIA');
+    useWorkSession.getState().setRole(roleRef('GERENCIA'));
     flowMock.mockReturnValue(makeFlow({ ret: escalated() }));
     const first = renderAlcohol();
     expect(await axe(first.container)).toHaveNoViolations();
     first.unmount();
-    useWorkSession.getState().setRole('FRONT_OFFICE');
+    useWorkSession.getState().setRole(roleRef('FRONT_OFFICE'));
     const second = renderAlcohol();
     expect(await axe(second.container)).toHaveNoViolations();
   });
