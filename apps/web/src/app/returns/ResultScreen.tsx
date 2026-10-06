@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ReturnFlowShell } from './ReturnFlowShell';
 import { returnFlowGuard } from './ReturnGuards';
 import { useReturnFlow } from './useReturnFlow';
@@ -19,6 +19,7 @@ import {
   ZoneMarks,
 } from './return-session-draft';
 import { useReturnPermissions } from './return-permissions';
+import { useIncidentPermissions } from '../incidents/incident-permissions';
 import styles from './ReturnForms.module.css';
 
 /**
@@ -39,6 +40,7 @@ export function ResultScreen() {
   const { id, state, ret, context, getIdToken, setRet, reload } = useReturnFlow();
   const navigate = useNavigate();
   const { can } = useReturnPermissions();
+  const { can: canIncident } = useIncidentPermissions();
   const [marks, setMarks] = useState<ZoneMarks>(() => loadZoneMarks(id));
   const [currentZone, setCurrentZone] = useState(RETURN_ZONES[0].value);
   const [delivery, setDelivery] = useState<RentalEvidenceResponse[]>([]);
@@ -201,14 +203,15 @@ export function ResultScreen() {
             >
               {busy ? 'Guardando…' : 'Liberar garantía'}
             </button>
-            <button
-              type="button"
-              className={styles.textLink}
-              disabled
-              title="El módulo de Incidencias aún no está disponible"
-            >
-              Registrar incidente de todas formas (próximamente)
-            </button>
+            {canIncident('CREATE') && ret && (
+              <Link
+                to={`/incidencias?rentalId=${ret.rentalId}&returnId=${ret.id}&registrar=1`}
+                state={context ?? undefined}
+                className={styles.textLink}
+              >
+                Registrar incidencia de todas formas
+              </Link>
+            )}
           </div>
         </section>
       )}
@@ -229,14 +232,15 @@ export function ResultScreen() {
             >
               {busy ? 'Guardando…' : 'Continuar a evaluación de daño'}
             </button>
-            <button
-              type="button"
-              className={styles.textLink}
-              disabled
-              title="El módulo de Incidencias aún no está disponible"
-            >
-              Registrar incidente (próximamente)
-            </button>
+            {canIncident('CREATE') && ret && (
+              <Link
+                to={`/incidencias?rentalId=${ret.rentalId}&returnId=${ret.id}&registrar=1`}
+                state={context ?? undefined}
+                className={styles.textLink}
+              >
+                Registrar incidencia
+              </Link>
+            )}
           </div>
         </section>
       )}

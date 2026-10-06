@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { IncidentAction } from '../incidents/incident-permissions';
 
 /**
  * Definiciones de los 12 módulos del hub de navegación (TR-11/HU-25).
@@ -17,6 +18,11 @@ export interface ModuleItem {
   description: string;
   path: string | null;
   adminOnly?: boolean;
+  /**
+   * Accion de permiso del modulo que habilita su visibilidad (ver
+   * module-visibility.ts). Sin este campo el modulo es visible para todos.
+   */
+  incidentPermission?: IncidentAction;
   icon: ReactNode;
 }
 
@@ -128,10 +134,11 @@ export const MODULE_ITEMS: ModuleItem[] = [
     ),
   },
   {
-    id: 'incidentes',
-    label: 'Incidentes',
+    id: 'incidencias',
+    label: 'Incidencias',
     description: 'INC-01',
-    path: null,
+    path: '/incidencias',
+    incidentPermission: 'VIEW',
     icon: (
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />

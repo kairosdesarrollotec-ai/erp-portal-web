@@ -40,6 +40,8 @@ import { CosmeticDamageScreen } from '../returns/CosmeticDamageScreen';
 import { TechnicalDamageScreen } from '../returns/TechnicalDamageScreen';
 import { GuaranteeScreen } from '../returns/GuaranteeScreen';
 import { ClosureScreen } from '../returns/ClosureScreen';
+import { IncidentsListScreen } from '../incidents/IncidentsListScreen';
+import { IncidentDetailScreen } from '../incidents/IncidentDetailScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -98,6 +100,9 @@ export const router = createBrowserRouter([
               { path: '/devoluciones/:id/dano/tecnico', element: <TechnicalDamageScreen /> },
               { path: '/devoluciones/:id/garantia', element: <GuaranteeScreen /> },
               { path: '/devoluciones/:id/cierre', element: <ClosureScreen /> },
+              // Incidencias INC-01 (bandeja, admite ?rentalId=) / INC-02 (detalle RIO).
+              { path: '/incidencias', element: <IncidentsListScreen /> },
+              { path: '/incidencias/:id', element: <IncidentDetailScreen /> },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },

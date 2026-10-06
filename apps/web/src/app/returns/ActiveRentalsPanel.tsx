@@ -5,6 +5,7 @@ import type { ReturnsWorkContext } from './useWorkContextForReturns';
 import { scheduleReturn } from './returns-client';
 import { describeReturnError } from './return-errors';
 import { getFirebaseAuth } from '../providers/firebase';
+import { useIncidentPermissions } from '../incidents/incident-permissions';
 import styles from './ReturnsListScreen.module.css';
 
 interface Props {
@@ -24,6 +25,7 @@ interface Props {
  * (POST /returns, estado PROGRAMADA).
  */
 export function ActiveRentalsPanel({ rentals, context, canCreate, canReceive, rentalIdsWithReturn, onScheduled }: Props) {
+  const { can: canIncident } = useIncidentPermissions();
   const [scheduling, setScheduling] = useState<RentalResponse | null>(null);
   const [scheduledAt, setScheduledAt] = useState('');
   const [busy, setBusy] = useState(false);
@@ -85,6 +87,16 @@ export function ActiveRentalsPanel({ rentals, context, canCreate, canReceive, re
                       aria-label={`Iniciar devolución de ${rental.vehiclePlate}`}
                     >
                       Iniciar devolución
+                    </Link>
+                  )}
+                  {canIncident('VIEW') && (
+                    <Link
+                      to={`/incidencias?rentalId=${rental.id}`}
+                      state={context ?? undefined}
+                      className={styles.secondaryButton}
+                      aria-label={`Ver o registrar incidencias de ${rental.vehiclePlate}`}
+                    >
+                      Incidencias
                     </Link>
                   )}
                   {canCreate && (
