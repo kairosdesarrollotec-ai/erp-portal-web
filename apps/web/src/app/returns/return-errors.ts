@@ -1,0 +1,67 @@
+import { ReturnCommandError } from './returns-client';
+
+/**
+ * Codigos de dominio del backend (returns/domain/return-errors.ts) y de
+ * SDD-DEV-001 seccion 12.1, traducidos a lenguaje de negocio (nunca se
+ * muestra el codigo tecnico ni el status HTTP al usuario).
+ */
+const DOMAIN_MESSAGES: Record<string, string> = {
+  // Tolerancia: el backend ya no responde error ante un alcolimetro desfavorable (es 200), pero
+  // si llegara este codigo se explica igual en lenguaje de negocio.
+  ALCOHOL_TEST_DISAPPROVAL:
+    'La prueba de alcohol no fue favorable. El vehículo queda en recepción provisional bajo custodia de VeloxRent y se deriva a Gerencia.',
+  MISSING_RESPONSIBILITY_DOCUMENT:
+    'Falta el documento de responsabilidad firmado. Complétalo en el checklist de recepción antes de cerrar la inspección.',
+  MISSING_REQUIRED_EVIDENCE: 'Falta evidencia obligatoria (fotos o videos). Completa el checklist antes de continuar.',
+  INCIDENT_STILL_OPEN:
+    'La garantía no se puede liberar ni la devolución cerrar mientras haya una incidencia o evaluación de daño abierta. Resuélvela primero.',
+  TECHNICAL_DAMAGE_REQUIRES_EXTERNAL_REPORT:
+    'Todo daño técnico requiere la referencia del informe de Motrix. No existe un precio fijo para daños técnicos.',
+  TECHNICAL_DAMAGE_NO_FIXED_PRICE:
+    'Los daños técnicos no tienen precio fijo. Deriva el vehículo a Motrix y registra el monto de su informe.',
+  UNKNOWN_COSMETIC_ZONE: 'El paño elegido no está en el tarifario oficial de daños estéticos.',
+  IMMOBILIZATION_PERIOD_NOT_ELAPSED:
+    'Aún no corresponde cobrar paralización: no han pasado 24 horas desde la recepción del vehículo.',
+  RENTAL_ALREADY_HAS_ACTIVE_RETURN: 'Este alquiler ya tiene una devolución en curso. Búscala en la bandeja de devoluciones.',
+  RENTAL_NOT_RETURNABLE: 'Este alquiler no está activo, por lo que no se puede iniciar su devolución.',
+  RETURN_VERSION_CONFLICT: 'Otra persona modificó esta devolución. Recargamos los datos; revisa y vuelve a intentar.',
+  RETURN_STATE_CONFLICT: 'Esta acción ya no corresponde al estado actual de la devolución. Recargamos los datos.',
+  INVALID_RETURN_STATE_TRANSITION: 'Esta acción ya no corresponde al estado actual de la devolución. Recargamos los datos.',
+  RETURN_SCOPE_FORBIDDEN: 'Esta devolución pertenece a otra empresa o sede y no puedes operarla desde tu contexto de trabajo.',
+  RETURN_NOT_FOUND: 'No encontramos esta devolución en tu empresa y sede.',
+  ROLE_NOT_ALLOWED: 'Tu rol no tiene permiso para realizar esta acción.',
+  CUSTOMER_BLOCKED: 'El cliente está bloqueado (semáforo rojo) y no puede realizar nuevas operaciones.',
+};
+
+const STATUS_MESSAGES: Record<number, string> = {
+  400: 'Revisa los datos ingresados: alguno no es válido.',
+  403: 'No tienes permiso para realizar esta acción en esta empresa o sede.',
+  404: 'No encontramos el registro en tu empresa y sede.',
+  409: 'Esta acción ya no corresponde al estado actual de la devolución. Recargamos los datos.',
+  412: 'Otra persona modificó esta devolución. Recargamos los datos; revisa y vuelve a intentar.',
+  422: 'La operación no cumple las reglas de negocio vigentes.',
+  428: 'No pudimos validar la versión del expediente. Recarga la pantalla.',
+};
+
+/** INCIDENT_STILL_OPEN (HTTP 422; se tolera 409 por compatibilidad): estado BLOCKED de DEV-09/DEV-10. */
+export function isIncidentOpenError(error: unknown): boolean {
+  return error instanceof ReturnCommandError && error.problem?.code === 'INCIDENT_STILL_OPEN';
+}
+
+/** True si el error indica que el expediente cambio y hay que recargarlo. */
+export function isStaleReturnError(error: unknown): boolean {
+  return (
+    error instanceof ReturnCommandError &&
+    (error.status === 412 || error.status === 409 || error.status === 428) &&
+    !isIncidentOpenError(error)
+  );
+}
+
+export function describeReturnError(error: unknown, fallback: string): string {
+  if (error instanceof ReturnCommandError) {
+    const code = error.problem?.code;
+    if (code && DOMAIN_MESSAGES[code]) return DOMAIN_MESSAGES[code];
+    if (STATUS_MESSAGES[error.status]) return STATUS_MESSAGES[error.status];
+  }
+  return fallback;
+}

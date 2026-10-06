@@ -79,7 +79,7 @@ export const MODULE_ITEMS: ModuleItem[] = [
     id: 'devoluciones',
     label: 'Devoluciones',
     description: 'DEV-01',
-    path: null,
+    path: '/devoluciones',
     icon: (
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <polyline points="9 14 4 9 9 4" />
