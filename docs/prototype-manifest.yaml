@@ -3979,16 +3979,15 @@ screens:
     label: mobile
   theme: light
   locale: es-PE
-  status: PENDING_APPROVAL
-  approved_by_role: null
-  approved_at: null
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: "2026-10-06"
   sha256: null
   bytes: null
   supersedes: null
   note: >
-    DEV-05 no tiene prototipo propio aprobado. Se usa como referencia visual
+    DEV-05 aprobado por PRODUCTO el 2026-10-06 usando como referencia visual
     PROTO-ALQ-09-RESULTADO-ZONA-1-EXTERIOR y PROTO-ALQ-10-RESULTADO-TRAS-CHECKLIST
     (modulo alquiler, pantalla equivalente de resultado de inspeccion).
-    Pendiente de aprobacion formal por PRODUCTO. Ver DEC-DEV-05-001 en
-    docs/decision-log.md.
+    Ver DEC-DEV-05-001 en docs/decision-log.md.
   is_reference_asset: false
