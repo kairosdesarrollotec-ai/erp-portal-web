@@ -145,10 +145,7 @@ export interface components {
              * @description Fecha de reporte; por defecto
              */
             reportedAt?: string;
-            /**
-             * Format: uuid
-             * @description Responsable; por defecto
-             */
+            /** @description Responsable (firebaseUid, mismo identificador de usuario que usan los demás módulos); por defecto, quien registra */
             responsibleUserId?: string;
         };
         AddIncidentActionRequest: {
@@ -178,7 +175,7 @@ export interface components {
             /** @enum {string} */
             kind: "REPORTED" | "ACTION" | "RESOLVED" | "CLOSED" | "REFERRED_LEGAL";
             description: string;
-            /** Format: uuid */
+            /** @description firebaseUid del autor */
             authorUserId: string;
             /** Format: date-time */
             createdAt: string;
@@ -203,7 +200,7 @@ export interface components {
             suggestion?: string | null;
             /** Format: date-time */
             reportedAt: string;
-            /** Format: uuid */
+            /** @description firebaseUid del responsable */
             responsibleUserId: string;
             resolutionSummary?: string | null;
             /** Format: date-time */
@@ -331,8 +328,15 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Alquiler o devolución no encontrado en la empresa/sede */
+            /** @description Alquiler o devolución no encontrado en la empresa/sede (RENTAL_NOT_FOUND / RETURN_NOT_FOUND; también si la devolución no pertenece al alquiler) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Idempotency-Key reutilizada con otro cuerpo (IDEMPOTENCY_KEY_REUSED) o aún en curso (IDEMPOTENCY_KEY_IN_PROGRESS) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
