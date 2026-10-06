@@ -1,0 +1,249 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  overflow-x: hidden;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 4rem;
+}
+
+.backLink {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 1rem;
+  color: var(--color-ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.statusText {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0 0 1rem;
+}
+
+.titleSub {
+  font-weight: 400;
+  color: var(--color-ink-muted);
+}
+
+.notice {
+  font-size: 13px;
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.errorBanner {
+  font-size: 13px;
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.card {
+  border: 1px solid var(--color-surface-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0 0 0.75rem;
+}
+
+.dataGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem 1.5rem;
+  margin: 0;
+}
+
+.dataGrid dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--color-ink-subtle);
+  margin-bottom: 0.25rem;
+}
+
+.dataGrid dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.timelineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.toggleButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: transparent;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 6px;
+  padding: 0.375rem 0.625rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+/* Timeline vertical SIN iconos ni botones de editar/eliminar: solo lectura. */
+.timeline {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0 0 0 1.25rem;
+  border-left: 2px solid var(--color-surface-border);
+}
+
+.timeline[hidden] {
+  display: none;
+}
+
+.entry {
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.entry::before {
+  content: '';
+  position: absolute;
+  left: calc(-1.25rem - 6px);
+  top: 0.35rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-ink);
+}
+
+.entryMeta {
+  margin: 0 0 0.25rem;
+  font-size: 12px;
+  color: var(--color-ink-muted);
+}
+
+.entryText {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.input {
+  border: 1px solid var(--color-surface-border);
+  border-radius: 8px;
+  padding: 0.625rem 0.75rem;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-ink);
+  min-height: 90px;
+  resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
+.secondaryButton {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-ink);
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.closeButton {
+  padding: 0.5rem 1.125rem;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondaryButton:disabled {
+  border-color: var(--color-border);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.closeButton:disabled {
+  background: var(--color-border);
+  cursor: not-allowed;
+}
+
+.hint {
+  margin: 0.5rem 0 0;
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 1rem 1rem 3rem;
+  }
+  .dataGrid {
+    grid-template-columns: 1fr;
+  }
+  .rowActions > button {
+    flex: 1 1 100%;
+  }
+}
