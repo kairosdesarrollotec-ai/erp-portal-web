@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AppHeader } from './AppHeader';
 import { useWorkSession } from './useWorkSession';
+import { roleRef } from '../../test/permissions';
 
 const signOutMock = vi.fn();
 const mockNavigate = vi.fn();
@@ -35,20 +36,38 @@ vi.mock('../notifications/useNotifications', () => ({
 describe('AppHeader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useWorkSession.setState({ role: 'FRONT_OFFICE', sidebarOpen: false });
+    useWorkSession.setState({ role: roleRef('FRONT_OFFICE', 'Front Office'), sidebarOpen: false });
     signOutMock.mockResolvedValue(undefined);
   });
 
   it('muestra la marca, el correo del usuario y el botón de cerrar sesión', () => {
     render(
       <MemoryRouter>
-        <AppHeader pageTitle="Tablero de Operaciones" role="FRONT_OFFICE" />
+        <AppHeader pageTitle="Tablero de Operaciones" role={roleRef('FRONT_OFFICE', 'Front Office')} />
       </MemoryRouter>,
     );
 
     expect(screen.getByText('Tablero de Operaciones')).toBeInTheDocument();
     expect(screen.getByText('operador@veloxrent.pe')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Cerrar sesión/i })).toBeInTheDocument();
+  });
+
+  it('muestra el nombre visible del rol que viene de la API (también de un rol creado a mano)', () => {
+    render(
+      <MemoryRouter>
+        <AppHeader role={roleRef(null, 'Supervisor de flota')} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Supervisor de flota')).toBeInTheDocument();
+  });
+
+  it('sin la prop role usa el rol de la sesión', () => {
+    render(
+      <MemoryRouter>
+        <AppHeader />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Front Office')).toBeInTheDocument();
   });
 
   it('al hacer clic en cerrar sesión, ejecuta signOut, limpia sesión y redirige a /', async () => {

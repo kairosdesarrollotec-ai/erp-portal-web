@@ -1,10 +1,11 @@
 import { create } from 'zustand';
-import type { WorkerRole } from '../dashboard/worker-role';
+import type { RoleRef } from './role-ref';
 
 interface WorkSessionState {
-  role: WorkerRole | null;
+  /** Rol del usuario en el contexto de trabajo vigente (solo informativo: el nombre visible). */
+  role: RoleRef | null;
   sidebarOpen: boolean;
-  setRole: (role: WorkerRole | null) => void;
+  setRole: (role: RoleRef | null) => void;
   setSidebarOpen: (open: boolean) => void;
   clearSession: () => void;
 }

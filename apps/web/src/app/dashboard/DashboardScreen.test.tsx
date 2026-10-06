@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { DashboardScreen } from './DashboardScreen';
+import { clearPermissions, roleRef } from '../../test/permissions';
+import { usePermissionsStore } from '../shared/usePermissions';
 
 const getDashboardMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
@@ -28,6 +30,12 @@ vi.mock('../auth/work-context-client', () => ({
   getWorkContextAssignments: (...args: unknown[]) => getWorkContextAssignmentsMock(...args),
 }));
 
+const getMyPermissionsMock = vi.fn();
+
+vi.mock('../shared/my-permissions-client', () => ({
+  getMyPermissions: (...args: unknown[]) => getMyPermissionsMock(...args),
+}));
+
 const getMyNotificationsMock = vi.fn();
 
 vi.mock('../notifications/notifications-client', () => ({
@@ -52,10 +60,16 @@ describe('DashboardScreen (TR-06)', () => {
     getWorkContextAssignmentsMock.mockReset();
     signOutMock.mockReset().mockResolvedValue(undefined);
     getMyNotificationsMock.mockReset().mockResolvedValue([]);
+    clearPermissions();
+    getMyPermissionsMock.mockReset().mockResolvedValue({
+      role: roleRef('GERENCIA', 'Gerencia'),
+      matrixVersion: 3,
+      permissions: [{ module: 'INCIDENT', action: 'VIEW' }],
+    });
   });
 
   it('con contexto por navegacion, muestra el rol resuelto y el estado EMPTY', async () => {
-    getDashboardMock.mockResolvedValue({ role: 'GERENCIA', state: 'EMPTY' });
+    getDashboardMock.mockResolvedValue({ role: roleRef('GERENCIA', 'Gerencia'), state: 'EMPTY' });
     renderScreen({
       companyId: 'c1',
       companyName: 'VeloxRent',
@@ -63,27 +77,55 @@ describe('DashboardScreen (TR-06)', () => {
       branchName: 'Ayacucho — Sede Central',
     });
 
-    expect(await screen.findAllByText('Gerencia')).toHaveLength(2);
+    await screen.findByText('No tienes pendientes por ahora.');
+    expect(screen.getAllByText('Gerencia')).toHaveLength(2);
     expect(screen.getByText('No tienes pendientes por ahora.')).toBeInTheDocument();
     expect(getDashboardMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1');
     expect(getWorkContextAssignmentsMock).not.toHaveBeenCalled();
   });
 
+  it('al fijar el contexto carga los permisos efectivos de esa empresa/sede', async () => {
+    getDashboardMock.mockResolvedValue({ role: roleRef('GERENCIA', 'Gerencia'), state: 'EMPTY' });
+    renderScreen({ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' });
+
+    await screen.findByText('No tienes pendientes por ahora.');
+    await waitFor(() => expect(usePermissionsStore.getState().status).toBe('ready'));
+    expect(getMyPermissionsMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1');
+    expect(usePermissionsStore.getState().granted.has('INCIDENT.VIEW')).toBe(true);
+  });
+
+  it('el tablero muestra el nombre del rol que viene de la API, también si es un rol creado a mano', async () => {
+    getDashboardMock.mockResolvedValue({ role: roleRef(null, 'Supervisor de flota'), state: 'EMPTY' });
+    renderScreen({ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' });
+
+    await screen.findByText('No tienes pendientes por ahora.');
+    expect(screen.getAllByText('Supervisor de flota')).toHaveLength(2);
+  });
+
+  it('el rol de sistema PLATFORM_ADMIN ve los accesos directos de configuración en vez de tareas', async () => {
+    getDashboardMock.mockResolvedValue({ role: roleRef('PLATFORM_ADMIN', 'Administrador de Plataforma'), state: 'EMPTY' });
+    renderScreen({ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' });
+
+    expect(await screen.findByText('ACCESOS DIRECTOS DE CONFIGURACIÓN')).toBeInTheDocument();
+    expect(screen.queryByText('No tienes pendientes por ahora.')).not.toBeInTheDocument();
+  });
+
   it('sin contexto por navegacion y con 1 sola asignacion, la resuelve sola', async () => {
     getWorkContextAssignmentsMock.mockResolvedValue([
-      { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Ayacucho — Sede Central', role: 'FRONT_OFFICE' },
+      { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Ayacucho — Sede Central', role: roleRef('FRONT_OFFICE', 'Front Office') },
     ]);
-    getDashboardMock.mockResolvedValue({ role: 'FRONT_OFFICE', state: 'EMPTY' });
+    getDashboardMock.mockResolvedValue({ role: roleRef('FRONT_OFFICE', 'Front Office'), state: 'EMPTY' });
     renderScreen();
 
-    expect(await screen.findAllByText('Front Office')).toHaveLength(2);
+    await screen.findByText('No tienes pendientes por ahora.');
+    expect(screen.getAllByText('Front Office')).toHaveLength(2);
     expect(getDashboardMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1');
   });
 
   it('sin contexto y con mas de 1 asignacion, vuelve a TR-05', async () => {
     getWorkContextAssignmentsMock.mockResolvedValue([
-      { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'A', role: 'FRONT_OFFICE' },
-      { companyId: 'c2', companyName: 'Casa del Auto', branchId: 'b2', branchName: 'B', role: 'FINANZAS' },
+      { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'A', role: roleRef('FRONT_OFFICE', 'Front Office') },
+      { companyId: 'c2', companyName: 'Casa del Auto', branchId: 'b2', branchName: 'B', role: roleRef('FINANZAS', 'Finanzas') },
     ]);
     renderScreen();
 
@@ -102,7 +144,7 @@ describe('DashboardScreen (TR-06)', () => {
 
   it('con tareas reales (Front-office), las muestra ordenadas y enlazadas a su deepLink', async () => {
     getDashboardMock.mockResolvedValue({
-      role: 'FRONT_OFFICE',
+      role: roleRef('FRONT_OFFICE', 'Front Office'),
       state: 'READY',
       tasks: [
         { id: 't1', itemType: 'TASK', priority: 10, title: 'Reserva pendiente de pago/documentos', detail: 'Vehiculo veh-1', deepLink: '/reservas/res-1' },
@@ -122,7 +164,7 @@ describe('DashboardScreen (TR-06)', () => {
   });
 
   it('muestra el contador de notificaciones no leidas y abre el panel al hacer clic en la campana', async () => {
-    getDashboardMock.mockResolvedValue({ role: 'GERENCIA', state: 'EMPTY' });
+    getDashboardMock.mockResolvedValue({ role: roleRef('GERENCIA', 'Gerencia'), state: 'EMPTY' });
     getMyNotificationsMock.mockResolvedValue([
       {
         id: 'n1',

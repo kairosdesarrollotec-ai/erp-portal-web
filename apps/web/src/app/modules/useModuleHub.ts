@@ -3,8 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getDashboard } from '../dashboard/dashboard-client';
 import { getWorkContextAssignments } from '../auth/work-context-client';
-import type { WorkerRole } from '../dashboard/worker-role';
+import type { RoleRef } from '../shared/role-ref';
 import { useWorkSession } from '../shared/useWorkSession';
+import { usePermissionsStore } from '../shared/usePermissions';
 
 /**
  * TR-11 (HU-25) - estados del hub de módulos de navegación.
@@ -23,7 +24,7 @@ interface NavigationState {
 
 export function useModuleHub() {
   const [state, setState] = useState<ModuleHubState>('LOADING');
-  const [role, setRole] = useState<WorkerRole | null>(null);
+  const [role, setRole] = useState<RoleRef | null>(null);
   const { setRole: setSessionRole } = useWorkSession();
   const [branchLabel, setBranchLabel] = useState<string | null>(null);
   const [companyId, setCompanyId] = useState<string | null>(null);
@@ -83,6 +84,8 @@ export function useModuleHub() {
         if (cancelled) return;
         setRole(result.role);
         setSessionRole(result.role);
+        // Permisos efectivos del contexto fijado (se recargan al cambiar de empresa/sede).
+        void usePermissionsStore.getState().load({ companyId: context.companyId, branchId: context.branchId });
         setBranchLabel(`${context.companyName} — ${context.branchName}`);
         setCompanyId(context.companyId);
         setBranchId(context.branchId);

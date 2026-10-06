@@ -3,8 +3,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getDashboard, DashboardTaskItem } from './dashboard-client';
 import { getWorkContextAssignments } from '../auth/work-context-client';
-import type { WorkerRole } from './worker-role';
+import type { RoleRef } from '../shared/role-ref';
 import { useWorkSession } from '../shared/useWorkSession';
+import { usePermissionsStore } from '../shared/usePermissions';
 
 /**
  * TR-06 (HU-24) - estados: LOADING, READY (rol resuelto, tablero EMPTY
@@ -32,7 +33,7 @@ interface WorkContextNavigationState {
 
 export function useDashboard() {
   const [state, setState] = useState<DashboardScreenState>('LOADING');
-  const [role, setRole] = useState<WorkerRole | null>(null);
+  const [role, setRole] = useState<RoleRef | null>(null);
   const { setRole: setSessionRole } = useWorkSession();
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [branchName, setBranchName] = useState<string | null>(null);
@@ -99,6 +100,8 @@ export function useDashboard() {
         if (cancelled) return;
         setRole(result.role);
         setSessionRole(result.role);
+        // Permisos efectivos del contexto fijado (se recargan al cambiar de empresa/sede).
+        void usePermissionsStore.getState().load({ companyId: context.companyId, branchId: context.branchId });
         setCompanyName(context.companyName);
         setBranchName(context.branchName);
         setCompanyId(context.companyId);

@@ -1,7 +1,7 @@
 import { ChevronRight, Search, Settings, ShieldCheck, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useDashboard } from './useDashboard';
-import { WORKER_ROLE_LABELS } from './worker-role';
+import { isPlatformAdminRole } from '../shared/role-ref';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './DashboardScreen.module.css';
 
@@ -27,6 +27,8 @@ import styles from './DashboardScreen.module.css';
  */
 export function DashboardScreen() {
   const { state, role, companyName, branchName, dashboardState, tasks, companyId, branchId } = useDashboard();
+  // Composicion propia del rol de sistema PLATFORM_ADMIN (fijo, no delegable): ver role-ref.ts.
+  const isPlatformAdmin = isPlatformAdminRole(role);
 
   return (
     <main className={styles.wrapper}>
@@ -38,9 +40,9 @@ export function DashboardScreen() {
         {state === 'READY' && (
           <>
             <h1 className={styles.greeting}>Hola</h1>
-            {role && <p className={styles.roleSubtitle}>{WORKER_ROLE_LABELS[role]}</p>}
+            {role && <p className={styles.roleSubtitle}>{role.name}</p>}
 
-            {role === 'PLATFORM_ADMIN' && companyId && branchId && (
+            {isPlatformAdmin && companyId && branchId && (
               <PlatformAdminAccessCards
                 companyId={companyId}
                 companyName={companyName ?? ''}
@@ -49,11 +51,11 @@ export function DashboardScreen() {
               />
             )}
 
-            {role !== 'PLATFORM_ADMIN' && dashboardState === 'EMPTY' && (
+            {!isPlatformAdmin && dashboardState === 'EMPTY' && (
               <p className={styles.emptyMessage}>No tienes pendientes por ahora.</p>
             )}
 
-            {role !== 'PLATFORM_ADMIN' && dashboardState === 'READY' && tasks.length > 0 && (
+            {!isPlatformAdmin && dashboardState === 'READY' && tasks.length > 0 && (
               <ul className={styles.taskList}>
                 {tasks.map((task) => (
                   <li key={task.id}>
