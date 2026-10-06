@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { InquiryDetailScreen } from './InquiryDetailScreen';
 import { useLocation } from 'react-router-dom';
+import { InquiryCommandError } from './inquiries-client';
 
 // Hallazgo Russbel (ronda 2): "Cambiar vehiculo" reenviaba el navState
 // original con una `version` congelada, que ya no coincidia con
@@ -18,6 +19,7 @@ function LocationStateProbe() {
 const getInquiryMock = vi.fn();
 const closeInquiryMock = vi.fn();
 const convertInquiryToReservationMock = vi.fn();
+const convertInquiryToRentalMock = vi.fn();
 const getCustomerMock = vi.fn();
 const getVehicleMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
@@ -39,6 +41,7 @@ vi.mock('./inquiries-client', async () => {
     getInquiry: (...args: unknown[]) => getInquiryMock(...args),
     closeInquiry: (...args: unknown[]) => closeInquiryMock(...args),
     convertInquiryToReservation: (...args: unknown[]) => convertInquiryToReservationMock(...args),
+    convertInquiryToRental: (...args: unknown[]) => convertInquiryToRentalMock(...args),
   };
 });
 
@@ -95,6 +98,7 @@ function renderScreen() {
         <Route path="/consultas" element={<div>bandeja</div>} />
         <Route path="/reservas" element={<div>reservas</div>} />
         <Route path="/reservas/:id" element={<div>detalle de reserva</div>} />
+        <Route path="/alquileres/:id/entrega-01" element={<div>expediente de alquiler</div>} />
         <Route
           path="/consultas/:id/vehiculos"
           element={<LocationStateProbe />}
@@ -109,6 +113,7 @@ describe('InquiryDetailScreen (CON-04)', () => {
     getInquiryMock.mockReset();
     closeInquiryMock.mockReset();
     convertInquiryToReservationMock.mockReset();
+    convertInquiryToRentalMock.mockReset();
     getCustomerMock.mockReset().mockResolvedValue({ id: 'cust-1', fullName: 'Maria Quispe' });
     getVehicleMock.mockReset().mockResolvedValue({ id: 'veh-mock-hilux', brand: 'Toyota', model: 'Hilux', photoUrl: 'https://cdn.example.com/hilux.jpg' });
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
@@ -178,6 +183,52 @@ describe('InquiryDetailScreen (CON-04)', () => {
       'PRESENCIAL',
       expect.any(String),
     );
+  });
+
+  it('ofrece siempre ambos botones: "Reservar este vehículo" y "Convertir a Alquiler"', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry());
+    renderScreen();
+
+    await screen.findByText('Maria Quispe');
+    expect(screen.getByText('Reservar este vehículo')).toBeInTheDocument();
+    expect(screen.getByText('Convertir a Alquiler')).toBeInTheDocument();
+  });
+
+  it('"Convertir a Alquiler" llama al comando con la version vigente y navega al expediente creado', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry());
+    convertInquiryToRentalMock.mockResolvedValue({
+      inquiry: { ...buildInquiry(), status: 'CONVERTIDA', version: 2 },
+      rental: { id: 'rent-9', status: 'DRAFT', version: 1 },
+    });
+    renderScreen();
+
+    await screen.findByText('Maria Quispe');
+    fireEvent.click(screen.getByText('Convertir a Alquiler'));
+
+    expect(await screen.findByText('expediente de alquiler')).toBeInTheDocument();
+    expect(convertInquiryToRentalMock).toHaveBeenCalledWith('fake-id-token', 'con-1', 1, 'c1', 'b1');
+  });
+
+  it('muestra el error de dominio de "Convertir a Alquiler" y no navega', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry());
+    convertInquiryToRentalMock.mockRejectedValue(
+      new InquiryCommandError(422, { code: 'VEHICLE_NOT_AVAILABLE', detail: 'El vehículo ya no está disponible.' }),
+    );
+    renderScreen();
+
+    await screen.findByText('Maria Quispe');
+    fireEvent.click(screen.getByText('Convertir a Alquiler'));
+
+    expect(await screen.findByText('El vehículo ya no está disponible.')).toBeInTheDocument();
+    expect(screen.queryByText('expediente de alquiler')).not.toBeInTheDocument();
+  });
+
+  it('no permite convertir a alquiler una consulta ya convertida', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry({ status: 'CONVERTIDA' }));
+    renderScreen();
+
+    await screen.findByText('Maria Quispe');
+    expect(screen.queryByText('Convertir a Alquiler')).not.toBeInTheDocument();
   });
 
   it('bloquea la conversion a reserva si la consulta no tiene cliente formal (prospecto)', async () => {

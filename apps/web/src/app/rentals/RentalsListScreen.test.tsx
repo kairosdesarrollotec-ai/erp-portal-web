@@ -58,4 +58,12 @@ describe('RentalsListScreen (ALQ-01)', () => {
     renderScreen();
     expect(await screen.findByText('Todavía no hay alquileres registrados.')).toBeInTheDocument();
   });
+
+  it('no ofrece "Nuevo alquiler": todo alquiler nace de una Consulta', async () => {
+    listRentalsMock.mockResolvedValue([]);
+    renderScreen();
+    await screen.findByText('Todavía no hay alquileres registrados.');
+    expect(screen.queryByText(/nuevo alquiler/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /nuevo alquiler/i })).not.toBeInTheDocument();
+  });
 });

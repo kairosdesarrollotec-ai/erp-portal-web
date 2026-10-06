@@ -297,3 +297,42 @@ export async function convertInquiryToReservation(
   }
   return data as unknown as ConvertToReservationResult;
 }
+
+/**
+ * CON-04 - "Convertir a Alquiler". Todo alquiler nace de una Consulta.
+ * POST /inquiries/{id}/commands/convert-to-rental (If-Match con la version de
+ * la consulta, Idempotency-Key). Responde `{ inquiry, rental }`: la consulta
+ * queda CONVERTIDA y el alquiler en DRAFT, sin fechas (se fijan al completar
+ * la entrega). Errores de dominio llegan como problem+json (409/412/422).
+ */
+export interface ConvertToRentalResult {
+  inquiry?: InquirySummary;
+  rental: { id: string; status?: string; version?: number };
+}
+
+export async function convertInquiryToRental(
+  idToken: string,
+  id: string,
+  version: number,
+  companyId: string,
+  branchId: string,
+): Promise<ConvertToRentalResult> {
+  const { data, error, response } = await inquiriesApiClient.POST('/inquiries/{id}/commands/convert-to-rental', {
+    params: {
+      path: { id },
+      header: { 'If-Match': `"${version}"`, 'Idempotency-Key': crypto.randomUUID() },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    // planCode: el backend usa NORMAL por defecto; los tipos generados lo marcan requerido.
+    body: { companyId, branchId, planCode: 'NORMAL' },
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new InquiryCommandError(response.status, problem);
+  }
+  const rental = data.rental as ConvertToRentalResult['rental'] | undefined;
+  if (!rental?.id) {
+    throw new InquiryCommandError(response.status, { detail: 'La respuesta no incluyó el alquiler creado.' });
+  }
+  return { inquiry: data.inquiry as unknown as InquirySummary | undefined, rental };
+}

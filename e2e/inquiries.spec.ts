@@ -3,6 +3,9 @@ import {
   loginViaUI,
   interceptInquiries,
   INQUIRY_FIXTURE,
+  RENTAL_FIXTURE,
+  interceptRentals,
+  interceptFleet,
 } from './helpers/routes';
 
 /**
@@ -59,5 +62,44 @@ test.describe('Bandeja de Consultas (CON-01)', () => {
 
     await page.waitForURL(`**/consultas/${INQUIRY_FIXTURE.id}`, { timeout: 10_000 });
     expect(page.url()).toContain(`/consultas/${INQUIRY_FIXTURE.id}`);
+  });
+});
+
+test.describe('Convertir consulta a alquiler (CON-04)', () => {
+  test('"Convertir a Alquiler" crea el alquiler y navega a su expediente', async ({ page }) => {
+    const quotedInquiry = {
+      ...INQUIRY_FIXTURE,
+      status: 'COTIZADA',
+      interactions: [],
+      quotations: [
+        { id: 'quo-e2e-1', vehicleId: 'veh-e2e-1', destination: 'Ayacucho', estimatedDays: 3, createdAt: '2026-09-25T01:00:00Z' },
+      ],
+    };
+    await interceptInquiries(page, { detail: quotedInquiry });
+    await interceptRentals(page);
+    await interceptFleet(page);
+
+    let convertRequest: { method: string; ifMatch: string | null; idempotency: string | null } | null = null;
+    await page.route(/\/inquiries\/[^/]+\/commands\/convert-to-rental(\?.*)?$/, (route) => {
+      const headers = route.request().headers();
+      convertRequest = { method: route.request().method(), ifMatch: headers['if-match'] ?? null, idempotency: headers['idempotency-key'] ?? null };
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ rental: { ...RENTAL_FIXTURE, id: 'rent-e2e-001' } }),
+      });
+    });
+
+    await loginViaUI(page);
+    await navigateToInquiries(page);
+    await page.getByRole('link', { name: /María García|Ver consulta/i }).first().click();
+    await page.waitForURL(`**/consultas/${INQUIRY_FIXTURE.id}`, { timeout: 10_000 });
+
+    await expect(page.getByRole('button', { name: 'Reservar este vehículo' })).toBeVisible();
+    await page.getByRole('button', { name: 'Convertir a Alquiler' }).click();
+
+    await page.waitForURL('**/alquileres/rent-e2e-001/**', { timeout: 10_000 });
+    expect(convertRequest).toMatchObject({ method: 'POST', ifMatch: '"1"' });
+    expect(convertRequest!.idempotency).toBeTruthy();
   });
 });

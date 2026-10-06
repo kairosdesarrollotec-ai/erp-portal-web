@@ -93,6 +93,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/inquiries/{id}/commands/convert-to-rental": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Convierte la consulta y crea el Rental directo (DRAFT) vinculado en una sola transaccion (CON-P09, BR-CON-002)
+         * @description CASO DE USO UNICO para crear un Alquiler directo desde una Consulta. En una transaccion Serializable: transiciona COTIZADA -> CONVERTIDA, crea el Rental en DRAFT vinculado por inquiryId (vehiculo de la cotizacion VIGENTE mas reciente, nunca del payload) y audita + publica el evento RentalCreatedFromInquiry.v1. El Rental se crea SIN startAt/expectedEndAt: se fijan en POST /rentals/{id}/commands/complete-delivery (startAt = ahora, expectedEndAt = startAt + estimatedDays de la cotizacion). Precondiciones: COTIZADA, cliente formal asociado, cotizacion vigente (validUntil posterior a ahora), cliente que no este en ROJO (CUSTOMER_BLOCKED; el AMBAR no bloquea), y vehiculo AVAILABLE, de la sede de la consulta (o compartido) y sin solape con reservas o compromisos en [ahora, ahora + estimatedDays). La garantia no se calcula aqui: se captura en formalize-contract.
+         */
+        post: operations["convertInquiryToRental"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -179,6 +199,13 @@ export interface components {
              */
             startAt: string;
         };
+        ConvertToRentalRequest: components["schemas"]["CommandScopeRequest"] & {
+            /**
+             * @default NORMAL
+             * @enum {string}
+             */
+            planCode: "NORMAL" | "PLUS" | "LIBRE";
+        };
         InquirySummaryResponse: {
             /** Format: uuid */
             id: string;
@@ -234,6 +261,11 @@ export interface components {
             inquiry: components["schemas"]["InquiryResponse"];
             /** @description Ver packages/contracts/openapi/reservations.yaml#/components/schemas/ReservationResponse */
             reservation: Record<string, never>;
+        };
+        ConvertToRentalResponse: {
+            inquiry: components["schemas"]["InquiryResponse"];
+            /** @description Ver packages/contracts/openapi/rentals.yaml#/components/schemas/RentalResponse (status DRAFT, startAt/expectedEndAt null, inquiryId = id de la consulta) */
+            rental: Record<string, never>;
         };
     };
     responses: {
@@ -620,6 +652,89 @@ export interface operations {
                 content?: never;
             };
             /** @description INQUIRY_NOT_TRANSITIONABLE - la consulta no esta COTIZADA */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description IF_MATCH_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            503: components["responses"]["QuotingNotProductionReady"];
+        };
+    };
+    convertInquiryToRental: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag fuerte con la version vigente, ej. "3" */
+                "If-Match": components["parameters"]["IfMatch"];
+                /** @description TDD-CON-001.md 15. Opcional mientras erp-portal-web no lo envie en todos los comandos. Si llega: se reserva atomicamente antes de ejecutar; un reintento identico ya completado devuelve la respuesta guardada sin re-ejecutar; una clave aun en curso -> 409 IDEMPOTENCY_KEY_IN_PROGRESS; misma clave con otro cuerpo -> 409 IDEMPOTENCY_KEY_REUSED. Validez 24 h. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                id: components["parameters"]["InquiryId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConvertToRentalRequest"];
+            };
+        };
+        responses: {
+            /** @description Consulta convertida y alquiler DRAFT creado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConvertToRentalResponse"];
+                };
+            };
+            /** @description CUSTOMER_REQUIRED_FOR_CONVERSION */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Empresa/sede no autorizada, o ROLE_NOT_ALLOWED (CONVERT_TO_RENTAL de Consulta y CREATE de Alquiler) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Consulta no encontrada en el scope, CUSTOMER_NOT_FOUND o VEHICLE_NOT_FOUND */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description QUOTATION_EXPIRED (volver a cotizar), VEHICLE_NOT_AVAILABLE (vehiculo no AVAILABLE, de otra sede o con compromiso solapado), TRANSACTION_CONFLICT (conflicto concurrente persistente, reintentar), IDEMPOTENCY_KEY_REUSED o IDEMPOTENCY_KEY_IN_PROGRESS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Problem"];
+                };
+            };
+            /** @description INQUIRY_VERSION_CONFLICT */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INQUIRY_NOT_TRANSITIONABLE (la consulta no esta COTIZADA) o CUSTOMER_BLOCKED (cliente ROJO) */
             422: {
                 headers: {
                     [name: string]: unknown;
