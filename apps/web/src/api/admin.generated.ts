@@ -721,6 +721,10 @@ export interface operations {
             query: {
                 companyId: string;
                 branchId: string;
+                /** @description Ambito a mostrar (aditivo 0.2.1); omitido = toda la organizacion. Si ese ambito no tiene version propia, hereda la de arriba (`scope` dice de donde sale). */
+                scopeCompanyId?: string;
+                /** @description Requiere scopeCompanyId */
+                scopeBranchId?: string;
             };
             header?: never;
             path?: never;
@@ -736,6 +740,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RolePermissionMatrixResponse"];
                 };
+            };
+            /** @description MATRIX_SCOPE_INVALID (sede sin empresa) o COMPANY_BRANCH_NOT_IN_ORGANIZATION (ambito ajeno) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Sin contexto vigente, o rol sin MANAGE_PERMISSIONS */
             403: {
@@ -782,7 +793,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description INCOMPATIBLE_PERMISSION_COMBINATION - segregacion de funciones violada */
+            /** @description INCOMPATIBLE_PERMISSIONS - segregacion de funciones violada (el codigo real del back es INCOMPATIBLE_PERMISSIONS; antes se documentaba como INCOMPATIBLE_PERMISSION_COMBINATION) - LAST_ADMINISTRATOR_ROLE - la nueva foto dejaria a la organizacion sin ningun rol activo con asignaciones y con ADMIN.MANAGE_PERMISSIONS y ADMIN.MANAGE_USERS - MATRIX_VERSION_CONFLICT - otra persona guardo al mismo tiempo (recargar y reintentar) */
             409: {
                 headers: {
                     [name: string]: unknown;
