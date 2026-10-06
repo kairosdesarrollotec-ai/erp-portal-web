@@ -45,12 +45,14 @@ export function IncidentDetailScreen() {
   const timelineOpen = timelineExpanded ?? !isMobile;
 
   // Foco inicial en "Agregar nueva acción" (una vez por incidencia cargada).
+  // El formulario solo existe con el permiso ADD_ACTION (que puede llegar despues de la incidencia).
+  const canAddAction = can('ADD_ACTION');
   useEffect(() => {
-    if (incident && isOpen && focusedFor.current !== incident.id) {
+    if (incident && isOpen && focusedFor.current !== incident.id && actionRef.current) {
       focusedFor.current = incident.id;
-      actionRef.current?.focus();
+      actionRef.current.focus();
     }
-  }, [incident, isOpen, state]);
+  }, [incident, isOpen, state, canAddAction]);
 
   function backToList() {
     navigate('/incidencias', { state: context ?? undefined });
