@@ -3963,3 +3963,32 @@ screens:
   supersedes: null
   note: 'APROBADO (DEC-TR-11-001, 2026-10-01): contrato formal disponible en docs/sources/ux-ui/PANTALLAS-V3-B-TRANSVERSAL.md. Reemplaza aprobacion provisional PROV-TR-11-001 (23-sep-2026). Implementacion ModuleHubScreen.tsx compatible con el contrato.'
   is_reference_asset: false
+- proto_id: PROTO-DEV-05-RESULTADO-INSPECCION
+  ux_id: DEV-05
+  module: devolucion
+  source: pending
+  folder: pending
+  files:
+    screenshot: null
+    code: null
+  screen_state: RESULT
+  viewport:
+    width: 390
+    height: 844
+    dpr: 3
+    label: mobile
+  theme: light
+  locale: es-PE
+  status: PENDING_APPROVAL
+  approved_by_role: null
+  approved_at: null
+  sha256: null
+  bytes: null
+  supersedes: null
+  note: >
+    DEV-05 no tiene prototipo propio aprobado. Se usa como referencia visual
+    PROTO-ALQ-09-RESULTADO-ZONA-1-EXTERIOR y PROTO-ALQ-10-RESULTADO-TRAS-CHECKLIST
+    (modulo alquiler, pantalla equivalente de resultado de inspeccion).
+    Pendiente de aprobacion formal por PRODUCTO. Ver DEC-DEV-05-001 en
+    docs/decision-log.md.
+  is_reference_asset: false

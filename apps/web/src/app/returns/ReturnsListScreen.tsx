@@ -74,11 +74,11 @@ export function ReturnsListScreen() {
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>Cliente</th>
-                    <th>Vehículo</th>
-                    <th>Etapa</th>
-                    <th>Fecha programada</th>
-                    <th><span className={styles.srOnly}>Acciones</span></th>
+                    <th scope="col">Cliente</th>
+                    <th scope="col">Vehículo</th>
+                    <th scope="col">Etapa</th>
+                    <th scope="col">Fecha programada</th>
+                    <th scope="col"><span className={styles.srOnly}>Acciones</span></th>
                   </tr>
                 </thead>
                 <tbody>
