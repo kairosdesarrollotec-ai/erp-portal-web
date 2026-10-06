@@ -1,4 +1,4 @@
-import type { WorkerRole } from '../dashboard/worker-role';
+import type { RoleRef } from '../shared/role-ref';
 import { adminApiClient } from '../../api/admin-api-client';
 
 export interface OrganizationUserAssignment {
@@ -9,7 +9,7 @@ export interface OrganizationUserAssignment {
   companyName: string;
   branchId: string;
   branchName: string;
-  role: WorkerRole;
+  role: RoleRef;
   active: boolean;
   mfaEnrolled: boolean;
 }
@@ -37,6 +37,9 @@ export class AdminCommandError extends Error {
     if (problem.code === 'INITIAL_PASSWORD_REQUIRED') {
       return 'Este correo es nuevo: ingresa una contraseña inicial de al menos 8 caracteres.';
     }
+    if (problem.code === 'ROLE_NOT_FOUND' || problem.code === 'ROLE_INACTIVE') {
+      return 'El rol elegido ya no está disponible. Recarga la lista de roles.';
+    }
     return problem.detail ?? null;
   }
 }
@@ -63,7 +66,8 @@ export interface AssignUserInput {
   targetEmail: string;
   targetCompanyId: string;
   targetBranchId: string;
-  targetRole: WorkerRole;
+  /** Rol activo de la organizacion (GET /admin/roles). */
+  targetRoleId: string;
   /**
    * Solo obligatoria si el correo es nuevo (el backend responde 400
    * INITIAL_PASSWORD_REQUIRED en ese caso, ver AdminCommandError). Si el

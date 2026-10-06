@@ -10,7 +10,7 @@ import {
   OrganizationUserAssignment,
 } from './admin-users-client';
 import { useWorkContextForAdmin } from './useWorkContextForAdmin';
-import type { WorkerRole } from '../dashboard/worker-role';
+import { listRoles, type AdminRole } from './roles-client';
 
 /** ADM-01 - estados READY/LOADING/EMPTY/RECOVERABLE_ERROR (contrato punto 9). */
 export type AdminUsersState = 'LOADING' | 'READY' | 'EMPTY' | 'RECOVERABLE_ERROR';
@@ -25,7 +25,7 @@ export interface AssignUserFormInput {
   targets?: AssignCompanyBranchTarget[];
   targetCompanyId?: string;
   targetBranchId?: string;
-  targetRole: WorkerRole;
+  targetRoleId: string;
   /** Omitir cuando el correo ya existe (ver AssignUserInput). */
   initialPassword?: string;
 }
@@ -35,6 +35,9 @@ export function useAdminUsers() {
   const [state, setState] = useState<AdminUsersState>('LOADING');
   const [users, setUsers] = useState<OrganizationUserAssignment[]>([]);
   const [companies, setCompanies] = useState<OrganizationCompany[]>([]);
+  /** Roles activos asignables (GET /admin/roles); alimenta el selector de rol. */
+  const [roles, setRoles] = useState<AdminRole[]>([]);
+  const [rolesError, setRolesError] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [assignError, setAssignError] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
@@ -73,6 +76,19 @@ export function useAdminUsers() {
           // (ver AdminUsersScreen) - no bloquea la bandeja principal si esto falla.
         }
       })();
+      void (async () => {
+        try {
+          const user = getFirebaseAuth().currentUser;
+          if (!user) return;
+          const idToken = await user.getIdToken();
+          const result = await listRoles(idToken, context.companyId, context.branchId);
+          setRoles(result.filter((role) => role.active));
+          setRolesError(false);
+        } catch {
+          // Sin la lista de roles no se puede asignar: el formulario lo indica (rolesError).
+          setRolesError(true);
+        }
+      })();
     } else if (!contextLoading && !context) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setState('RECOVERABLE_ERROR');
@@ -108,7 +124,7 @@ export function useAdminUsers() {
             targetEmail: input.targetEmail,
             targetCompanyId: target.targetCompanyId,
             targetBranchId: target.targetBranchId,
-            targetRole: input.targetRole,
+            targetRoleId: input.targetRoleId,
             initialPassword: i === 0 ? input.initialPassword : undefined,
           });
           results.push({ target, error: null });
@@ -172,6 +188,8 @@ export function useAdminUsers() {
     users,
     context,
     companies,
+    roles,
+    rolesError,
     assigning,
     assignError,
     deactivatingId,

@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useAdminUsers } from './useAdminUsers';
-import { WORKER_ROLE_LABELS, WorkerRole } from '../dashboard/worker-role';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './AdminUsersScreen.module.css';
 
-const ASSIGNABLE_ROLES = Object.keys(WORKER_ROLE_LABELS) as WorkerRole[];
-
 /**
  * ADM-01 - Usuarios y asignaciones. Fuente: PANTALLAS-V2-B-SOPORTE.md.
+ * Los roles son dinamicos (ADM-02): el selector se alimenta de GET /admin/roles
+ * (solo activos) y se asigna por `targetRoleId`; la tabla muestra `role.name`.
  * Estados: READY, LOADING, EMPTY (contrato punto 9). Reutiliza
  * user_company_assignments (misma tabla de TR-05) via GET /admin/users.
  *
@@ -16,12 +15,12 @@ const ASSIGNABLE_ROLES = Object.keys(WORKER_ROLE_LABELS) as WorkerRole[];
  * cambiar la contraseña obligatoriamente y enrolar MFA.
  */
 export function AdminUsersScreen() {
-  const { state, users, context, companies, assigning, assignError, deactivatingId, actionError, assign, deactivate } =
+  const { state, users, context, companies, roles, rolesError, assigning, assignError, deactivatingId, actionError, assign, deactivate } =
     useAdminUsers();
   const [showAssignForm, setShowAssignForm] = useState(false);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [targetEmail, setTargetEmail] = useState('');
-  const [targetRole, setTargetRole] = useState<WorkerRole>('FRONT_OFFICE');
+  const [targetRole, setTargetRole] = useState('');
   const [initialPassword, setInitialPassword] = useState('');
 
   // Empresa/sede seleccionable: usa la lista del grupo cuando ya cargo, y
@@ -74,12 +73,12 @@ export function AdminUsersScreen() {
     const ok = await assign({
       targetEmail,
       targets,
-      targetRole,
+      targetRoleId: targetRole,
       initialPassword: initialPassword.length > 0 ? initialPassword : undefined,
     });
     if (ok) {
       setTargetEmail('');
-      setTargetRole('FRONT_OFFICE');
+      setTargetRole('');
       setInitialPassword('');
       if (context) {
         setSelectedKeys([`${context.companyId}::${context.branchId}`]);
@@ -183,15 +182,19 @@ export function AdminUsersScreen() {
               <select
                 className={styles.input}
                 value={targetRole}
-                onChange={(event) => setTargetRole(event.target.value as WorkerRole)}
+                onChange={(event) => setTargetRole(event.target.value)}
               >
-                {ASSIGNABLE_ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {WORKER_ROLE_LABELS[role]}
+                <option value="">Selecciona un rol</option>
+                {roles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
                   </option>
                 ))}
               </select>
             </label>
+            {rolesError && (
+              <p className={styles.errorText}>No pudimos cargar los roles disponibles. Recarga la pantalla para intentar de nuevo.</p>
+            )}
             <p className={styles.helperNote}>
               Deja la contraseña en blanco si el correo ya tiene una cuenta en KAIROS: se reutilizara y solo se le
               agregara la nueva empresa/sede/rol.
@@ -203,6 +206,7 @@ export function AdminUsersScreen() {
                 disabled={
                   assigning ||
                   !targetEmail ||
+                  !targetRole ||
                   selectedKeys.length === 0 ||
                   (initialPassword.length > 0 && initialPassword.length < 8)
                 }
@@ -247,7 +251,7 @@ export function AdminUsersScreen() {
                   <td>
                     {user.companyName} — {user.branchName}
                   </td>
-                  <td>{WORKER_ROLE_LABELS[user.role]}</td>
+                  <td>{user.role.name}</td>
                   <td>
                     <span className={`${styles.badge} ${user.active ? styles.badgeActive : styles.badgeInactive}`}>
                       {user.active ? 'Activo' : 'Inactivo'}
