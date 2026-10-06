@@ -225,7 +225,7 @@ export function InquiryDetailScreen() {
               <button type="button" className={styles.primaryButton} onClick={openReserveForm} disabled={saving}>
                 Reservar este vehículo
               </button>
-              {can('INQUIRY', 'CONVERT') && (
+              {can('INQUIRY', 'CONVERT_TO_RENTAL') && (
                 <button
                   type="button"
                   className={styles.primaryButton}

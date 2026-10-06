@@ -12,7 +12,7 @@ import { useLegacyModulePermissions, type LegacyReadWriteAction } from './legacy
  *    estan en la matriz: su logica vive aislada en shared/legacy-role-policy.ts
  *    (TODO fase 4: migrar a permisos).
  */
-type InquiryAction = 'READ' | 'REGISTER' | 'QUOTE' | 'CLOSE' | 'CONVERT_TO_RESERVATION';
+type InquiryAction = 'READ' | 'REGISTER' | 'QUOTE' | 'CLOSE' | 'CONVERT_TO_RESERVATION' | 'CONVERT_TO_RENTAL';
 type ReservationAction =
   | 'READ_LIST'
   | 'READ_DETAIL'
