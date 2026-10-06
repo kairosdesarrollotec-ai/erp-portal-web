@@ -30,6 +30,16 @@ import { Stage2ValidationsScreen } from '../rentals/Stage2ValidationsScreen';
 import { Stage3ContractScreen } from '../rentals/Stage3ContractScreen';
 import { Stage4ChecklistScreen } from '../rentals/Stage4ChecklistScreen';
 import { Stage5ConfirmationScreen } from '../rentals/Stage5ConfirmationScreen';
+import { ReturnsListScreen } from '../returns/ReturnsListScreen';
+import { ReceptionScreen } from '../returns/ReceptionScreen';
+import { AlcoholTestScreen } from '../returns/AlcoholTestScreen';
+import { ChecklistScreen } from '../returns/ChecklistScreen';
+import { ResultScreen } from '../returns/ResultScreen';
+import { DamageSeverityScreen } from '../returns/DamageSeverityScreen';
+import { CosmeticDamageScreen } from '../returns/CosmeticDamageScreen';
+import { TechnicalDamageScreen } from '../returns/TechnicalDamageScreen';
+import { GuaranteeScreen } from '../returns/GuaranteeScreen';
+import { ClosureScreen } from '../returns/ClosureScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -77,6 +87,17 @@ export const router = createBrowserRouter([
               { path: '/alquileres/:id/entrega-03', element: <Stage3ContractScreen /> },
               { path: '/alquileres/:id/entrega-04', element: <Stage4ChecklistScreen /> },
               { path: '/alquileres/:id/entrega-05', element: <Stage5ConfirmationScreen /> },
+              // Devolucion DEV-01..DEV-10 (DEV-05 = hub "Resultado").
+              { path: '/devoluciones', element: <ReturnsListScreen /> },
+              { path: '/devoluciones/recepcion/:rentalId', element: <ReceptionScreen /> },
+              { path: '/devoluciones/:id/alcoholimetro', element: <AlcoholTestScreen /> },
+              { path: '/devoluciones/:id/checklist', element: <ChecklistScreen /> },
+              { path: '/devoluciones/:id/resultado', element: <ResultScreen /> },
+              { path: '/devoluciones/:id/dano', element: <DamageSeverityScreen /> },
+              { path: '/devoluciones/:id/dano/estetico', element: <CosmeticDamageScreen /> },
+              { path: '/devoluciones/:id/dano/tecnico', element: <TechnicalDamageScreen /> },
+              { path: '/devoluciones/:id/garantia', element: <GuaranteeScreen /> },
+              { path: '/devoluciones/:id/cierre', element: <ClosureScreen /> },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
