@@ -1,6 +1,6 @@
 # Manual de Usuario — KAIROS / VeloxRent ERP
 
-> **Versión del Manual:** 1.2 (Corte al 5 de octubre de 2026)  
+> **Versión del Manual:** 1.3 (Corte al 6 de octubre de 2026)  
 > **Ámbito:** Guía de interacción paso a paso con el sistema web (`erp-portal-web`) y sus servicios integrados (`erp-monolithic-api`).  
 > **Política de Actualización:** Este documento se actualiza al cierre de cada jornada diaria con los nuevos módulos, flujos y pantallas que se integren al sistema.
 
@@ -392,7 +392,10 @@ Se activa mediante el botón de menú hamburguesa (☰) y se puede cerrar hacien
 
 1. **Resumen Comercial:** Muestra el vehículo cotizado, el cliente, las fechas y el importe presupuestado.
 2. **Línea de Tiempo (Historial):** Muestra cronológicamente cuándo se creó la consulta, qué canales se utilizaron y las cotizaciones emitidas.
-3. **Cierre sin Conversión:**
+3. **Conversión de la Consulta (siempre se ofrecen ambas acciones):** Con una cotización emitida, la consulta aún abierta y un cliente formal asociado, el detalle muestra dos botones:
+   * **"Reservar este vehículo":** continúa al flujo de Reserva (sección 8).
+   * **"Convertir a Alquiler":** crea el expediente de alquiler directo a partir de la cotización vigente (ver sección 10.2). La consulta pasa a `CONVERTIDA` y el sistema lo lleva al expediente recién creado. Si el cliente aún no está registrado formalmente (prospecto), ambos botones se reemplazan por el aviso para registrarlo primero.
+4. **Cierre sin Conversión:**
    * Si el cliente desiste o no concreta la compra, presione **"Cerrar consulta sin conversión"**.
    * Ingrese el **Motivo obligatorio** de cierre (ej. *"Cliente optó por transporte público"*, *"Precios fuera de su presupuesto"*).
    * Presione **"Confirmar cierre"**.
@@ -524,11 +527,22 @@ El expediente de alquiler transita por una máquina de estados estricta y lineal
 
 ---
 
-### 10.2 Creación de Alquiler: Directo y desde Reserva Confirmada (RES-05)
+### 10.2 Creación de Alquiler: desde Consulta o desde Reserva Confirmada (RES-05)
 
-Existen dos vías operativas para iniciar un alquiler en la sede activa:
+**Todo alquiler nace de una Consulta.** No existe un botón de alta directa de alquiler en la bandeja (ALQ-01): el expediente se genera por una de estas dos vías.
 
-#### Vía A: Continuar desde Reserva Confirmada (`RES-05`)
+#### Vía A: Convertir una Consulta a Alquiler (CON-04)
+* **Acceso:** Desde el detalle de la consulta (sección 7.4), botón **"Convertir a Alquiler"**. Se usa cuando el cliente alquila de inmediato (en mostrador) o decide alquilar sin reservar.
+* **Comportamiento del sistema:**
+  * La consulta debe estar `COTIZADA`, con cliente formal asociado y una cotización vigente (no vencida); de lo contrario se muestra el error correspondiente (por ejemplo, cotización vencida: volver a cotizar).
+  * El vehículo y la duración salen de la cotización vigente más reciente, no de un formulario.
+  * Un cliente en semáforo **ROJO** queda bloqueado (`CUSTOMER_BLOCKED`); el estado **ÁMBAR** no bloquea.
+  * El vehículo debe estar disponible, pertenecer a la sede (o ser compartido) y no tener reservas o compromisos que se solapen con el periodo.
+  * En una sola operación, la consulta pasa a `CONVERTIDA` y se crea el expediente en estado `DRAFT` vinculado a ella. El expediente se crea **sin fechas de inicio ni de devolución**: el tiempo del alquiler corre desde que se cierra la entrega (sección 10.7).
+  * Queda registrado en auditoría y se emite el evento `RentalCreatedFromInquiry.v1`.
+* **Cobro:** el alquiler directo **no tiene monto de reserva**; se cobra la **garantía completa** del vehículo (sección 10.6).
+
+#### Vía B: Continuar desde Reserva Confirmada (`RES-05`)
 * **Acceso:** Desde la pantalla de detalle de reserva confirmada (`ReservationDetailScreen`), presionar el botón **"Continuar con alquiler"**.
 * **Comportamiento del sistema:**
   * Valida que la reserva pertenezca a la empresa y sede del contexto activo.
@@ -536,17 +550,7 @@ Existen dos vías operativas para iniciar un alquiler en la sede activa:
   * Hereda automáticamente los datos del cliente, vehículo asignado, plan tarifario (`NORMAL`, `PLUS`, `LIBRE`) y fechas pactadas (`startAt`, `expectedEndAt`).
   * Genera el expediente de alquiler en estado `DRAFT`, asociando de forma inmutable el ID de la reserva previa.
   * Emite el evento de auditoría y notificación `RentalCreatedFromReservation.v1`.
-
-#### Vía B: Alquiler Directo en Mostrador (`ALQ-01`)
-* **Acceso:** Desde la bandeja de alquileres, botón **"Nuevo Alquiler"**.
-* **Formulario requerido:**
-  1. **Cliente:** Selección de cliente registrado en la empresa (por nombre o número de documento).
-  2. **Vehículo:** Selección de unidad de flota en estado `AVAILABLE` en la sede.
-  3. **Plan Tarifario:** `NORMAL` (estándar con deducible), `PLUS` (cobertura ampliada), `LIBRE` (kilometraje ilimitado).
-  4. **Fecha y Hora de Inicio:** Fecha programada de salida.
-  5. **Fecha y Hora de Devolución Estimada:** Debe ser estrictamente posterior a la fecha de inicio.
-  6. **Consulta Previa (Opcional):** Vinculación al código de cotización/consulta si provino de un asesor telefónico.
-* **Resultado:** Se crea el expediente en `DRAFT` y emite `RentalCreated.v1`.
+* **Monto de la reserva:** el tratamiento del monto ya pagado en la reserva (S/300) al convertirla en alquiler está **pendiente de confirmación de Finanzas** (opción provisional: trasladarlo íntegro a la garantía). Hasta entonces el sistema no lo aplica automáticamente.
 
 ---
 
@@ -587,7 +591,8 @@ Existen dos vías operativas para iniciar un alquiler en la sede activa:
 ### 10.6 Formalización de Contrato y Depósito en Garantía (BR-DOC-002/003)
 * **Regla de Negocio `BR-DOC-002` y `BR-DOC-003`:**
   * Se vincula la plantilla contractual inmutable activa de la empresa (`templateVersionId`) y la referencia documental digital o código de escaneo físico (`documentRef`).
-  * Se registra el importe de garantía de depósito (`depositAmount`) y la moneda (`PEN` o `USD`), asociándolo al registro contable del expediente.
+  * Se registra el importe de garantía de depósito (`depositAmount`) y la moneda (`PEN` o `USD`), asociándolo al registro contable del expediente. **Por ahora el monto se digita manualmente**: la garantía es la del vehículo según tarifario (entre S/500 y S/1000 según la unidad) y, cuando se carguen los montos exactos, se leerá de la ficha del vehículo en Flota.
+  * En un alquiler sin notaría "bajo consulta" la garantía se duplica; esa excepción solo la autorizan Fiorella o José.
   * Al completar este paso, el expediente transiciona a `PENDING_DELIVERY`.
 
 ---
@@ -601,7 +606,8 @@ Existen dos vías operativas para iniciar un alquiler en la sede activa:
   * **Efectos Atómicos al Completar la Entrega:**
     1. El estado del alquiler pasa a **`ACTIVE`**.
     2. El estado del vehículo en el módulo de Flota pasa automáticamente de `AVAILABLE` a **`RENTED`**.
-    3. Se emite el evento Outbox `EntregaCompletada.v1` con sellado de tiempo para inicio del cronómetro de facturación y monitoreo GPS.
+    3. Se fija el inicio del alquiler (`startAt`) en el momento exacto de cierre de la entrega, porque el plazo contractual se cuenta desde la entrega (cláusula 19). En un alquiler creado desde una consulta, la devolución prevista (`expectedEndAt`) se calcula como ese inicio más los días de la cotización; en un alquiler desde reserva se mantienen las fechas pactadas. Antes de cerrar se vuelve a verificar la disponibilidad del vehículo.
+    4. Se emite el evento Outbox `EntregaCompletada.v1`.
 
 ---
 
@@ -764,6 +770,7 @@ Los siguientes módulos forman parte del diseño integral del ERP y se incorpora
 | **2026-09-30** | **v1.0** | **Creación inicial del manual integral.** Cobertura completa de Login, MFA, Activación, Selección de Sede, Header/Sidebar, Dashboard, Clientes (alta/edición/búsqueda), Flota (alta con foto/edición/estados/baja), Consultas (CON-01 a CON-04 con validación turística y clientes vinculados), Reservas (RES-01 a RES-05) y Administración (ADM-01 a ADM-05). | Equipo de Ingeniería KAIROS |
 | **2026-09-30** | **v1.1** | **Integración del Módulo de Alquileres (ALQ-01 a ALQ-11).** Documentación del ciclo de vida completo de 10 estados, creación directa y desde reserva confirmada (RES-05), validación documental (BR-CON-004), prueba de alcolímetro de tolerancia cero (BR-ALQ-005), matriz notarial y tercer camino con aprobación gerencial (BR-ALQ-003/004), formalización de contrato con garantía (BR-DOC-002/003), y protocolo de entrega física con 35 fotos + 3 videos y transición a RENTED (BR-INS-003/004). | Equipo de Ingeniería KAIROS |
 | **2026-10-05** | **v1.2** | **Integración del Módulo de Devoluciones (DEV-01 a DEV-10).** Ciclo de vida, recepción provisional, alcoholímetro con decisión de Gerencia, checklist con evidencias y documento de responsabilidad firmado, hub de resultado, registro de daños estéticos y técnicos, garantía y cierre. Se corrige el estado de Alquileres y Devoluciones en el Centro de Módulos. | Equipo de Ingeniería KAIROS |
+| **2026-10-06** | **v1.3** | **Consulta → Alquiler directo.** El detalle de consulta (CON-04) ofrece siempre "Reservar este vehículo" y "Convertir a Alquiler"; se retira la vía "Nuevo Alquiler" de la bandeja (todo alquiler nace de una consulta). Se documentan las validaciones de conversión, que el alquiler directo no lleva monto de reserva y cobra garantía completa, y que el inicio del alquiler se fija al cerrar la entrega. Se retira del manual la mención de cronómetro de facturación y monitoreo GPS (no documentada). | Equipo de Ingeniería KAIROS |
 
 ---
 *Este manual es un documento vivo del proyecto KAIROS ERP. Se mantendrá actualizado al final de cada jornada de desarrollo.*
