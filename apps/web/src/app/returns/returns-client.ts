@@ -427,3 +427,25 @@ export async function listReturnEvidence(
   if (error || !data) throw new ReturnApiError(response.status);
   return data as unknown as ReturnEvidenceResponse[];
 }
+
+export interface ResponsibilityTemplateResult {
+  type: string;
+  name: string;
+  content: string;
+  version: number;
+}
+
+/** PROP-015b / BR-DEV-009 — plantilla activa del documento de responsabilidad para firma del cliente. */
+export async function getResponsibilityTemplate(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+): Promise<ResponsibilityTemplateResult> {
+  const { data, error, response } = await returnsApiClient.GET('/returns/{id}/responsibility-template', {
+    params: { path: { id }, query: { companyId, branchId } },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new ReturnApiError(response.status);
+  return data as unknown as ResponsibilityTemplateResult;
+}

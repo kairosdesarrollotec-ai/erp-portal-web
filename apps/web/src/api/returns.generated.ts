@@ -79,6 +79,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/returns/{id}/responsibility-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Obtener plantilla del documento de responsabilidad para firma del cliente (PROP-015b / BR-DEV-009)
+         * @description Retorna el contenido de la plantilla activa del documento de responsabilidad asociado a la empresa
+         *     operativa de la devolución. El frontend debe mostrar este contenido al cliente antes de solicitar la firma.
+         *     Requiere que la devolución exista y que el usuario tenga acceso a ella.
+         */
+        get: operations["getResponsibilityTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/returns/{id}/commands/register-alcohol-test": {
         parameters: {
             query?: never;
@@ -252,6 +274,22 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ResponsibilityTemplateResponse: {
+            /**
+             * @description Tipo de plantilla (e.g. RETURN_RESPONSIBILITY)
+             * @example RETURN_RESPONSIBILITY
+             */
+            type: string;
+            /**
+             * @description Nombre descriptivo de la plantilla
+             * @example Documento de Responsabilidad - Devolución VeloxRent
+             */
+            name: string;
+            /** @description Contenido de la plantilla que el cliente debe firmar */
+            content: string;
+            /** @description Versión activa de la plantilla */
+            version: number;
+        };
         /** @enum {string} */
         ReturnStatus: "PROGRAMADA" | "RECEPCION_PROVISIONAL" | "INSPECCION" | "SIN_DANOS" | "CON_DANOS" | "CIERRE_FINANCIERO" | "CERRADA" | "CANCELADA";
         /** @enum {string} */
@@ -823,6 +861,59 @@ export interface operations {
                 content?: never;
             };
             /** @description Devolución no encontrada en la empresa/sede */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno del servidor */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getResponsibilityTemplate: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plantilla activa del documento de responsabilidad */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResponsibilityTemplateResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución no encontrada o plantilla no configurada para la empresa */
             404: {
                 headers: {
                     [name: string]: unknown;

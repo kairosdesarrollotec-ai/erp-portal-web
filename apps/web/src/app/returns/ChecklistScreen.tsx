@@ -14,6 +14,7 @@ import {
 import { SignaturePad } from './SignaturePad';
 import { REQUIRED_PHOTOS, REQUIRED_VIDEOS, RETURN_ZONES } from './return-evidence';
 import { useReturnPermissions } from './return-permissions';
+import { getResponsibilityTemplate, type ResponsibilityTemplateResult } from './returns-client';
 import styles from './ReturnForms.module.css';
 
 function useOnline(): boolean {
@@ -56,6 +57,20 @@ export function ChecklistScreen() {
   const [draft, setDraft] = useState<ReturnChecklistDraft>(() => loadReturnChecklist(id));
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const [template, setTemplate] = useState<ResponsibilityTemplateResult | null>(null);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id || !context || !context.companyId || !context.branchId) return;
+    const { companyId, branchId } = context;
+    let cancelled = false;
+    getIdToken()
+      .then((token) => getResponsibilityTemplate(token, id, companyId, branchId))
+      .then((tpl) => { if (!cancelled) setTemplate(tpl); })
+      .catch(() => { if (!cancelled) setTemplateError('No se pudo cargar el documento de responsabilidad.'); });
+    return () => { cancelled = true; };
+  }, [id, context, getIdToken]);
 
   const guard = returnFlowGuard({ state, hasReturn: Boolean(ret) });
   if (guard || !ret) return guard;
@@ -285,6 +300,15 @@ export function ChecklistScreen() {
                   autoComplete="off"
                 />
               </label>
+            )}
+            {template && (
+              <div className={styles.templateContent}>
+                <p className={styles.templateTitle}>{template.name}</p>
+                <pre className={styles.templateText}>{template.content}</pre>
+              </div>
+            )}
+            {templateError && !template && (
+              <p className={styles.evidenceError} role="alert">{templateError}</p>
             )}
             <p className={styles.summaryLine}>Firma (dibuja con el dedo o el mouse)</p>
             <SignaturePad
