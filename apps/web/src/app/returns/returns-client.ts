@@ -1,21 +1,57 @@
+import { returnsApiClient } from '../../api/returns-api-client';
 import type {
+  AlcoholEscalation,
+  AlcoholEscalationDecision,
+  AssessDamageInput,
+  CompleteInspectionInput,
+  CosmeticTariffItem,
   CustodyHolder,
   DamageOrigin,
   DamageSeverity,
+  ImmobilizationChargeResponse,
+  ListReturnsOptions,
+  ReceiveProvisionalInput,
+  ResponsibilityDocumentInput,
+  ResponsibilityDocumentSummary,
+  ResolveAlcoholEscalationInput,
   ReturnAlcoholTestResult,
+  ReturnDamageResponse,
+  ReturnEvidenceContentType,
+  ReturnEvidenceResponse,
+  ReturnEvidenceType,
+  ReturnEvidenceUploadSession,
   ReturnFuelLevel,
+  ReturnResponse,
   ReturnStatus,
-} from './return-status';
+  CustomerRiskStatus,
+} from './returns-types';
+
 export type {
+  AlcoholEscalation,
+  AlcoholEscalationDecision,
+  AssessDamageInput,
+  CompleteInspectionInput,
+  CosmeticTariffItem,
   CustodyHolder,
+  CustomerRiskStatus,
   DamageOrigin,
   DamageSeverity,
+  ImmobilizationChargeResponse,
+  ListReturnsOptions,
+  ReceiveProvisionalInput,
+  ResponsibilityDocumentInput,
+  ResponsibilityDocumentSummary,
+  ResolveAlcoholEscalationInput,
   ReturnAlcoholTestResult,
+  ReturnDamageResponse,
+  ReturnEvidenceContentType,
+  ReturnEvidenceResponse,
+  ReturnEvidenceType,
+  ReturnEvidenceUploadSession,
   ReturnFuelLevel,
+  ReturnResponse,
   ReturnStatus,
 };
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 /** Error HTTP de lectura (GET) - mismo patron que RentalApiError. */
 export class ReturnApiError extends Error {
@@ -46,136 +82,17 @@ export class ReturnEvidenceUploadError extends Error {
   }
 }
 
-// Contrato: packages/contracts/openapi/returns.yaml (erp-api-local) - ReturnResponse.
-export interface ReturnResponse {
-  id: string;
-  organizationId: string;
-  operatingCompanyId: string;
-  branchId: string;
-  rentalId: string;
-  vehicleId: string;
-  customerId: string;
-  vehiclePlate?: string | null;
-  customerName?: string | null;
-  status: ReturnStatus;
-  custodyHolder: CustodyHolder;
-  customerPresent: boolean;
-  mileageAtReturn?: number | null;
-  fuelLevelAtReturn?: ReturnFuelLevel | null;
-  alcoholTestResult?: ReturnAlcoholTestResult | null;
-  alcoholTestNotes?: string | null;
-  /** Decision de Gerencia ante alcolimetro desfavorable (null si aun no hubo). */
-  alcoholEscalation: AlcoholEscalation | null;
-  /** Documento de responsabilidad firmado en la inspeccion (null antes de completarla; sin la firma). */
-  responsibilityDocument: ResponsibilityDocumentSummary | null;
-  scheduledAt: string;
-  receivedAt?: string | null;
-  inspectedAt?: string | null;
-  closedAt?: string | null;
-  finalSettlementAmount?: number | null;
-  notes?: string | null;
-  createdAt: string;
-  createdBy: string;
-  updatedAt: string;
-  updatedBy: string;
-  version: number;
-  etag: string;
-  /** Fuente de verdad de danos y cargos de paralizacion del expediente. */
-  damages: ReturnDamageResponse[];
-  immobilizationCharges: ImmobilizationChargeResponse[];
-}
-
-export type AlcoholEscalationDecision = 'CONTINUE_TO_INSPECTION' | 'KEEP_IN_CUSTODY';
-
-export interface AlcoholEscalation {
-  decision: AlcoholEscalationDecision;
-  markCustomerRed: boolean;
-  notes: string;
-  decidedById: string;
-  decidedAt: string;
-}
-
-export interface ResponsibilityDocumentInput {
-  signerName: string;
-  signerIsHolder: boolean;
-  /** Obligatorio cuando quien firma no es el titular (EX-DEV-001). */
-  signerRelationToHolder?: string;
-  signatureData: string;
-}
-
-/** Lo que el expediente devuelve del documento (ResponsibilityDocumentResponse): nunca incluye signatureData. */
-export interface ResponsibilityDocumentSummary {
-  signerName: string;
-  signerIsHolder: boolean;
-  signerRelationToHolder?: string | null;
-  signedAt?: string;
-}
-
-/** Semaforo del cliente tras evaluar un dano (assess-damage). */
-export type CustomerRiskStatus = 'NORMAL' | 'AMBAR' | 'ROJO';
-
-export interface ReturnDamageResponse {
-  id: string;
-  returnId: string;
-  origin: DamageOrigin;
-  severity: DamageSeverity;
-  damagedZone?: string | null;
-  estimatedAmount?: number | null;
-  externalReportReference?: string | null;
-  description?: string | null;
-  customerRiskStatus?: CustomerRiskStatus | null;
-  createdAt: string;
-  returnVersion?: number;
-  returnEtag?: string;
-}
-
-export interface ImmobilizationChargeResponse {
-  id: string;
-  returnId: string;
-  damageId?: string | null;
-  daysCharged: number;
-  dailyRate: number;
-  totalAmount: number;
-  notes?: string | null;
-  createdAt: string;
-  returnVersion?: number;
-  returnEtag?: string;
-}
-
-export type ReturnEvidenceType = 'PHOTO' | 'VIDEO';
-export type ReturnEvidenceContentType = 'image/jpeg' | 'image/webp' | 'video/mp4' | 'video/webm';
-
-export interface ReturnEvidenceUploadSession {
-  uploadUrl: string;
-  objectUrl: string;
-  expiresAt: string;
-}
-
-export interface ReturnEvidenceResponse {
-  id: string;
-  returnId: string;
-  type: ReturnEvidenceType;
-  zone: string;
-  objectUrl: string;
-  createdAt: string;
-}
-
 function authHeaders(idToken: string): Record<string, string> {
-  return { Authorization: `Bearer ${idToken}`, 'Content-Type': 'application/json' };
+  return { Authorization: `Bearer ${idToken}` };
 }
 
-function scopeParams(companyId: string, branchId: string, extra?: Record<string, string | undefined>): string {
-  const params = new URLSearchParams({ companyId, branchId });
-  for (const [key, value] of Object.entries(extra ?? {})) {
-    if (value !== undefined) params.set(key, value);
-  }
-  return params.toString();
-}
-
-export interface ListReturnsOptions {
-  status?: ReturnStatus;
-  limit?: number;
-  cursor?: { createdAt: string; id: string };
+function commandHeaders(idToken: string, version?: number): Record<string, string> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${idToken}`,
+    'Idempotency-Key': crypto.randomUUID(),
+  };
+  if (version !== undefined) headers['If-Match'] = `"${version}"`;
+  return headers;
 }
 
 /** DEV-01 - bandeja (GET /returns, paginacion keyset). */
@@ -185,15 +102,20 @@ export async function listReturns(
   branchId: string,
   options: ListReturnsOptions = {},
 ): Promise<ReturnResponse[]> {
-  const query = scopeParams(companyId, branchId, {
-    status: options.status,
-    limit: options.limit !== undefined ? String(options.limit) : undefined,
-    cursorCreatedAt: options.cursor?.createdAt,
-    cursorId: options.cursor?.id,
+  const { data, error, response } = await returnsApiClient.GET('/returns', {
+    params: {
+      query: {
+        companyId,
+        branchId,
+        ...(options.status ? { status: options.status } : {}),
+        ...(options.limit !== undefined ? { limit: options.limit } : {}),
+        ...(options.cursor ? { cursorCreatedAt: options.cursor.createdAt, cursorId: options.cursor.id } : {}),
+      },
+    },
+    headers: authHeaders(idToken),
   });
-  const response = await fetch(`${API_BASE_URL}/returns?${query}`, { headers: authHeaders(idToken) });
-  if (!response.ok) throw new ReturnApiError(response.status);
-  return (await response.json()) as ReturnResponse[];
+  if (error || !data) throw new ReturnApiError(response.status);
+  return data as unknown as ReturnResponse[];
 }
 
 /** Expediente de devolucion - fuente de verdad de cada pantalla del proceso. */
@@ -203,32 +125,16 @@ export async function getReturn(
   companyId: string,
   branchId: string,
 ): Promise<ReturnResponse> {
-  const response = await fetch(`${API_BASE_URL}/returns/${id}?${scopeParams(companyId, branchId)}`, {
+  const { data, error, response } = await returnsApiClient.GET('/returns/{id}', {
+    params: { path: { id }, query: { companyId, branchId } },
     headers: authHeaders(idToken),
   });
-  if (!response.ok) throw new ReturnApiError(response.status);
-  return (await response.json()) as ReturnResponse;
-}
-
-async function postJson<T>(
-  idToken: string,
-  path: string,
-  version: number | undefined,
-  body: Record<string, unknown>,
-): Promise<T> {
-  const headers = authHeaders(idToken);
-  headers['Idempotency-Key'] = crypto.randomUUID();
-  if (version !== undefined) headers['If-Match'] = `"${version}"`;
-  const response = await fetch(`${API_BASE_URL}${path}`, { method: 'POST', headers, body: JSON.stringify(body) });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => null);
-    throw new ReturnCommandError(response.status, problem);
-  }
-  return (await response.json()) as T;
+  if (error || !data) throw new ReturnApiError(response.status);
+  return data as unknown as ReturnResponse;
 }
 
 /** DEV-01 - programa la devolucion de un alquiler activo (POST /returns). */
-export function scheduleReturn(
+export async function scheduleReturn(
   idToken: string,
   companyId: string,
   branchId: string,
@@ -236,37 +142,44 @@ export function scheduleReturn(
   scheduledAt: string,
   notes?: string,
 ): Promise<ReturnResponse> {
-  return postJson(idToken, '/returns', undefined, { companyId, branchId, rentalId, scheduledAt, ...(notes ? { notes } : {}) });
-}
-
-export interface ReceiveProvisionalInput {
-  mileageAtReturn: number;
-  fuelLevelAtReturn: ReturnFuelLevel;
-  customerPresent: boolean;
-  notes?: string;
+  const { data, error, response } = await returnsApiClient.POST('/returns', {
+    headers: commandHeaders(idToken),
+    body: { companyId, branchId, rentalId, scheduledAt, ...(notes ? { notes } : {}) } as unknown as never,
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
 }
 
 /** DEV-02 - recepcion fisica provisional (POST /returns/receive-provisional). */
-export function receiveProvisional(
+export async function receiveProvisional(
   idToken: string,
   companyId: string,
   branchId: string,
   rentalId: string,
   input: ReceiveProvisionalInput,
 ): Promise<ReturnResponse> {
-  return postJson(idToken, '/returns/receive-provisional', undefined, {
-    companyId,
-    branchId,
-    rentalId,
-    mileageAtReturn: input.mileageAtReturn,
-    fuelLevelAtReturn: input.fuelLevelAtReturn,
-    customerPresent: input.customerPresent,
-    ...(input.notes ? { notes: input.notes } : {}),
+  const { data, error, response } = await returnsApiClient.POST('/returns/receive-provisional', {
+    headers: commandHeaders(idToken),
+    body: {
+      companyId,
+      branchId,
+      rentalId,
+      mileageAtReturn: input.mileageAtReturn,
+      fuelLevelAtReturn: input.fuelLevelAtReturn,
+      customerPresent: input.customerPresent,
+      ...(input.notes ? { notes: input.notes } : {}),
+    } as unknown as never,
   });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
 }
 
 /** DEV-03 - alcolimetro de salida. */
-export function registerReturnAlcoholTest(
+export async function registerReturnAlcoholTest(
   idToken: string,
   id: string,
   companyId: string,
@@ -275,24 +188,19 @@ export function registerReturnAlcoholTest(
   result: ReturnAlcoholTestResult,
   notes?: string,
 ): Promise<ReturnResponse> {
-  return postJson(idToken, `/returns/${id}/commands/register-alcohol-test`, version, {
-    companyId,
-    branchId,
-    result,
-    ...(notes ? { notes } : {}),
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/register-alcohol-test', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: { companyId, branchId, result, ...(notes ? { notes } : {}) } as unknown as never,
   });
-}
-
-export interface CompleteInspectionInput {
-  hasDamages: boolean;
-  damagesDescription?: string;
-  notes?: string;
-  /** Obligatorio (BR-DEV-009): sin el, el backend responde 422 MISSING_RESPONSIBILITY_DOCUMENT. */
-  responsibilityDocument: ResponsibilityDocumentInput;
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
 }
 
 /** DEV-04/05 - cierra el checklist y categoriza el estado de danos. */
-export function completeInspection(
+export async function completeInspection(
   idToken: string,
   id: string,
   companyId: string,
@@ -301,29 +209,31 @@ export function completeInspection(
   input: CompleteInspectionInput,
 ): Promise<ReturnResponse> {
   const { responsibilityDocument: doc } = input;
-  return postJson(idToken, `/returns/${id}/commands/complete-inspection`, version, {
-    companyId,
-    branchId,
-    hasDamages: input.hasDamages,
-    ...(input.damagesDescription ? { damagesDescription: input.damagesDescription } : {}),
-    ...(input.notes ? { notes: input.notes } : {}),
-    responsibilityDocument: {
-      signerName: doc.signerName,
-      signerIsHolder: doc.signerIsHolder,
-      ...(!doc.signerIsHolder && doc.signerRelationToHolder ? { signerRelationToHolder: doc.signerRelationToHolder } : {}),
-      signatureData: doc.signatureData,
-    },
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/complete-inspection', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: {
+      companyId,
+      branchId,
+      hasDamages: input.hasDamages,
+      ...(input.damagesDescription ? { damagesDescription: input.damagesDescription } : {}),
+      ...(input.notes ? { notes: input.notes } : {}),
+      responsibilityDocument: {
+        signerName: doc.signerName,
+        signerIsHolder: doc.signerIsHolder,
+        ...(!doc.signerIsHolder && doc.signerRelationToHolder ? { signerRelationToHolder: doc.signerRelationToHolder } : {}),
+        signatureData: doc.signatureData,
+      },
+    } as unknown as never,
   });
-}
-
-export interface ResolveAlcoholEscalationInput {
-  decision: AlcoholEscalationDecision;
-  markCustomerRed: boolean;
-  notes: string;
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
 }
 
 /** DEV-03 - decision de Gerencia ante alcolimetro desfavorable/rechazado (BR-DEV-005). */
-export function resolveAlcoholEscalation(
+export async function resolveAlcoholEscalation(
   idToken: string,
   id: string,
   companyId: string,
@@ -331,28 +241,25 @@ export function resolveAlcoholEscalation(
   version: number,
   input: ResolveAlcoholEscalationInput,
 ): Promise<ReturnResponse> {
-  return postJson(idToken, `/returns/${id}/commands/resolve-alcohol-escalation`, version, {
-    companyId,
-    branchId,
-    decision: input.decision,
-    markCustomerRed: input.markCustomerRed,
-    notes: input.notes,
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/resolve-alcohol-escalation', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: {
+      companyId,
+      branchId,
+      decision: input.decision,
+      markCustomerRed: input.markCustomerRed,
+      notes: input.notes,
+    } as unknown as never,
   });
-}
-
-export interface AssessDamageInput {
-  origin: DamageOrigin;
-  severity: DamageSeverity;
-  damagedZone?: string;
-  estimatedAmount?: number;
-  externalReportReference?: string;
-  description?: string;
-  /** Pregunta "¿El cliente acepta el costo?" - afecta el semaforo del cliente (LEVE/MODERADO). */
-  customerAcceptsCost?: boolean;
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
 }
 
 /** DEV-06/07/08 - evalua un dano (estetico por tarifario / tecnico por informe Motrix). */
-export function assessDamage(
+export async function assessDamage(
   idToken: string,
   id: string,
   companyId: string,
@@ -360,11 +267,19 @@ export function assessDamage(
   version: number,
   input: AssessDamageInput,
 ): Promise<ReturnDamageResponse> {
-  return postJson(idToken, `/returns/${id}/commands/assess-damage`, version, { companyId, branchId, ...input });
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/assess-damage', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: { companyId, branchId, ...input } as unknown as never,
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnDamageResponse;
 }
 
 /** DEV-08 - cobro de dias de paralizacion (BR-DEV-011). La tarifa diaria la fija el servidor (la del vehiculo). */
-export function chargeImmobilization(
+export async function chargeImmobilization(
   idToken: string,
   id: string,
   companyId: string,
@@ -372,31 +287,30 @@ export function chargeImmobilization(
   version: number,
   input: { damageId?: string; daysCharged: number; notes?: string },
 ): Promise<ImmobilizationChargeResponse> {
-  return postJson(idToken, `/returns/${id}/commands/charge-immobilization`, version, {
-    companyId,
-    branchId,
-    ...input,
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/charge-immobilization', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: { companyId, branchId, ...input } as unknown as never,
   });
-}
-
-export interface CosmeticTariffItem {
-  code: string;
-  name: string;
-  pricePen: number;
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ImmobilizationChargeResponse;
 }
 
 /** DEV-07 - tarifario oficial de danos esteticos (unica fuente: el backend). */
 export async function getCosmeticTariff(idToken: string, companyId: string, branchId: string): Promise<CosmeticTariffItem[]> {
-  const response = await fetch(`${API_BASE_URL}/returns/cosmetic-tariff?${scopeParams(companyId, branchId)}`, {
+  const { data, error, response } = await returnsApiClient.GET('/returns/cosmetic-tariff', {
+    params: { query: { companyId, branchId } },
     headers: authHeaders(idToken),
   });
-  if (!response.ok) throw new ReturnApiError(response.status);
-  const body = (await response.json()) as { items?: CosmeticTariffItem[] };
+  if (error || !data) throw new ReturnApiError(response.status);
+  const body = data as unknown as { items?: CosmeticTariffItem[] };
   return body.items ?? [];
 }
 
 /** DEV-09 - cierre financiero de garantia y penalidades. */
-export function closeFinancial(
+export async function closeFinancial(
   idToken: string,
   id: string,
   companyId: string,
@@ -406,17 +320,25 @@ export function closeFinancial(
   retainedAmount: number,
   notes?: string,
 ): Promise<ReturnResponse> {
-  return postJson(idToken, `/returns/${id}/commands/close-financial`, version, {
-    companyId,
-    branchId,
-    refundAmount,
-    retainedAmount,
-    ...(notes ? { notes } : {}),
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/close-financial', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: {
+      companyId,
+      branchId,
+      refundAmount,
+      retainedAmount,
+      ...(notes ? { notes } : {}),
+    } as unknown as never,
   });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
 }
 
 /** DEV-10 - cierre formal y archivo del expediente (accion irreversible). */
-export function closeReturn(
+export async function closeReturn(
   idToken: string,
   id: string,
   companyId: string,
@@ -424,7 +346,15 @@ export function closeReturn(
   version: number,
   input: { signatureData?: string; generateWarrantyAct?: boolean; notes?: string },
 ): Promise<ReturnResponse> {
-  return postJson(idToken, `/returns/${id}/commands/close`, version, { companyId, branchId, ...input });
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/close', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: { companyId, branchId, ...input } as unknown as never,
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
 }
 
 // --- DEV-04 / TR-08 - evidencia real (foto/video) de retorno ---
@@ -441,16 +371,18 @@ export async function requestReturnEvidenceUploadSession(
   contentType: ReturnEvidenceContentType,
   contentLength: number,
 ): Promise<ReturnEvidenceUploadSession> {
-  return postJson(idToken, `/returns/${id}/evidence/upload-url`, undefined, {
-    companyId,
-    branchId,
-    type,
-    zone,
-    contentType,
-    contentLength,
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/evidence/upload-url', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken),
+    body: { companyId, branchId, type, zone, contentType, contentLength } as unknown as never,
   });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnEvidenceUploadSession;
 }
 
+/** Nota: esta llamada es directa a GCS (no al API backend), por eso usa fetch nativo. */
 export async function uploadReturnEvidenceToGcs(uploadUrl: string, file: File): Promise<void> {
   const response = await fetch(uploadUrl, {
     method: 'PUT',
@@ -462,7 +394,7 @@ export async function uploadReturnEvidenceToGcs(uploadUrl: string, file: File): 
   }
 }
 
-export function recordReturnEvidence(
+export async function recordReturnEvidence(
   idToken: string,
   id: string,
   companyId: string,
@@ -471,7 +403,15 @@ export function recordReturnEvidence(
   zone: string,
   objectUrl: string,
 ): Promise<ReturnEvidenceResponse> {
-  return postJson(idToken, `/returns/${id}/evidence`, undefined, { companyId, branchId, type, zone, objectUrl });
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/evidence', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken),
+    body: { companyId, branchId, type, zone, objectUrl } as unknown as never,
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnEvidenceResponse;
 }
 
 export async function listReturnEvidence(
@@ -480,9 +420,32 @@ export async function listReturnEvidence(
   companyId: string,
   branchId: string,
 ): Promise<ReturnEvidenceResponse[]> {
-  const response = await fetch(`${API_BASE_URL}/returns/${id}/evidence?${scopeParams(companyId, branchId)}`, {
+  const { data, error, response } = await returnsApiClient.GET('/returns/{id}/evidence', {
+    params: { path: { id }, query: { companyId, branchId } },
     headers: authHeaders(idToken),
   });
-  if (!response.ok) throw new ReturnApiError(response.status);
-  return (await response.json()) as ReturnEvidenceResponse[];
+  if (error || !data) throw new ReturnApiError(response.status);
+  return data as unknown as ReturnEvidenceResponse[];
+}
+
+export interface ResponsibilityTemplateResult {
+  type: string;
+  name: string;
+  content: string;
+  version: number;
+}
+
+/** PROP-015b / BR-DEV-009 — plantilla activa del documento de responsabilidad para firma del cliente. */
+export async function getResponsibilityTemplate(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+): Promise<ResponsibilityTemplateResult> {
+  const { data, error, response } = await returnsApiClient.GET('/returns/{id}/responsibility-template', {
+    params: { path: { id }, query: { companyId, branchId } },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new ReturnApiError(response.status);
+  return data as unknown as ResponsibilityTemplateResult;
 }
