@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { makeFakeJwt, resolveRoleOption, type E2eRoleOption } from './role-presets';
-import { SINGLE_ASSIGNMENT, MULTI_ASSIGNMENTS, RESERVATION_FIXTURE, INQUIRY_FIXTURE, CUSTOMER_FIXTURE, RENTAL_FIXTURE, VEHICLE_FIXTURE } from './e2e-fixtures';
+import * as EF from './e2e-fixtures';
 
 // Re-exports so existing specs can keep importing from './helpers/routes'
 export * from './role-presets';
@@ -63,9 +63,9 @@ export async function interceptFirebaseAuth(page: Page, email = 'agente@veloxren
 
 export async function interceptBackendAuth(
   page: Page,
-  options: { assignments?: typeof MULTI_ASSIGNMENTS; role?: E2eRoleOption } = {},
+  options: { assignments?: typeof EF.MULTI_ASSIGNMENTS; role?: E2eRoleOption } = {},
 ): Promise<void> {
-  const resolvedAssignments = options.assignments ?? [SINGLE_ASSIGNMENT];
+  const resolvedAssignments = options.assignments ?? [EF.SINGLE_ASSIGNMENT];
   const { role, permissions } = resolveRoleOption(options.role);
 
   // GET /me/permissions: unica fuente del front para mostrar u ocultar modulos y acciones.
@@ -129,8 +129,8 @@ export async function interceptRentals(
   page: Page,
   options: { list?: object[]; detail?: object; evidence?: object[] } = {},
 ): Promise<void> {
-  const list = options.list ?? [RENTAL_FIXTURE];
-  const detail = options.detail ?? RENTAL_FIXTURE;
+  const list = options.list ?? [EF.RENTAL_FIXTURE];
+  const detail = options.detail ?? EF.RENTAL_FIXTURE;
   const evidence = options.evidence ?? [];
 
   // GET /rentals/:id/evidence - ALQ-09, lista de evidencia real (foto/video).
@@ -140,7 +140,7 @@ export async function interceptRentals(
   });
 
   const notaryDetail = {
-    ...RENTAL_FIXTURE,
+    ...EF.RENTAL_FIXTURE,
     version: 2,
     notaryEvaluation: {
       result: 'MANDATORY',
@@ -152,7 +152,7 @@ export async function interceptRentals(
   const contractDetail = {
     ...notaryDetail,
     version: 3,
-    contract: { documentRef: `CONTRATO-${RENTAL_FIXTURE.id.slice(0, 8)}` },
+    contract: { documentRef: `CONTRATO-${EF.RENTAL_FIXTURE.id.slice(0, 8)}` },
     deposit: { originalAmount: '500.00', currency: 'PEN' },
   };
 
@@ -161,7 +161,7 @@ export async function interceptRentals(
     route.fulfill({
       status: 201,
       contentType: 'application/json',
-      body: JSON.stringify({ ...RENTAL_FIXTURE, status: 'VALIDATION', version: 2 }),
+      body: JSON.stringify({ ...EF.RENTAL_FIXTURE, status: 'VALIDATION', version: 2 }),
     }),
   );
 
@@ -171,7 +171,7 @@ export async function interceptRentals(
       status: 201,
       contentType: 'application/json',
       body: JSON.stringify({
-        ...RENTAL_FIXTURE,
+        ...EF.RENTAL_FIXTURE,
         status: 'NOTARY_EVALUATION',
         alcoholTestResult: 'FAVORABLE',
         version: 2,
@@ -258,8 +258,8 @@ export async function interceptReservations(
   page: Page,
   options: { list?: object[]; detail?: object } = {},
 ): Promise<void> {
-  const list = options.list ?? [RESERVATION_FIXTURE];
-  const detail = options.detail ?? RESERVATION_FIXTURE;
+  const list = options.list ?? [EF.RESERVATION_FIXTURE];
+  const detail = options.detail ?? EF.RESERVATION_FIXTURE;
 
   await page.route(/\/reservations\/[^?]+/, (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(detail) }),
@@ -275,9 +275,9 @@ export async function interceptInquiries(
   page: Page,
   options: { list?: object[]; detail?: object; customer?: object } = {},
 ): Promise<void> {
-  const list = options.list ?? [INQUIRY_FIXTURE];
-  const detail = options.detail ?? { ...INQUIRY_FIXTURE, interactions: [], quotations: [] };
-  const customer = options.customer ?? CUSTOMER_FIXTURE;
+  const list = options.list ?? [EF.INQUIRY_FIXTURE];
+  const detail = options.detail ?? { ...EF.INQUIRY_FIXTURE, interactions: [], quotations: [] };
+  const customer = options.customer ?? EF.CUSTOMER_FIXTURE;
 
   await page.route(/\/customers\/[^?/]+(\?.*)?$/, (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(customer) }),
@@ -297,8 +297,8 @@ export async function interceptCustomers(
   page: Page,
   options: { list?: object[]; detail?: object } = {},
 ): Promise<void> {
-  const list = options.list ?? [CUSTOMER_FIXTURE];
-  const detail = options.detail ?? CUSTOMER_FIXTURE;
+  const list = options.list ?? [EF.CUSTOMER_FIXTURE];
+  const detail = options.detail ?? EF.CUSTOMER_FIXTURE;
 
   await page.route(/\/customers\/[^?/]+(\?.*)?$/, (route) => {
     if (route.request().method() !== 'GET') return route.continue();
@@ -324,8 +324,8 @@ export async function interceptFleet(
   page: Page,
   options: { list?: object[]; detail?: object } = {},
 ): Promise<void> {
-  const list = options.list ?? [VEHICLE_FIXTURE];
-  const detail = options.detail ?? VEHICLE_FIXTURE;
+  const list = options.list ?? [EF.VEHICLE_FIXTURE];
+  const detail = options.detail ?? EF.VEHICLE_FIXTURE;
 
   await page.route(/\/fleet\/vehicles\/[^?/]+(\?.*)?$/, (route) => {
     if (route.request().method() !== 'GET') return route.continue();
@@ -361,7 +361,7 @@ export async function waitForPermissionsReady(page: Page): Promise<void> {
 /** Realiza el flujo de login completo via UI (Firebase y backend interceptados). */
 export async function loginViaUI(
   page: Page,
-  options: { email?: string; password?: string; assignments?: typeof MULTI_ASSIGNMENTS; role?: E2eRoleOption } = {},
+  options: { email?: string; password?: string; assignments?: typeof EF.MULTI_ASSIGNMENTS; role?: E2eRoleOption } = {},
 ): Promise<void> {
   const email = options.email ?? 'agente@veloxrent.pe';
   const password = options.password ?? 'Velox2026!';
