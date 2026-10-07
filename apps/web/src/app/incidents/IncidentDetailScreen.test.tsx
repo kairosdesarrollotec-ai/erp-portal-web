@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IncidentDetailScreen } from './IncidentDetailScreen';
+
+function createTestQueryClient() {
+  return new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+}
 import { IncidentCommandError } from './incidents-client';
 import { baseContext, makeDetail, setupUser } from './test-utils';
 import { setPermissions, INCIDENT_ALL, INCIDENT_FIELD } from '../../test/permissions';
@@ -33,12 +38,14 @@ vi.mock('./incidents-client', async () => {
 
 function renderScreen() {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/incidencias/inc-1', state: baseContext }]}>
-      <Routes>
-        <Route path="/incidencias" element={<div>bandeja de incidencias</div>} />
-        <Route path="/incidencias/:id" element={<IncidentDetailScreen />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={createTestQueryClient()}>
+      <MemoryRouter initialEntries={[{ pathname: '/incidencias/inc-1', state: baseContext }]}>
+        <Routes>
+          <Route path="/incidencias" element={<div>bandeja de incidencias</div>} />
+          <Route path="/incidencias/:id" element={<IncidentDetailScreen />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
