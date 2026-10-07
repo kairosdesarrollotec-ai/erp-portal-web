@@ -3,7 +3,7 @@ import { ReturnCommandError } from './returns-client';
 import { describeReturnError, isIncidentOpenError, isStaleReturnError } from './return-errors';
 import { returnPathForStatus, hoursSince, isReturnFinal, RETURN_STATUS_LABELS } from './return-status';
 import { canReturnAction } from './return-permissions';
-import { roleRef } from '../../test/permissions';
+import { permissionKey } from '../../test/permissions';
 import { damagesWithoutAmount, formatPen, hasGraveDamage, humanizeZoneCode, totalCharges } from './return-financial';
 import type { ImmobilizationChargeResponse, ReturnDamageResponse } from './returns-client';
 import {
@@ -85,19 +85,22 @@ describe('return-status', () => {
   });
 });
 
-describe('return-permissions (espejo de return-role-policy.ts)', () => {
-  it('sin rol conocido no oculta nada (decide el backend)', () => {
-    expect(canReturnAction(null, 'CLOSE')).toBe(true);
+describe('return-permissions (matriz ADM-02, permisos dinamicos)', () => {
+  const granted = (...actions: string[]) =>
+    new Set(actions.map((a) => permissionKey('RETURN', a)));
+
+  it('sin permisos concedidos no autoriza ninguna accion', () => {
+    expect(canReturnAction(new Set(), 'CLOSE')).toBe(false);
+    expect(canReturnAction(new Set(), 'UPLOAD_EVIDENCE')).toBe(false);
   });
 
-  it('respeta la politica del backend', () => {
-    expect(canReturnAction(roleRef('CAMPO'), 'UPLOAD_EVIDENCE')).toBe(true);
-    expect(canReturnAction(roleRef('CAMPO'), 'CLOSE')).toBe(false);
-    expect(canReturnAction(roleRef('FRONT_OFFICE'), 'ASSESS_DAMAGE')).toBe(false);
-    expect(canReturnAction(roleRef('GERENCIA'), 'ASSESS_DAMAGE')).toBe(true);
-    expect(canReturnAction(roleRef('FINANZAS'), 'CLOSE_FINANCIAL')).toBe(true);
-    expect(canReturnAction(roleRef('FINANZAS'), 'CLOSE')).toBe(false);
-    expect(canReturnAction(roleRef('PLATFORM_ADMIN'), 'CLOSE')).toBe(true);
+  it('autoriza exactamente las acciones presentes en el conjunto', () => {
+    expect(canReturnAction(granted('UPLOAD_EVIDENCE'), 'UPLOAD_EVIDENCE')).toBe(true);
+    expect(canReturnAction(granted('UPLOAD_EVIDENCE'), 'CLOSE')).toBe(false);
+    expect(canReturnAction(granted('ASSESS_DAMAGE'), 'ASSESS_DAMAGE')).toBe(true);
+    expect(canReturnAction(granted('CLOSE_FINANCIAL'), 'CLOSE_FINANCIAL')).toBe(true);
+    expect(canReturnAction(granted('CLOSE_FINANCIAL'), 'CLOSE')).toBe(false);
+    expect(canReturnAction(granted('CLOSE'), 'CLOSE')).toBe(true);
   });
 });
 
@@ -116,11 +119,12 @@ describe('return-errors - cambios de contrato', () => {
     expect(message).not.toMatch(/MISSING_RESPONSIBILITY_DOCUMENT|422/);
   });
 
-  it('solo Gerencia decide ante alcolimetro desfavorable', () => {
-    expect(canReturnAction(roleRef('GERENCIA'), 'RESOLVE_ALCOHOL_ESCALATION')).toBe(true);
-    expect(canReturnAction(roleRef('ADMINISTRACION'), 'RESOLVE_ALCOHOL_ESCALATION')).toBe(false);
-    expect(canReturnAction(roleRef('CAMPO'), 'RESOLVE_ALCOHOL_ESCALATION')).toBe(false);
-    expect(canReturnAction(null, 'RESOLVE_ALCOHOL_ESCALATION')).toBe(true);
+  it('RESOLVE_ALCOHOL_ESCALATION es una accion de permiso independiente', () => {
+    const withEscalation = new Set([permissionKey('RETURN', 'RESOLVE_ALCOHOL_ESCALATION')]);
+    const withoutEscalation = new Set([permissionKey('RETURN', 'UPLOAD_EVIDENCE')]);
+    expect(canReturnAction(withEscalation, 'RESOLVE_ALCOHOL_ESCALATION')).toBe(true);
+    expect(canReturnAction(withoutEscalation, 'RESOLVE_ALCOHOL_ESCALATION')).toBe(false);
+    expect(canReturnAction(new Set(), 'RESOLVE_ALCOHOL_ESCALATION')).toBe(false);
   });
 });
 

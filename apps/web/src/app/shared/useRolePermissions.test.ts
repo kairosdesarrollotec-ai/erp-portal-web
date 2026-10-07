@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useRolePermissions } from './useRolePermissions';
-import { useWorkSession } from './useWorkSession';
-import { clearPermissions, roleRef, setPermissions } from '../../test/permissions';
-
-function withRole(key: string | null, name?: string) {
-  useWorkSession.setState({ role: key === null && name === undefined ? null : roleRef(key, name) });
-}
+import { clearPermissions, setPermissions } from '../../test/permissions';
 
 beforeEach(() => {
   clearPermissions();
@@ -33,7 +28,6 @@ describe('useRolePermissions — INQUIRY (por permiso)', () => {
   });
 
   it('un rol personalizado se comporta igual que uno de sistema con los mismos permisos', () => {
-    withRole(null, 'Ejecutivo comercial');
     setPermissions(['INQUIRY.READ', 'INQUIRY.REGISTER']);
     const { result } = renderHook(() => useRolePermissions());
     expect(result.current.can('INQUIRY', 'REGISTER')).toBe(true);
@@ -68,56 +62,52 @@ describe('useRolePermissions — estados de carga', () => {
   });
 });
 
-// FLEET y CUSTOMER: el back todavia los autoriza por sets de roles (fase 4 los migra).
-describe('useRolePermissions — FLEET y CUSTOMER (politica aislada por rol, TODO fase 4)', () => {
-  it('FLEET: GERENCIA puede WRITE y READ; FINANZAS solo READ; RRHH nada', () => {
-    withRole('GERENCIA');
-    const gerencia = renderHook(() => useRolePermissions());
-    expect(gerencia.result.current.can('FLEET', 'WRITE')).toBe(true);
-    expect(gerencia.result.current.can('FLEET', 'READ')).toBe(true);
-
-    withRole('FINANZAS');
-    const finanzas = renderHook(() => useRolePermissions());
-    expect(finanzas.result.current.can('FLEET', 'READ')).toBe(true);
-    expect(finanzas.result.current.can('FLEET', 'WRITE')).toBe(false);
-
-    withRole('RRHH');
-    const rrhh = renderHook(() => useRolePermissions());
-    expect(rrhh.result.current.can('FLEET', 'READ')).toBe(false);
+// FLEET y CUSTOMER: migrados a la matriz ADM-02 en fase 4 (permisos dinamicos).
+describe('useRolePermissions — FLEET (por permiso, fase 4)', () => {
+  it('concede exactamente los permisos FLEET.* que trae /me/permissions', () => {
+    setPermissions(['FLEET.READ', 'FLEET.WRITE']);
+    const { result } = renderHook(() => useRolePermissions());
+    expect(result.current.can('FLEET', 'READ')).toBe(true);
+    expect(result.current.can('FLEET', 'WRITE')).toBe(true);
   });
 
-  it('CUSTOMER: FRONT_OFFICE puede WRITE y READ; CAMPO solo READ; RRHH nada', () => {
-    withRole('FRONT_OFFICE');
-    const fo = renderHook(() => useRolePermissions());
-    expect(fo.result.current.can('CUSTOMER', 'WRITE')).toBe(true);
-    expect(fo.result.current.can('CUSTOMER', 'READ')).toBe(true);
-
-    withRole('CAMPO');
-    const campo = renderHook(() => useRolePermissions());
-    expect(campo.result.current.can('CUSTOMER', 'READ')).toBe(true);
-    expect(campo.result.current.can('CUSTOMER', 'WRITE')).toBe(false);
-
-    withRole('RRHH');
-    const rrhh = renderHook(() => useRolePermissions());
-    expect(rrhh.result.current.can('CUSTOMER', 'READ')).toBe(false);
+  it('solo lectura: puede READ pero no WRITE', () => {
+    setPermissions(['FLEET.READ']);
+    const { result } = renderHook(() => useRolePermissions());
+    expect(result.current.can('FLEET', 'READ')).toBe(true);
+    expect(result.current.can('FLEET', 'WRITE')).toBe(false);
   });
 
-  it('un rol creado a mano (key null) no entra en ningun set: denegado hasta la fase 4', () => {
-    withRole(null, 'Supervisor de flota');
+  it('sin permisos FLEET: denegado por defecto', () => {
     const { result } = renderHook(() => useRolePermissions());
     expect(result.current.can('FLEET', 'READ')).toBe(false);
+    expect(result.current.can('FLEET', 'WRITE')).toBe(false);
+  });
+
+  it('un permiso de otro modulo no otorga acceso a FLEET', () => {
+    setPermissions(['INQUIRY.READ', 'CUSTOMER.WRITE']);
+    const { result } = renderHook(() => useRolePermissions());
+    expect(result.current.can('FLEET', 'READ')).toBe(false);
+  });
+});
+
+describe('useRolePermissions — CUSTOMER (por permiso, fase 4)', () => {
+  it('concede exactamente los permisos CUSTOMER.* que trae /me/permissions', () => {
+    setPermissions(['CUSTOMER.READ', 'CUSTOMER.WRITE']);
+    const { result } = renderHook(() => useRolePermissions());
+    expect(result.current.can('CUSTOMER', 'READ')).toBe(true);
+    expect(result.current.can('CUSTOMER', 'WRITE')).toBe(true);
+  });
+
+  it('solo lectura: puede READ pero no WRITE', () => {
+    setPermissions(['CUSTOMER.READ']);
+    const { result } = renderHook(() => useRolePermissions());
+    expect(result.current.can('CUSTOMER', 'READ')).toBe(true);
     expect(result.current.can('CUSTOMER', 'WRITE')).toBe(false);
   });
 
-  it('PLATFORM_ADMIN puede FLEET y CUSTOMER; sin rol en sesion no puede nada', () => {
-    withRole('PLATFORM_ADMIN');
-    const admin = renderHook(() => useRolePermissions());
-    expect(admin.result.current.can('FLEET', 'WRITE')).toBe(true);
-    expect(admin.result.current.can('CUSTOMER', 'WRITE')).toBe(true);
-
-    clearPermissions();
-    const none = renderHook(() => useRolePermissions());
-    expect(none.result.current.can('FLEET', 'WRITE')).toBe(false);
-    expect(none.result.current.can('CUSTOMER', 'READ')).toBe(false);
+  it('sin permisos CUSTOMER: denegado por defecto', () => {
+    const { result } = renderHook(() => useRolePermissions());
+    expect(result.current.can('CUSTOMER', 'READ')).toBe(false);
   });
 });
