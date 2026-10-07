@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AdminUsersScreen } from './AdminUsersScreen';
+import { AdminCommandError } from './admin-users-client';
 
 const listOrganizationUsersMock = vi.fn();
 const assignUserToCompanyMock = vi.fn();
 const deactivateAssignmentMock = vi.fn();
 const getOrganizationCompaniesMock = vi.fn();
+const listRolesMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -25,6 +27,18 @@ vi.mock('./admin-users-client', async () => {
   };
 });
 
+vi.mock('./roles-client', async () => {
+  const actual = await vi.importActual<typeof import('./roles-client')>('./roles-client');
+  return {
+    ...actual,
+    listRoles: (...args: unknown[]) => listRolesMock(...args),
+  };
+});
+
+const ROLE_FRONT_OFFICE = { id: 'role-fo', name: 'Front Office', key: 'FRONT_OFFICE', isSystem: true, active: true, version: 1, assignmentCount: 3 };
+const ROLE_CUSTOM = { id: 'role-custom', name: 'Supervisor de flota', key: null, isSystem: false, active: true, version: 1, assignmentCount: 0 };
+const ROLE_INACTIVE = { id: 'role-old', name: 'Rol obsoleto', key: null, isSystem: false, active: false, version: 4, assignmentCount: 0 };
+
 const GROUP_COMPANIES = [
   {
     companyId: 'c1',
@@ -37,6 +51,12 @@ const GROUP_COMPANIES = [
     branches: [{ branchId: 'b2', branchName: 'Sede Norte' }],
   },
 ];
+
+async function chooseRole(name: string) {
+  const select = (await screen.findByLabelText('Rol')) as HTMLSelectElement;
+  const option = (await within(select).findByRole('option', { name })) as HTMLOptionElement;
+  fireEvent.change(select, { target: { value: option.value } });
+}
 
 function renderScreen() {
   return render(
@@ -59,6 +79,8 @@ describe('AdminUsersScreen (ADM-01)', () => {
     deactivateAssignmentMock.mockReset();
     getOrganizationCompaniesMock.mockReset();
     getOrganizationCompaniesMock.mockResolvedValue(GROUP_COMPANIES);
+    listRolesMock.mockReset();
+    listRolesMock.mockResolvedValue([ROLE_FRONT_OFFICE, ROLE_CUSTOM, ROLE_INACTIVE]);
   });
 
   it('muestra la bandeja de usuarios con estado y MFA', async () => {
@@ -71,7 +93,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
         companyName: 'VeloxRent',
         branchId: 'b1',
         branchName: 'Sede Central',
-        role: 'FRONT_OFFICE',
+        role: { id: 'role-fo', name: 'Front Office', key: 'FRONT_OFFICE' },
         active: true,
         mfaEnrolled: true,
       },
@@ -82,6 +104,26 @@ describe('AdminUsersScreen (ADM-01)', () => {
     expect(screen.getByText('Activo')).toBeInTheDocument();
     expect(screen.getByText('Front Office')).toBeInTheDocument();
     expect(screen.getByText('✓')).toBeInTheDocument();
+  });
+
+  it('la tabla muestra el nombre del rol que viene de la API, también de un rol creado a mano', async () => {
+    listOrganizationUsersMock.mockResolvedValue([
+      {
+        id: 'assign-9',
+        firebaseUid: 'uid-9',
+        email: 'flota@veloxrent.pe',
+        companyId: 'c1',
+        companyName: 'VeloxRent',
+        branchId: 'b1',
+        branchName: 'Sede Central',
+        role: { id: 'role-custom', name: 'Supervisor de flota', key: null },
+        active: true,
+        mfaEnrolled: false,
+      },
+    ]);
+    renderScreen();
+
+    expect(await screen.findByText('Supervisor de flota')).toBeInTheDocument();
   });
 
   it('muestra el estado vacio cuando no hay usuarios', async () => {
@@ -108,7 +150,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
         companyName: 'VeloxRent',
         branchId: 'b1',
         branchName: 'Sede Central',
-        role: 'FRONT_OFFICE',
+        role: { id: 'role-fo', name: 'Front Office', key: 'FRONT_OFFICE' },
         active: true,
         mfaEnrolled: false,
       },
@@ -125,6 +167,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
     fireEvent.change(screen.getByPlaceholderText('Mínimo 8 caracteres'), {
       target: { value: 'Temporal@123' },
     });
+    await chooseRole('Front Office');
     fireEvent.click(screen.getByText('Agregar usuario'));
 
     await waitFor(() => {
@@ -134,7 +177,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
         targetEmail: 'nuevo@veloxrent.pe',
         targetCompanyId: 'c1',
         targetBranchId: 'b1',
-        targetRole: 'FRONT_OFFICE',
+        targetRoleId: 'role-fo',
         initialPassword: 'Temporal@123',
       });
     });
@@ -160,6 +203,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
     fireEvent.click(screen.getByLabelText('VeloxRent - Sede Central'));
     fireEvent.click(screen.getByLabelText('VeloxRent Norte - Sede Norte'));
 
+    await chooseRole('Front Office');
     fireEvent.click(screen.getAllByText('Agregar usuario').at(-1)!);
 
     await waitFor(() => {
@@ -169,7 +213,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
         targetEmail: 'norte@veloxrent.pe',
         targetCompanyId: 'c2',
         targetBranchId: 'b2',
-        targetRole: 'FRONT_OFFICE',
+        targetRoleId: 'role-fo',
         initialPassword: 'Temporal@123',
       });
     });
@@ -194,6 +238,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
     // VeloxRent Sede Central ya viene seleccionada, además marcamos VeloxRent Norte
     fireEvent.click(screen.getByLabelText('VeloxRent Norte - Sede Norte'));
 
+    await chooseRole('Front Office');
     fireEvent.click(screen.getAllByText('Agregar usuario').at(-1)!);
 
     await waitFor(() => {
@@ -204,7 +249,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
         targetEmail: 'multi@veloxrent.pe',
         targetCompanyId: 'c1',
         targetBranchId: 'b1',
-        targetRole: 'FRONT_OFFICE',
+        targetRoleId: 'role-fo',
         initialPassword: 'Temporal@123',
       });
       expect(assignUserToCompanyMock).toHaveBeenNthCalledWith(2, 'fake-id-token', {
@@ -213,7 +258,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
         targetEmail: 'multi@veloxrent.pe',
         targetCompanyId: 'c2',
         targetBranchId: 'b2',
-        targetRole: 'FRONT_OFFICE',
+        targetRoleId: 'role-fo',
         initialPassword: undefined,
       });
     });
@@ -230,6 +275,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
       target: { value: 'existente@veloxrent.pe' },
     });
     // La contraseña se deja en blanco: el backend reutiliza el uid existente.
+    await chooseRole('Front Office');
     fireEvent.click(screen.getAllByText('Agregar usuario').at(-1)!);
 
     await waitFor(() => {
@@ -239,7 +285,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
         targetEmail: 'existente@veloxrent.pe',
         targetCompanyId: 'c1',
         targetBranchId: 'b1',
-        targetRole: 'FRONT_OFFICE',
+        targetRoleId: 'role-fo',
         initialPassword: undefined,
       });
     });
@@ -256,7 +302,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
           companyName: 'VeloxRent',
           branchId: 'b1',
           branchName: 'Sede Central',
-          role: 'FRONT_OFFICE',
+          role: { id: 'role-fo', name: 'Front Office', key: 'FRONT_OFFICE' },
           active: true,
           mfaEnrolled: false,
         },
@@ -270,7 +316,7 @@ describe('AdminUsersScreen (ADM-01)', () => {
           companyName: 'VeloxRent',
           branchId: 'b1',
           branchName: 'Sede Central',
-          role: 'FRONT_OFFICE',
+          role: { id: 'role-fo', name: 'Front Office', key: 'FRONT_OFFICE' },
           active: false,
           mfaEnrolled: false,
         },
@@ -286,5 +332,76 @@ describe('AdminUsersScreen (ADM-01)', () => {
       expect(deactivateAssignmentMock).toHaveBeenCalledWith('fake-id-token', 'assign-1', 'c1', 'b1');
     });
     expect(await screen.findByText('Inactivo')).toBeInTheDocument();
+  });
+
+  it('el selector de rol se alimenta de GET /admin/roles y solo ofrece roles activos', async () => {
+    listOrganizationUsersMock.mockResolvedValue([]);
+    renderScreen();
+
+    await screen.findByText('Todavía no hay usuarios asignados a esta organización.');
+    fireEvent.click(screen.getByText('Agregar usuario'));
+
+    const select = (await screen.findByLabelText('Rol')) as HTMLSelectElement;
+    await within(select).findByRole('option', { name: 'Supervisor de flota' });
+    const names = Array.from(select.options).map((o) => o.text);
+    expect(names).toEqual(['Selecciona un rol', 'Front Office', 'Supervisor de flota']);
+    expect(names).not.toContain('Rol obsoleto');
+    expect(listRolesMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1');
+  });
+
+  it('asigna un rol personalizado por targetRoleId y no deja agregar sin elegir rol', async () => {
+    listOrganizationUsersMock.mockResolvedValue([]);
+    assignUserToCompanyMock.mockResolvedValue({ id: 'assign-7' });
+    renderScreen();
+
+    await screen.findByText('Todavía no hay usuarios asignados a esta organización.');
+    fireEvent.click(screen.getByText('Agregar usuario'));
+    fireEvent.change(screen.getByPlaceholderText('usuario@veloxrent.pe'), { target: { value: 'flota@veloxrent.pe' } });
+
+    const submit = screen.getByRole('button', { name: 'Agregar usuario' });
+    expect(submit).toBeDisabled();
+
+    await chooseRole('Supervisor de flota');
+    expect(submit).not.toBeDisabled();
+    fireEvent.click(submit);
+
+    await waitFor(() => {
+      expect(assignUserToCompanyMock).toHaveBeenCalledWith('fake-id-token', {
+        companyId: 'c1',
+        branchId: 'b1',
+        targetEmail: 'flota@veloxrent.pe',
+        targetCompanyId: 'c1',
+        targetBranchId: 'b1',
+        targetRoleId: 'role-custom',
+        initialPassword: undefined,
+      });
+    });
+  });
+
+  it('avisa si no se pudieron cargar los roles', async () => {
+    listOrganizationUsersMock.mockResolvedValue([]);
+    listRolesMock.mockRejectedValue(new Error('network'));
+    renderScreen();
+
+    await screen.findByText('Todavía no hay usuarios asignados a esta organización.');
+    fireEvent.click(screen.getByText('Agregar usuario'));
+
+    expect(await screen.findByText(/No pudimos cargar los roles disponibles/)).toBeInTheDocument();
+  });
+
+  it('muestra en lenguaje claro el rechazo del back por rol no disponible', async () => {
+    listOrganizationUsersMock.mockResolvedValue([]);
+    assignUserToCompanyMock.mockRejectedValue(
+      new AdminCommandError(400, { code: 'ROLE_INACTIVE' }),
+    );
+    renderScreen();
+
+    await screen.findByText('Todavía no hay usuarios asignados a esta organización.');
+    fireEvent.click(screen.getByText('Agregar usuario'));
+    fireEvent.change(screen.getByPlaceholderText('usuario@veloxrent.pe'), { target: { value: 'x@veloxrent.pe' } });
+    await chooseRole('Front Office');
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar usuario' }));
+
+    expect(await screen.findByText(/El rol elegido ya no está disponible/)).toBeInTheDocument();
   });
 });

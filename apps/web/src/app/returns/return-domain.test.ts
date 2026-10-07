@@ -3,6 +3,7 @@ import { ReturnCommandError } from './returns-client';
 import { describeReturnError, isIncidentOpenError, isStaleReturnError } from './return-errors';
 import { returnPathForStatus, hoursSince, isReturnFinal, RETURN_STATUS_LABELS } from './return-status';
 import { canReturnAction } from './return-permissions';
+import { roleRef } from '../../test/permissions';
 import { damagesWithoutAmount, formatPen, hasGraveDamage, humanizeZoneCode, totalCharges } from './return-financial';
 import type { ImmobilizationChargeResponse, ReturnDamageResponse } from './returns-client';
 import {
@@ -90,13 +91,13 @@ describe('return-permissions (espejo de return-role-policy.ts)', () => {
   });
 
   it('respeta la politica del backend', () => {
-    expect(canReturnAction('CAMPO', 'UPLOAD_EVIDENCE')).toBe(true);
-    expect(canReturnAction('CAMPO', 'CLOSE')).toBe(false);
-    expect(canReturnAction('FRONT_OFFICE', 'ASSESS_DAMAGE')).toBe(false);
-    expect(canReturnAction('GERENCIA', 'ASSESS_DAMAGE')).toBe(true);
-    expect(canReturnAction('FINANZAS', 'CLOSE_FINANCIAL')).toBe(true);
-    expect(canReturnAction('FINANZAS', 'CLOSE')).toBe(false);
-    expect(canReturnAction('PLATFORM_ADMIN', 'CLOSE')).toBe(true);
+    expect(canReturnAction(roleRef('CAMPO'), 'UPLOAD_EVIDENCE')).toBe(true);
+    expect(canReturnAction(roleRef('CAMPO'), 'CLOSE')).toBe(false);
+    expect(canReturnAction(roleRef('FRONT_OFFICE'), 'ASSESS_DAMAGE')).toBe(false);
+    expect(canReturnAction(roleRef('GERENCIA'), 'ASSESS_DAMAGE')).toBe(true);
+    expect(canReturnAction(roleRef('FINANZAS'), 'CLOSE_FINANCIAL')).toBe(true);
+    expect(canReturnAction(roleRef('FINANZAS'), 'CLOSE')).toBe(false);
+    expect(canReturnAction(roleRef('PLATFORM_ADMIN'), 'CLOSE')).toBe(true);
   });
 });
 
@@ -116,9 +117,9 @@ describe('return-errors - cambios de contrato', () => {
   });
 
   it('solo Gerencia decide ante alcolimetro desfavorable', () => {
-    expect(canReturnAction('GERENCIA', 'RESOLVE_ALCOHOL_ESCALATION')).toBe(true);
-    expect(canReturnAction('ADMINISTRACION', 'RESOLVE_ALCOHOL_ESCALATION')).toBe(false);
-    expect(canReturnAction('CAMPO', 'RESOLVE_ALCOHOL_ESCALATION')).toBe(false);
+    expect(canReturnAction(roleRef('GERENCIA'), 'RESOLVE_ALCOHOL_ESCALATION')).toBe(true);
+    expect(canReturnAction(roleRef('ADMINISTRACION'), 'RESOLVE_ALCOHOL_ESCALATION')).toBe(false);
+    expect(canReturnAction(roleRef('CAMPO'), 'RESOLVE_ALCOHOL_ESCALATION')).toBe(false);
     expect(canReturnAction(null, 'RESOLVE_ALCOHOL_ESCALATION')).toBe(true);
   });
 });

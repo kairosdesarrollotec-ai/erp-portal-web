@@ -1,4 +1,4 @@
-import type { WorkerRole } from './worker-role';
+import type { RoleRef } from '../shared/role-ref';
 import { transversalApiClient } from '../../api/transversal-api-client';
 
 export interface DashboardTaskItem {
@@ -11,8 +11,8 @@ export interface DashboardTaskItem {
 }
 
 export type DashboardResult =
-  | { role: WorkerRole; state: 'EMPTY' }
-  | { role: WorkerRole; state: 'READY'; tasks: DashboardTaskItem[] };
+  | { role: RoleRef; state: 'EMPTY' }
+  | { role: RoleRef; state: 'READY'; tasks: DashboardTaskItem[] };
 
 /**
  * TR-06 - cliente HTTP del endpoint de tablero (HU-24). Igual que

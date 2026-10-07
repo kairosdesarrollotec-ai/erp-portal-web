@@ -4,8 +4,9 @@
  *
  * Cubre:
  *  - LOADING: muestra texto de carga
- *  - READY (admin): 12 tarjetas visibles, admin card presente
- *  - READY (operador): 11 tarjetas (admin card oculta)
+ *  - READY (permiso ADMIN.*): 12 tarjetas visibles, admin card presente
+ *  - READY (sin permisos ADMIN.*): 11 tarjetas (admin card oculta)
+ *  - La visibilidad se decide por permisos (INCIDENT.VIEW, ADMIN.*), no por rol
  *  - Módulo no implementado: card deshabilitada con "Próximamente"
  *  - Módulo implementado: link navegable
  *  - UNRESOLVED: mensaje de error
@@ -14,6 +15,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ModuleHubScreen } from './ModuleHubScreen';
+import { clearPermissions, roleRef, setPermissions, INCIDENT_VIEW_ONLY } from '../../test/permissions';
 
 vi.mock('./useModuleHub');
 vi.mock('../notifications/useNotifications', () => ({
@@ -43,7 +45,10 @@ function renderHub(locationState?: Record<string, unknown>) {
 }
 
 describe('ModuleHubScreen', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setPermissions(INCIDENT_VIEW_ONLY);
+  });
 
   it('muestra texto de carga en estado LOADING', () => {
     mockUseModuleHub.mockReturnValue({ state: 'LOADING', role: null, branchLabel: null, companyId: null, branchId: null });
@@ -57,15 +62,16 @@ describe('ModuleHubScreen', () => {
     expect(screen.getByText(/no pudimos determinar/i)).toBeDefined();
   });
 
-  it('muestra 12 módulos para rol ADMINISTRACION', () => {
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'ADMINISTRACION' });
+  it('muestra 12 módulos a quien tiene permisos de Administración', () => {
+    setPermissions([...INCIDENT_VIEW_ONLY, 'ADMIN.MANAGE_USERS']);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('ADMINISTRACION') });
     renderHub();
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(12);
   });
 
-  it('muestra 11 módulos para rol FRONT_OFFICE (sin Admin)', () => {
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
+  it('muestra 11 módulos a quien no tiene permisos ADMIN.* (sin Admin)', () => {
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(11);
@@ -73,13 +79,13 @@ describe('ModuleHubScreen', () => {
   });
 
   it('muestra Devoluciones como link navegable a /devoluciones', () => {
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     expect(screen.getByRole('link', { name: /devoluciones/i }).getAttribute('href')).toBe('/devoluciones');
   });
 
   it('muestra Tablero, Consultas, Reservas, Clientes y Flota como links navegables', () => {
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const tableroPaths = screen.getAllByRole('link', { name: /tablero/i });
     expect(tableroPaths.length).toBeGreaterThan(0);
@@ -94,7 +100,7 @@ describe('ModuleHubScreen', () => {
   });
 
   it('muestra badge "Próximamente" para módulos no implementados', () => {
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const badges = screen.getAllByText(/próximamente/i);
     // 3 módulos sin ruta implementada (Pagos, Personal, Reportes) = 3 sin
@@ -104,26 +110,53 @@ describe('ModuleHubScreen', () => {
   });
 
   it('Incidencias es un módulo habilitado que lleva a /incidencias', () => {
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'FRONT_OFFICE' });
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const link = screen.getByRole('link', { name: 'Incidencias' });
     expect(link.getAttribute('href')).toBe('/incidencias');
   });
 
-  it('Incidencias se oculta a roles sin permiso de lectura (RRHH)', () => {
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'RRHH' });
+  it('Incidencias se oculta a quien no tiene INCIDENT.VIEW', () => {
+    setPermissions([]);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('RRHH') });
     renderHub();
     expect(screen.queryByRole('link', { name: 'Incidencias' })).toBeNull();
   });
 
+  it('Admin aparece con cualquiera de las acciones ADMIN.* (p. ej. solo VIEW_AUDIT)', () => {
+    setPermissions(['ADMIN.VIEW_AUDIT']);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef(null, 'Auditor externo') });
+    renderHub();
+    expect(screen.getByRole('link', { name: 'Admin' })).toBeDefined();
+    expect(screen.queryByRole('link', { name: 'Incidencias' })).toBeNull();
+  });
+
+  it('un rol personalizado con solo INCIDENT.VIEW ve Incidencias pero no Admin', () => {
+    setPermissions(['INCIDENT.VIEW']);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef(null, 'Supervisor de incidencias') });
+    renderHub();
+    expect(screen.getByRole('link', { name: 'Incidencias' })).toBeDefined();
+    expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
+  });
+
+  it('mientras los permisos cargan o si fallan, los módulos restringidos se ocultan (deny-by-default)', () => {
+    clearPermissions();
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('ADMINISTRACION') });
+    renderHub();
+    expect(screen.queryByRole('link', { name: 'Admin' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Incidencias' })).toBeNull();
+    // Los módulos sin restricción siguen visibles.
+    expect(screen.getByRole('link', { name: /devoluciones/i })).toBeDefined();
+  });
+
   it('muestra el label de sede en el header', () => {
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'GERENCIA' });
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('GERENCIA') });
     renderHub({ companyName: 'VeloxRent', branchName: 'Ayacucho Central', companyId: 'c1', branchId: 'b1' });
     expect(screen.getByText('VeloxRent — Ayacucho Central')).toBeDefined();
   });
 
   it('muestra el título de la página', () => {
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: 'GERENCIA' });
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('GERENCIA') });
     renderHub();
     expect(screen.getByRole('heading', { name: /módulos del sistema/i })).toBeDefined();
   });

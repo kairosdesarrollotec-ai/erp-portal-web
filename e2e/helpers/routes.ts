@@ -1,4 +1,5 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { interceptAdminRoles, type InterceptedRoles, type RoleFixture } from './admin-roles';
 
 /**
  * JWT con firma falsa pero estructura valida (header.payload.sig).
@@ -16,17 +17,80 @@ export function makeFakeJwt(email = 'agente@veloxrent.pe'): string {
 
 export const FAKE_ID_TOKEN = makeFakeJwt();
 
+/**
+ * Roles dinamicos (ADM-02): el rol viaja como RoleRef `{id, name, key}` y el acceso
+ * se decide por permisos (`GET /me/permissions`), no por el rol.
+ */
+export interface E2eRole {
+  id: string;
+  name: string;
+  /** Codigo estable de los roles de sistema; null en roles creados a mano. */
+  key: string | null;
+}
+
+const INCIDENT_ALL = ['VIEW', 'CREATE', 'ADD_ACTION', 'RESOLVE', 'CLOSE', 'REFER_LEGAL'].map((a) => `INCIDENT.${a}`);
+const ADMIN_ALL = ['MANAGE_USERS', 'VIEW_AUDIT', 'MANAGE_PARAMETERS', 'MANAGE_PERMISSIONS', 'MANAGE_NOTIFICATIONS'].map(
+  (a) => `ADMIN.${a}`,
+);
+const RESERVATION_OPERATIONAL = [
+  'READ_LIST', 'READ_DETAIL', 'CREATE', 'REGISTER_PAYMENT', 'REGISTER_DOCUMENTS', 'CONFIRM', 'CANCEL_CUSTOMER_REQUESTED_CHANGE',
+].map((a) => `RESERVATION.${a}`);
+const INQUIRY_ALL = ['READ', 'REGISTER', 'QUOTE', 'CLOSE', 'CONVERT_TO_RESERVATION', 'CONVERT_TO_RENTAL'].map((a) => `INQUIRY.${a}`);
+const RENTAL_OPERATIONAL = [
+  'CREATE', 'READ', 'VALIDATE_DOCUMENTS', 'REGISTER_ALCOHOL_TEST', 'EVALUATE_NOTARY', 'FORMALIZE_CONTRACT', 'COMPLETE_DELIVERY', 'UPLOAD_EVIDENCE',
+].map((a) => `RENTAL.${a}`);
+
+/** Roles de sistema con una aproximacion de los permisos que siembra la matriz v0. */
+export const ROLE_PRESETS: Record<string, { role: E2eRole; permissions: string[] }> = {
+  FRONT_OFFICE: {
+    role: { id: 'role-front-office', name: 'Front Office', key: 'FRONT_OFFICE' },
+    permissions: [...RESERVATION_OPERATIONAL, ...INQUIRY_ALL, ...RENTAL_OPERATIONAL, ...INCIDENT_ALL],
+  },
+  ADMINISTRACION: {
+    role: { id: 'role-administracion', name: 'Administración', key: 'ADMINISTRACION' },
+    permissions: [...ADMIN_ALL, ...RESERVATION_OPERATIONAL, ...INQUIRY_ALL, 'INCIDENT.VIEW'],
+  },
+  GERENCIA: {
+    role: { id: 'role-gerencia', name: 'Gerencia', key: 'GERENCIA' },
+    permissions: [...RESERVATION_OPERATIONAL, 'RESERVATION.CANCEL_NO_SHOW', 'RENTAL.APPROVE_NOTARY_EXCEPTION', ...INCIDENT_ALL],
+  },
+  AUDITORIA: {
+    role: { id: 'role-auditoria', name: 'Auditoría', key: 'AUDITORIA' },
+    permissions: ['ADMIN.VIEW_AUDIT', 'INCIDENT.VIEW', 'RESERVATION.READ_LIST', 'RESERVATION.READ_DETAIL', 'INQUIRY.READ'],
+  },
+  RRHH: {
+    role: { id: 'role-rrhh', name: 'RR. HH.', key: 'RRHH' },
+    permissions: [],
+  },
+};
+
+/** Rol de sesion de un login e2e: un preset por `key` o un rol personalizado con sus permisos. */
+export type E2eRoleOption = string | { name: string; key?: string | null; permissions: string[] };
+
+export function resolveRoleOption(option: E2eRoleOption | undefined): { role: E2eRole; permissions: string[] } {
+  if (option === undefined) return ROLE_PRESETS.FRONT_OFFICE;
+  if (typeof option === 'string') {
+    const preset = ROLE_PRESETS[option];
+    if (!preset) throw new Error(`Rol e2e desconocido: ${option}`);
+    return preset;
+  }
+  return {
+    role: { id: `role-custom-${option.name.toLowerCase().replace(/\W+/g, '-')}`, name: option.name, key: option.key ?? null },
+    permissions: option.permissions,
+  };
+}
+
 export const SINGLE_ASSIGNMENT = {
   companyId: 'company-001',
   companyName: 'VeloxRent Lima',
   branchId: 'branch-001',
   branchName: 'Sede Miraflores',
-  role: 'FRONT_OFFICE',
+  role: ROLE_PRESETS.FRONT_OFFICE.role,
 };
 
 export const MULTI_ASSIGNMENTS = [
   SINGLE_ASSIGNMENT,
-  { companyId: 'company-001', companyName: 'VeloxRent Lima', branchId: 'branch-002', branchName: 'Sede San Isidro', role: 'FRONT_OFFICE' },
+  { companyId: 'company-001', companyName: 'VeloxRent Lima', branchId: 'branch-002', branchName: 'Sede San Isidro', role: ROLE_PRESETS.FRONT_OFFICE.role },
 ];
 
 export const RESERVATION_FIXTURE = {
@@ -140,10 +204,26 @@ export async function interceptFirebaseAuth(page: Page, email = 'agente@veloxren
  */
 export async function interceptBackendAuth(
   page: Page,
-  options: { assignments?: typeof MULTI_ASSIGNMENTS; role?: string } = {},
+  options: { assignments?: typeof MULTI_ASSIGNMENTS; role?: E2eRoleOption } = {},
 ): Promise<void> {
   const assignments = options.assignments ?? [SINGLE_ASSIGNMENT];
-  const role = options.role ?? 'FRONT_OFFICE';
+  const { role, permissions } = resolveRoleOption(options.role);
+
+  // GET /me/permissions: unica fuente del front para mostrar u ocultar modulos y acciones.
+  await page.route('**/me/permissions**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        role,
+        matrixVersion: 1,
+        permissions: permissions.map((p) => {
+          const [module, action] = p.split('.');
+          return { module, action };
+        }),
+      }),
+    }),
+  );
 
   await page.route('**/audit/login-attempts', (route) =>
     route.fulfill({ status: 201, contentType: 'application/json', body: '{}' }),
@@ -482,7 +562,7 @@ export async function interceptFleet(
 }
 
 /** Intercepta endpoints administrativos (usuarios, auditoria, parametros, permisos, plantillas) */
-export async function interceptAdmin(page: Page): Promise<void> {
+export async function interceptAdmin(page: Page, options: { roles?: RoleFixture[] } = {}): Promise<InterceptedRoles> {
   await page.route(/\/admin\/users(\?.*)?$/, (route) =>
     route.fulfill({
       status: 200,
@@ -490,28 +570,28 @@ export async function interceptAdmin(page: Page): Promise<void> {
       body: JSON.stringify({
         users: [
           {
-            assignmentId: 'assign-001',
-            userId: 'user-001',
+            id: 'assign-001',
+            firebaseUid: 'user-001',
             email: 'agente@veloxrent.pe',
             companyId: 'company-001',
             companyName: 'VeloxRent Lima',
             branchId: 'branch-001',
             branchName: 'Sede Miraflores',
-            role: 'FRONT_OFFICE',
-            status: 'ACTIVE',
-            assignedAt: '2026-09-01T00:00:00Z',
+            role: ROLE_PRESETS.FRONT_OFFICE.role,
+            active: true,
+            mfaEnrolled: true,
           },
           {
-            assignmentId: 'assign-002',
-            userId: 'user-002',
+            id: 'assign-002',
+            firebaseUid: 'user-002',
             email: 'admin@veloxrent.pe',
             companyId: 'company-001',
             companyName: 'VeloxRent Lima',
             branchId: 'branch-001',
             branchName: 'Sede Miraflores',
-            role: 'ADMINISTRACION',
-            status: 'ACTIVE',
-            assignedAt: '2026-09-01T00:00:00Z',
+            role: ROLE_PRESETS.ADMINISTRACION.role,
+            active: true,
+            mfaEnrolled: true,
           },
         ],
       }),
@@ -607,31 +687,8 @@ export async function interceptAdmin(page: Page): Promise<void> {
     }),
   );
 
-  await page.route(/\/admin\/permissions(\?.*)?$/, (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        version: 1,
-        entries: [
-          { role: 'FRONT_OFFICE', module: 'RESERVATION', action: 'CREATE', allowed: true },
-          { role: 'FRONT_OFFICE', module: 'RESERVATION', action: 'READ', allowed: true },
-          { role: 'FRONT_OFFICE', module: 'INQUIRY', action: 'CREATE', allowed: true },
-          { role: 'FRONT_OFFICE', module: 'INQUIRY', action: 'READ', allowed: true },
-          { role: 'ADMINISTRACION', module: 'ADMIN', action: 'WRITE', allowed: true },
-          { role: 'ADMINISTRACION', module: 'ADMIN', action: 'READ', allowed: true },
-        ],
-        actionCatalog: [
-          { module: 'RESERVATION', action: 'CREATE', label: 'Crear reserva' },
-          { module: 'RESERVATION', action: 'READ', label: 'Ver reservas' },
-          { module: 'INQUIRY', action: 'CREATE', label: 'Crear consulta' },
-          { module: 'INQUIRY', action: 'READ', label: 'Ver consultas' },
-          { module: 'ADMIN', action: 'WRITE', label: 'Modificar configuración' },
-          { module: 'ADMIN', action: 'READ', label: 'Consultar configuración' },
-        ],
-      }),
-    }),
-  );
+  // Roles dinamicos y matriz de permisos: servidor simulado con estado (helpers/admin-roles.ts).
+  const rolesApi = await interceptAdminRoles(page, options);
 
   await page.route(/\/admin\/notification-templates(\?.*)?$/, (route) =>
     route.fulfill({
@@ -667,12 +724,26 @@ export async function interceptAdmin(page: Page): Promise<void> {
       }),
     }),
   );
+
+  return rolesApi;
+}
+
+/**
+ * Espera a que el front termine de cargar los permisos efectivos (GET /me/permissions)
+ * del contexto actual. Imprescindible antes de afirmar que algo NO se muestra: sin
+ * esta espera, un `toHaveCount(0)` pasaria solo porque los permisos aun no llegaron.
+ */
+export async function waitForPermissionsReady(page: Page): Promise<void> {
+  await expect(page.getByRole('navigation', { name: 'Módulos del sistema' })).toHaveAttribute(
+    'data-permissions-status',
+    'ready',
+  );
 }
 
 /** Realiza el flujo de login completo via UI (Firebase y backend interceptados). */
 export async function loginViaUI(
   page: Page,
-  options: { email?: string; password?: string; assignments?: typeof MULTI_ASSIGNMENTS; role?: string } = {},
+  options: { email?: string; password?: string; assignments?: typeof MULTI_ASSIGNMENTS; role?: E2eRoleOption } = {},
 ): Promise<void> {
   const email = options.email ?? 'agente@veloxrent.pe';
   const password = options.password ?? 'Velox2026!';

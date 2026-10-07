@@ -5,7 +5,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IncidentDetailScreen } from './IncidentDetailScreen';
 import { IncidentCommandError } from './incidents-client';
 import { baseContext, makeDetail, setupUser } from './test-utils';
-import { useWorkSession } from '../shared/useWorkSession';
+import { setPermissions, INCIDENT_ALL, INCIDENT_FIELD } from '../../test/permissions';
 
 const getIncidentMock = vi.fn();
 const addActionMock = vi.fn();
@@ -61,7 +61,7 @@ describe('IncidentDetailScreen (INC-02)', () => {
     addActionMock.mockReset();
     closeMock.mockReset();
     referLegalMock.mockReset();
-    useWorkSession.setState({ role: 'GERENCIA' });
+    setPermissions(INCIDENT_ALL);
     setMobile(false);
   });
 
@@ -203,8 +203,8 @@ describe('IncidentDetailScreen (INC-02)', () => {
     expect(await screen.findByText('bandeja de incidencias')).toBeInTheDocument();
   });
 
-  it('roles sin permiso de cierre no ven el formulario de acciones ni "Cerrar incidencia" (Campo)', async () => {
-    useWorkSession.setState({ role: 'CAMPO' });
+  it('quien no tiene ADD_ACTION ni CLOSE no ve el formulario de acciones ni "Cerrar incidencia" (rol con VIEW+CREATE)', async () => {
+    setPermissions(INCIDENT_FIELD);
     getIncidentMock.mockResolvedValue(makeDetail());
     renderScreen();
     await screen.findByRole('heading', { level: 1 });

@@ -137,6 +137,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * ADM-02 - Listar roles de la organizacion (dinamicos)
+         * @description Los roles son datos, no un enum: el administrador los crea, renombra y desactiva. Los 8 roles historicos se siembran como roles de sistema (`isSystem: true`, con `key` estable).
+         */
+        get: operations["listRoles"];
+        put?: never;
+        /** ADM-02 - Crear un rol (nace con cero permisos) */
+        post: operations["createRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/roles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** ADM-02 - Renombrar un rol (If-Match con la version del rol) */
+        patch: operations["renameRole"];
+        trace?: never;
+    };
+    "/admin/roles/{id}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ADM-02 - Desactivar un rol (nunca borra; conserva historial) */
+        post: operations["deactivateRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Permisos efectivos del usuario autenticado en el contexto de trabajo vigente
+         * @description Unica fuente que usa el front para mostrar/ocultar modulos y acciones; el back sigue autorizando cada comando por su cuenta. Resuelve la matriz del ambito mas especifico (sede > empresa > organizacion); sin entrada = denegado. La respuesta cambia solo cuando cambia `matrixVersion` o la asignacion.
+         */
+        get: operations["getMyPermissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/notification-templates": {
         parameters: {
             query?: never;
@@ -162,8 +237,49 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @enum {string} */
-        WorkerRole: "ADMINISTRACION" | "AUDITORIA" | "CAMPO" | "FINANZAS" | "FRONT_OFFICE" | "GERENCIA" | "PLATFORM_ADMIN" | "RRHH";
+        RoleRef: {
+            /** Format: uuid */
+            id: string;
+            /** @description Nombre visible, editable por el administrador */
+            name: string;
+            /** @description Codigo estable de los roles de sistema (ADMINISTRACION, AUDITORIA, CAMPO, FINANZAS, FRONT_OFFICE, GERENCIA, PLATFORM_ADMIN, RRHH); null en roles creados a mano. El front NO debe decidir acceso por `key`: usa /me/permissions. */
+            key: string | null;
+        };
+        Role: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            key: string | null;
+            isSystem: boolean;
+            active: boolean;
+            /** @description Concurrencia optimista (ETag/If-Match) */
+            version: number;
+            /** @description Asignaciones activas con este rol */
+            assignmentCount: number;
+        };
+        CreateRoleRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            name: string;
+        };
+        RenameRoleRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            name: string;
+        };
+        EffectivePermission: {
+            module: components["schemas"]["PermissionModule"];
+            action: string;
+        };
+        EffectivePermissionsResponse: {
+            role: components["schemas"]["RoleRef"];
+            matrixVersion: number;
+            permissions: components["schemas"]["EffectivePermission"][];
+        };
         OrganizationBranch: {
             /** Format: uuid */
             branchId: string;
@@ -186,7 +302,7 @@ export interface components {
             /** Format: uuid */
             branchId: string;
             branchName: string;
-            role: components["schemas"]["WorkerRole"];
+            role: components["schemas"]["RoleRef"];
             active: boolean;
             mfaEnrolled: boolean;
         };
@@ -213,7 +329,11 @@ export interface components {
              * @description Sede destino de la asignacion
              */
             targetBranchId: string;
-            targetRole: components["schemas"]["WorkerRole"];
+            /**
+             * Format: uuid
+             * @description Rol activo de la organizacion (GET /admin/roles)
+             */
+            targetRoleId: string;
             /** @description Contraseña inicial del usuario. Obligatoria solo cuando el correo todavia no existe en Firebase (el backend responde 400 INITIAL_PASSWORD_REQUIRED si falta en ese caso); se ignora si el correo ya existe. TR-02 fuerza el cambio en el primer login. */
             initialPassword?: string;
         };
@@ -252,9 +372,10 @@ export interface components {
             currency: "PEN" | "USD";
         };
         /** @enum {string} */
-        PermissionModule: "RESERVATION" | "INQUIRY" | "ADMIN";
+        PermissionModule: "RESERVATION" | "INQUIRY" | "ADMIN" | "RENTAL" | "INCIDENT";
         RolePermissionEntry: {
-            role: components["schemas"]["WorkerRole"];
+            /** Format: uuid */
+            roleId: string;
             module: components["schemas"]["PermissionModule"];
             action: string;
             allowed: boolean;
@@ -266,14 +387,37 @@ export interface components {
         };
         RolePermissionMatrixResponse: {
             version: number;
+            /** @description Ambito de la version devuelta; companyId/branchId null = aplica a toda la organizacion/empresa */
+            scope?: {
+                /** Format: uuid */
+                companyId?: string | null;
+                /** Format: uuid */
+                branchId?: string | null;
+            };
             entries: components["schemas"]["RolePermissionEntry"][];
             actionCatalog: components["schemas"]["PermissionActionDescriptor"][];
         };
         SaveRolePermissionMatrixRequest: {
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Contexto de trabajo del admin
+             */
             companyId: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description Contexto de trabajo del admin
+             */
             branchId: string;
+            /**
+             * Format: uuid
+             * @description Ambito de la nueva version; omitido/null = toda la organizacion
+             */
+            scopeCompanyId?: string | null;
+            /**
+             * Format: uuid
+             * @description Ambito de la nueva version; omitido/null = toda la empresa (o la organizacion si scopeCompanyId tambien es null)
+             */
+            scopeBranchId?: string | null;
             entries: components["schemas"]["RolePermissionEntry"][];
         };
         /** @enum {string} */
@@ -577,6 +721,10 @@ export interface operations {
             query: {
                 companyId: string;
                 branchId: string;
+                /** @description Ambito a mostrar (aditivo 0.2.1); omitido = toda la organizacion. Si ese ambito no tiene version propia, hereda la de arriba (`scope` dice de donde sale). */
+                scopeCompanyId?: string;
+                /** @description Requiere scopeCompanyId */
+                scopeBranchId?: string;
             };
             header?: never;
             path?: never;
@@ -592,6 +740,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["RolePermissionMatrixResponse"];
                 };
+            };
+            /** @description MATRIX_SCOPE_INVALID (sede sin empresa) o COMPANY_BRANCH_NOT_IN_ORGANIZATION (ambito ajeno) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Sin contexto vigente, o rol sin MANAGE_PERMISSIONS */
             403: {
@@ -638,8 +793,256 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description INCOMPATIBLE_PERMISSION_COMBINATION - segregacion de funciones violada */
+            /** @description INCOMPATIBLE_PERMISSIONS - segregacion de funciones violada (el codigo real del back es INCOMPATIBLE_PERMISSIONS; antes se documentaba como INCOMPATIBLE_PERMISSION_COMBINATION) - LAST_ADMINISTRATOR_ROLE - la nueva foto dejaria a la organizacion sin ningun rol activo con asignaciones y con ADMIN.MANAGE_PERMISSIONS y ADMIN.MANAGE_USERS - MATRIX_VERSION_CONFLICT - otra persona guardo al mismo tiempo (recargar y reintentar) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listRoles: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+                includeInactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Roles de la organizacion */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        roles: components["schemas"]["Role"][];
+                    };
+                };
+            };
+            /** @description Sin contexto vigente, o sin permiso ADMIN.MANAGE_PERMISSIONS */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Rol creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role"];
+                };
+            };
+            /** @description ROLE_NAME_INVALID - vacio o mas de 60 caracteres */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin contexto vigente, o sin permiso ADMIN.MANAGE_PERMISSIONS */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ROLE_NAME_TAKEN - ya existe un rol con ese nombre (sin distinguir mayusculas) en la organizacion */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    renameRole: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description ETag = version del rol */
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description Rol renombrado */
+            200: {
+                headers: {
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role"];
+                };
+            };
+            /** @description ROLE_NAME_INVALID */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin contexto/permiso, o ROLE_NOT_EDITABLE (el rol PLATFORM_ADMIN no se renombra) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El rol no existe o no pertenece a la organizacion (IDOR) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ROLE_NAME_TAKEN */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description VERSION_CONFLICT - la version del rol cambio (If-Match desactualizado) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description If-Match ausente */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deactivateRole: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    companyId: string;
+                    /** Format: uuid */
+                    branchId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Rol desactivado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Role"];
+                };
+            };
+            /** @description Sin contexto/permiso, o ROLE_NOT_EDITABLE (PLATFORM_ADMIN) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El rol no existe o no pertenece a la organizacion (IDOR) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ROLE_HAS_ACTIVE_ASSIGNMENTS - hay asignaciones activas con ese rol - LAST_ADMINISTRATOR_ROLE - desactivarlo dejaria la organizacion sin ningun rol activo con asignaciones y con ADMIN.MANAGE_PERMISSIONS y ADMIN.MANAGE_USERS */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description VERSION_CONFLICT */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description If-Match ausente */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMyPermissions: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Permisos efectivos */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EffectivePermissionsResponse"];
+                };
+            };
+            /** @description Sin asignacion vigente en esa empresa/sede */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

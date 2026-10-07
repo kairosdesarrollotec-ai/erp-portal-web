@@ -1,4 +1,4 @@
-import type { WorkerRole } from '../dashboard/worker-role';
+import type { RoleRef } from '../shared/role-ref';
 import { transversalApiClient } from '../../api/transversal-api-client';
 
 export interface WorkContextAssignment {
@@ -6,7 +6,7 @@ export interface WorkContextAssignment {
   companyName: string;
   branchId: string;
   branchName: string;
-  role: WorkerRole;
+  role: RoleRef;
 }
 
 /**

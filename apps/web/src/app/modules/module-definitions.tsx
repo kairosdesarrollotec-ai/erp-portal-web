@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import type { IncidentAction } from '../incidents/incident-permissions';
 
 /**
  * Definiciones de los 12 módulos del hub de navegación (TR-11/HU-25).
@@ -8,7 +7,8 @@ import type { IncidentAction } from '../incidents/incident-permissions';
  * Aprobación PROVISIONAL (23-sep-2026) — ver docs/conflicts/MISSING_TR11_UXUI_CONTRACT.md.
  *
  * path: null = módulo aún no implementado (renderiza como tarjeta deshabilitada).
- * adminOnly: true = sólo visible para rol ADMINISTRACION (provisional, reemplazar con ADM-02).
+ * requiredPermissions: el módulo solo se muestra si el usuario tiene AL MENOS uno de esos permisos
+ * (ver module-visibility.ts); sin el campo es visible para todos.
  *
  * Iconos: SVG inline extraídos del prototipo aprobado.
  */
@@ -17,12 +17,8 @@ export interface ModuleItem {
   label: string;
   description: string;
   path: string | null;
-  adminOnly?: boolean;
-  /**
-   * Accion de permiso del modulo que habilita su visibilidad (ver
-   * module-visibility.ts). Sin este campo el modulo es visible para todos.
-   */
-  incidentPermission?: IncidentAction;
+  /** Permisos (module.action del catalogo de ADM-02) que habilitan la visibilidad; basta uno. */
+  requiredPermissions?: readonly { module: string; action: string }[];
   icon: ReactNode;
 }
 
@@ -138,7 +134,7 @@ export const MODULE_ITEMS: ModuleItem[] = [
     label: 'Incidencias',
     description: 'INC-01',
     path: '/incidencias',
-    incidentPermission: 'VIEW',
+    requiredPermissions: [{ module: 'INCIDENT', action: 'VIEW' }],
     icon: (
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -179,7 +175,13 @@ export const MODULE_ITEMS: ModuleItem[] = [
     label: 'Admin',
     description: 'Administración del sistema',
     path: '/admin/usuarios',
-    adminOnly: true,
+    requiredPermissions: [
+      { module: 'ADMIN', action: 'MANAGE_USERS' },
+      { module: 'ADMIN', action: 'VIEW_AUDIT' },
+      { module: 'ADMIN', action: 'MANAGE_PARAMETERS' },
+      { module: 'ADMIN', action: 'MANAGE_PERMISSIONS' },
+      { module: 'ADMIN', action: 'MANAGE_NOTIFICATIONS' },
+    ],
     icon: (
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="3" />

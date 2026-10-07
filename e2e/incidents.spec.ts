@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginViaUI, SINGLE_ASSIGNMENT } from './helpers/routes';
+import { loginViaUI, SINGLE_ASSIGNMENT, waitForPermissionsReady, type E2eRoleOption } from './helpers/routes';
 import {
   ACTIVE_RENTAL_FOR_INCIDENTS,
   interceptIncidents,
@@ -9,7 +9,7 @@ import {
 
 async function setup(
   page: Parameters<typeof loginViaUI>[0],
-  options: InterceptIncidentsOptions & { role?: string } = {},
+  options: InterceptIncidentsOptions & { role?: E2eRoleOption } = {},
 ) {
   const { role, ...incidentOptions } = options;
   const intercepted = await interceptIncidents(page, incidentOptions);
@@ -142,6 +142,7 @@ test.describe('INC-01 Bandeja de incidencias', () => {
     await setup(page, { role: 'RRHH' });
     await page.goto('/modulos');
     await expect(page.getByRole('heading', { name: 'Módulos del Sistema' })).toBeVisible();
+    await waitForPermissionsReady(page);
     await expect(
       page.getByRole('navigation', { name: 'Módulos del sistema' }).getByRole('link', { name: 'Incidencias' }),
     ).toHaveCount(0);
@@ -152,7 +153,35 @@ test.describe('INC-01 Bandeja de incidencias', () => {
     await page.goto('/modulos');
     await page.getByRole('navigation', { name: 'Módulos del sistema' }).getByRole('link', { name: 'Incidencias' }).click();
     await expect(page.getByRole('table').getByText('ALQ-1187')).toBeVisible();
+    await waitForPermissionsReady(page);
     await expect(page.getByRole('button', { name: 'Registrar incidencia' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Resolver incidencia/ })).toHaveCount(0);
+  });
+
+  test('un rol personalizado con solo INCIDENT.VIEW ve Incidencias pero no puede crear ni resolver', async ({ page }) => {
+    await setup(page, { role: { name: 'Supervisor de incidencias', permissions: ['INCIDENT.VIEW'] } });
+    await page.goto('/modulos');
+    await waitForPermissionsReady(page);
+    // El nombre visible del rol viene de la API, no de una etiqueta fija.
+    await expect(page.getByText('Supervisor de incidencias').first()).toBeVisible();
+
+    await page.getByRole('navigation', { name: 'Módulos del sistema' }).getByRole('link', { name: 'Incidencias' }).click();
+    await expect(page.getByRole('table').getByText('ALQ-1187')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Registrar incidencia' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Resolver incidencia/ })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Abrir incidencia de ALQ-1188' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: /Choque o daño/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cerrar incidencia' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Derivar a vía legal' })).toHaveCount(0);
+    await expect(page.getByLabel('Agregar nueva acción')).toHaveCount(0);
+  });
+
+  test('un rol personalizado con INCIDENT.VIEW + INCIDENT.CREATE sí puede registrar', async ({ page }) => {
+    await setup(page, { role: { name: 'Operador de patio', permissions: ['INCIDENT.VIEW', 'INCIDENT.CREATE'] } });
+    await page.goto('/incidencias');
+    await waitForPermissionsReady(page);
+    await expect(page.getByRole('button', { name: 'Registrar incidencia' })).toBeVisible();
     await expect(page.getByRole('button', { name: /^Resolver incidencia/ })).toHaveCount(0);
   });
 

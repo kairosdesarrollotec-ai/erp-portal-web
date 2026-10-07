@@ -154,19 +154,21 @@ export interface components {
             /** Format: uuid */
             branchId: string;
             branchName: string;
-            role: components["schemas"]["WorkerRole"];
+            role: components["schemas"]["RoleRef"];
         };
-        /**
-         * @description PROVISIONAL (HU-24/TR-06) - modelo minimo de rol solo para enrutar al tablero correcto. El modelo definitivo (matriz rol-accion- empresa-sede versionada) vive en ADM-02, todavia no construido y puede agregar, renombrar o remover valores de este enum cuando se construya - un cliente generado hoy que trate este enum como cerrado (switch exhaustivo sin default) puede romperse con ese cambio futuro. Ver aclaracion de compatibilidad de clientes en DashboardResponse.
-         * @enum {string}
-         */
-        WorkerRole: "ADMINISTRACION" | "AUDITORIA" | "CAMPO" | "FINANZAS" | "FRONT_OFFICE" | "GERENCIA" | "PLATFORM_ADMIN" | "RRHH";
+        /** @description Roles dinamicos (ADM-02, admin.yaml 0.2.0): el rol ya no es un enum cerrado. `id`/`name` identifican el rol del usuario en el contexto vigente; `key` es el codigo estable de los roles de sistema (null en roles creados a mano). El front NO decide acceso por rol: usa GET /me/permissions. */
+        RoleRef: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            key: string | null;
+        };
         /**
          * @description Hallazgo medio de revision PR#5 ("OpenAPI provisional sin estrategia de evolucion"): `state` se modela como un enum abierto a crecer de forma aditiva. Cuando exista un estado con datos reales (p.ej. READY con tareas/alertas por rol), se agrega como un nuevo valor del enum mas un campo opcional nuevo (p.ej. `tasks`) - sin reemplazar ni remover EMPTY ni cambiar el tipo de `state`. La forma exacta de READY se define cuando el modulo de dominio correspondiente exista (fuente BDD/SDD/TDD del modulo), no se inventa aqui.
          *     ACLARACION (hallazgo MEDIO de revision de seguimiento de PR#5, 12fc688 - "la estrategia OpenAPI no es necesariamente no-breaking"): agregar un valor a un enum es aditivo a nivel de ESTE contrato, pero NO esta garantizado que sea no-breaking para todo cliente generado - un cliente que modele `state`/`role` como enum cerrado, o que haga un switch exhaustivo sobre los valores actuales, SI se rompe (o deja de compilar) cuando aparece un valor nuevo que no contemplaba. Este contrato no puede garantizar compatibilidad del lado del cliente por si solo. Recomendacion para quien genere un cliente desde este YAML: tratar `state` y `role` como enums ABIERTOS (agregar una rama/`default` de fallback tipo `UNKNOWN` en vez de un switch exhaustivo sin default), y no asumir que la lista de valores de hoy es definitiva. Cuando el modelo de READY este definido, se evalua si amerita una version nueva del contrato (no solo un valor de enum mas) para los clientes que necesiten una garantia mas fuerte.
          */
         DashboardResponse: {
-            role: components["schemas"]["WorkerRole"];
+            role: components["schemas"]["RoleRef"];
             /**
              * @description EXTENDIDO 23 sep 2026 (HU-24, TR-06): se agrega READY de forma aditiva, exactamente como preveia esta misma descripcion - EMPTY no se remueve ni cambia de significado. Ver DashboardResponse para la aclaracion sobre compatibilidad de clientes (un switch exhaustivo sin default se rompe con este valor nuevo).
              * @enum {string}

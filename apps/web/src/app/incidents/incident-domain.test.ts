@@ -21,25 +21,31 @@ describe('rentalLabel', () => {
   });
 });
 
-describe('canIncidentAction (politica de roles de INC-01/INC-02)', () => {
-  it('lectura: Front-office, Campo, Gerencia, Finanzas, Auditoria y Administracion; no RRHH', () => {
-    for (const role of ['FRONT_OFFICE', 'CAMPO', 'GERENCIA', 'FINANZAS', 'AUDITORIA', 'ADMINISTRACION'] as const) {
-      expect(canIncidentAction(role, 'VIEW')).toBe(true);
+describe('canIncidentAction (permisos INCIDENT.* del catalogo de ADM-02)', () => {
+  const granted = (...keys: string[]) => new Set(keys);
+
+  it('cada accion se evalua por su permiso, no por rol', () => {
+    const viewer = granted('INCIDENT.VIEW');
+    expect(canIncidentAction(viewer, 'VIEW')).toBe(true);
+    expect(canIncidentAction(viewer, 'CREATE')).toBe(false);
+    expect(canIncidentAction(viewer, 'CLOSE')).toBe(false);
+  });
+
+  it('un rol personalizado con solo CREATE no puede ver ni cerrar (permisos independientes)', () => {
+    const creator = granted('INCIDENT.CREATE');
+    expect(canIncidentAction(creator, 'CREATE')).toBe(true);
+    expect(canIncidentAction(creator, 'VIEW')).toBe(false);
+    expect(canIncidentAction(creator, 'REFER_LEGAL')).toBe(false);
+  });
+
+  it('sin permisos nada esta permitido (deny-by-default)', () => {
+    for (const action of ['VIEW', 'CREATE', 'ADD_ACTION', 'RESOLVE', 'CLOSE', 'REFER_LEGAL'] as const) {
+      expect(canIncidentAction(granted(), action)).toBe(false);
     }
-    expect(canIncidentAction('RRHH', 'VIEW')).toBe(false);
   });
 
-  it('cierre y acciones del detalle: solo Front-office y Gerencia; Campo registra pero no cierra', () => {
-    expect(canIncidentAction('FRONT_OFFICE', 'CLOSE')).toBe(true);
-    expect(canIncidentAction('GERENCIA', 'ADD_ACTION')).toBe(true);
-    expect(canIncidentAction('CAMPO', 'CREATE')).toBe(true);
-    expect(canIncidentAction('CAMPO', 'CLOSE')).toBe(false);
-    expect(canIncidentAction('AUDITORIA', 'CREATE')).toBe(false);
-  });
-
-  it('rol desconocido no oculta nada (decide el backend) y PLATFORM_ADMIN todo', () => {
-    expect(canIncidentAction(null, 'CLOSE')).toBe(true);
-    expect(canIncidentAction('PLATFORM_ADMIN', 'REFER_LEGAL')).toBe(true);
+  it('permisos de otro modulo no conceden acciones de Incidencias', () => {
+    expect(canIncidentAction(granted('RESERVATION.CREATE', 'ADMIN.MANAGE_USERS'), 'VIEW')).toBe(false);
   });
 });
 

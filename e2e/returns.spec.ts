@@ -4,7 +4,8 @@ import { interceptReturns, makeReturnEvidence, type InterceptReturnsOptions } fr
 
 async function setup(page: Parameters<typeof loginViaUI>[0], options: InterceptReturnsOptions = {}) {
   const intercepted = await interceptReturns(page, options);
-  await loginViaUI(page, { assignments: [SINGLE_ASSIGNMENT] });
+  // Gerencia: Devoluciones aun se autoriza por rol en el back (fase 4) y estos flujos cubren acciones de Gerencia.
+  await loginViaUI(page, { assignments: [SINGLE_ASSIGNMENT], role: 'GERENCIA' });
   await page.waitForURL('**/tablero', { timeout: 10_000 });
   return intercepted;
 }

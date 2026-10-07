@@ -3,6 +3,7 @@ import { useModuleHub } from './useModuleHub';
 import { AppHeader } from '../shared/AppHeader';
 import { MODULE_ITEMS } from './module-definitions';
 import { isModuleVisible } from './module-visibility';
+import { usePermissions } from '../shared/usePermissions';
 import styles from './ModuleHubScreen.module.css';
 
 /**
@@ -17,14 +18,14 @@ import styles from './ModuleHubScreen.module.css';
  *   docs/conflicts/MISSING_TR11_UXUI_CONTRACT.md
  *   docs/decision-log.md fila PROV-TR-11-001
  *
- * Las reglas de visibilidad por rol son provisionales (inferidas desde el
- * toggle admin/operador del prototipo + plan Bloque 3). Reemplazar cuando
- * ADM-02 exista.
+ * La visibilidad de cada modulo se decide por PERMISOS (GET /me/permissions,
+ * ver module-visibility.ts), no por rol.
  */
 export function ModuleHubScreen() {
   const { state, role } = useModuleHub();
+  const { can } = usePermissions();
 
-  const visibleModules = MODULE_ITEMS.filter((m) => isModuleVisible(m, role));
+  const visibleModules = MODULE_ITEMS.filter((m) => isModuleVisible(m, can));
 
   return (
     <main className={styles.wrapper}>

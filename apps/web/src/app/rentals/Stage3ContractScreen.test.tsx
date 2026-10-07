@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage3ContractScreen } from './Stage3ContractScreen';
-import { useWorkSession } from '../shared/useWorkSession';
+import { clearPermissions, setPermissions } from '../../test/permissions';
 
 // ── mocks de infraestructura ────────────────────────────────────────────────
 
@@ -111,7 +111,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     approveNotaryExceptionMock.mockReset();
     formalizeContractMock.mockReset();
     useRentalWizardMock.mockReset();
-    useWorkSession.setState({ role: null });
+    clearPermissions();
   });
 
   // ── estado: carga ─────────────────────────────────────────────────────────
@@ -175,25 +175,35 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
 
   // ── excepción notarial: permisos ──────────────────────────────────────────
 
-  it('usuario sin rol GERENCIA ve aviso "Solo Gerencia" cuando el resultado requiere excepción (THIRD_PATH_ELIGIBLE)', () => {
-    useWorkSession.setState({ role: null }); // no es Gerencia
+  it('usuario sin RENTAL.APPROVE_NOTARY_EXCEPTION ve el aviso de falta de permiso cuando el resultado requiere excepción (THIRD_PATH_ELIGIBLE)', () => {
+    setPermissions(['RENTAL.READ', 'RENTAL.FORMALIZE_CONTRACT']);
     const rentalThirdPath = { ...baseRental, notaryEvaluation: thirdPathEvaluation };
     useRentalWizardMock.mockReturnValue(makeWizard({ rental: rentalThirdPath }));
 
     renderScreen();
 
-    expect(screen.getByText(/Solo Gerencia puede aprobar o rechazar esta excepción/)).toBeInTheDocument();
+    expect(screen.getByText(/No tienes permiso para aprobar o rechazar esta excepción notarial/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Aprobar excepción' })).not.toBeInTheDocument();
   });
 
-  it('usuario con rol GERENCIA ve el botón "Aprobar excepción" cuando el resultado es THIRD_PATH_ELIGIBLE', () => {
-    useWorkSession.setState({ role: 'GERENCIA' });
+  it('usuario con RENTAL.APPROVE_NOTARY_EXCEPTION (cualquier rol) ve el botón "Aprobar excepción" cuando el resultado es THIRD_PATH_ELIGIBLE', () => {
+    setPermissions(['RENTAL.APPROVE_NOTARY_EXCEPTION']);
     const rentalThirdPath = { ...baseRental, notaryEvaluation: thirdPathEvaluation };
     useRentalWizardMock.mockReturnValue(makeWizard({ rental: rentalThirdPath }));
 
     renderScreen();
 
     expect(screen.getByRole('button', { name: 'Aprobar excepción' })).toBeInTheDocument();
+  });
+
+  it('mientras los permisos cargan no se ofrece "Aprobar excepción"', () => {
+    clearPermissions();
+    const rentalThirdPath = { ...baseRental, notaryEvaluation: thirdPathEvaluation };
+    useRentalWizardMock.mockReturnValue(makeWizard({ rental: rentalThirdPath }));
+
+    renderScreen();
+
+    expect(screen.queryByRole('button', { name: 'Aprobar excepción' })).not.toBeInTheDocument();
   });
 
   // ── validación: campos necesarios para formalizar ────────────────────────

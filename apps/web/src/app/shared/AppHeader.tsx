@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { useNotifications } from '../notifications/useNotifications';
-import { WORKER_ROLE_LABELS, type WorkerRole } from '../dashboard/worker-role';
+import type { RoleRef } from './role-ref';
 import { APP_BRAND } from '../config/brand';
 import { useWorkSession } from './useWorkSession';
 import { useSignOut } from './useSignOut';
@@ -15,8 +15,8 @@ interface AppHeaderProps {
   pageTitle?: string;
   /** Controles o indicadores de la pantalla (botones de acción, badge de autosave, back link…) */
   actions?: React.ReactNode;
-  /** Rol del usuario — lo pasan las pantallas que lo conocen (Dashboard, ModuleHub) */
-  role?: WorkerRole | null;
+  /** Rol del usuario (nombre visible desde la API) — lo pasan las pantallas que lo conocen; si no, se usa el de la sesión */
+  role?: RoleRef | null;
 }
 
 interface NavState {
@@ -38,13 +38,14 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
     (location.state ?? {}) as NavState;
 
   const { setSidebarOpen } = useWorkSession();
+  const sessionRole = useWorkSession((s) => s.role);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const email = getFirebaseAuth().currentUser?.email ?? '';
   const initial = email.charAt(0).toUpperCase();
   const { unreadCount } = useNotifications(companyId, branchId);
 
   const branchBadge = companyName && branchName ? `${companyName} — ${branchName}` : null;
-  const roleLabel = role ? WORKER_ROLE_LABELS[role] : null;
+  const roleLabel = (role ?? sessionRole)?.name ?? null;
   const handleSignOut = useSignOut();
 
   return (
