@@ -106,6 +106,7 @@ export const router = createBrowserRouter([
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
+              // guard: el backend valida ADMIN.MANAGE_PERMISSIONS — la UI maneja el 403 con estado de error. Guard proactivo pendiente de TR-10.
               { path: '/admin/permisos', element: <RolePermissionMatrixScreen /> },
               { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
               { path: '/modulos', element: <ModuleHubScreen /> },

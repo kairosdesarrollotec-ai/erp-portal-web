@@ -3219,6 +3219,33 @@ screens:
   supersedes: null
   note: conflicto SoD
   is_reference_asset: false
+- proto_id: PROTO-ADM-02-ROLE-MANAGEMENT-PANEL
+  ux_id: ADM-02
+  module: soporte
+  source: null
+  folder: null
+  files:
+    screenshot: null
+    code: null
+  screen_state: ROLE_MANAGEMENT_PANEL
+  viewport:
+    width: 1440
+    height: 1024
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: PENDING_APPROVAL
+  approved_by_role: null
+  approved_at: null
+  sha256: null
+  bytes: null
+  supersedes: null
+  note: >
+    Panel de gestión de roles (crear/renombrar/desactivar) — parte de ADM-02.
+    Pendiente de prototipo dedicado aprobado. El panel aparece dentro de
+    PROTO-ADM-02-ROLES-Y-PERMISOS pero sin estado dedicado separado.
+  is_reference_asset: false
 - proto_id: PROTO-ADP-08-SEGUIMIENTO-DE-REGRESO
   ux_id: ADP-08
   module: administracion-personal
