@@ -125,6 +125,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/interviewers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Buscador de entrevistadores (REC-05, PROTO-REC-05)
+         * @description Usuarios con asignación vigente en la empresa cuyo rol tiene RECRUITMENT.MANAGE_INTERVIEW en la matriz dinámica ADM-02 (ámbito empresa/sede del contexto). Pensado para el selector de `interviewerId` al agendar una entrevista. No expone correo ni teléfono.
+         */
+        get: operations["listInterviewers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/interviews/{id}/commands/record-result": {
         parameters: {
             query?: never;
@@ -337,13 +357,14 @@ export interface components {
             documentType: string;
             documentNumber: string;
             stage: components["schemas"]["CandidateStage"];
-            score?: number | null;
             decision?: components["schemas"]["CandidateDecision"];
             version: number;
             /** Format: date-time */
             createdAt: string;
         };
         CandidateDetailResponse: components["schemas"]["CandidateResponse"] & {
+            /** @description Tomado de la vacante del candidato (true = vacante de mecanico, aplican BR-REC-004 y contrato notarial). */
+            isMechanic: boolean;
             email?: string | null;
             phone?: string | null;
             /** Format: uuid */
@@ -356,6 +377,14 @@ export interface components {
             interviews?: components["schemas"]["CandidateInterviewResponse"][];
             /** @description Incorporación y periodo de prueba (REC-07/REC-08); null mientras no se haya incorporado. */
             onboarding?: components["schemas"]["OnboardingResponse"] | null;
+        };
+        InterviewerResponse: {
+            /** @description Identificador del usuario; es el valor que se envía como interviewerId */
+            id: string;
+            fullName: string;
+        };
+        InterviewerListResponse: {
+            items: components["schemas"]["InterviewerResponse"][];
         };
         CandidateInterviewResponse: {
             /** Format: uuid */
@@ -942,6 +971,60 @@ export interface operations {
             };
             /** @description Candidato no encontrado */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listInterviewers: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+                /** @description Búsqueda por nombre (sin distinguir mayúsculas ni tildes) */
+                q?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Entrevistadores ordenados por nombre */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewerListResponse"];
+                };
+            };
+            /** @description Parámetros inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso RECRUITMENT.MANAGE_INTERVIEW ni RECRUITMENT.VIEW_CANDIDATE */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
