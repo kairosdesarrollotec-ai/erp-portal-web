@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getFirebaseAuth } from '../providers/firebase';
 import { CandidateSummary } from './CandidateSummary';
 import { FlowFrame } from './FlowFrame';
 import { formatDate, formatDateTime } from './flow-format';
-import { completeOnboarding, getVacancy } from './recruitment-client';
+import { completeOnboarding } from './recruitment-client';
 import { defaultStartDate } from './recruitment-domain';
 import { useRecruitmentPermissions } from './recruitment-permissions';
 import { useRecruitmentCommand, useUnsavedWarning } from './useRecruitmentCommand';
@@ -15,8 +14,7 @@ import styles from './RecruitmentFlow.module.css';
  * REC-07 - Incorporación. Solo con decisión CONTRATADO. Ingreso propuesto: mañana.
  * Checklist obligatorio (inducción, dispositivos, responsabilidad). El contrato notariado
  * aparece solo si la vacante es de mecánico (se consulta la vacante porque la ficha del
- * candidato no trae ese dato). Si la vacante no se puede consultar, el ítem se muestra
- * como informativo (no bloquea) y el servidor valida la regla.
+
  */
 export function OnboardingScreen() {
   const { id } = useParams();
@@ -31,41 +29,20 @@ export function OnboardingScreen() {
   const [equipment, setEquipment] = useState(false);
   const [responsibility, setResponsibility] = useState(false);
   const [notarized, setNotarized] = useState(false);
-  const [isMechanic, setIsMechanic] = useState<boolean | null>(null);
   const dateRef = useRef<HTMLInputElement>(null);
 
   const hired = candidate?.decision === 'CONTRATADO';
   const completed = candidate?.onboarding?.isCompleted === true;
   const formVisible = !!candidate && hired && !completed && can('MANAGE_ONBOARDING');
-  const vacancyId = candidate?.vacancyId;
-  const needsVacancy = hired && !completed;
+  const isMechanic = candidate?.isMechanic === true;
 
   useUnsavedWarning(formVisible && (induction || equipment || responsibility || notarized));
-
-  useEffect(() => {
-    if (!needsVacancy || !vacancyId || !context) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const user = getFirebaseAuth().currentUser;
-        if (!user) return;
-        const token = await user.getIdToken();
-        const vacancy = await getVacancy(token, vacancyId, { companyId: context.companyId, branchId: context.branchId });
-        if (!cancelled) setIsMechanic(vacancy.isMechanic === true);
-      } catch {
-        if (!cancelled) setIsMechanic(null);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [needsVacancy, vacancyId, context]);
 
   useEffect(() => {
     if (formVisible) dateRef.current?.focus();
   }, [formVisible]);
 
-  const checklistOk = induction && equipment && responsibility && (isMechanic !== true || notarized);
+  const checklistOk = induction && equipment && responsibility && (!isMechanic || notarized);
   const valid = startDate !== '' && checklistOk;
 
   async function submit(event: FormEvent) {
@@ -78,7 +55,7 @@ export function OnboardingScreen() {
           inductionScheduled: induction,
           equipmentAssigned: equipment,
           responsibilityCardSigned: responsibility,
-          notarizedContractSigned: isMechanic === false ? false : notarized,
+          notarizedContractSigned: isMechanic ? notarized : false,
         }),
       'No pudimos confirmar el ingreso. Intenta de nuevo.',
     );
@@ -218,17 +195,13 @@ export function OnboardingScreen() {
                     />
                     Responsabilidad firmada
                   </label>
-                  {isMechanic !== false && (
+                  {isMechanic && (
                     <>
                       <label className={styles.checkRow}>
                         <input type="checkbox" checked={notarized} onChange={(e) => setNotarized(e.target.checked)} disabled={saving} />
                         Contrato notariado
                       </label>
-                      <p className={styles.hint}>
-                        {isMechanic === true
-                          ? 'Este puesto siempre requiere notaría'
-                          : 'No pudimos verificar el puesto. Si es de mecánico, este contrato siempre requiere notaría.'}
-                      </p>
+                      <p className={styles.hint}>Este puesto siempre requiere notaría</p>
                     </>
                   )}
                 </fieldset>

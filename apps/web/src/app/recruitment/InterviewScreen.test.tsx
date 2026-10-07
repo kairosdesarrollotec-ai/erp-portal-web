@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { InterviewScreen } from './InterviewScreen';
 import { baseContext, makeCandidate, makeInterview, setMobile, setupUser } from './flow-test-utils';
@@ -8,6 +8,9 @@ import { setPermissions } from '../../test/permissions';
 const getCandidateMock = vi.fn();
 const scheduleMock = vi.fn();
 const recordMock = vi.fn();
+const interviewersMock = vi.fn();
+const ME = { id: 'me-uid', fullName: 'Yo Mismo' };
+const OTHER = { id: 'user-2', fullName: 'Lucía Paredes' };
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -24,6 +27,7 @@ vi.mock('./recruitment-client', async () => {
     getCandidate: (...a: unknown[]) => getCandidateMock(...a),
     scheduleInterview: (...a: unknown[]) => scheduleMock(...a),
     recordInterviewResult: (...a: unknown[]) => recordMock(...a),
+    listInterviewers: (...a: unknown[]) => interviewersMock(...a),
   };
 });
 
@@ -43,6 +47,8 @@ describe('InterviewScreen (REC-05)', () => {
     getCandidateMock.mockReset();
     scheduleMock.mockReset();
     recordMock.mockReset();
+    interviewersMock.mockReset();
+    interviewersMock.mockResolvedValue([OTHER, ME]);
     setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.MANAGE_INTERVIEW']);
     setMobile(false);
   });
@@ -95,7 +101,9 @@ describe('InterviewScreen (REC-05)', () => {
     const button = await screen.findByRole('button', { name: 'Agendar entrevista' });
     expect(button).toBeDisabled();
     expect(screen.getByText(/~15 min/)).toBeInTheDocument();
-    expect(screen.getByLabelText('Entrevistador (código de usuario)')).toHaveValue('me-uid');
+    const combo = screen.getByRole('combobox', { name: 'Entrevistador' });
+    await waitFor(() => expect(combo).toHaveValue('Yo Mismo'));
+    expect(interviewersMock.mock.calls[0].slice(0, 3)).toEqual(['fake-id-token', { companyId: 'c1', branchId: 'b1' }, undefined]);
     await user.type(screen.getByLabelText('Fecha y hora'), '2026-10-10T09:00');
     await user.type(screen.getByLabelText('Enlace de la videollamada'), 'https://meet.google.com/xyz');
     expect(button).toBeEnabled();
@@ -107,6 +115,57 @@ describe('InterviewScreen (REC-05)', () => {
     expect(scope).toEqual({ companyId: 'c1', branchId: 'b1' });
     expect(input).toMatchObject({ isVirtual: true, meetUrl: 'https://meet.google.com/xyz', interviewerId: 'me-uid' });
     expect(new Date(input.scheduledAt).toString()).not.toBe('Invalid Date');
+  });
+
+  it('el buscador filtra con q y envía el id del entrevistador elegido', async () => {
+    const user = setupUser();
+    getCandidateMock.mockResolvedValue(makeCandidate());
+    scheduleMock.mockResolvedValue(makeInterview());
+    renderScreen();
+
+    const combo = await screen.findByRole('combobox', { name: 'Entrevistador' });
+    await waitFor(() => expect(combo).toHaveValue('Yo Mismo'));
+    interviewersMock.mockResolvedValue([OTHER]);
+    await user.type(combo, 'luc');
+    await waitFor(() => expect(interviewersMock.mock.calls.at(-1)?.[2]).toBe('luc'));
+    const option = await screen.findByRole('option', { name: 'Lucía Paredes' });
+    // Sin elegir nadie, no se puede agendar.
+    await user.type(screen.getByLabelText('Fecha y hora'), '2026-10-10T09:00');
+    await user.type(screen.getByLabelText('Enlace de la videollamada'), 'https://meet.google.com/xyz');
+    expect(screen.getByRole('button', { name: 'Agendar entrevista' })).toBeDisabled();
+    fireEvent.mouseDown(option);
+    expect(combo).toHaveValue('Lucía Paredes');
+    await user.click(screen.getByRole('button', { name: 'Agendar entrevista' }));
+    await waitFor(() => expect(scheduleMock).toHaveBeenCalledTimes(1));
+    expect(scheduleMock.mock.calls[0][3]).toMatchObject({ interviewerId: 'user-2' });
+  });
+
+  it('si el usuario actual no está en la lista no se preselecciona a nadie', async () => {
+    interviewersMock.mockResolvedValue([OTHER]);
+    getCandidateMock.mockResolvedValue(makeCandidate());
+    renderScreen();
+    const combo = await screen.findByRole('combobox', { name: 'Entrevistador' });
+    await waitFor(() => expect(interviewersMock).toHaveBeenCalled());
+    expect(combo).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Agendar entrevista' })).toBeDisabled();
+  });
+
+  it('lista vacía muestra un mensaje claro', async () => {
+    interviewersMock.mockResolvedValue([]);
+    getCandidateMock.mockResolvedValue(makeCandidate());
+    renderScreen();
+    expect(await screen.findByText('No hay entrevistadores disponibles en esta sede.')).toBeInTheDocument();
+  });
+
+  it('si falla la carga muestra el error y permite reintentar', async () => {
+    const user = setupUser();
+    interviewersMock.mockRejectedValueOnce(new Error('boom'));
+    getCandidateMock.mockResolvedValue(makeCandidate());
+    renderScreen();
+    expect(await screen.findByText(/No pudimos cargar los entrevistadores/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Entrevistador' })).toHaveValue('Yo Mismo'));
+    expect(screen.queryByText(/No pudimos cargar los entrevistadores/)).toBeNull();
   });
 
   it('presencial pide dirección en lugar del enlace', async () => {

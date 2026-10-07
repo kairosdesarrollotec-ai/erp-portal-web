@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { CandidateSummary } from './CandidateSummary';
 import { FlowFrame } from './FlowFrame';
+import { InterviewerPicker } from './InterviewerPicker';
 import { formatDateTime } from './flow-format';
 import {
   recordInterviewResult,
@@ -103,8 +104,8 @@ function ResultForm({ interview, focusOnMount, saving, onSubmit }: ResultFormPro
 /**
  * REC-05 - Entrevista. Agenda (más reciente primero), agendado (MANAGE_INTERVIEW) y
  * registro de resultado con notas libres + Avanza / No avanza (sin puntaje numérico).
- * Limitación: el contrato pide `interviewerId` (código de usuario); se propone el usuario
- * actual y se puede cambiar escribiendo otro código, porque no hay buscador de personal.
+ * El entrevistador se elige con un buscador (GET /interviewers); se preselecciona al usuario
+ * actual si aparece en la lista y se envía el `id` elegido como `interviewerId`.
  * La duración "~15 min" es solo referencial: no hay contador obligatorio.
  */
 export function InterviewScreen() {
@@ -119,7 +120,9 @@ export function InterviewScreen() {
   const [mode, setMode] = useState<Mode>('VIRTUAL');
   const [meetUrl, setMeetUrl] = useState('');
   const [location, setLocation] = useState('');
-  const [interviewerId, setInterviewerId] = useState(currentUid);
+  const [interviewerId, setInterviewerId] = useState('');
+  const handleInterviewer = useCallback((value: string) => setInterviewerId(value), []);
+  const uid = currentUid();
   const [recorded, setRecorded] = useState(false);
 
   const scheduleDirty = when !== '' || meetUrl !== '' || location !== '';
@@ -302,19 +305,14 @@ export function InterviewScreen() {
                     />
                   </>
                 )}
-                <label className={styles.fieldLabel} htmlFor="int-interviewer">
-                  Entrevistador (código de usuario)
-                </label>
-                <input
-                  id="int-interviewer"
-                  type="text"
-                  className={styles.input}
-                  value={interviewerId}
-                  onChange={(e) => setInterviewerId(e.target.value)}
+                <InterviewerPicker
+                  inputId="int-interviewer"
+                  label="Entrevistador"
+                  scope={context ? { companyId: context.companyId, branchId: context.branchId } : null}
+                  currentUserId={uid}
                   disabled={saving}
-                  aria-required="true"
+                  onChange={handleInterviewer}
                 />
-                <p className={styles.hint}>Por defecto eres tú; escribe otro código si entrevista otra persona.</p>
                 <div className={styles.rowActions}>
                   <button type="submit" className={styles.primaryButton} disabled={!scheduleValid || saving}>
                     {saving ? 'Guardando…' : 'Agendar entrevista'}

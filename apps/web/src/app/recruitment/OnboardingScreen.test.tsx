@@ -7,7 +7,6 @@ import { baseContext, makeCandidate, makeOnboarding, setMobile, setupUser } from
 import { setPermissions } from '../../test/permissions';
 
 const getCandidateMock = vi.fn();
-const getVacancyMock = vi.fn();
 const completeMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
@@ -23,7 +22,6 @@ vi.mock('./recruitment-client', async () => {
   return {
     ...actual,
     getCandidate: (...a: unknown[]) => getCandidateMock(...a),
-    getVacancy: (...a: unknown[]) => getVacancyMock(...a),
     completeOnboarding: (...a: unknown[]) => completeMock(...a),
   };
 });
@@ -45,9 +43,7 @@ const hired = () => makeCandidate({ decision: 'CONTRATADO', stage: 'DECISION' })
 describe('OnboardingScreen (REC-07)', () => {
   beforeEach(() => {
     getCandidateMock.mockReset();
-    getVacancyMock.mockReset();
     completeMock.mockReset();
-    getVacancyMock.mockResolvedValue({ id: 'vac-1', isMechanic: false });
     setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.MANAGE_ONBOARDING']);
     setMobile(false);
   });
@@ -100,14 +96,12 @@ describe('OnboardingScreen (REC-07)', () => {
     getCandidateMock.mockResolvedValue(hired());
     renderScreen();
     await screen.findByLabelText('Fecha de ingreso');
-    await waitFor(() => expect(getVacancyMock).toHaveBeenCalledWith('fake-id-token', 'vac-1', { companyId: 'c1', branchId: 'b1' }));
-    await waitFor(() => expect(screen.queryByLabelText('Contrato notariado')).toBeNull());
+    expect(screen.queryByLabelText('Contrato notariado')).toBeNull();
   });
 
   it('para mecánico aparece "Contrato notariado" (obligatorio) con su nota', async () => {
     const user = setupUser();
-    getVacancyMock.mockResolvedValue({ id: 'vac-1', isMechanic: true });
-    getCandidateMock.mockResolvedValue(hired());
+    getCandidateMock.mockResolvedValue({ ...hired(), isMechanic: true });
     renderScreen();
     expect(await screen.findByText('Este puesto siempre requiere notaría')).toBeInTheDocument();
     expect(screen.getByLabelText('Contrato notariado')).toBeInTheDocument();
@@ -116,7 +110,12 @@ describe('OnboardingScreen (REC-07)', () => {
     await user.click(screen.getByLabelText('Responsabilidad firmada'));
     expect(screen.getByRole('button', { name: 'Confirmar ingreso' })).toBeDisabled();
     await user.click(screen.getByLabelText('Contrato notariado'));
-    expect(screen.getByRole('button', { name: 'Confirmar ingreso' })).toBeEnabled();
+    const confirm = screen.getByRole('button', { name: 'Confirmar ingreso' });
+    expect(confirm).toBeEnabled();
+    completeMock.mockResolvedValue(makeOnboarding({ notarizedContractSigned: true }));
+    await user.click(confirm);
+    await waitFor(() => expect(completeMock).toHaveBeenCalledTimes(1));
+    expect(completeMock.mock.calls[0][3]).toMatchObject({ notarizedContractSigned: true });
   });
 
   it('con incorporación completada muestra el resumen y el enlace al periodo de prueba', async () => {

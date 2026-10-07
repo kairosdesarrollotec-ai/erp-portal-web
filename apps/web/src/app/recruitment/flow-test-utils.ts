@@ -56,6 +56,7 @@ export function makeCandidate(overrides: Partial<CandidateDetail> = {}): Candida
     decision: undefined,
     version: 4,
     createdAt: '2026-10-01T10:00:00Z',
+    isMechanic: false,
     email: 'ana@correo.pe',
     phone: '999111222',
     decisionNotes: null,

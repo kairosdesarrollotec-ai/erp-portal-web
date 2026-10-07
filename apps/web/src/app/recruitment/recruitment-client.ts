@@ -7,6 +7,7 @@ export type VacancyDetail = components['schemas']['VacancyDetailResponse'];
 export type CandidateResponse = components['schemas']['CandidateResponse'];
 export type CandidateDetail = components['schemas']['CandidateDetailResponse'];
 export type InterviewResponse = components['schemas']['CandidateInterviewResponse'];
+export type Interviewer = components['schemas']['InterviewerResponse'];
 export type OnboardingResponse = components['schemas']['OnboardingResponse'];
 
 /** Error HTTP de lectura (GET) - mismo patron que IncidentApiError / ReturnApiError. */
@@ -213,6 +214,23 @@ export async function changeCandidateStage(
 }
 
 // --- Entrevista (REC-05) -------------------------------------------------------
+
+/** REC-05 - buscador de entrevistadores (GET /interviewers); `id` es el valor de `interviewerId`. */
+export async function listInterviewers(
+  idToken: string,
+  scope: RecruitmentScope,
+  q?: string,
+  signal?: AbortSignal,
+): Promise<Interviewer[]> {
+  const term = q?.trim();
+  const { data, error, response } = await recruitmentApiClient.GET('/interviewers', {
+    params: { query: { ...scope, ...(term ? { q: term } : {}), limit: 20 } },
+    headers: authHeaders(idToken),
+    signal,
+  });
+  if (error || !data) throw new RecruitmentApiError(response.status);
+  return data.items;
+}
 
 export interface ScheduleInterviewInput {
   scheduledAt: string;
