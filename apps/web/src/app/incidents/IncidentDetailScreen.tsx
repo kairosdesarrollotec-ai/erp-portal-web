@@ -21,7 +21,7 @@ function formatDateTime(value: string): string {
 }
 
 /**
- * INC-02 - Detalle de Incidencia / RIO. Fuente: PANTALLAS-V2-B-SOPORTE.md.
+ * INC-02 - Detalle de Incidencia / RIO. Fuente: UX/UI v3.1 §5.8 + incidents.yaml v0.1.0.
  * Historial append-only: ninguna entrada tiene boton de editar ni eliminar,
  * solo "Agregar". Foco inicial en "Agregar nueva acción". "Cerrar incidencia"
  * queda deshabilitado hasta tener resumen de resolucion. Estados READY / SAVING.

@@ -48,7 +48,7 @@ export const MAX_TEXT_LENGTH = 2000;
 
 /**
  * INC-01: "Resolver" directo en la fila SOLO para severidad LEVE y estado
- * ABIERTA (PANTALLAS-V2-B-SOPORTE.md, criterio de aceptacion 14).
+ * ABIERTA (UX/UI v3.1 §5.8 INC-01 criterio 14 + incidents.yaml v0.1.0).
  */
 export function canResolveDirect(incident: { severity: IncidentSeverity; status: IncidentStatus }): boolean {
   return incident.severity === 'LEVE' && incident.status === 'ABIERTA';

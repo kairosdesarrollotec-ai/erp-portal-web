@@ -1,4 +1,5 @@
-import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import type { ReactNode } from 'react';
 import styles from './IncidentDialog.module.css';
 
 interface Props {
@@ -8,50 +9,23 @@ interface Props {
   children: ReactNode;
 }
 
-const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])';
-
 /**
- * Dialogo modal accesible: role=dialog + aria-modal, foco inicial en el primer
- * campo, Escape cierra, Tab queda dentro y el foco vuelve al disparador.
+ * Dialogo modal accesible usando @radix-ui/react-dialog: foco atrapado,
+ * Escape cierra, aria-modal y retorno del foco al disparador gestionados
+ * por Radix. Fuente: UX/UI v3.1 §5.8 INC-01/INC-02 + incidents.yaml v0.1.0.
  */
 export function IncidentDialog({ titleId, title, onClose, children }: Props) {
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
-    const first = cardRef.current?.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
-    first?.focus();
-    return () => previous?.focus?.();
-  }, []);
-
-  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === 'Escape') {
-      event.stopPropagation();
-      onClose();
-      return;
-    }
-    if (event.key !== 'Tab' || !cardRef.current) return;
-    const items = Array.from(cardRef.current.querySelectorAll<HTMLElement>(FOCUSABLE));
-    if (items.length === 0) return;
-    const firstItem = items[0];
-    const lastItem = items[items.length - 1];
-    if (event.shiftKey && document.activeElement === firstItem) {
-      event.preventDefault();
-      lastItem.focus();
-    } else if (!event.shiftKey && document.activeElement === lastItem) {
-      event.preventDefault();
-      firstItem.focus();
-    }
-  }
-
   return (
-    <div className={styles.overlay} role="presentation" onKeyDown={onKeyDown}>
-      <div ref={cardRef} className={styles.card} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <h2 id={titleId} className={styles.title}>
-          {title}
-        </h2>
-        {children}
-      </div>
-    </div>
+    <Dialog.Root open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className={styles.overlay} />
+        <Dialog.Content className={styles.card} aria-labelledby={titleId}>
+          <Dialog.Title id={titleId} className={styles.title}>
+            {title}
+          </Dialog.Title>
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

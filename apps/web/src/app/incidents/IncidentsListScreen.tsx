@@ -26,7 +26,7 @@ import { RegisterIncidentDialog } from './RegisterIncidentDialog';
 import styles from './IncidentsListScreen.module.css';
 
 /**
- * INC-01 - Bandeja de Incidencias. Fuente: PANTALLAS-V2-B-SOPORTE.md.
+ * INC-01 - Bandeja de Incidencias. Fuente: UX/UI v3.1 §5.8 + incidents.yaml v0.1.0.
  * Tabla (desktop) / tarjetas (movil, via CSS) con Tipo, Severidad (badge),
  * Expediente, Estado y Responsable; filtros por tipo, severidad y estado.
  * Accion primaria "Registrar incidencia"; por fila "Abrir" y, SOLO en
@@ -193,7 +193,7 @@ export function IncidentsListScreen() {
         {state === 'READY' && (
           <>
             <div className={styles.tableWrapper}>
-              <table className={styles.table}>
+              <table className={styles.table} aria-label="Listado de incidencias">
                 <thead>
                   <tr>
                     <th scope="col">Tipo</th>

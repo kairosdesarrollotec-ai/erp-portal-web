@@ -4,7 +4,7 @@ import type { WorkerRole } from '../dashboard/worker-role';
 /**
  * Espejo de solo lectura de la politica de roles de Incidencias (UX: ocultar
  * o deshabilitar acciones antes de recibir un 403; la seguridad real vive en
- * el backend). Fuente: PANTALLAS-V2-B-SOPORTE.md:
+ * el backend). Fuente: UX/UI v3.1 §5.8 + incidents.yaml v0.1.0:
  *  - INC-01 (bandeja): Front-office, Campo, Gerencia, Finanzas, Auditoria.
  *  - INC-02 (detalle/cierre): Front-office, Gerencia.
  * ADMINISTRACION tambien ve el modulo (el hub de TR-11 muestra los 12 modulos a ese rol y

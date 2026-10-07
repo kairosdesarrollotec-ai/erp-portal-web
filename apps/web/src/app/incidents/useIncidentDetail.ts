@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getFirebaseAuth } from '../providers/firebase';
 import {
   addIncidentAction,
@@ -17,10 +18,10 @@ export type IncidentDetailState = 'LOADING' | 'READY' | 'SAVING' | 'RECOVERABLE_
 export function useIncidentDetail() {
   const { id = '' } = useParams<{ id: string }>();
   const { context, loading: contextLoading } = useWorkContextForIncidents();
-  const [state, setState] = useState<IncidentDetailState>('LOADING');
-  const [incident, setIncident] = useState<IncidentDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const [commandError, setCommandError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const getIdToken = useCallback(async () => {
     const user = getFirebaseAuth().currentUser;
@@ -28,29 +29,34 @@ export function useIncidentDetail() {
     return user.getIdToken();
   }, []);
 
-  const load = useCallback(async () => {
-    if (!context) return null;
-    try {
-      const idToken = await getIdToken();
-      const detail = await getIncident(idToken, id, context.companyId, context.branchId);
-      setIncident(detail);
-      setState('READY');
-      return detail;
-    } catch (err) {
-      const status = (err as { status?: number }).status;
-      setState(status === 404 ? 'NOT_FOUND' : 'RECOVERABLE_ERROR');
-      return null;
-    }
-  }, [context, getIdToken, id]);
+  const queryKey = ['incident', id, context?.companyId, context?.branchId] as const;
 
-  useEffect(() => {
-    if (!contextLoading && context) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      void load();
-    } else if (!contextLoading && !context) {
-      queueMicrotask(() => setState('RECOVERABLE_ERROR'));
-    }
-  }, [context, contextLoading, load]);
+  const {
+    data: incident,
+    isLoading: queryLoading,
+    error: queryError,
+    refetch,
+  } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      const idToken = await getIdToken();
+      return getIncident(idToken, id, context!.companyId, context!.branchId);
+    },
+    enabled: !contextLoading && !!context && !!id,
+    retry: false,
+  });
+
+  const state: IncidentDetailState = saving
+    ? 'SAVING'
+    : contextLoading || (!!context && queryLoading)
+    ? 'LOADING'
+    : !context
+    ? 'RECOVERABLE_ERROR'
+    : queryError
+    ? ((queryError as { status?: number }).status === 404 ? 'NOT_FOUND' : 'RECOVERABLE_ERROR')
+    : incident
+    ? 'READY'
+    : 'LOADING';
 
   /**
    * Ejecuta un comando con If-Match. 409/428 (version desactualizada o ya no
@@ -63,27 +69,26 @@ export function useIncidentDetail() {
       successNotice: string,
     ): Promise<boolean> => {
       if (!context || !incident) return false;
-      setState('SAVING');
-      setError(null);
+      setSaving(true);
+      setCommandError(null);
       setNotice(null);
       try {
         const idToken = await getIdToken();
         const updated = await command(idToken, incident, context.companyId, context.branchId);
-        setIncident(updated);
+        queryClient.setQueryData(queryKey, updated);
         setNotice(successNotice);
-        setState('READY');
         return true;
       } catch (err) {
-        setError(describeIncidentError(err, fallback));
+        setCommandError(describeIncidentError(err, fallback));
         if (isStaleIncidentError(err)) {
-          await load();
-        } else {
-          setState('READY');
+          await refetch();
         }
         return false;
+      } finally {
+        setSaving(false);
       }
     },
-    [context, getIdToken, incident, load],
+    [context, getIdToken, incident, queryClient, queryKey, refetch],
   );
 
   const addAction = useCallback(
@@ -116,5 +121,16 @@ export function useIncidentDetail() {
     [run],
   );
 
-  return { id, state, incident, context, error, notice, addAction, close, referLegal, reload: load };
+  return {
+    id,
+    state,
+    incident: incident ?? null,
+    context,
+    error: commandError,
+    notice,
+    addAction,
+    close,
+    referLegal,
+    reload: refetch,
+  };
 }

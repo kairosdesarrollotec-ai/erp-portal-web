@@ -7,7 +7,7 @@ import {
 } from './incident-domain';
 import styles from './IncidentBadges.module.css';
 
-/** Severidad: Leve #2F6B4F, Moderada #8A5505, Grave #C22B2B (PANTALLAS-V2-B-SOPORTE.md, INC-01). */
+/** Severidad: Leve #2F6B4F, Moderada #8A5505, Grave #C22B2B (UX/UI v3.1 §5.8 INC-01 + incidents.yaml v0.1.0). */
 export function SeverityBadge({ severity }: { severity: IncidentSeverity }) {
   return (
     <span className={`${styles.badge} ${styles[`severity_${severity}`]}`} data-severity={severity}>
