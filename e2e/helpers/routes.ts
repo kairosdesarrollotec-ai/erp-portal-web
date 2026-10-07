@@ -3,8 +3,18 @@ import { makeFakeJwt, resolveRoleOption, type E2eRoleOption } from './role-prese
 import * as EF from './e2e-fixtures';
 
 // Re-exports so existing specs can keep importing from './helpers/routes'
+// Explicit named re-exports avoid esbuild export* + dynamic import conflict
 export * from './role-presets';
-export * from './e2e-fixtures';
+export {
+  SINGLE_ASSIGNMENT,
+  MULTI_ASSIGNMENTS,
+  RESERVATION_FIXTURE,
+  INQUIRY_FIXTURE,
+  CUSTOMER_FIXTURE,
+  RENTAL_FIXTURE,
+  VEHICLE_FIXTURE,
+  makeEvidenceFixture,
+} from './e2e-fixtures';
 export { interceptAdmin } from './admin-routes';
 
 export async function interceptFirebaseAuth(page: Page, email = 'agente@veloxrent.pe'): Promise<void> {
