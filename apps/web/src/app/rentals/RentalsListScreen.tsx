@@ -1,7 +1,8 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useRentalsList } from './useRentalsList';
 import { RENTAL_STATUS_LABELS, rentalStageForStatus, rentalWizardPathForStatus } from './rental-status';
 import { AppHeader } from '../shared/AppHeader';
+import { useIncidentPermissions } from '../incidents/incident-permissions';
 import styles from './RentalsListScreen.module.css';
 
 /**
@@ -15,6 +16,7 @@ import styles from './RentalsListScreen.module.css';
 export function RentalsListScreen() {
   const { state, rentals, context } = useRentalsList();
   const navigate = useNavigate();
+  const { can: canIncident } = useIncidentPermissions();
 
   function openRental(rental: (typeof rentals)[number]) {
     // ACTIVE ya no pertenece al asistente de Entrega: el alquiler en curso se
@@ -109,6 +111,19 @@ export function RentalsListScreen() {
                             Continuar devolución
                           </button>
                         )}
+                        {(rental.status === 'ACTIVE' || rental.status === 'EXTENSION_PENDING' || rental.status === 'RETURN_IN_PROGRESS') &&
+                          canIncident('VIEW') && (
+                            // ALQ-10 -> INC-01: incidencias del expediente (ver o registrar).
+                            <Link
+                              to={`/incidencias?rentalId=${rental.id}`}
+                              state={context ?? undefined}
+                              className={styles.secondaryLink}
+                              aria-label={`Ver o registrar incidencias de ${rental.vehiclePlate}`}
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              Ver/Registrar incidencias
+                            </Link>
+                          )}
                         {rental.status !== 'CLOSED' &&
                           rental.status !== 'CANCELLED' &&
                           rental.status !== 'ACTIVE' &&
