@@ -6,6 +6,14 @@ import { ChecklistScreen } from './ChecklistScreen';
 import { ResultScreen } from './ResultScreen';
 import { baseContext, makeFlow, makeReturn } from './test-utils';
 import { ReturnCommandError } from './returns-client';
+import { setPermissions } from '../../test/permissions';
+
+const RETURN_FULL = [
+  'RETURN.CREATE', 'RETURN.READ', 'RETURN.RECEIVE_PROVISIONAL',
+  'RETURN.REGISTER_ALCOHOL_TEST', 'RETURN.COMPLETE_INSPECTION',
+  'RETURN.UPLOAD_EVIDENCE', 'RETURN.ASSESS_DAMAGE',
+  'RETURN.CHARGE_IMMOBILIZATION', 'RETURN.CLOSE_FINANCIAL', 'RETURN.CLOSE',
+] as const;
 import {
   EMPTY_RETURN_CHECKLIST,
   loadReturnChecklist,
@@ -95,6 +103,7 @@ describe('ChecklistScreen (DEV-04)', () => {
   beforeEach(() => {
     [flowMock, listReturnEvidenceMock, requestSessionMock, uploadGcsMock, recordEvidenceMock].forEach((m) => m.mockReset());
     sessionStorage.clear();
+    setPermissions(RETURN_FULL);
     flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'INSPECCION' }) }));
     listReturnEvidenceMock.mockResolvedValue([]);
   });
@@ -246,6 +255,7 @@ describe('ResultScreen (DEV-05, hub)', () => {
   beforeEach(() => {
     [flowMock, listReturnEvidenceMock, listRentalEvidenceMock, completeInspectionMock].forEach((m) => m.mockReset());
     sessionStorage.clear();
+    setPermissions(RETURN_FULL);
     seedDoc();
     flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'INSPECCION' }) }));
     listReturnEvidenceMock.mockResolvedValue([evidence('PHOTO', 1)]);
