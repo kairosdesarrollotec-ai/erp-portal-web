@@ -3,12 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { axe } from 'jest-axe';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { IncidentDetailScreen } from './IncidentDetailScreen';
-
-function createTestQueryClient() {
-  return new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
-}
 import { IncidentCommandError } from './incidents-client';
 import { baseContext, makeDetail, setupUser } from './test-utils';
 import { setPermissions, INCIDENT_ALL, INCIDENT_FIELD } from '../../test/permissions';
