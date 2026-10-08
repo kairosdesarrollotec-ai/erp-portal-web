@@ -10,7 +10,11 @@ import { ReturnCommandError } from './returns-client';
 import { loadDamageSelection, saveDamageSelection, EMPTY_DAMAGE_SELECTION } from './return-session-draft';
 import { clearCosmeticTariffCache } from './useCosmeticTariff';
 import { useWorkSession } from '../shared/useWorkSession';
-import { roleRef } from '../../test/permissions';
+import { roleRef, setPermissions } from '../../test/permissions';
+
+const RETURN_DAMAGE = [
+  'RETURN.READ', 'RETURN.ASSESS_DAMAGE', 'RETURN.CHARGE_IMMOBILIZATION',
+] as const;
 
 const flowMock = vi.fn();
 const assessDamageMock = vi.fn();
@@ -56,6 +60,7 @@ beforeEach(() => {
   clearCosmeticTariffCache();
   sessionStorage.clear();
   useWorkSession.getState().setRole(null);
+  setPermissions(RETURN_DAMAGE);
 });
 
 describe('DamageSeverityScreen (DEV-06)', () => {
@@ -108,6 +113,7 @@ describe('DamageSeverityScreen (DEV-06)', () => {
   });
 
   it('un rol sin permiso (Front-office) ve el aviso y no puede continuar', () => {
+    setPermissions(['RETURN.READ']); // Front-office: sin ASSESS_DAMAGE
     useWorkSession.getState().setRole(roleRef('FRONT_OFFICE'));
     flowMock.mockReturnValue(makeFlow({ ret: conDanos() }));
     mount();

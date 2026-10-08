@@ -8,6 +8,11 @@ import { renderReturnScreen } from './test-harness';
 import { ReturnCommandError } from './returns-client';
 import { clearCosmeticTariffCache } from './useCosmeticTariff';
 import type { ReturnDamageResponse } from './returns-client';
+import { setPermissions } from '../../test/permissions';
+
+const RETURN_CLOSE = [
+  'RETURN.READ', 'RETURN.CLOSE_FINANCIAL', 'RETURN.CLOSE',
+] as const;
 
 const flowMock = vi.fn();
 const closeFinancialMock = vi.fn();
@@ -54,6 +59,7 @@ beforeEach(() => {
   [flowMock, closeFinancialMock, closeReturnMock, getRentalMock].forEach((m) => m.mockReset());
   sessionStorage.clear();
   clearCosmeticTariffCache();
+  setPermissions(RETURN_CLOSE);
   getRentalMock.mockResolvedValue({ id: 'rent-1', branchId: 'b1', deposit: { originalAmount: '1000', currency: 'PEN' } });
 });
 

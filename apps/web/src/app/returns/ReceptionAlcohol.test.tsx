@@ -7,7 +7,12 @@ import { AlcoholTestScreen } from './AlcoholTestScreen';
 import { baseContext, makeFlow, makeReturn, problem } from './test-utils';
 import { ReturnCommandError } from './returns-client';
 import { useWorkSession } from '../shared/useWorkSession';
-import { roleRef } from '../../test/permissions';
+import { roleRef, setPermissions } from '../../test/permissions';
+
+const RETURN_RECEPTION = [
+  'RETURN.READ', 'RETURN.RECEIVE_PROVISIONAL',
+  'RETURN.REGISTER_ALCOHOL_TEST', 'RETURN.RESOLVE_ALCOHOL_ESCALATION',
+] as const;
 
 const getRentalMock = vi.fn();
 const receiveProvisionalMock = vi.fn();
@@ -77,6 +82,7 @@ describe('ReceptionScreen (DEV-02)', () => {
     getRentalMock.mockReset();
     receiveProvisionalMock.mockReset();
     getRentalMock.mockResolvedValue(rental);
+    setPermissions(RETURN_RECEPTION);
   });
 
   it('hereda cliente y vehiculo del alquiler y deshabilita "Recibir vehículo" hasta completar', async () => {
@@ -171,6 +177,7 @@ describe('AlcoholTestScreen (DEV-03)', () => {
     resolveEscalationMock.mockReset();
     flowMock.mockReset();
     useWorkSession.getState().setRole(null);
+    setPermissions(RETURN_RECEPTION);
   });
 
   it('favorable pasa a INSPECCION y navega al checklist', async () => {
@@ -249,9 +256,11 @@ describe('AlcoholTestScreen (DEV-03) - decision de Gerencia', () => {
     resolveEscalationMock.mockReset();
     flowMock.mockReset();
     useWorkSession.getState().setRole(null);
+    setPermissions(RETURN_RECEPTION);
   });
 
   it('quien no es Gerencia ve "Pendiente de decisión de Gerencia" y no ve el formulario ni el boton de decision', () => {
+    setPermissions(['RETURN.READ', 'RETURN.REGISTER_ALCOHOL_TEST']); // sin RESOLVE_ALCOHOL_ESCALATION
     useWorkSession.getState().setRole(roleRef('ADMINISTRACION'));
     flowMock.mockReturnValue(makeFlow({ ret: escalated() }));
     renderAlcohol();
@@ -261,6 +270,7 @@ describe('AlcoholTestScreen (DEV-03) - decision de Gerencia', () => {
   });
 
   it('quien no es Gerencia ve tambien la decision previa KEEP_IN_CUSTODY', () => {
+    setPermissions(['RETURN.READ', 'RETURN.REGISTER_ALCOHOL_TEST']); // sin RESOLVE_ALCOHOL_ESCALATION
     useWorkSession.getState().setRole(roleRef('CAMPO'));
     flowMock.mockReturnValue(
       makeFlow({

@@ -4,6 +4,11 @@ import { axe } from 'jest-axe';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ReturnsListScreen } from './ReturnsListScreen';
 import { baseContext, makeReturn } from './test-utils';
+import { setPermissions } from '../../test/permissions';
+
+const RETURN_LIST = [
+  'RETURN.READ', 'RETURN.CREATE', 'RETURN.RECEIVE_PROVISIONAL',
+] as const;
 
 const listReturnsMock = vi.fn();
 const listRentalsMock = vi.fn();
@@ -62,6 +67,7 @@ describe('ReturnsListScreen (DEV-01)', () => {
     scheduleReturnMock.mockReset();
     listRentalsMock.mockResolvedValue([]);
     sessionStorage.clear();
+    setPermissions(RETURN_LIST);
   });
 
   it('muestra la bandeja con cliente, vehiculo, badge de etapa y fecha programada', async () => {
