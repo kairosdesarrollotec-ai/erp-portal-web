@@ -38,6 +38,7 @@ const requestSessionMock = vi.fn();
 const uploadGcsMock = vi.fn();
 const recordEvidenceMock = vi.fn();
 const completeInspectionMock = vi.fn();
+const getResponsibilityTemplateMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -61,6 +62,7 @@ vi.mock('./returns-client', async () => {
     uploadReturnEvidenceToGcs: (...args: unknown[]) => uploadGcsMock(...args),
     recordReturnEvidence: (...args: unknown[]) => recordEvidenceMock(...args),
     completeInspection: (...args: unknown[]) => completeInspectionMock(...args),
+    getResponsibilityTemplate: (...args: unknown[]) => getResponsibilityTemplateMock(...args),
   };
 });
 
@@ -101,11 +103,12 @@ function renderResult() {
 
 describe('ChecklistScreen (DEV-04)', () => {
   beforeEach(() => {
-    [flowMock, listReturnEvidenceMock, requestSessionMock, uploadGcsMock, recordEvidenceMock].forEach((m) => m.mockReset());
+    [flowMock, listReturnEvidenceMock, requestSessionMock, uploadGcsMock, recordEvidenceMock, getResponsibilityTemplateMock].forEach((m) => m.mockReset());
     sessionStorage.clear();
     setPermissions(RETURN_FULL);
     flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'INSPECCION' }) }));
     listReturnEvidenceMock.mockResolvedValue([]);
+    getResponsibilityTemplateMock.mockResolvedValue({ type: 'STANDARD', name: 'Documento de Responsabilidad', content: '', version: 1 });
   });
 
   it('con evidencia incompleta no permite continuar y avisa lo que falta', async () => {

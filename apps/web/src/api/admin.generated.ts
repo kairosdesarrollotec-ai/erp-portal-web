@@ -372,7 +372,7 @@ export interface components {
             currency: "PEN" | "USD";
         };
         /** @enum {string} */
-        PermissionModule: "RESERVATION" | "INQUIRY" | "ADMIN" | "RENTAL" | "INCIDENT";
+        PermissionModule: "RESERVATION" | "INQUIRY" | "ADMIN" | "RENTAL" | "INCIDENT" | "RECRUITMENT";
         RolePermissionEntry: {
             /** Format: uuid */
             roleId: string;

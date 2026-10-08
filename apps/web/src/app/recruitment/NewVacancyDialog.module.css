@@ -1,0 +1,21 @@
+.overlay { position: fixed; inset: 0; background: var(--color-overlay); z-index: 30; }
+.card {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: var(--color-surface); border-radius: 12px; padding: 1.5rem;
+  max-width: 480px; width: calc(100% - 2rem); max-height: 90vh; overflow-y: auto; z-index: 31;
+}
+.title { font-size: 16px; font-weight: 700; margin: 0 0 1rem; color: var(--color-ink); }
+.field { display: flex; flex-direction: column; gap: 0.375rem; font-size: 13px; font-weight: 600; color: var(--color-ink); margin-bottom: 1rem; border: none; padding: 0; min-width: 0; }
+.input { border: 1px solid var(--color-surface-border); border-radius: 8px; padding: 0.625rem 0.75rem; font-size: 13px; font-family: inherit; color: var(--color-ink); background: var(--color-surface); }
+.chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.chip { display: inline-flex; }
+.chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.chip span { padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--color-surface-border); font-size: 13px; font-weight: 600; cursor: pointer; color: var(--color-ink); }
+.chip input:checked + span { background: var(--color-ink); color: #fff; border-color: var(--color-ink); }
+.chip input:focus-visible + span { outline: 3px solid #2166B0; outline-offset: 2px; }
+.check { display: flex; align-items: center; gap: 0.5rem; font-size: 13px; font-weight: 600; color: var(--color-ink); margin-bottom: 1rem; }
+.error { font-size: 12px; color: var(--color-error); margin: 0.25rem 0 0.75rem; }
+.actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; }
+.secondaryButton { padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--color-surface-border); background: transparent; color: var(--color-ink); font-size: 13px; font-weight: 600; cursor: pointer; }
+.primaryButton { padding: 0.5rem 1rem; border-radius: 8px; border: none; background: #1F2A33; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.primaryButton:disabled { opacity: 0.6; cursor: not-allowed; }

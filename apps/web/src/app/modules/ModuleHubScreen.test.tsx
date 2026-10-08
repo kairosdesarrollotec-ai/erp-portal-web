@@ -5,7 +5,7 @@
  * Cubre:
  *  - LOADING: muestra texto de carga
  *  - READY (permiso ADMIN.*): 12 tarjetas visibles, admin card presente
- *  - READY (sin permisos ADMIN.*): 11 tarjetas (admin card oculta)
+ *  - READY (sin permisos ADMIN.* ni RECRUITMENT.*): 10 tarjetas (Admin y Personal ocultas)
  *  - La visibilidad se decide por permisos (INCIDENT.VIEW, ADMIN.*), no por rol
  *  - Módulo no implementado: card deshabilitada con "Próximamente"
  *  - Módulo implementado: link navegable
@@ -62,19 +62,19 @@ describe('ModuleHubScreen', () => {
     expect(screen.getByText(/no pudimos determinar/i)).toBeDefined();
   });
 
-  it('muestra 12 módulos a quien tiene permisos de Administración', () => {
-    setPermissions([...INCIDENT_VIEW_ONLY, 'ADMIN.MANAGE_USERS']);
+  it('muestra 12 módulos a quien tiene permisos de Administración y de Reclutamiento', () => {
+    setPermissions([...INCIDENT_VIEW_ONLY, 'ADMIN.MANAGE_USERS', 'RECRUITMENT.VIEW_VACANCY']);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('ADMINISTRACION') });
     renderHub();
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(12);
   });
 
-  it('muestra 11 módulos a quien no tiene permisos ADMIN.* (sin Admin)', () => {
+  it('muestra 10 módulos a quien no tiene permisos ADMIN.* ni de Reclutamiento (sin Admin ni Personal)', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(11);
+    expect(items).toHaveLength(10);
     expect(screen.queryByText('Admin')).toBeNull();
   });
 
@@ -103,10 +103,24 @@ describe('ModuleHubScreen', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const badges = screen.getAllByText(/próximamente/i);
-    // 3 módulos sin ruta implementada (Pagos, Personal, Reportes) = 3 sin
-    // admin. Alquileres, Devoluciones e Incidencias salieron de esta lista
+    // 2 módulos sin ruta implementada (Pagos, Reportes). Alquileres, Devoluciones,
+    // Incidencias y Personal (Reclutamiento) salieron de esta lista
     // (module-definitions.tsx, path en vez de null) - ya estan construidos.
-    expect(badges.length).toBe(3);
+    expect(badges.length).toBe(2);
+  });
+
+  it('Personal lleva a Reclutamiento y solo se muestra con RECRUITMENT.VIEW_VACANCY', () => {
+    setPermissions(['RECRUITMENT.VIEW_VACANCY']);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef(null, 'Analista de selección') });
+    renderHub();
+    expect(screen.getByRole('link', { name: 'Personal' }).getAttribute('href')).toBe('/reclutamiento');
+  });
+
+  it('Personal se oculta a quien no tiene permisos de Reclutamiento', () => {
+    setPermissions(['INCIDENT.VIEW']);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
+    renderHub();
+    expect(screen.queryByRole('link', { name: 'Personal' })).toBeNull();
   });
 
   it('Incidencias es un módulo habilitado que lleva a /incidencias', () => {

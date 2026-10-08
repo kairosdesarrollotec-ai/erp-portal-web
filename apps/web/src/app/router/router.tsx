@@ -42,6 +42,14 @@ import { GuaranteeScreen } from '../returns/GuaranteeScreen';
 import { ClosureScreen } from '../returns/ClosureScreen';
 import { IncidentsListScreen } from '../incidents/IncidentsListScreen';
 import { IncidentDetailScreen } from '../incidents/IncidentDetailScreen';
+import { VacanciesListScreen } from '../recruitment/VacanciesListScreen';
+import { VacancyProfileScreen } from '../recruitment/VacancyProfileScreen';
+import { CandidatesBoardScreen } from '../recruitment/CandidatesBoardScreen';
+import { CandidateFileScreen } from '../recruitment/CandidateFileScreen';
+import { InterviewScreen } from '../recruitment/InterviewScreen';
+import { HiringDecisionScreen } from '../recruitment/HiringDecisionScreen';
+import { OnboardingScreen } from '../recruitment/OnboardingScreen';
+import { ProbationScreen } from '../recruitment/ProbationScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -103,6 +111,15 @@ export const router = createBrowserRouter([
               // Incidencias INC-01 (bandeja, admite ?rentalId=) / INC-02 (detalle RIO).
               { path: '/incidencias', element: <IncidentsListScreen /> },
               { path: '/incidencias/:id', element: <IncidentDetailScreen /> },
+              // Reclutamiento y Seleccion REC-01..REC-08 (acceso desde Personal).
+              { path: '/reclutamiento', element: <VacanciesListScreen /> },
+              { path: '/reclutamiento/vacantes/:id', element: <VacancyProfileScreen /> },
+              { path: '/reclutamiento/vacantes/:id/candidatos', element: <CandidatesBoardScreen /> },
+              { path: '/reclutamiento/candidatos/:id', element: <CandidateFileScreen /> },
+              { path: '/reclutamiento/candidatos/:id/entrevista', element: <InterviewScreen /> },
+              { path: '/reclutamiento/candidatos/:id/decision', element: <HiringDecisionScreen /> },
+              { path: '/reclutamiento/candidatos/:id/incorporacion', element: <OnboardingScreen /> },
+              { path: '/reclutamiento/candidatos/:id/periodo-de-prueba', element: <ProbationScreen /> },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },

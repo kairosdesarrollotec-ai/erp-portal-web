@@ -1,0 +1,155 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay, rgba(0, 0, 0, 0.45));
+  z-index: 30;
+}
+
+.card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 520px;
+  width: calc(100% - 2rem);
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 31;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+  color: var(--color-ink);
+}
+
+.description {
+  font-size: 14px;
+  margin: 0 0 1rem;
+  color: var(--color-ink);
+}
+
+.summary {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-surface-border);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
+.summary p {
+  margin: 0 0 0.25rem;
+}
+
+.consequence {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8f1f1f;
+  margin: 0 0 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: 1rem;
+}
+
+.input {
+  border: 1px solid var(--color-surface-border);
+  border-radius: 8px;
+  padding: 0.625rem 0.75rem;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-ink);
+  background: var(--color-surface);
+  min-height: 80px;
+  resize: vertical;
+}
+
+.check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--color-ink);
+  margin-bottom: 1rem;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--color-error, #8f1f1f);
+  margin: 0 0 0.75rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.secondaryButton {
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-surface-border);
+  background: transparent;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primaryButton {
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: #1f2a33;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dangerButton {
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 2px solid #c22b2b;
+  background: #fff;
+  color: #8f1f1f;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryButton:disabled,
+.dangerButton:disabled {
+  background: var(--color-border, #d5d9dd);
+  border-color: var(--color-border, #d5d9dd);
+  color: #5b6670;
+  cursor: not-allowed;
+}
+
+.primaryButton:focus-visible,
+.dangerButton:focus-visible,
+.secondaryButton:focus-visible {
+  outline: 3px solid #1f6feb;
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .actions > button {
+    flex: 1 1 100%;
+  }
+}
