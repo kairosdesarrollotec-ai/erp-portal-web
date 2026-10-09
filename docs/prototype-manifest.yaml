@@ -4034,9 +4034,9 @@ screens:
     label: desktop
   theme: light
   locale: es-PE
-  status: PENDING_APPROVAL
-  approved_by_role: null
-  approved_at: null
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: "2026-10-09"
   sha256: 160f6248861b3af3486a57858bcb3f55abdfbb65e78ffe5c4286a9f58bc15fbd
   bytes: 44693
   supersedes: null
@@ -4046,5 +4046,5 @@ screens:
     Generado el 2026-10-09 a partir de TDD-KAIROS-MVP-002-TPL v1.0 (PROP-017)
     y el Design System aprobado (stitch_veloxrent_prototipo_b).
     Incluye wizard de subida de 3 pasos (DRAFT → upload → activate).
-    Estado: PENDING_APPROVAL — requiere revisión y confirmación explícita del equipo antes de usarse como baseline.
+    Aprobado por PRODUCTO el 2026-10-09. Baseline vigente para TPL-TODO-004.
   is_reference_asset: false
