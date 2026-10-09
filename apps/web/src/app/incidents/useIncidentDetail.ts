@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getFirebaseAuth } from '../providers/firebase';
@@ -29,7 +29,10 @@ export function useIncidentDetail() {
     return user.getIdToken();
   }, []);
 
-  const queryKey = ['incident', id, context?.companyId, context?.branchId] as const;
+  const queryKey = useMemo(
+    () => ['incident', id, context?.companyId, context?.branchId] as const,
+    [id, context?.companyId, context?.branchId],
+  );
 
   const {
     data: incident,
