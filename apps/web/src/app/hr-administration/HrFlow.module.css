@@ -443,3 +443,7 @@ select:focus-visible {
 }
 .mobileInput { min-height: 48px; }
 .stickyActions .accentButton { min-height: 52px; width: 100%; }
+.terminateButton { min-height: 44px; padding: 0.5rem 1.125rem; border-radius: 8px; border: none; background: #C22B2B; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+.terminateButton:disabled { background: var(--color-border, #d5d9dd); color: #5b6670; cursor: not-allowed; }
+.terminateButton:focus-visible { outline: 3px solid #1f6feb; outline-offset: 2px; }
+a.primaryButton, a.secondaryButton { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }

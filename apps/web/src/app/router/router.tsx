@@ -58,6 +58,11 @@ import { AbsenceScreen } from '../hr-administration/AbsenceScreen';
 import { LeavesScreen } from '../hr-administration/LeavesScreen';
 import { VacationScreen } from '../hr-administration/VacationScreen';
 import { FieldTripRequestScreen } from '../hr-administration/FieldTripRequestScreen';
+import { FieldTripsListScreen } from '../hr-administration/FieldTripsListScreen';
+import { FieldTripAuthorizationScreen } from '../hr-administration/FieldTripAuthorizationScreen';
+import { ReturnFollowUpScreen } from '../hr-administration/ReturnFollowUpScreen';
+import { TerminationScreen } from '../hr-administration/TerminationScreen';
+import { TrainingScreen } from '../hr-administration/TrainingScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -131,12 +136,17 @@ export const router = createBrowserRouter([
               // Administracion de Personal ADP-01..ADP-10 (acceso desde la tarjeta Personal).
               { path: '/personal', element: <EmployeesListScreen /> },
               { path: '/personal/asistencia', element: <AttendanceTeamScreen /> },
+              { path: '/personal/campo', element: <FieldTripsListScreen /> },
+              { path: '/personal/campo/:tripId/autorizacion', element: <FieldTripAuthorizationScreen /> },
+              { path: '/personal/campo/:tripId/regreso', element: <ReturnFollowUpScreen /> },
+              { path: '/personal/capacitacion', element: <TrainingScreen /> },
               { path: '/personal/:id', element: <EmployeeFileScreen /> },
               { path: '/personal/:id/asistencia', element: <PersonAttendanceScreen /> },
               { path: '/personal/:id/asistencia/falta', element: <AbsenceScreen /> },
               { path: '/personal/:id/permisos', element: <LeavesScreen /> },
               { path: '/personal/:id/vacaciones', element: <VacationScreen /> },
               { path: '/personal/:id/salida-a-campo', element: <FieldTripRequestScreen /> },
+              { path: '/personal/:id/termino', element: <TerminationScreen /> },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
