@@ -239,7 +239,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Avanzar temporizador de cascada (N1 -> N2 -> N3 -> NO_AUTORIZADA sin 4to nivel) */
+        /** Avanzar temporizador de cascada cuando vence el nivel actual (N1 -> N2 -> N3 -> NO_AUTORIZADA sin 4to nivel) */
         post: operations["advanceFieldTripTimeout"];
         delete?: never;
         options?: never;
@@ -452,7 +452,15 @@ export interface components {
         ApplyDeductionsRequest: {
             /** Format: uuid */
             companyId: string;
-            /** @example 2026-10 */
+            /**
+             * Format: uuid
+             * @description Sede del contexto de trabajo
+             */
+            branchId: string;
+            /**
+             * @description Mes a liquidar; solo se acepta desde el último día del mes (BR-ADP-001)
+             * @example 2026-10
+             */
             month: string;
             /** @description Opcional; si no se especifica se aplica a todos los colaboradores con deducciones pendientes */
             employeeIds?: string[];
@@ -587,14 +595,15 @@ export interface components {
         TerminateEmploymentRequest: {
             reason: components["schemas"]["TerminationReason"];
             /**
-             * @description Días de preaviso (0 si renuncia sin previo aviso
+             * @description Días de aviso. Renuncia sin previo aviso = 0. Despido por reincidencia = 15 (solo se acepta 0 o 15)
              * @default 0
              */
             noticeDays: number;
-            /** @description Si se canceló la liquidación/quincena pendiente (BR-ADP-006) */
+            /** @description Si se pagó la quincena pendiente. Obligatorio en true para RENUNCIA (BR-ADP-006 */
             finalSettlementPaid: boolean;
             /** @default 0 */
             settlementAmount: number;
+            /** @description Obligatoria para DESPIDO (se documenta el motivo */
             notes?: string | null;
         };
         EmploymentTerminationResponse: {
@@ -619,14 +628,12 @@ export interface components {
              */
             vacancyCreatedId?: string | null;
         };
+        /** @description Cuerpo de error de dominio (DomainExceptionFilter). `code` es estable y apto para que el front decida el mensaje. */
         ProblemDetail: {
-            type: string;
-            title: string;
-            status: number;
+            statusCode: number;
+            /** @example VACATION_OVERLAP */
             code: string;
             detail: string;
-            /** Format: uuid */
-            correlationId?: string | null;
         };
     };
     responses: never;
@@ -641,7 +648,8 @@ export interface operations {
         parameters: {
             query: {
                 companyId: string;
-                branchId?: string;
+                /** @description Sede del contexto de trabajo; el listado se limita a esa sede */
+                branchId: string;
                 status?: components["schemas"]["EmployeeStatus"];
                 areaId?: string;
                 search?: string;
@@ -680,7 +688,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES */
+            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES o contexto empresa/sede no vigente */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -838,6 +846,20 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description El colaborador ya está terminado (EMPLOYEE_TERMINATED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Cambio de estado no permitido por edición - TERMINADO solo se registra con /terminate (EMPLOYEE_STATUS_TRANSITION_NOT_ALLOWED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     getEmployeeAttendance: {
@@ -873,6 +895,13 @@ export interface operations {
             };
             /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Colaborador no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -932,8 +961,15 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Ya existe marcación para la fecha indicada */
+            /** @description Ya existe marcación para la fecha indicada (ATTENDANCE_ALREADY_LOGGED) o el colaborador está terminado (EMPLOYEE_TERMINATED) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Registro inválido */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -945,6 +981,8 @@ export interface operations {
         parameters: {
             query: {
                 companyId: string;
+                /** @description Sede del contexto de trabajo (el resumen es de toda la empresa) */
+                branchId: string;
                 month: string;
             };
             header?: never;
@@ -953,7 +991,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Resumen mensual y cálculo de deducciones de nómina */
+            /** @description Resumen mensual y cálculo de deducciones de nómina (solo colaboradores con tardanzas o faltas injustificadas) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -976,7 +1014,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES */
+            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES o LOG_ATTENDANCE */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1007,7 +1045,7 @@ export interface operations {
                     "application/json": components["schemas"]["ApplyDeductionsResponse"];
                 };
             };
-            /** @description Datos inválidos */
+            /** @description Datos inválidos (INVALID_PAYROLL_MONTH) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1023,6 +1061,13 @@ export interface operations {
             };
             /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_EMPLOYEES */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El mes todavía no cierra - los descuentos se aplican a fin de mes */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1059,6 +1104,13 @@ export interface operations {
             };
             /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Colaborador no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1104,7 +1156,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso para solicitar o gestionar permisos */
+            /** @description Rol sin ninguno de los permisos HR_ADMINISTRATION.MANAGE_EMPLOYEES */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1113,6 +1165,13 @@ export interface operations {
             };
             /** @description Colaborador no encontrado */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El colaborador está terminado (EMPLOYEE_TERMINATED) */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1172,7 +1231,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description La solicitud ya fue resuelta previamente */
+            /** @description La solicitud ya fue resuelta previamente (LEAVE_ALREADY_RESOLVED) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1215,6 +1274,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Colaborador no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     scheduleVacation: {
@@ -1232,7 +1298,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Vacaciones programadas exitosamente */
+            /** @description Vacaciones programadas exitosamente (estado PROGRAMADA, sin superposición en el área) */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -1269,7 +1335,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Conflicto de superposición de vacaciones en el área (VACATION_OVERLAP) */
+            /** @description Conflicto de superposición de vacaciones en el área - máximo 1 persona a la vez, prioridad a quien solicitó primero (VACATION_OVERLAP) o colaborador terminado (EMPLOYEE_TERMINATED) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1284,6 +1350,8 @@ export interface operations {
         parameters: {
             query: {
                 companyId: string;
+                /** @description Sede del contexto de trabajo (el calendario es de toda la empresa) */
+                branchId: string;
                 areaId?: string;
                 year: number;
                 month?: number;
@@ -1310,7 +1378,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES */
+            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES o SCHEDULE_VACATION */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1323,7 +1391,8 @@ export interface operations {
         parameters: {
             query: {
                 companyId: string;
-                branchId?: string;
+                /** @description Sede del contexto de trabajo; el listado se limita a esa sede */
+                branchId: string;
                 status?: components["schemas"]["FieldTripStatus"];
                 employeeId?: string;
             };
@@ -1349,7 +1418,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso HR_ADMINISTRATION.REQUEST_FIELD_TRIP */
+            /** @description Rol sin permiso HR_ADMINISTRATION.REQUEST_FIELD_TRIP ni AUTHORIZE_FIELD_TRIP */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1410,6 +1479,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description El colaborador está terminado (EMPLOYEE_TERMINATED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     getFieldTrip: {
@@ -1439,7 +1515,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso HR_ADMINISTRATION.REQUEST_FIELD_TRIP */
+            /** @description Rol sin permiso HR_ADMINISTRATION.REQUEST_FIELD_TRIP ni AUTHORIZE_FIELD_TRIP */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1479,7 +1555,7 @@ export interface operations {
                     "application/json": components["schemas"]["FieldTripResponse"];
                 };
             };
-            /** @description Nivel de autorización inválido */
+            /** @description Nivel de autorización inválido - solo 1 */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1507,7 +1583,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description La salida no está pendiente de autorización */
+            /** @description La salida no está pendiente de autorización (FIELD_TRIP_NOT_PENDING) o la cascada se agotó sin autorización y no se aprueba por defecto (NO_AUTHORIZATION_AVAILABLE) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1527,7 +1603,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Cascada avanzada al siguiente nivel o finalizada en NO_AUTORIZADA */
+            /** @description Cascada avanzada al siguiente nivel o finalizada en NO_AUTORIZADA (en ese caso `message` explica que nadie autorizó y la persona no sale) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1543,7 +1619,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso para operar cascada */
+            /** @description Rol sin permiso HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1557,7 +1633,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description La salida no está en estado pendiente de cascada */
+            /** @description La salida no está en estado pendiente de cascada (FIELD_TRIP_NOT_PENDING) o el temporizador de 5 minutos del nivel actual aún no vence (FIELD_TRIP_TIMEOUT_NOT_ELAPSED) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1581,7 +1657,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Retorno registrado y clasificado (CERRADA_NORMAL u OBSERVADA) */
+            /** @description Retorno registrado y clasificado (CERRADA_NORMAL con advertencia en la 1ª a 3ª tardanza, u OBSERVADA desde la 4ª); `message` informa la clasificación */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1618,7 +1694,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description La salida no está en estado AUTORIZADA */
+            /** @description La salida no está en estado AUTORIZADA (FIELD_TRIP_NOT_AUTHORIZED) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1642,7 +1718,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Relación laboral terminada y evento emitido hacia outbox */
+            /** @description Relación laboral terminada y evento RelacionLaboralTerminada.v1 emitido hacia outbox en la misma transacción (Reclutamiento crea la necesidad de personal al consumirlo; `vacancyCreatedId` es siempre null aquí porque la creación es asíncrona) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1681,6 +1757,13 @@ export interface operations {
             };
             /** @description El colaborador ya fue terminado previamente (EMPLOYMENT_ALREADY_TERMINATED) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reglas de BR-ADP-006 incumplidas - renuncia sin pago de la quincena pendiente (FINAL_SETTLEMENT_REQUIRED) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
