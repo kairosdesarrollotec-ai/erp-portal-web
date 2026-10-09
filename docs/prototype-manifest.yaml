@@ -4018,3 +4018,33 @@ screens:
     (modulo alquiler, pantalla equivalente de resultado de inspeccion).
     Ver DEC-DEV-05-001 en docs/decision-log.md.
   is_reference_asset: false
+- proto_id: PROTO-ADM-03-LISTA-DESKTOP
+  ux_id: ADM-03
+  module: admin
+  source: stitch_veloxrent_prototipo_b
+  folder: plantillas_documentos_administracion_del_sistema_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/plantillas_documentos_administracion_del_sistema_veloxrent/screen.png
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/plantillas_documentos_administracion_del_sistema_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 1440
+    height: 1024
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: PENDING_APPROVAL
+  approved_by_role: null
+  approved_at: null
+  sha256: 160f6248861b3af3486a57858bcb3f55abdfbb65e78ffe5c4286a9f58bc15fbd
+  bytes: 44693
+  supersedes: null
+  note: >
+    ADM-03 estado READY desktop — gestión de plantillas de documentos base
+    (RENTAL_CONTRACT, RESERVATION_CONTRACT, RETURN_RESPONSIBILITY).
+    Generado el 2026-10-09 a partir de TDD-KAIROS-MVP-002-TPL v1.0 (PROP-017)
+    y el Design System aprobado (stitch_veloxrent_prototipo_b).
+    Incluye wizard de subida de 3 pasos (DRAFT → upload → activate).
+    Estado: PENDING_APPROVAL — requiere revisión y confirmación explícita del equipo antes de usarse como baseline.
+  is_reference_asset: false
