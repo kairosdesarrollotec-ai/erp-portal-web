@@ -432,3 +432,12 @@ select:focus-visible {
   .timer { font-size: 36px; }
   .stickyActions { position: sticky; bottom: 0; }
 }
+.companyChip { display: inline-flex; align-items: center; min-height: 40px; padding: 0 0.75rem; border-radius: 8px; background: #f1f2f3; color: var(--color-ink); font-size: 13px; }
+.badgePositive { background: #1E7D4B; }
+.calendarTable { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; }
+.calendarTable td.cell { vertical-align: top; }
+@media (max-width: 640px) {
+  .calendarTable { border-spacing: 2px; }
+  .calendarTable td.cell { min-height: 0; padding: 0.125rem; font-size: 10px; word-break: break-word; }
+  .calendarTable .smallButton { min-height: 28px; padding: 0.125rem 0.25rem; font-size: 10px; }
+}

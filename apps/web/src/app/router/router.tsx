@@ -50,6 +50,11 @@ import { InterviewScreen } from '../recruitment/InterviewScreen';
 import { HiringDecisionScreen } from '../recruitment/HiringDecisionScreen';
 import { OnboardingScreen } from '../recruitment/OnboardingScreen';
 import { ProbationScreen } from '../recruitment/ProbationScreen';
+import { EmployeesListScreen } from '../hr-administration/EmployeesListScreen';
+import { EmployeeFileScreen } from '../hr-administration/EmployeeFileScreen';
+import { AttendanceTeamScreen } from '../hr-administration/AttendanceTeamScreen';
+import { PersonAttendanceScreen } from '../hr-administration/PersonAttendanceScreen';
+import { AbsenceScreen } from '../hr-administration/AbsenceScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -120,6 +125,12 @@ export const router = createBrowserRouter([
               { path: '/reclutamiento/candidatos/:id/decision', element: <HiringDecisionScreen /> },
               { path: '/reclutamiento/candidatos/:id/incorporacion', element: <OnboardingScreen /> },
               { path: '/reclutamiento/candidatos/:id/periodo-de-prueba', element: <ProbationScreen /> },
+              // Administracion de Personal ADP-01..ADP-10 (acceso desde la tarjeta Personal).
+              { path: '/personal', element: <EmployeesListScreen /> },
+              { path: '/personal/asistencia', element: <AttendanceTeamScreen /> },
+              { path: '/personal/:id', element: <EmployeeFileScreen /> },
+              { path: '/personal/:id/asistencia', element: <PersonAttendanceScreen /> },
+              { path: '/personal/:id/asistencia/falta', element: <AbsenceScreen /> },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
