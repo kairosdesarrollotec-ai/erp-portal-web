@@ -4,8 +4,8 @@
  *
  * Cubre:
  *  - LOADING: muestra texto de carga
- *  - READY (permiso ADMIN.*): 12 tarjetas visibles, admin card presente
- *  - READY (sin permisos ADMIN.* ni RECRUITMENT.*): 10 tarjetas (Admin y Personal ocultas)
+ *  - READY (permisos ADMIN.*, RECRUITMENT.* y HR_ADMINISTRATION.*): 13 tarjetas visibles, admin card presente
+ *  - READY (sin permisos ADMIN.*, RECRUITMENT.* ni HR_ADMINISTRATION.*): 10 tarjetas (Admin, Personal y Reclutamiento ocultas)
  *  - La visibilidad se decide por permisos (INCIDENT.VIEW, ADMIN.*), no por rol
  *  - Módulo no implementado: card deshabilitada con "Próximamente"
  *  - Módulo implementado: link navegable
@@ -62,15 +62,15 @@ describe('ModuleHubScreen', () => {
     expect(screen.getByText(/no pudimos determinar/i)).toBeDefined();
   });
 
-  it('muestra 12 módulos a quien tiene permisos de Administración y de Reclutamiento', () => {
-    setPermissions([...INCIDENT_VIEW_ONLY, 'ADMIN.MANAGE_USERS', 'RECRUITMENT.VIEW_VACANCY']);
+  it('muestra 13 módulos a quien tiene permisos de Administración, Reclutamiento y Personal', () => {
+    setPermissions([...INCIDENT_VIEW_ONLY, 'ADMIN.MANAGE_USERS', 'RECRUITMENT.VIEW_VACANCY', 'HR_ADMINISTRATION.VIEW_EMPLOYEES']);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('ADMINISTRACION') });
     renderHub();
     const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(12);
+    expect(items).toHaveLength(13);
   });
 
-  it('muestra 10 módulos a quien no tiene permisos ADMIN.* ni de Reclutamiento (sin Admin ni Personal)', () => {
+  it('muestra 10 módulos a quien no tiene permisos ADMIN.*, de Reclutamiento ni de Personal (sin Admin, Personal ni Reclutamiento)', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const items = screen.getAllByRole('listitem');
@@ -104,23 +104,39 @@ describe('ModuleHubScreen', () => {
     renderHub();
     const badges = screen.getAllByText(/próximamente/i);
     // 2 módulos sin ruta implementada (Pagos, Reportes). Alquileres, Devoluciones,
-    // Incidencias y Personal (Reclutamiento) salieron de esta lista
+    // Incidencias, Personal y Reclutamiento salieron de esta lista
     // (module-definitions.tsx, path en vez de null) - ya estan construidos.
     expect(badges.length).toBe(2);
   });
 
-  it('Personal lleva a Reclutamiento y solo se muestra con RECRUITMENT.VIEW_VACANCY', () => {
-    setPermissions(['RECRUITMENT.VIEW_VACANCY']);
-    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef(null, 'Analista de selección') });
+  it('Personal lleva a ADP-01 (/personal) y solo se muestra con HR_ADMINISTRATION.VIEW_EMPLOYEES', () => {
+    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES']);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef(null, 'Analista de personal') });
     renderHub();
-    expect(screen.getByRole('link', { name: 'Personal' }).getAttribute('href')).toBe('/reclutamiento');
+    expect(screen.getByRole('link', { name: 'Personal' }).getAttribute('href')).toBe('/personal');
+    expect(screen.queryByRole('link', { name: 'Reclutamiento' })).toBeNull();
   });
 
-  it('Personal se oculta a quien no tiene permisos de Reclutamiento', () => {
-    setPermissions(['INCIDENT.VIEW']);
+  it('Personal se oculta a quien no tiene permisos de Administración de Personal', () => {
+    setPermissions(['INCIDENT.VIEW', 'RECRUITMENT.VIEW_VACANCY']);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     expect(screen.queryByRole('link', { name: 'Personal' })).toBeNull();
+  });
+
+  it('Reclutamiento es una tarjeta separada que lleva a /reclutamiento y requiere RECRUITMENT.VIEW_VACANCY', () => {
+    setPermissions(['RECRUITMENT.VIEW_VACANCY']);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef(null, 'Analista de selección') });
+    renderHub();
+    expect(screen.getByRole('link', { name: 'Reclutamiento' }).getAttribute('href')).toBe('/reclutamiento');
+    expect(screen.queryByRole('link', { name: 'Personal' })).toBeNull();
+  });
+
+  it('Reclutamiento se oculta a quien no tiene permisos de Reclutamiento', () => {
+    setPermissions(['INCIDENT.VIEW']);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
+    renderHub();
+    expect(screen.queryByRole('link', { name: 'Reclutamiento' })).toBeNull();
   });
 
   it('Incidencias es un módulo habilitado que lleva a /incidencias', () => {
