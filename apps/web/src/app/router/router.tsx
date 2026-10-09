@@ -55,6 +55,9 @@ import { EmployeeFileScreen } from '../hr-administration/EmployeeFileScreen';
 import { AttendanceTeamScreen } from '../hr-administration/AttendanceTeamScreen';
 import { PersonAttendanceScreen } from '../hr-administration/PersonAttendanceScreen';
 import { AbsenceScreen } from '../hr-administration/AbsenceScreen';
+import { LeavesScreen } from '../hr-administration/LeavesScreen';
+import { VacationScreen } from '../hr-administration/VacationScreen';
+import { FieldTripRequestScreen } from '../hr-administration/FieldTripRequestScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -131,6 +134,9 @@ export const router = createBrowserRouter([
               { path: '/personal/:id', element: <EmployeeFileScreen /> },
               { path: '/personal/:id/asistencia', element: <PersonAttendanceScreen /> },
               { path: '/personal/:id/asistencia/falta', element: <AbsenceScreen /> },
+              { path: '/personal/:id/permisos', element: <LeavesScreen /> },
+              { path: '/personal/:id/vacaciones', element: <VacationScreen /> },
+              { path: '/personal/:id/salida-a-campo', element: <FieldTripRequestScreen /> },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
