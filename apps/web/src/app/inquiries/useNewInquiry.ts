@@ -4,8 +4,8 @@ import { getFirebaseAuth } from '../providers/firebase';
 import { createInquiry, closeInquiry, InquiryCommandError } from './inquiries-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
 import { validateNewInquiryForm, hasInquiryFormErrors, type InquiryFormErrors } from './inquiries-validation';
-import { listCustomers, createCustomer, type Customer, CustomerCommandError } from '../customers/customers-client';
-import type { CustomerFormData } from '../customers/useCustomersList';
+import type { Customer } from '../customers/customers-client';
+import { useInquiryCustomerSearch } from './useInquiryCustomerSearch';
 import type { DisplayMode, InquiryChannel } from './inquiry-status';
 
 export type NewInquiryScreenState = 'READY' | 'SAVING' | 'RECOVERABLE_ERROR';
@@ -103,50 +103,7 @@ export function useNewInquiry() {
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const isFirstRender = useRef(true);
 
-  // Integración Módulo de Clientes (PR 4)
-  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
-  const [customerSearchResults, setCustomerSearchResults] = useState<Customer[]>([]);
-  const [searchingCustomers, setSearchingCustomers] = useState(false);
-  const [isNewCustomerModalOpen, setIsNewCustomerModalOpen] = useState(false);
-  const [modalLoading, setModalLoading] = useState(false);
-  const [modalError, setModalError] = useState<string | null>(null);
-
-  // Debounced search for customers
-  useEffect(() => {
-    const q = customerSearchQuery.trim();
-    if (q.length < 2 || !context) {
-      queueMicrotask(() => {
-        setCustomerSearchResults([]);
-        setSearchingCustomers(false);
-      });
-      return;
-    }
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSearchingCustomers(true);
-    const timer = setTimeout(async () => {
-      try {
-        const user = getFirebaseAuth().currentUser;
-        if (!user) return;
-        const idToken = await user.getIdToken();
-        const res = await listCustomers(idToken, {
-          companyId: context.companyId,
-          branchId: context.branchId,
-          search: q,
-          limit: 5,
-        });
-        setCustomerSearchResults(res.items);
-      } catch {
-        setCustomerSearchResults([]);
-      } finally {
-        setSearchingCustomers(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [customerSearchQuery, context]);
-
-  const selectCustomer = useCallback((customer: Customer) => {
+  const onCustomerSelected = useCallback((customer: Customer) => {
     setForm((prev) => ({
       ...prev,
       customerId: customer.id,
@@ -155,53 +112,25 @@ export function useNewInquiry() {
       document: customer.documentNumber,
       nationality: (customer.nationality as Nationality) || 'PERUANO',
     }));
-    setCustomerSearchQuery('');
-    setCustomerSearchResults([]);
   }, []);
+
+  const {
+    customerSearchQuery,
+    setCustomerSearchQuery,
+    customerSearchResults,
+    searchingCustomers,
+    selectCustomer,
+    isNewCustomerModalOpen,
+    modalLoading,
+    modalError,
+    openNewCustomerModal,
+    closeNewCustomerModal,
+    handleCreateCustomer,
+  } = useInquiryCustomerSearch(context, onCustomerSelected);
 
   const clearSelectedCustomer = useCallback(() => {
-    setForm((prev) => ({
-      ...prev,
-      customerId: null,
-    }));
+    setForm((prev) => ({ ...prev, customerId: null }));
   }, []);
-
-  const openNewCustomerModal = useCallback(() => {
-    setIsNewCustomerModalOpen(true);
-    setModalError(null);
-  }, []);
-
-  const closeNewCustomerModal = useCallback(() => {
-    setIsNewCustomerModalOpen(false);
-    setModalError(null);
-  }, []);
-
-  const handleCreateCustomer = useCallback(
-    async (data: CustomerFormData): Promise<boolean> => {
-      if (!context) return false;
-      setModalLoading(true);
-      setModalError(null);
-      try {
-        const user = getFirebaseAuth().currentUser;
-        if (!user) throw new Error('Sesión no disponible.');
-        const idToken = await user.getIdToken();
-        const created = await createCustomer(idToken, {
-          ...data,
-          companyId: context.companyId,
-          branchId: context.branchId,
-        });
-        selectCustomer(created);
-        setIsNewCustomerModalOpen(false);
-        return true;
-      } catch (err) {
-        setModalError(err instanceof CustomerCommandError ? err.message : 'No se pudo registrar el cliente.');
-        return false;
-      } finally {
-        setModalLoading(false);
-      }
-    },
-    [context, selectCustomer],
-  );
 
   useEffect(() => {
     if (isFirstRender.current) {
