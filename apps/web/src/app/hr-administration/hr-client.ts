@@ -92,28 +92,32 @@ export async function getEmployee(idToken: string, id: string): Promise<Employee
 export interface LogAttendanceInput {
   date: string;
   status: AttendanceStatus;
+  /** Obligatorio (> 0) solo para TARDANZA; para el resto no se envia. */
+  minutesLate?: number;
   checkInTime?: string;
   checkOutTime?: string;
   notes?: string;
 }
 
 /**
- * Registra una marcacion. El monto del descuento y los minutos de tardanza NO los ingresa la
- * persona (ADP-03): se envian en 0 (valores por defecto del contrato) y los calcula el servidor.
+ * Registra una marcacion. El monto del descuento NO lo ingresa nadie (ADP-03): no se envia
+ * `deductionAmount` y el servidor lo calcula del sueldo base. Si se enviara (aunque fuera 0) el servidor lo
+ * respetaria, por eso el cuerpo se arma sin ese campo (el tipo generado lo marca obligatorio por el
+ * `default: 0` del contrato).
  */
 export async function logAttendance(idToken: string, employeeId: string, input: LogAttendanceInput): Promise<AttendanceRecord> {
+  const body = {
+    date: input.date,
+    status: input.status,
+    ...(input.status === 'TARDANZA' && input.minutesLate ? { minutesLate: input.minutesLate } : {}),
+    ...(input.checkInTime ? { checkInTime: input.checkInTime } : {}),
+    ...(input.checkOutTime ? { checkOutTime: input.checkOutTime } : {}),
+    ...(input.notes ? { notes: input.notes } : {}),
+  } as unknown as components['schemas']['LogAttendanceRequest'];
   const { data, error, response } = await hrAdministrationApiClient.POST('/employees/{id}/attendance', {
     params: { path: { id: employeeId } },
     headers: authHeaders(idToken),
-    body: {
-      date: input.date,
-      status: input.status,
-      minutesLate: 0,
-      deductionAmount: 0,
-      ...(input.checkInTime ? { checkInTime: input.checkInTime } : {}),
-      ...(input.checkOutTime ? { checkOutTime: input.checkOutTime } : {}),
-      ...(input.notes ? { notes: input.notes } : {}),
-    },
+    body,
   });
   if (error || !data) throw toCommandError(error, response.status);
   return data;
@@ -128,9 +132,9 @@ export async function getEmployeeAttendance(idToken: string, employeeId: string,
   return data;
 }
 
-export async function getAttendanceSummary(idToken: string, companyId: string, month: string): Promise<AttendanceSummary> {
+export async function getAttendanceSummary(idToken: string, scope: HrScope, month: string): Promise<AttendanceSummary> {
   const { data, error, response } = await hrAdministrationApiClient.GET('/attendance/summary', {
-    params: { query: { companyId, month } },
+    params: { query: { ...scope, month } },
     headers: authHeaders(idToken),
   });
   if (error || !data) throw new HrApiError(response.status);
@@ -140,13 +144,13 @@ export async function getAttendanceSummary(idToken: string, companyId: string, m
 /** ADP-03 - "Aplicar descuento" (fin de mes, BR-ADP-001). Sin `employeeIds` aplica a todos. */
 export async function applyMonthDeductions(
   idToken: string,
-  companyId: string,
+  scope: HrScope,
   month: string,
   employeeIds?: string[],
 ): Promise<ApplyDeductionsResult> {
   const { data, error, response } = await hrAdministrationApiClient.POST('/attendance/apply-deductions', {
     headers: authHeaders(idToken),
-    body: { companyId, month, ...(employeeIds ? { employeeIds } : {}) },
+    body: { ...scope, month, ...(employeeIds ? { employeeIds } : {}) },
   });
   if (error || !data) throw toCommandError(error, response.status);
   return data;
@@ -230,13 +234,13 @@ export async function getEmployeeVacations(idToken: string, employeeId: string):
 /** Calendario del AREA para un anio; solo sirve para detectar el conflicto puntual (no se muestra completo). */
 export async function getVacationsCalendar(
   idToken: string,
-  companyId: string,
+  scope: HrScope,
   areaId: string,
   year: number,
   signal?: AbortSignal,
 ): Promise<VacationRequest[]> {
   const { data, error, response } = await hrAdministrationApiClient.GET('/vacations/calendar', {
-    params: { query: { companyId, areaId, year } },
+    params: { query: { ...scope, areaId, year } },
     headers: authHeaders(idToken),
     signal,
   });

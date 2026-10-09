@@ -27,6 +27,7 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
   const [choice, setChoice] = useState<Choice>('PRESENTE');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
+  const [minutesLate, setMinutesLate] = useState('');
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -36,6 +37,8 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
     event.preventDefault();
     setSubmitted(true);
     if (!date) return;
+    const minutes = Number(minutesLate);
+    if (choice === 'TARDANZA' && (!Number.isInteger(minutes) || minutes <= 0)) return;
     if (choice === 'FALTA') {
       onAbsence(date);
       return;
@@ -49,6 +52,7 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
       const saved = await logAttendance(idToken, employeeId, {
         date,
         status: choice,
+        minutesLate: choice === 'TARDANZA' ? minutes : undefined,
         checkInTime: checkIn ? localToIso(date, checkIn) : undefined,
         checkOutTime: checkOut ? localToIso(date, checkOut) : undefined,
         notes: notes.trim() || undefined,
@@ -88,6 +92,28 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
             </label>
           ))}
         </fieldset>
+        {choice === 'TARDANZA' && (
+          <div className={styles.field}>
+            <label htmlFor="att-late">Minutos de tardanza</label>
+            <input
+              id="att-late"
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              className={styles.inputLine}
+              value={minutesLate}
+              onChange={(e) => setMinutesLate(e.target.value)}
+              aria-invalid={submitted && !(Number(minutesLate) > 0)}
+              required
+            />
+            {submitted && !(Number.isInteger(Number(minutesLate)) && Number(minutesLate) > 0) && (
+              <span className={styles.error} role="alert">
+                Indica cuántos minutos llegó tarde.
+              </span>
+            )}
+          </div>
+        )}
         {choice !== 'FALTA' && (
           <>
             <div className={styles.field}>

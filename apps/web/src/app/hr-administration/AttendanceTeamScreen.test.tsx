@@ -54,16 +54,16 @@ describe('AttendanceTeamScreen (ADP-02 resumen)', () => {
   });
 
   it('lista tardanzas, faltas y el descuento calculado por persona', async () => {
-    summaryMock.mockImplementation((_t: string, _c: string, month: string) => Promise.resolve(summary(month)));
+    summaryMock.mockImplementation((_t: string, _s: unknown, month: string) => Promise.resolve(summary(month)));
     renderScreen('2026-09');
     const table = await screen.findByRole('table', { name: /Resumen de asistencia/ });
     expect(within(table).getByText('Carlos Pérez')).toBeInTheDocument();
     expect(within(table).getByText('S/ 45.00')).toBeInTheDocument();
-    expect(summaryMock).toHaveBeenCalledWith('tok', 'c1', '2026-09');
+    expect(summaryMock).toHaveBeenCalledWith('tok', { companyId: 'c1', branchId: 'b1' }, '2026-09');
   });
 
   it('antes de cerrar el mes no se puede aplicar el descuento (BR-ADP-001)', async () => {
-    summaryMock.mockImplementation((_t: string, _c: string, month: string) => Promise.resolve(summary(month)));
+    summaryMock.mockImplementation((_t: string, _s: unknown, month: string) => Promise.resolve(summary(month)));
     renderScreen('2099-01');
     const button = await screen.findByRole('button', { name: 'Aplicar descuentos de fin de mes' });
     expect(button).toBeDisabled();
@@ -71,7 +71,7 @@ describe('AttendanceTeamScreen (ADP-02 resumen)', () => {
   });
 
   it('al cerrar el mes confirma con el monto exacto y aplica', async () => {
-    summaryMock.mockImplementation((_t: string, _c: string, month: string) => Promise.resolve(summary(month)));
+    summaryMock.mockImplementation((_t: string, _s: unknown, month: string) => Promise.resolve(summary(month)));
     applyMock.mockResolvedValue({ month: '2026-09', affectedEmployeesCount: 2, totalDeductionsApplied: 95 });
     renderScreen('2026-09');
     fireEvent.click(await screen.findByRole('button', { name: 'Aplicar descuentos de fin de mes' }));
@@ -81,7 +81,7 @@ describe('AttendanceTeamScreen (ADP-02 resumen)', () => {
     expect(confirm).toBeDisabled();
     fireEvent.click(within(dialog).getByLabelText(/confirmo que es correcto/));
     fireEvent.click(confirm);
-    await waitFor(() => expect(applyMock).toHaveBeenCalledWith('tok', 'c1', '2026-09', ['emp-1', 'emp-2']));
+    await waitFor(() => expect(applyMock).toHaveBeenCalledWith('tok', { companyId: 'c1', branchId: 'b1' }, '2026-09', ['emp-1', 'emp-2']));
     expect(await screen.findByText(/Descuentos aplicados: S\/ 95.00 a 2 persona/)).toBeInTheDocument();
   });
 
@@ -93,7 +93,14 @@ describe('AttendanceTeamScreen (ADP-02 resumen)', () => {
     expect(screen.queryByRole('button', { name: 'Aplicar descuentos de fin de mes' })).not.toBeInTheDocument();
   });
 
-  it('sin VIEW_EMPLOYEES: acceso denegado', () => {
+  it('quien solo registra asistencia (LOG_ATTENDANCE) tambien ve el resumen', async () => {
+    setPermissions(['HR_ADMINISTRATION.LOG_ATTENDANCE']);
+    summaryMock.mockResolvedValue(summary('2026-09'));
+    renderScreen('2026-09');
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+  });
+
+  it('sin VIEW_EMPLOYEES ni LOG_ATTENDANCE: acceso denegado', () => {
     setPermissions([]);
     renderScreen('2026-09');
     expect(screen.getByText(/No tienes acceso/)).toBeInTheDocument();
@@ -102,6 +109,6 @@ describe('AttendanceTeamScreen (ADP-02 resumen)', () => {
   it('estado vacio', async () => {
     summaryMock.mockResolvedValue({ ...summary('2026-09'), items: [], totalDeductionsAmount: 0 });
     renderScreen('2026-09');
-    expect(await screen.findByText(/No hay asistencias registradas/)).toBeInTheDocument();
+    expect(await screen.findByText(/No hay tardanzas ni faltas injustificadas con descuento/)).toBeInTheDocument();
   });
 });

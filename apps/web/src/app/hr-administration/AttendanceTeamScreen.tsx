@@ -25,7 +25,7 @@ function AttendanceTeam() {
   const [confirming, setConfirming] = useState(false);
 
   const { state, data, context, reload } = useHrResource<AttendanceSummary>(
-    (token, scope) => getAttendanceSummary(token, scope.companyId, month),
+    (token, scope) => getAttendanceSummary(token, scope, month),
     month,
   );
   const command = useHrCommand({ context, reload });
@@ -37,7 +37,7 @@ function AttendanceTeam() {
   async function apply() {
     const res = await command.run(
       (token, scope) =>
-        applyMonthDeductions(token, scope.companyId, month, pending.map((p) => p.employeeId)),
+        applyMonthDeductions(token, scope, month, pending.map((p) => p.employeeId)),
       'No pudimos aplicar los descuentos. Intenta de nuevo.',
     );
     if (res.ok) {
@@ -91,7 +91,7 @@ function AttendanceTeam() {
           <p className={styles.hint}>Descuento total calculado del mes: {formatSoles(data.totalDeductionsAmount)}</p>
 
           {data.items.length === 0 ? (
-            <p className={styles.statusText}>No hay asistencias registradas en este mes.</p>
+            <p className={styles.statusText}>No hay tardanzas ni faltas injustificadas con descuento en este mes.</p>
           ) : (
             <div className={styles.tableWrapper}>
               <table className={styles.table} aria-label="Resumen de asistencia por persona">
@@ -147,7 +147,7 @@ function AttendanceTeam() {
 
 export function AttendanceTeamScreen() {
   const { can } = useHrPermissions();
-  if (!can('VIEW_EMPLOYEES')) {
+  if (!can('VIEW_EMPLOYEES') && !can('LOG_ATTENDANCE')) {
     return (
       <main className={styles.wrapper}>
         <AppHeader pageTitle="Personal" />

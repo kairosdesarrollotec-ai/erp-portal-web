@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getFirebaseAuth } from '../providers/firebase';
-import { getVacationsCalendar, type VacationRequest } from './hr-client';
+import { getVacationsCalendar, type HrScope, type VacationRequest } from './hr-client';
 import { findVacationConflict, yearsOfRange } from './hr-domain';
 
 export type ConflictCheck =
@@ -16,14 +16,16 @@ export type ConflictCheck =
  * no esta disponible (p. ej. sin permiso de lectura) se devuelve UNAVAILABLE y decide el servidor al enviar.
  */
 export function useVacationConflict(input: {
-  companyId: string | undefined;
+  scope: HrScope | undefined;
   areaId: string | undefined;
   employeeId: string | undefined;
   startDate: string;
   endDate: string;
 }): ConflictCheck {
-  const { companyId, areaId, employeeId, startDate, endDate } = input;
-  const valid = !!companyId && !!areaId && !!employeeId && !!startDate && !!endDate && startDate <= endDate;
+  const { scope, areaId, employeeId, startDate, endDate } = input;
+  const companyId = scope?.companyId;
+  const branchId = scope?.branchId;
+  const valid = !!companyId && !!branchId && !!areaId && !!employeeId && !!startDate && !!endDate && startDate <= endDate;
   const [result, setResult] = useState<ConflictCheck>({ status: 'IDLE' });
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function useVacationConflict(input: {
         if (!user) throw new Error('sin sesión');
         const idToken = await user.getIdToken();
         const lists = await Promise.all(
-          yearsOfRange({ startDate, endDate }).map((year) => getVacationsCalendar(idToken, companyId!, areaId!, year, controller.signal)),
+          yearsOfRange({ startDate, endDate }).map((year) => getVacationsCalendar(idToken, { companyId: companyId!, branchId: branchId! }, areaId!, year, controller.signal)),
         );
         if (controller.signal.aborted) return;
         const all: VacationRequest[] = lists.flat();
@@ -52,7 +54,7 @@ export function useVacationConflict(input: {
       }
     })();
     return () => controller.abort();
-  }, [valid, companyId, areaId, employeeId, startDate, endDate]);
+  }, [valid, companyId, branchId, areaId, employeeId, startDate, endDate]);
 
   return result;
 }

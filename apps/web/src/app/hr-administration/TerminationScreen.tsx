@@ -52,9 +52,11 @@ function Termination() {
       ? 'type'
       : reason === 'RENUNCIA' && !lastDay
         ? 'lastDay'
-        : reason === 'DESPIDO' && !dismissalReason.trim()
+        : reason === 'DESPIDO' && dismissalReason.trim().length < 5
           ? 'dismissal'
-          : amountInvalid
+          : reason === 'RENUNCIA' && !settlementPaid
+            ? 'settlement'
+            : amountInvalid
             ? 'amount'
             : null;
 
@@ -105,16 +107,11 @@ function Termination() {
             Se registró la {TERMINATION_REASON_LABEL[result.reason].toLowerCase()} de {employee.fullName} el {formatDate(result.terminatedAt)}.
           </p>
           <p className={styles.entryText}>
-            {result.vacancyCreatedId
-              ? 'Se generó automáticamente una nueva vacante en Reclutamiento.'
-              : 'Reclutamiento recibirá la necesidad de cubrir este puesto con una nueva vacante.'}
+            Reclutamiento recibirá el aviso y creará la necesidad de cubrir este puesto con una nueva vacante; puede tardar unos instantes en aparecer.
           </p>
           <div className={styles.rowActions}>
             <Link className={styles.secondaryButton} to={`/personal/${employee.id}`} state={context ?? undefined}>
               Volver a la ficha
-            </Link>
-            <Link className={styles.primaryButton} to={result.vacancyCreatedId ? `/reclutamiento/vacantes/${result.vacancyCreatedId}` : '/reclutamiento'} state={context ?? undefined}>
-              Ir a Reclutamiento
             </Link>
           </div>
         </section>
@@ -182,10 +179,10 @@ function Termination() {
               <label className={styles.fieldLabel} htmlFor="despido-motivo">
                 Motivo del despido
               </label>
-              <textarea id="despido-motivo" className={styles.input} value={dismissalReason} onChange={(e) => setDismissalReason(e.target.value)} aria-invalid={submitted && !dismissalReason.trim()} required />
-              {submitted && !dismissalReason.trim() && (
+              <textarea id="despido-motivo" className={styles.input} value={dismissalReason} onChange={(e) => setDismissalReason(e.target.value)} aria-invalid={submitted && dismissalReason.trim().length < 5} required />
+              {submitted && dismissalReason.trim().length < 5 && (
                 <p className={styles.fieldError} role="alert">
-                  Indica el motivo del despido.
+                  Indica el motivo del despido (al menos 5 letras).
                 </p>
               )}
               <h3 className={styles.subTitle}>Sanciones previas registradas</h3>
@@ -205,8 +202,13 @@ function Termination() {
             <div>
               <label className={styles.checkRow}>
                 <input type="checkbox" checked={settlementPaid} onChange={(e) => setSettlementPaid(e.target.checked)} />
-                Se canceló la quincena pendiente
+                Se pagó la quincena pendiente{reason === 'RENUNCIA' ? ' (obligatorio en una renuncia)' : ''}
               </label>
+              {submitted && missing === 'settlement' && (
+                <p className={styles.fieldError} role="alert">
+                  Para registrar una renuncia debe estar pagada la quincena pendiente.
+                </p>
+              )}
               <label className={styles.fieldLabel} htmlFor="termino-monto">
                 Pago pendiente (S/, opcional)
               </label>

@@ -48,7 +48,7 @@ export function LeavesScreen() {
   const dateRef = useRef<HTMLInputElement>(null);
 
   const employee = data?.employee;
-  const canRequest = (can('VIEW_EMPLOYEES') || can('MANAGE_EMPLOYEES')) && employee?.status !== 'TERMINADO';
+  const canRequest = (can('MANAGE_EMPLOYEES') || can('AUTHORIZE_LEAVE') || can('REQUEST_FIELD_TRIP')) && employee?.status !== 'TERMINADO';
   const showForm = !!data && canRequest;
 
   useEffect(() => {

@@ -94,6 +94,23 @@ describe('FieldTripAuthorizationScreen (ADP-07)', () => {
     expect(advanceMock).toHaveBeenCalledTimes(1);
   });
 
+  it('quien solo tiene REQUEST_FIELD_TRIP no pide avanzar la cascada (el servidor exige AUTHORIZE_FIELD_TRIP)', async () => {
+    setPermissions(['HR_ADMINISTRATION.REQUEST_FIELD_TRIP']);
+    getTripMock.mockResolvedValue(makeTrip({ level1TimeoutAt: new Date(Date.now() - 1000).toISOString() }));
+    renderScreen();
+    await screen.findByRole('heading', { name: 'Nivel 1 de 3 · Fiorella' });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(advanceMock).not.toHaveBeenCalled();
+  });
+
+  it('si el servidor dice que el plazo aun no vence (reloj adelantado) reintenta sin mostrar error', async () => {
+    getTripMock.mockResolvedValue(makeTrip({ level1TimeoutAt: new Date(Date.now() - 1000).toISOString() }));
+    advanceMock.mockRejectedValue(new HrCommandError(409, { code: 'FIELD_TRIP_TIMEOUT_NOT_ELAPSED' }));
+    renderScreen();
+    await waitFor(() => expect(advanceMock).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('si los 3 niveles no responden muestra "Sin autorización" y ningun boton de aprobar', async () => {
     getTripMock.mockResolvedValue(makeTrip({ status: 'NO_AUTORIZADA' }));
     renderScreen();

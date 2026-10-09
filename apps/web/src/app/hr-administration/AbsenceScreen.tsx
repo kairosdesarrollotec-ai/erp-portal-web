@@ -59,7 +59,7 @@ export function AbsenceScreen() {
           const [employee, records, summary] = await Promise.all([
             getEmployee(token, id),
             getEmployeeAttendance(token, id, month),
-            getAttendanceSummary(token, scope.companyId, month).catch(() => null),
+            getAttendanceSummary(token, scope, month).catch(() => null),
           ]);
           return { employee, records, summaryItem: summary?.items.find((i) => i.employeeId === id) ?? null };
         }
@@ -116,7 +116,7 @@ export function AbsenceScreen() {
 
   async function applyDeduction() {
     if (!id) return;
-    const res = await command.run((token, scope) => applyMonthDeductions(token, scope.companyId, month, [id]), 'No pudimos aplicar el descuento. Intenta de nuevo.');
+    const res = await command.run((token, scope) => applyMonthDeductions(token, scope, month, [id]), 'No pudimos aplicar el descuento. Intenta de nuevo.');
     if (res.ok) {
       setConfirming(false);
       command.setNotice(`Descuento de ${formatSoles(res.value.totalDeductionsApplied)} aplicado.`);

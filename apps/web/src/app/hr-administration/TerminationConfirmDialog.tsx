@@ -30,11 +30,11 @@ export function TerminationConfirmDialog({ employeeName, reason, noticeDays, set
         <p>Tipo: {TERMINATION_REASON_LABEL[reason]}</p>
         <p>Aviso: {noticeDays > 0 ? `${noticeDays} días` : 'sin previo aviso'}</p>
         <p>
-          Pago pendiente: {settlementPaid ? 'cancelado' : 'sin cancelar'}
+          Quincena pendiente: {settlementPaid ? 'pagada' : 'sin pagar'}
           {settlementAmount > 0 ? ` (${formatSoles(settlementAmount)})` : ''}
         </p>
       </div>
-      <p className={styles.consequence}>Esta acción no se puede deshacer. Esto genera automáticamente una nueva vacante en Reclutamiento.</p>
+      <p className={styles.consequence}>Esta acción no se puede deshacer. Esto genera automáticamente una nueva vacante en Reclutamiento (se crea unos instantes después).</p>
       <label className={styles.check}>
         <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
         Entiendo que el término es irreversible

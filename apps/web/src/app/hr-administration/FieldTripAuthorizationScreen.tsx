@@ -1,10 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { AppHeader } from '../shared/AppHeader';
 import { getFirebaseAuth } from '../providers/firebase';
 import { HrFrame } from './HrFrame';
-import { advanceFieldTripTimeout, authorizeFieldTrip, getFieldTrip, type FieldTrip } from './hr-client';
+import { HrCommandError, advanceFieldTripTimeout, authorizeFieldTrip, getFieldTrip, type FieldTrip } from './hr-client';
 import {
   CASCADE_LEVEL_NAME,
   FIELD_TRIP_STATUS_LABEL,
@@ -35,13 +35,15 @@ function FieldTripAuthorization() {
   const command = useHrCommand({ context, reload });
   const approveRef = useRef<HTMLButtonElement>(null);
   const advancedFor = useRef<string | null>(null);
+  const [retryTick, setRetryTick] = useState(0);
 
   const level = trip ? pendingLevel(trip.status) : null;
   const now = useNow(level !== null);
   const timeoutAt = trip && level ? levelTimeoutAt(trip, level) : null;
   const remaining = timeoutAt ? remainingSeconds(timeoutAt, now) : null;
   const canAuthorize = can('AUTHORIZE_FIELD_TRIP') && level !== null;
-  const canOperate = can('AUTHORIZE_FIELD_TRIP') || can('REQUEST_FIELD_TRIP');
+  // advance-timeout lo exige AUTHORIZE_FIELD_TRIP en el servidor.
+  const canOperate = can('AUTHORIZE_FIELD_TRIP');
 
   // Foco en el boton principal al cargar la solicitud pendiente.
   useEffect(() => {
@@ -67,11 +69,17 @@ function FieldTripAuthorization() {
         if (!user) return;
         const idToken = await user.getIdToken();
         setData(await advanceFieldTripTimeout(idToken, trip.id));
-      } catch {
-        void reload();
+      } catch (err) {
+        if (err instanceof HrCommandError && err.problem?.code === 'FIELD_TRIP_TIMEOUT_NOT_ELAPSED') {
+          // El reloj de este equipo va adelantado respecto del servidor: se reintenta en unos segundos.
+          advancedFor.current = null;
+          setTimeout(() => setRetryTick((n) => n + 1), 3000);
+        } else {
+          void reload();
+        }
       }
     })();
-  }, [trip, level, remaining, canOperate, reload, setData]);
+  }, [trip, level, remaining, canOperate, reload, setData, retryTick]);
 
   async function approve() {
     if (!trip || level === null) return;

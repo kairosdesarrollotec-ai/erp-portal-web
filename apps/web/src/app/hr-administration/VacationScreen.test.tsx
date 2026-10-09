@@ -70,7 +70,7 @@ describe('VacationScreen (ADP-05)', () => {
     expect(alert).toHaveTextContent('fechas ocupadas');
     expect(screen.queryByText('Rosa Díaz')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Solicitar' })).toBeDisabled();
-    expect(calendarMock).toHaveBeenCalledWith('tok', 'c1', 'OPERACIONES', 2026, expect.anything());
+    expect(calendarMock).toHaveBeenCalledWith('tok', { companyId: 'c1', branchId: 'b1' }, 'OPERACIONES', 2026, expect.anything());
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar' }));
     expect(scheduleMock).not.toHaveBeenCalled();
   });
@@ -83,7 +83,7 @@ describe('VacationScreen (ADP-05)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Solicitar' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Solicitar' }));
     await waitFor(() => expect(scheduleMock).toHaveBeenCalledWith('tok', 'emp-1', { startDate: '2026-12-01', endDate: '2026-12-10' }));
-    expect(await screen.findByText('Solicitud de vacaciones registrada.')).toBeInTheDocument();
+    expect(await screen.findByText('Vacaciones programadas.')).toBeInTheDocument();
   });
 
   it('las vacaciones canceladas y las propias no cuentan como conflicto', async () => {

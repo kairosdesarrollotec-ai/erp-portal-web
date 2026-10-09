@@ -106,12 +106,15 @@ export function shiftMonth(month: string, delta: number): string {
   return monthKey(new Date(y, m - 1 + delta, 1));
 }
 
-/** BR-ADP-001: los descuentos se aplican al cerrar el mes, no antes. Se puede aplicar desde el ultimo dia del mes. */
+/** Fecha de hoy (YYYY-MM-DD) en hora de Lima, la misma que usa el servidor para cerrar el mes. */
+export function limaToday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
+
+/** BR-ADP-001: los descuentos se aplican al cerrar el mes, no antes. Se puede aplicar desde el ultimo dia del mes (hora de Lima). */
 export function isMonthClosing(month: string, now: Date = new Date()): boolean {
-  const [y, m] = month.split('-').map(Number);
-  const lastDay = new Date(y, m - 1, daysInMonth(month));
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return today.getTime() >= lastDay.getTime();
+  const lastDay = `${month}-${pad(daysInMonth(month))}`;
+  return limaToday(now) >= lastDay;
 }
 
 /** Ultimo dia del mes, listo para mostrar (dd/mm/aaaa). */

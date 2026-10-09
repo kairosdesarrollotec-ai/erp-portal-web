@@ -76,7 +76,7 @@ describe('TerminationScreen (ADP-09)', () => {
     expect(await screen.findByText('Elige si es una renuncia o un despido.')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Despido'));
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar término' }));
-    expect(await screen.findByText('Indica el motivo del despido.')).toBeInTheDocument();
+    expect(await screen.findByText(/Indica el motivo del despido/)).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -85,7 +85,7 @@ describe('TerminationScreen (ADP-09)', () => {
     renderScreen();
     fireEvent.click(await screen.findByLabelText('Renuncia'));
     fireEvent.change(screen.getByLabelText('Último día trabajado'), { target: { value: '2026-10-09' } });
-    fireEvent.click(screen.getByLabelText('Se canceló la quincena pendiente'));
+    fireEvent.click(screen.getByLabelText(/Se pagó la quincena pendiente/));
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar término' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText(/genera automáticamente una nueva vacante en Reclutamiento/)).toBeInTheDocument();
@@ -97,8 +97,9 @@ describe('TerminationScreen (ADP-09)', () => {
     await waitFor(() =>
       expect(terminateMock).toHaveBeenCalledWith('tok', 'emp-1', expect.objectContaining({ reason: 'RENUNCIA', noticeDays: 0, finalSettlementPaid: true })),
     );
-    expect(await screen.findByText(/Se generó automáticamente una nueva vacante/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Ir a Reclutamiento' })).toHaveAttribute('href', '/reclutamiento/vacantes/vac-77');
+    expect(await screen.findByText(/Reclutamiento recibirá el aviso y creará la necesidad/)).toBeInTheDocument();
+    // La vacante la crea Reclutamiento de forma asincrona: no hay enlace directo.
+    expect(screen.queryByRole('link', { name: /Reclutamiento/ })).not.toBeInTheDocument();
   });
 
   it('despido con aviso envia 15 dias y el motivo', async () => {
@@ -116,10 +117,29 @@ describe('TerminationScreen (ADP-09)', () => {
     );
   });
 
+  it('una renuncia exige la quincena pagada (FINAL_SETTLEMENT_REQUIRED)', async () => {
+    renderScreen();
+    fireEvent.click(await screen.findByLabelText('Renuncia'));
+    fireEvent.change(screen.getByLabelText('Último día trabajado'), { target: { value: '2026-10-09' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar término' }));
+    expect(await screen.findByText('Para registrar una renuncia debe estar pagada la quincena pendiente.')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('un despido exige el motivo (al menos 5 letras) y el aviso es 0 o 15 dias', async () => {
+    renderScreen();
+    fireEvent.click(await screen.findByLabelText('Despido'));
+    fireEvent.change(screen.getByLabelText('Motivo del despido'), { target: { value: 'abc' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar término' }));
+    expect(await screen.findByText(/Indica el motivo del despido/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Con aviso de 15 días/)).toBeInTheDocument();
+  });
+
   it('Esc cierra la confirmacion sin registrar nada', async () => {
     renderScreen();
     fireEvent.click(await screen.findByLabelText('Renuncia'));
     fireEvent.change(screen.getByLabelText('Último día trabajado'), { target: { value: '2026-10-09' } });
+    fireEvent.click(screen.getByLabelText(/Se pagó la quincena pendiente/));
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar término' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.keyDown(dialog, { key: 'Escape' });
@@ -132,6 +152,7 @@ describe('TerminationScreen (ADP-09)', () => {
     renderScreen();
     fireEvent.click(await screen.findByLabelText('Renuncia'));
     fireEvent.change(screen.getByLabelText('Último día trabajado'), { target: { value: '2026-10-09' } });
+    fireEvent.click(screen.getByLabelText(/Se pagó la quincena pendiente/));
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar término' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByLabelText(/irreversible/));

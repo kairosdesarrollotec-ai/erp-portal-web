@@ -94,7 +94,10 @@ describe('ReturnFollowUpScreen (ADP-08)', () => {
     renderScreen();
     const counter = await screen.findByTestId('contador-incumplimientos');
     expect(counter).toHaveTextContent(/No pudimos obtener el contador/);
-    expect(await screen.findByRole('button', { name: 'Cerrar' })).toBeDisabled();
+    // La etiqueta depende de la hora actual (a tiempo / tarde); lo importante es que no se puede decidir.
+    await screen.findByLabelText('Hora real de regreso');
+    const submit = screen.getAllByRole('button').find((b) => b.getAttribute('type') === 'submit');
+    expect(submit).toBeDisabled();
   });
 
   it('una salida ya cerrada o sin autorizar no ofrece registrar regreso', async () => {

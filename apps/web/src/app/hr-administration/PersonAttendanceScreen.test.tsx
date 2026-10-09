@@ -82,9 +82,14 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).queryByLabelText(/descuento|monto/i)).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByLabelText('Tardanza'));
+    // La tardanza exige los minutos (el servidor responde 422 si faltan).
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+    expect(await within(dialog).findByText('Indica cuántos minutos llegó tarde.')).toBeInTheDocument();
+    expect(logAttendanceMock).not.toHaveBeenCalled();
+    fireEvent.change(within(dialog).getByLabelText('Minutos de tardanza'), { target: { value: '15' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
     await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
-    expect(logAttendanceMock).toHaveBeenCalledWith('tok', 'emp-1', expect.objectContaining({ date: '2026-09-04', status: 'TARDANZA' }));
+    expect(logAttendanceMock).toHaveBeenCalledWith('tok', 'emp-1', expect.objectContaining({ date: '2026-09-04', status: 'TARDANZA', minutesLate: 15 }));
     expect(logAttendanceMock.mock.calls[0][2]).not.toHaveProperty('deductionAmount');
     expect(await screen.findByText('Marcación registrada.')).toBeInTheDocument();
   });

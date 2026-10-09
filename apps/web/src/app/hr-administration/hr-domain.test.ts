@@ -52,9 +52,11 @@ describe('hr-domain', () => {
   });
 
   it('los descuentos se pueden aplicar solo desde el ultimo dia del mes', () => {
-    expect(isMonthClosing('2026-10', new Date(2026, 9, 30))).toBe(false);
-    expect(isMonthClosing('2026-10', new Date(2026, 9, 31))).toBe(true);
-    expect(isMonthClosing('2026-09', new Date(2026, 9, 2))).toBe(true);
+    // Hora de Lima (UTC-5), igual que el servidor.
+    expect(isMonthClosing('2026-10', new Date('2026-10-30T23:00:00-05:00'))).toBe(false);
+    expect(isMonthClosing('2026-10', new Date('2026-10-31T00:30:00-05:00'))).toBe(true);
+    expect(isMonthClosing('2026-10', new Date('2026-10-31T21:00:00-05:00'))).toBe(true);
+    expect(isMonthClosing('2026-09', new Date('2026-10-02T10:00:00-05:00'))).toBe(true);
   });
 
   it('numera la falta dentro del mes', () => {

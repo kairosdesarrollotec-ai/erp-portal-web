@@ -83,6 +83,7 @@ describe('LeavesScreen (ADP-04)', () => {
   });
 
   it('el foco inicial esta en la fecha y la solicitud exige motivo', async () => {
+    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES']);
     renderScreen();
     const date = await screen.findByLabelText('Fecha');
     await waitFor(() => expect(date).toHaveFocus());
@@ -93,6 +94,7 @@ describe('LeavesScreen (ADP-04)', () => {
 
   it('envia la solicitud con tipo, fecha y motivo', async () => {
     requestMock.mockResolvedValue(makeLeave());
+    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.REQUEST_FIELD_TRIP']);
     renderScreen();
     await screen.findByLabelText('Fecha');
     fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: '2026-10-12' } });
@@ -111,10 +113,15 @@ describe('LeavesScreen (ADP-04)', () => {
     expect(await screen.findByText('Todavía no hay solicitudes de permiso.')).toBeInTheDocument();
   });
 
-  it('sin permisos de lectura no hay formulario de solicitud', async () => {
-    setPermissions(['HR_ADMINISTRATION.AUTHORIZE_LEAVE']);
+  it('solo VIEW_EMPLOYEES (lectura) no ofrece el formulario: el servidor exige MANAGE_EMPLOYEES, AUTHORIZE_LEAVE o REQUEST_FIELD_TRIP', async () => {
     renderScreen();
     await screen.findByText(/Motivo: Trámite personal/);
     expect(screen.queryByRole('button', { name: 'Solicitar permiso' })).not.toBeInTheDocument();
+  });
+
+  it('quien puede autorizar permisos tambien puede solicitar', async () => {
+    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE']);
+    renderScreen();
+    expect(await screen.findByRole('button', { name: 'Solicitar permiso' })).toBeInTheDocument();
   });
 });

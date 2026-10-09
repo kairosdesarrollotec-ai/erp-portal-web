@@ -41,7 +41,7 @@ export function VacationScreen() {
   const startRef = useRef<HTMLInputElement>(null);
 
   const employee = data?.employee;
-  const check = useVacationConflict({ companyId: context?.companyId, areaId: employee?.areaId, employeeId: id, startDate, endDate });
+  const check = useVacationConflict({ scope: context ? { companyId: context.companyId, branchId: context.branchId } : undefined, areaId: employee?.areaId, employeeId: id, startDate, endDate });
   const conflict = check.status === 'CONFLICT' || serverConflict;
   const rangeInvalid = !!startDate && !!endDate && endDate < startDate;
   const canRequest = can('SCHEDULE_VACATION') && employee?.status !== 'TERMINADO';
@@ -57,7 +57,7 @@ export function VacationScreen() {
     setServerConflict(false);
     const res = await command.run((token) => scheduleVacation(token, id, { startDate, endDate }), 'No pudimos registrar la solicitud. Intenta de nuevo.');
     if (res.ok) {
-      command.setNotice('Solicitud de vacaciones registrada.');
+      command.setNotice('Vacaciones programadas.');
       setStartDate('');
       setEndDate('');
       setSubmitted(false);

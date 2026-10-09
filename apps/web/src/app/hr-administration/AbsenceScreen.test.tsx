@@ -109,7 +109,7 @@ describe('AbsenceScreen (ADP-03)', () => {
     expect(within(dialog).getByText('Monto exacto a descontar: S/ 45.00')).toBeInTheDocument();
     fireEvent.click(within(dialog).getByLabelText(/confirmo que es correcto/));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar descuento de S/ 45.00' }));
-    await waitFor(() => expect(applyMock).toHaveBeenCalledWith('tok', 'c1', '2026-09', ['emp-1']));
+    await waitFor(() => expect(applyMock).toHaveBeenCalledWith('tok', { companyId: 'c1', branchId: 'b1' }, '2026-09', ['emp-1']));
   });
 
   it('con el mes abierto el descuento no se puede aplicar todavia', async () => {
