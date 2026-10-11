@@ -116,6 +116,25 @@
   cursor: pointer;
 }
 
+/* UC-ALQ-006b / BR-ALQ-013 — acción destructiva solo para Gerencia. */
+.destructiveButton {
+  display: inline-block;
+  margin-left: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-error);
+  background: transparent;
+  color: var(--color-error);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.destructiveButton:hover {
+  background: var(--color-error-bg);
+}
+
 /* ALQ-10 -> INC-01: enlace secundario "Ver/Registrar incidencias". */
 .secondaryLink {
   display: inline-block;

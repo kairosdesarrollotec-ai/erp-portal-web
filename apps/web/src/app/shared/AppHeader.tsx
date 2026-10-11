@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { Bell, LogOut, Menu } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getFirebaseAuth } from '../providers/firebase';
 import { NotificationsPanel } from '../notifications/NotificationsPanel';
 import { useNotifications } from '../notifications/useNotifications';
 import type { RoleRef } from './role-ref';
 import { APP_BRAND } from '../config/brand';
 import { useWorkSession } from './useWorkSession';
-import { useSignOut } from './useSignOut';
+import { UserMenuDropdown } from './UserMenuDropdown';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
@@ -38,15 +37,10 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
     (location.state ?? {}) as NavState;
 
   const { setSidebarOpen } = useWorkSession();
-  const sessionRole = useWorkSession((s) => s.role);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const email = getFirebaseAuth().currentUser?.email ?? '';
-  const initial = email.charAt(0).toUpperCase();
   const { unreadCount } = useNotifications(companyId, branchId);
 
   const branchBadge = companyName && branchName ? `${companyName} — ${branchName}` : null;
-  const roleLabel = (role ?? sessionRole)?.name ?? null;
-  const handleSignOut = useSignOut();
 
   return (
     <>
@@ -83,17 +77,6 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
               {branchBadge}
             </span>
           )}
-          {email && (
-            <div className={styles.userGroup}>
-              <span className={styles.avatar} title={email}>
-                {initial}
-              </span>
-              <div className={styles.userText}>
-                <span className={styles.userEmail}>{email}</span>
-                {roleLabel && <span className={styles.userRole}>{roleLabel}</span>}
-              </div>
-            </div>
-          )}
           <button
             type="button"
             className={styles.bellButton}
@@ -103,16 +86,7 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
             <Bell size={18} />
             {unreadCount > 0 && <span className={styles.bellBadge}>{unreadCount}</span>}
           </button>
-          <button
-            type="button"
-            className={styles.signOutButton}
-            onClick={() => void handleSignOut()}
-            aria-label="Cerrar sesión"
-            title="Cerrar sesión"
-          >
-            <LogOut size={16} />
-            <span className={styles.signOutLabel}>Cerrar sesión</span>
-          </button>
+          <UserMenuDropdown role={role} />
         </div>
       </header>
 

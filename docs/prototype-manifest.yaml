@@ -3390,6 +3390,30 @@ screens:
   supersedes: null
   note: aviso no cumplido 12h
   is_reference_asset: false
+- proto_id: PROTO-ALQ-11-FALTA-GRAVE-BR-ALQ-013
+  ux_id: ALQ-11
+  module: alquiler
+  source: stitch_veloxrent_prototipo_b
+  folder: alq_11_confirmar_falta_grave_br_alq_013_veloxrent
+  files:
+    screenshot: docs/prototypes/approved/stitch_veloxrent_prototipo_b/alq_11_confirmar_falta_grave_br_alq_013_veloxrent/screen.png
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/alq_11_confirmar_falta_grave_br_alq_013_veloxrent/code.html
+  screen_state: CONFIRM_SERIOUS_BREACH
+  viewport:
+    width: 1440
+    height: 1024
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: GERENCIA
+  approved_at: '2026-10-11'
+  sha256: 91de5806912db6787a5f353ae99fe11b200cbffcd8d5e3096838ad5d298aefa9
+  bytes: 19093
+  supersedes: null
+  note: modal confirmación falta grave BR-ALQ-013 — retención de garantía + cliente rojo + proceso penal. Actor GERENCIA. Acción irreversible. CTA destructivo habilitado solo con checkbox + observaciones.
+  is_reference_asset: false
 - proto_id: PROTO-ADP-06-SOLICITUD-SALIDA-A-CAMPO-MOVIL
   ux_id: ADP-06
   module: administracion-personal
