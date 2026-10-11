@@ -74,7 +74,7 @@ test.describe('Módulo de Administración (ADM-01 / ADM-03 / ADM-04)', () => {
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByText(/350.00/i)).toBeVisible();
-    await expect(page.getByText(/RENTAL_CONTRACT/i)).toBeVisible();
+    await expect(page.getByText(/Plantillas de documentos/i)).toBeVisible();
   });
 });
 
