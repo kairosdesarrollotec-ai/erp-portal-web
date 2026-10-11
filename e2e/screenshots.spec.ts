@@ -295,3 +295,73 @@ test('27 — Centro de Módulos (Hub)', async ({ page }) => {
   await page.screenshot({ path: ss('27-hub-modulos'), fullPage: true });
 });
 
+test('28 — Personal: bandeja de empleados', async ({ page }) => {
+  const HR = await import('./helpers/hr-administration-routes');
+  await HR.interceptHrAdministration(page);
+  await loginViaUI(page, { role: { name: 'RR. HH.', key: 'RRHH', permissions: ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.LOG_ATTENDANCE', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE', 'HR_ADMINISTRATION.SCHEDULE_VACATION', 'HR_ADMINISTRATION.REQUEST_FIELD_TRIP', 'HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP', 'HR_ADMINISTRATION.EVALUATE_FIELD_TRIP_RETURN', 'HR_ADMINISTRATION.TERMINATE_EMPLOYMENT'] } });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/personal');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('28-personal-bandeja'), fullPage: true });
+});
+
+test('29 — Personal: ficha del empleado', async ({ page }) => {
+  const HR = await import('./helpers/hr-administration-routes');
+  await HR.interceptHrAdministration(page);
+  await loginViaUI(page, { role: { name: 'RR. HH.', key: 'RRHH', permissions: ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.LOG_ATTENDANCE', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE', 'HR_ADMINISTRATION.SCHEDULE_VACATION', 'HR_ADMINISTRATION.REQUEST_FIELD_TRIP', 'HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP', 'HR_ADMINISTRATION.EVALUATE_FIELD_TRIP_RETURN', 'HR_ADMINISTRATION.TERMINATE_EMPLOYMENT'] } });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/personal/${HR.EMPLOYEE_FIXTURE.id}`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('29-personal-ficha'), fullPage: true });
+});
+
+test('30 — Personal: asistencia del mes (equipo)', async ({ page }) => {
+  const HR = await import('./helpers/hr-administration-routes');
+  await HR.interceptHrAdministration(page);
+  await loginViaUI(page, { role: { name: 'RR. HH.', key: 'RRHH', permissions: ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.LOG_ATTENDANCE', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE', 'HR_ADMINISTRATION.SCHEDULE_VACATION', 'HR_ADMINISTRATION.REQUEST_FIELD_TRIP', 'HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP', 'HR_ADMINISTRATION.EVALUATE_FIELD_TRIP_RETURN', 'HR_ADMINISTRATION.TERMINATE_EMPLOYMENT'] } });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/personal/asistencia');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('30-personal-asistencia-equipo'), fullPage: true });
+});
+
+test('31 — Personal: asistencia individual del empleado', async ({ page }) => {
+  const HR = await import('./helpers/hr-administration-routes');
+  await HR.interceptHrAdministration(page);
+  await loginViaUI(page, { role: { name: 'RR. HH.', key: 'RRHH', permissions: ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.LOG_ATTENDANCE', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE', 'HR_ADMINISTRATION.SCHEDULE_VACATION', 'HR_ADMINISTRATION.REQUEST_FIELD_TRIP', 'HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP', 'HR_ADMINISTRATION.EVALUATE_FIELD_TRIP_RETURN', 'HR_ADMINISTRATION.TERMINATE_EMPLOYMENT'] } });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/personal/${HR.EMPLOYEE_FIXTURE.id}/asistencia`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('31-personal-asistencia-individual'), fullPage: true });
+});
+
+test('32 — Personal: permisos del empleado', async ({ page }) => {
+  const HR = await import('./helpers/hr-administration-routes');
+  await HR.interceptHrAdministration(page);
+  await loginViaUI(page, { role: { name: 'RR. HH.', key: 'RRHH', permissions: ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.LOG_ATTENDANCE', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE', 'HR_ADMINISTRATION.SCHEDULE_VACATION', 'HR_ADMINISTRATION.REQUEST_FIELD_TRIP', 'HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP', 'HR_ADMINISTRATION.EVALUATE_FIELD_TRIP_RETURN', 'HR_ADMINISTRATION.TERMINATE_EMPLOYMENT'] } });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/personal/${HR.EMPLOYEE_FIXTURE.id}/permisos`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('32-personal-permisos'), fullPage: true });
+});
+
+test('33 — Personal: vacaciones del empleado', async ({ page }) => {
+  const HR = await import('./helpers/hr-administration-routes');
+  await HR.interceptHrAdministration(page);
+  await loginViaUI(page, { role: { name: 'RR. HH.', key: 'RRHH', permissions: ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.LOG_ATTENDANCE', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE', 'HR_ADMINISTRATION.SCHEDULE_VACATION', 'HR_ADMINISTRATION.REQUEST_FIELD_TRIP', 'HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP', 'HR_ADMINISTRATION.EVALUATE_FIELD_TRIP_RETURN', 'HR_ADMINISTRATION.TERMINATE_EMPLOYMENT'] } });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto(`/personal/${HR.EMPLOYEE_FIXTURE.id}/vacaciones`);
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('33-personal-vacaciones'), fullPage: true });
+});
+
+test('34 — Personal: salidas a campo', async ({ page }) => {
+  const HR = await import('./helpers/hr-administration-routes');
+  await HR.interceptHrAdministration(page);
+  await loginViaUI(page, { role: { name: 'RR. HH.', key: 'RRHH', permissions: ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.LOG_ATTENDANCE', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE', 'HR_ADMINISTRATION.SCHEDULE_VACATION', 'HR_ADMINISTRATION.REQUEST_FIELD_TRIP', 'HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP', 'HR_ADMINISTRATION.EVALUATE_FIELD_TRIP_RETURN', 'HR_ADMINISTRATION.TERMINATE_EMPLOYMENT'] } });
+  await page.waitForURL('**/tablero', { timeout: 10_000 });
+  await page.goto('/personal/campo');
+  await page.waitForLoadState('networkidle');
+  await page.screenshot({ path: ss('34-personal-campo'), fullPage: true });
+});
+
