@@ -5,6 +5,8 @@ import { getFirebaseAuth } from '../providers/firebase';
 import { useWorkSession } from './useWorkSession';
 import { useSignOut } from './useSignOut';
 import type { RoleRef } from './role-ref';
+import { getLocalDraftCount } from './local-drafts';
+import { LogoutConfirmModal } from './LogoutConfirmModal';
 import styles from './UserMenuDropdown.module.css';
 
 interface NavState {
@@ -47,6 +49,8 @@ export function UserMenuDropdown({ role }: UserMenuDropdownProps) {
 
   const [open, setOpen] = useState(false);
   const [remaining, setRemaining] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [pendingDraftCount, setPendingDraftCount] = useState(0);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Calcula tiempo restante de sesión
@@ -167,7 +171,13 @@ export function UserMenuDropdown({ role }: UserMenuDropdownProps) {
               className={styles.signOutButton}
               onClick={() => {
                 setOpen(false);
-                void handleSignOut();
+                const count = getLocalDraftCount();
+                if (count > 0) {
+                  setPendingDraftCount(count);
+                  setShowLogoutModal(true);
+                } else {
+                  void handleSignOut();
+                }
               }}
             >
               <LogOut size={15} aria-hidden="true" />
@@ -176,6 +186,19 @@ export function UserMenuDropdown({ role }: UserMenuDropdownProps) {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmación: solo aparece cuando hay borradores pendientes */}
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        draftCount={pendingDraftCount}
+        onConfirm={() => {
+          setShowLogoutModal(false);
+          void handleSignOut();
+        }}
+        onCancel={() => {
+          setShowLogoutModal(false);
+        }}
+      />
     </div>
   );
 }
