@@ -1,0 +1,284 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmar falta grave — BR-ALQ-013 — Alquiler #ALQ-1187 - VeloxRent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Public Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #FFFFFF;
+      color: #1F2A33;
+    }
+    .font-mono-op { font-family: 'Space Grotesk', monospace; }
+  </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col text-[#1F2A33] antialiased">
+
+  <!-- TOP APP BAR / CABECERA INSTITUCIONAL -->
+  <header class="border-b border-[#E5E3DD] bg-white sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+
+      <!-- Izquierda: Brand & Breadcrumb -->
+      <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-1">
+          <span class="text-xl font-black tracking-tight text-[#C6600A]">Velox</span>
+          <span class="text-xl font-bold tracking-tight text-[#1F2A33]">Rent</span>
+        </div>
+        <nav class="hidden md:flex items-center space-x-2 text-xs font-medium text-[#736E66]">
+          <span>Gestión Interna</span>
+          <svg class="w-3.5 h-3.5 text-[#A39C90]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          <a href="#" class="hover:text-[#1F2A33]">Alquileres</a>
+          <svg class="w-3.5 h-3.5 text-[#A39C90]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          <a href="#" class="hover:text-[#1F2A33]">Expediente #ALQ-1187</a>
+          <svg class="w-3.5 h-3.5 text-[#A39C90]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          <span class="text-[#1F2A33] font-semibold">Ampliación — Falta grave</span>
+        </nav>
+      </div>
+
+      <!-- Derecha: Sede y perfil de Gerencia -->
+      <div class="flex items-center space-x-5">
+        <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#EBF5EE] text-[#1E7D4B] text-xs font-medium border border-[#CDE5D4]">
+          <span class="w-2 h-2 rounded-full bg-[#1E7D4B] animate-pulse"></span>
+          <span>En línea</span>
+        </div>
+        <div class="flex items-center space-x-2 text-xs font-medium text-[#4E4A45] bg-[#F7F6F3] px-3 py-1.5 rounded border border-[#E5E3DD]">
+          <svg class="w-4 h-4 text-[#736E66]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+          <span>Ayacucho — Sede Central</span>
+        </div>
+        <button class="relative text-[#736E66] hover:text-[#1F2A33] p-1.5 rounded transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-[#C6600A] rounded-full"></span>
+        </button>
+        <div class="flex items-center space-x-2.5 pl-2 border-l border-[#E5E3DD]">
+          <div class="w-8 h-8 rounded-full bg-[#1F2A33] text-white flex items-center justify-center text-xs font-bold">FP</div>
+          <div class="text-left hidden sm:block">
+            <p class="text-xs font-semibold text-[#1F2A33] leading-tight">Fiorella Pariona</p>
+            <p class="text-[11px] text-[#736E66] leading-tight">Gerencia</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- PANTALLA BASE: ALQ-11 con modal superpuesto -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-6 py-7 relative">
+
+    <!-- BARRA DE ACCIÓN SUPERIOR & TÍTULO DE ALQ-11 (difuminado bajo el modal) -->
+    <div class="opacity-30 pointer-events-none select-none">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-[#E5E3DD]">
+        <div class="flex items-center space-x-4">
+          <div class="p-2 text-[#736E66] rounded">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+          </div>
+          <div>
+            <div class="flex items-center space-x-3">
+              <h1 class="text-2xl font-bold tracking-tight text-[#1F2A33]">Solicitar ampliación — Alquiler #ALQ-1187</h1>
+              <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-[#EBF5EE] text-[#1E7D4B] border border-[#CDE5D4]">Expediente Activo</span>
+            </div>
+            <p class="text-xs text-[#736E66] mt-0.5">Adenda contractual de extensión temporal</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 text-xs">
+          <div class="bg-[#F7F6F3] border border-[#E5E3DD] px-3.5 py-2 rounded">
+            <span class="text-[#736E66] block text-[11px]">Vencimiento programado:</span>
+            <span class="font-bold text-[#1F2A33]">07 sep 2025, 11:00 AM</span>
+            <span class="text-[#C22B2B] font-semibold ml-1.5">(Vencido — hace 6 horas)</span>
+          </div>
+          <div class="bg-[#F7F6F3] border border-[#E5E3DD] px-3.5 py-2 rounded">
+            <span class="text-[#736E66] block text-[11px]">Vehículo:</span>
+            <span class="font-bold text-[#1F2A33]">Toyota Hilux 4x4 MT</span>
+            <span class="text-[#736E66] font-mono ml-1 font-semibold">D0Y-704</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checklist incompleto (fondo) -->
+      <div class="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-[#FBE9E9] border border-[#F5C6C6] rounded-lg p-5">
+            <p class="text-xs font-bold text-[#C22B2B] uppercase tracking-wider">Ninguno de los 4 requisitos cumplidos</p>
+          </div>
+        </div>
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-white rounded-lg border border-[#E5E3DD] p-5 h-40"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- BACKDROP DEL MODAL -->
+  <div class="fixed inset-0 bg-[#1F2A33]/45 z-40 flex items-center justify-center p-4" style="backdrop-filter: blur(1px);">
+
+    <!-- MODAL: CONFIRMAR FALTA GRAVE — BR-ALQ-013 -->
+    <div class="relative bg-white rounded-lg border border-[#1F2A33] shadow-[0_12px_28px_-4px_rgba(31,42,51,0.16)] w-full max-w-[580px] max-h-[90vh] overflow-y-auto z-50">
+
+      <!-- HEADER DEL MODAL: Destructivo / crítico -->
+      <div class="flex items-start gap-4 p-6 border-b border-[#E5E3DD]">
+        <!-- Ícono de alerta destructivo -->
+        <div class="w-10 h-10 rounded-full bg-[#FBE9E9] border border-[#F5C6C6] flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 text-[#C22B2B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <h2 class="text-base font-bold text-[#C22B2B] leading-tight">Registrar falta grave — Incumplimiento de ampliación</h2>
+            <span class="font-mono-op text-[10px] font-bold px-2 py-0.5 rounded bg-[#FBE9E9] text-[#C22B2B] border border-[#F5C6C6] shrink-0">BR-ALQ-013</span>
+          </div>
+          <p class="text-xs text-[#736E66] mt-1 leading-relaxed">
+            El cliente no cumplió los 4 requisitos obligatorios de ampliación. Esta acción es <strong class="text-[#1F2A33]">irreversible</strong> y activa consecuencias normativas inmediatas.
+          </p>
+        </div>
+        <button class="text-[#736E66] hover:text-[#1F2A33] p-1 rounded ml-2 shrink-0 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- CUERPO DEL MODAL -->
+      <div class="p-6 space-y-5">
+
+        <!-- BLOQUE 1: Contexto del expediente -->
+        <div class="grid grid-cols-3 gap-3 text-xs bg-[#FAF9F7] border border-[#E5E3DD] rounded p-3.5">
+          <div>
+            <span class="text-[#736E66] block text-[11px] uppercase tracking-wide font-semibold">Expediente</span>
+            <span class="font-mono-op font-bold text-[#1F2A33]">#ALQ-1187</span>
+          </div>
+          <div>
+            <span class="text-[#736E66] block text-[11px] uppercase tracking-wide font-semibold">Cliente</span>
+            <span class="font-semibold text-[#1F2A33]">Minera Los Andes S.A.C.</span>
+          </div>
+          <div>
+            <span class="text-[#736E66] block text-[11px] uppercase tracking-wide font-semibold">Garantía en depósito</span>
+            <span class="font-semibold text-[#C22B2B]">USD $1,000.00</span>
+          </div>
+        </div>
+
+        <!-- BLOQUE 2: 4 requisitos incumplidos -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-[#1F2A33]">Requisitos de ampliación — Estado</h3>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FBE9E9] text-[#C22B2B] border border-[#F5C6C6]">0 de 4 cumplidos</span>
+          </div>
+          <div class="space-y-2">
+
+            <!-- Requisito 1: Aviso 12h -->
+            <div class="flex items-start gap-3 p-3 rounded border border-[#F5C6C6] bg-[#FBE9E9]">
+              <div class="w-5 h-5 rounded-full border-2 border-[#C22B2B] bg-white flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3 h-3 text-[#C22B2B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </div>
+              <div class="flex-1">
+                <span class="text-xs font-semibold text-[#1F2A33]">1. Aviso con al menos 12 horas de anticipación</span>
+                <p class="text-[11px] text-[#736E66] mt-0.5">Solicitud recibida con <strong class="text-[#C22B2B]">0 horas</strong> de anticipación (vencimiento ya superado)</p>
+              </div>
+            </div>
+
+            <!-- Requisito 2: Autorización de Gerencia -->
+            <div class="flex items-start gap-3 p-3 rounded border border-[#F5C6C6] bg-[#FBE9E9]">
+              <div class="w-5 h-5 rounded-full border-2 border-[#C22B2B] bg-white flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3 h-3 text-[#C22B2B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </div>
+              <div class="flex-1">
+                <span class="text-xs font-semibold text-[#1F2A33]">2. Autorización formal de Gerencia</span>
+                <p class="text-[11px] text-[#736E66] mt-0.5">Sin registro de autorización en el expediente</p>
+              </div>
+            </div>
+
+            <!-- Requisito 3: Pago del periodo adicional -->
+            <div class="flex items-start gap-3 p-3 rounded border border-[#F5C6C6] bg-[#FBE9E9]">
+              <div class="w-5 h-5 rounded-full border-2 border-[#C22B2B] bg-white flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3 h-3 text-[#C22B2B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </div>
+              <div class="flex-1">
+                <span class="text-xs font-semibold text-[#1F2A33]">3. Pago del periodo adicional</span>
+                <p class="text-[11px] text-[#736E66] mt-0.5">Sin pago registrado para el periodo extendido</p>
+              </div>
+            </div>
+
+            <!-- Requisito 4: Adenda firmada -->
+            <div class="flex items-start gap-3 p-3 rounded border border-[#F5C6C6] bg-[#FBE9E9]">
+              <div class="w-5 h-5 rounded-full border-2 border-[#C22B2B] bg-white flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3 h-3 text-[#C22B2B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </div>
+              <div class="flex-1">
+                <span class="text-xs font-semibold text-[#1F2A33]">4. Adenda de ampliación firmada</span>
+                <p class="text-[11px] text-[#736E66] mt-0.5">Sin adenda generada ni firmada (DAT-ALQ-009)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BLOQUE 3: Consecuencias inmediatas e irreversibles -->
+        <div class="border border-[#F5C6C6] bg-[#FBE9E9] rounded p-4 space-y-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-[#C22B2B] flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            Consecuencias que se activarán al confirmar
+          </h3>
+          <ul class="space-y-1.5 text-xs text-[#1F2A33]">
+            <li class="flex items-start gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#C22B2B] mt-1.5 shrink-0"></span>
+              <span><strong>Retención total de garantía:</strong> USD $1,000.00 queda retenido íntegramente (no se devuelve al cliente)</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#C22B2B] mt-1.5 shrink-0"></span>
+              <span><strong>Cliente marcado como Rojo de inmediato:</strong> Minera Los Andes S.A.C. quedará inhabilitado para nuevos alquileres hasta revisión de Gerencia</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#C22B2B] mt-1.5 shrink-0"></span>
+              <span><strong>Proceso penal evaluado:</strong> Gerencia decidirá en las próximas 24h si se inicia denuncia formal por apropiación ilícita de bien</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#C22B2B] mt-1.5 shrink-0"></span>
+              <span><strong>Expediente cerrado como falta grave:</strong> El alquiler #ALQ-1187 pasará a estado <span class="font-mono-op font-bold">SERIOUS_BREACH</span> en el sistema</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- BLOQUE 4: Observaciones de Gerencia (campo obligatorio) -->
+        <div>
+          <label for="observaciones_gerencia" class="block text-xs font-bold text-[#1F2A33] mb-1.5">
+            Observaciones de Gerencia <span class="text-[#C22B2B]">*</span>
+          </label>
+          <textarea id="observaciones_gerencia" rows="3" placeholder="Describa brevemente el contexto del incumplimiento, intentos de contacto y cualquier evidencia adicional relevante para el expediente..." class="w-full bg-white border border-[#A39C90] rounded px-3 py-2 text-xs text-[#1F2A33] focus:outline-none focus:border-[#1F2A33] focus:ring-1 focus:ring-[#1F2A33] resize-none placeholder-[#A39C90] leading-relaxed"></textarea>
+          <p class="text-[11px] text-[#736E66] mt-1">Este texto quedará registrado en el expediente y podrá ser utilizado en el proceso penal si procede.</p>
+        </div>
+
+        <!-- BLOQUE 5: Checkbox de confirmación de consecuencias -->
+        <div class="border border-[#E5E3DD] rounded p-4 bg-[#FAF9F7]">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" class="w-4 h-4 rounded border-[#A39C90] text-[#C22B2B] focus:ring-[#C22B2B] mt-0.5 shrink-0">
+            <span class="text-xs text-[#4E4A45] leading-relaxed">
+              Confirmo que he verificado personalmente que ninguno de los 4 requisitos de ampliación fue cumplido por el cliente, y entiendo que esta acción activará la retención total de garantía, la inhabilitación del cliente y la evaluación de proceso penal de forma <strong class="text-[#1F2A33]">inmediata e irreversible</strong>.
+            </span>
+          </label>
+        </div>
+
+      </div>
+
+      <!-- FOOTER DEL MODAL: Acciones -->
+      <div class="flex items-center justify-between gap-3 px-6 py-4 border-t border-[#E5E3DD] bg-[#FAF9F7] rounded-b-lg">
+        <button type="button" class="text-xs font-semibold text-[#736E66] hover:text-[#1F2A33] transition px-3 py-2 rounded hover:bg-[#F0EFEC]">
+          Cancelar — volver a verificar
+        </button>
+        <button type="button" class="flex items-center gap-2 px-5 py-2.5 rounded text-sm font-bold text-white bg-[#C22B2B] border border-[#C22B2B] hover:bg-[#9b1e1e] transition opacity-50 cursor-not-allowed" disabled>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          Confirmar falta grave y retener garantía
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- NOTA DE DISEÑO (solo en el prototipo, no aparece en producción) -->
+  <div class="fixed bottom-4 right-4 z-50 bg-[#1F2A33] text-white text-[10px] font-mono-op px-3 py-2 rounded shadow-lg max-w-xs">
+    <strong class="text-[#C6600A]">PROTO-ALQ-11-FALTA-GRAVE-BR-ALQ-013</strong><br>
+    UX-ID: ALQ-11 · Estado: CONFIRM_SERIOUS_BREACH<br>
+    Actor: GERENCIA · viewport: desktop 1440px<br>
+    El botón CTA se habilita solo cuando el checkbox está marcado y las observaciones tienen contenido
+  </div>
+
+</body>
+</html>
