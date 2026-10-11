@@ -6,9 +6,22 @@
  * UX-ID: TR-09
  * PROTO-ID: PROTO-TR-09-MODAL-CERRAR-SESION-CON-FORMULARIOS-PEND
  *
- * TR-08 pendiente: cuando esté implementado, esta función leerá los borradores
- * desde Dexie/IndexedDB (casos offline aprobados: ALQ-09, DEV-04).
+ * TR-08 (implementado): lee borradores desde Dexie/IndexedDB.
+ * Casos offline aprobados (TDD-00 §3.4, TD-FE-008): ALQ-09, DEV-04.
+ *
+ * Nota de diseño: Dexie es asíncrono. Esta función devuelve el último
+ * conteo conocido (cacheado). Para mantenerlo actualizado, llamar
+ * `refreshLocalDraftCount()` en mount desde el hook `useLocalDraftCount`
+ * en UserMenuDropdown.tsx.
  */
+import { countPendingAll } from '../../offline/queue/evidence-upload-queue';
+
+let _cachedCount = 0;
+
 export function getLocalDraftCount(): number {
-  return 0; // TR-08 pendiente: leerá borradores de Dexie cuando esté implementado
+  return _cachedCount;
+}
+
+export async function refreshLocalDraftCount(): Promise<void> {
+  _cachedCount = await countPendingAll();
 }

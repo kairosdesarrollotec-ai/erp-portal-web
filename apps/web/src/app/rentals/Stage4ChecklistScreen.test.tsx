@@ -32,6 +32,25 @@ vi.mock('./rentals-client', async () => {
   };
 });
 
+// ── mocks de infraestructura offline ────────────────────────────────────────
+
+const addEvidenceToQueueMock = vi.fn();
+const refreshCountsMock = vi.fn().mockResolvedValue(undefined);
+
+vi.mock('../../offline/queue/evidence-upload-queue', () => ({
+  addEvidenceToQueue: (...args: unknown[]) => addEvidenceToQueueMock(...args),
+  getPendingEvidence: vi.fn().mockResolvedValue([]),
+  markEvidenceSynced: vi.fn().mockResolvedValue(undefined),
+  markEvidenceFailed: vi.fn().mockResolvedValue(undefined),
+  countPendingAll: vi.fn().mockResolvedValue(0),
+  clearSyncedEvidence: vi.fn().mockResolvedValue(undefined),
+}));
+
+const useSyncManagerMock = vi.fn();
+vi.mock('../../offline/synchronization/use-sync-manager', () => ({
+  useSyncManager: (params: unknown) => useSyncManagerMock(params),
+}));
+
 // ── fixtures ────────────────────────────────────────────────────────────────
 
 const baseRental = {
@@ -65,6 +84,17 @@ function makeWizard(overrides?: Record<string, unknown>) {
     getIdToken: vi.fn().mockResolvedValue('tok'),
     setRental: vi.fn(),
     reload: vi.fn(),
+    ...overrides,
+  };
+}
+
+function makeSyncManager(overrides?: Partial<ReturnType<typeof useSyncManagerMock>>) {
+  return {
+    syncing: false,
+    pendingCount: 0,
+    failedCount: 0,
+    triggerSync: vi.fn(),
+    refreshCounts: refreshCountsMock,
     ...overrides,
   };
 }
@@ -114,12 +144,18 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     requestEvidenceUploadSessionMock.mockReset();
     uploadEvidenceToGcsMock.mockReset();
     recordEvidenceMock.mockReset();
+    addEvidenceToQueueMock.mockReset();
+    useSyncManagerMock.mockReset();
     listRentalEvidenceMock.mockResolvedValue([]);
+    useSyncManagerMock.mockReturnValue(makeSyncManager());
+    // Simular navigator.onLine = true por defecto
+    Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
     sessionStorage.removeItem(CHECKLIST_KEY);
   });
 
   afterEach(() => {
     sessionStorage.removeItem(CHECKLIST_KEY);
+    Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
   });
 
   // ── estado: carga ─────────────────────────────────────────────────────────
@@ -309,5 +345,114 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
 
     expect(await screen.findByText(/No pudimos subir el archivo/)).toBeInTheDocument();
     expect(recordEvidenceMock).not.toHaveBeenCalled();
+  });
+
+  // ── OFFLINE: captura local sin conexión ──────────────────────────────────
+
+  it('muestra el banner offline cuando no hay conexión', () => {
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText(/Sin conexión/)).toBeInTheDocument();
+  });
+
+  it('Continuar está deshabilitado cuando offline aunque haya evidencia suficiente', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    // Simular que la query cacheada devuelve evidencia suficiente
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
+    sessionStorage.setItem(
+      CHECKLIST_KEY,
+      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+    );
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    // Esperar a que la query se resuelva (si aplica)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+    });
+  });
+
+  it('al seleccionar una foto offline: guarda en cola Dexie y NO llama al backend', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    addEvidenceToQueueMock.mockResolvedValue(1);
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    const { container } = renderScreen();
+
+    const file = new File(['data'], 'frontal.jpg', { type: 'image/jpeg' });
+    const photoInput = container.querySelector('input[type="file"][accept^="image"]') as HTMLInputElement;
+    fireEvent.change(photoInput, { target: { files: [file] } });
+
+    await waitFor(() => expect(addEvidenceToQueueMock).toHaveBeenCalled());
+    expect(addEvidenceToQueueMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rentalId: 'rent-1',
+        type: 'PHOTO',
+        zone: 'FRONTAL',
+        mimeType: 'image/jpeg',
+      }),
+    );
+    // No debe llamar al backend
+    expect(requestEvidenceUploadSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('al seleccionar una foto offline: rechaza tipos no permitidos sin guardar en cola', async () => {
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    const { container } = renderScreen();
+
+    const file = new File(['data'], 'frontal.gif', { type: 'image/gif' });
+    const photoInput = container.querySelector('input[type="file"][accept^="image"]') as HTMLInputElement;
+    fireEvent.change(photoInput, { target: { files: [file] } });
+
+    expect(await screen.findByText(/Solo se admiten imágenes JPEG o WebP/)).toBeInTheDocument();
+    expect(addEvidenceToQueueMock).not.toHaveBeenCalled();
+  });
+
+  // ── SYNCING: sincronización en progreso ───────────────────────────────────
+
+  it('muestra el banner de sincronización cuando syncing es true', () => {
+    useSyncManagerMock.mockReturnValue(makeSyncManager({ syncing: true, pendingCount: 3 }));
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    expect(screen.getByText(/Sincronizando 3/)).toBeInTheDocument();
+  });
+
+  it('Continuar está deshabilitado mientras syncing es true', () => {
+    useSyncManagerMock.mockReturnValue(makeSyncManager({ syncing: true, pendingCount: 0 }));
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
+    sessionStorage.setItem(
+      CHECKLIST_KEY,
+      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+    );
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+  });
+
+  it('Continuar está deshabilitado cuando hay items pendientes aunque no esté sincronizando', () => {
+    useSyncManagerMock.mockReturnValue(makeSyncManager({ syncing: false, pendingCount: 2 }));
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
+    sessionStorage.setItem(
+      CHECKLIST_KEY,
+      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+    );
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
   });
 });

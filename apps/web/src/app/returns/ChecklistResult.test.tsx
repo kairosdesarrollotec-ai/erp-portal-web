@@ -49,6 +49,24 @@ vi.mock('../notifications/useNotifications', () => ({
   useNotifications: () => ({ unreadCount: 0, notifications: [], markRead: vi.fn(), reload: vi.fn() }),
 }));
 vi.mock('./useReturnFlow', () => ({ useReturnFlow: () => flowMock() }));
+
+// Mocks de infraestructura offline (ChecklistScreen usa Dexie/useSyncManager)
+vi.mock('../../offline/queue/evidence-upload-queue', () => ({
+  addEvidenceToQueue: vi.fn().mockResolvedValue(1),
+  getPendingEvidenceForReturn: vi.fn().mockResolvedValue([]),
+  countPendingAll: vi.fn().mockResolvedValue(0),
+  clearSyncedEvidenceForReturn: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('../../offline/synchronization/use-sync-manager', () => ({
+  useSyncManager: () => ({
+    syncing: false,
+    pendingCount: 0,
+    failedCount: 0,
+    triggerSync: vi.fn(),
+    refreshCounts: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
 vi.mock('../rentals/rentals-client', async () => {
   const actual = await vi.importActual<typeof import('../rentals/rentals-client')>('../rentals/rentals-client');
   return { ...actual, listRentalEvidence: (...args: unknown[]) => listRentalEvidenceMock(...args) };
@@ -239,11 +257,13 @@ describe('ChecklistScreen (DEV-04)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Tu rol no tiene permiso');
   });
 
-  it('sin conexion pausa la captura (OFFLINE_READ_ONLY)', async () => {
+  it('sin conexion muestra banner y mantiene botones habilitados para captura offline (ADR-KAI-004)', async () => {
     const online = vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
     renderChecklist();
     expect(await screen.findByText(/Sin conexión/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Agregar fotos' })).toBeDisabled();
+    // Captura offline está permitida (ADR-KAI-004): los botones NO se deshabilitan
+    expect(screen.getByRole('button', { name: 'Agregar fotos' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Agregar video' })).toBeEnabled();
     online.mockRestore();
   });
 

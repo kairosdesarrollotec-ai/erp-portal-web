@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
@@ -13,6 +13,8 @@ import {
   RentalEvidenceType,
   RentalEvidenceZone,
 } from './rentals-client';
+import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
+import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
 import styles from './RentalStageForms.module.css';
 
 const REQUIRED_PHOTOS = 35;
@@ -20,7 +22,7 @@ const REQUIRED_VIDEOS = 3;
 const MIN_TECHNICAL_MINUTES = 30;
 const MIN_DOCUMENTARY_MINUTES = 15;
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024; // 12 MB — SDD-00 §16.5, mismo limite que Fleet
-const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // supuesto propio de esta tarea (sin BR que fije un maximo)
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
 
 const ZONES: { value: RentalEvidenceZone; label: string }[] = [
   { value: 'FRONTAL', label: 'Frontal' },
@@ -30,13 +32,33 @@ const ZONES: { value: RentalEvidenceZone; label: string }[] = [
   { value: 'INTERIOR', label: 'Interior' },
 ];
 
+/** Detecta y suscribe al estado de conectividad del navegador. */
+function useOnlineStatus() {
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+  return isOnline;
+}
+
 /**
- * ENTREGA-04 / ALQ-09 - Checklist y evidencias (mapea a complete-delivery, ejecutado
- * en ENTREGA-05). Sube fotos/videos reales a GCS (mismo patron de 2 pasos
- * que Fleet/NewVehicleModal: pedir URL firmada -> PUT a GCS -> confirmar con
- * POST /rentals/:id/evidence) en vez de los contadores manuales anteriores.
- * Version ONLINE-ONLY: si no hay conexion, la subida falla con un mensaje de
- * error (no hay cola offline/IndexedDB - eso es TR-08, fuera de este track).
+ * ENTREGA-04 / ALQ-09 - Checklist y evidencias.
+ *
+ * Soporta captura de fotos/videos en modo OFFLINE mediante cola Dexie
+ * (ADR-KAI-004: complete-delivery solo online; Continuar deshabilitado
+ * mientras haya items pendientes de sincronización).
+ *
+ * Online: sube directamente a GCS (mismo patrón de 2 pasos que Fleet).
+ * Offline: guarda Blob en Dexie vía evidence-upload-queue.
+ * Sincronizando: useSyncManager detecta `online` y sube items pendientes.
+ * Sincronizado: query listRentalEvidence reporta ≥35 fotos y ≥3 videos.
  */
 export function Stage4ChecklistScreen() {
   const { id, state, rental, context, getIdToken } = useRentalWizard();
@@ -45,14 +67,27 @@ export function Stage4ChecklistScreen() {
   const [showExceptionModal, setShowExceptionModal] = useState(false);
   const [zone, setZone] = useState<RentalEvidenceZone>('FRONTAL');
   const queryClient = useQueryClient();
+  const isOnline = useOnlineStatus();
+
   const { data: evidence = [], isSuccess: evidenceLoaded } = useQuery({
     queryKey: ['rental', id, 'evidence'] as const,
     queryFn: async () => {
       const idToken = await getIdToken();
       return listRentalEvidence(idToken, id, context!.companyId, context!.branchId);
     },
-    enabled: !!context,
+    enabled: !!context && isOnline,
   });
+
+  const { syncing, pendingCount, failedCount, refreshCounts } = useSyncManager({
+    rentalId: id ?? null,
+    getIdToken,
+    companyId: context?.companyId ?? '',
+    branchId: context?.branchId ?? '',
+    onSyncComplete: () => {
+      void queryClient.invalidateQueries({ queryKey: ['rental', id, 'evidence'] });
+    },
+  });
+
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -69,9 +104,28 @@ export function Stage4ChecklistScreen() {
 
   const photosCount = evidence.filter((item) => item.type === 'PHOTO').length;
   const videosCount = evidence.filter((item) => item.type === 'VIDEO').length;
-  const checklistComplete = evidenceLoaded && photosCount >= REQUIRED_PHOTOS && videosCount >= REQUIRED_VIDEOS;
+
+  // El checklist está completo solo cuando el servidor confirma las evidencias
+  // y no hay items locales pendientes de sincronización (ADR-KAI-004).
+  const checklistComplete =
+    evidenceLoaded &&
+    photosCount >= REQUIRED_PHOTOS &&
+    videosCount >= REQUIRED_VIDEOS &&
+    pendingCount === 0 &&
+    !syncing;
+
   const timeBelowMinimum =
     draft.technicalMinutes < MIN_TECHNICAL_MINUTES || draft.documentaryMinutes < MIN_DOCUMENTARY_MINUTES;
+
+  // Determina el estado de conectividad visible para el banner.
+  const syncState: 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'ONLINE' = (() => {
+    if (!isOnline) return 'OFFLINE';
+    if (syncing) return 'SYNCING';
+    if (evidenceLoaded && photosCount >= REQUIRED_PHOTOS && videosCount >= REQUIRED_VIDEOS && pendingCount === 0) {
+      return 'SYNCED';
+    }
+    return 'ONLINE';
+  })();
 
   async function handleFileSelected(type: RentalEvidenceType, file: File) {
     if (!context || !id) return;
@@ -90,6 +144,26 @@ export function Stage4ChecklistScreen() {
     }
 
     setUploadError(null);
+
+    // ── OFFLINE: guardar en cola Dexie ─────────────────────────────────────
+    if (!isOnline) {
+      try {
+        await addEvidenceToQueue({
+          rentalId: id,
+          returnId: null,
+          type,
+          zone,
+          mimeType: file.type,
+          blob: file,
+        });
+        await refreshCounts();
+      } catch {
+        setUploadError('No pudimos guardar el archivo localmente. Intenta de nuevo.');
+      }
+      return;
+    }
+
+    // ── ONLINE: subida directa a GCS ───────────────────────────────────────
     const setUploading = type === 'PHOTO' ? setUploadingPhoto : setUploadingVideo;
     setUploading(true);
     try {
@@ -140,8 +214,66 @@ export function Stage4ChecklistScreen() {
     return <p className={styles.statusText}>No pudimos cargar el expediente. Intenta de nuevo.</p>;
   }
 
+  // El botón Continuar se deshabilita si: el checklist no está completo,
+  // o estamos offline, o hay sincronización en progreso, o hay items pendientes
+  // (ADR-KAI-004: complete-delivery solo online).
+  const continueDisabled = !checklistComplete || !isOnline || syncing || pendingCount > 0;
+
   return (
-    <RentalWizardShell stage={4} title="Checklist y evidencias" onContinue={handleContinue} continueDisabled={!checklistComplete}>
+    <RentalWizardShell stage={4} title="Checklist y evidencias" onContinue={handleContinue} continueDisabled={continueDisabled}>
+
+      {/* ── Banner de estado de conectividad ── */}
+      {syncState === 'OFFLINE' && (
+        <div className={styles.offlineBanner} role="status" aria-live="polite">
+          {/* Ícono wifi-off per prototipo PROTO-ALQ-09-CHECKLIST-SIN-CONEXION-MOVIL */}
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 3l18 18M9.88 9.88A3 3 0 1014.12 14.12M6.1 7.2A7 7 0 004 12a5 5 0 005 5h8a4.97 4.97 0 002.5-.68M19.83 15.13A5 5 0 0018 10h-1.26A8 8 0 009.17 4.67" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>
+            Sin conexión — tu trabajo se guarda en este dispositivo y se sube cuando vuelvas a tener señal
+            {pendingCount > 0 && (
+              <span className={styles.offlinePendingBadge} style={{ marginLeft: '0.5rem' }}>
+                {pendingCount} {pendingCount === 1 ? 'archivo pendiente' : 'archivos pendientes'}
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+
+      {syncState === 'SYNCING' && (
+        <div className={styles.syncingBanner} role="status" aria-live="polite">
+          {/* Spinner animado */}
+          <svg className={styles.spinnerIcon} width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity="0.2" />
+            <path d="M12 3a9 9 0 019 9" strokeLinecap="round" />
+          </svg>
+          <span>
+            Sincronizando {pendingCount > 0 ? `${pendingCount} ${pendingCount === 1 ? 'archivo' : 'archivos'}` : 'archivos'}…
+          </span>
+        </div>
+      )}
+
+      {syncState === 'SYNCED' && (
+        <div className={styles.syncedBanner} role="status" aria-live="polite">
+          {/* Ícono check per prototipo PROTO-ALQ-09-CHECKLIST-CONFIRMADO-POR-SERVIDOR-MOVIL */}
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>
+            Confirmado por servidor
+            <span className={styles.syncedBadge} style={{ marginLeft: '0.5rem' }}>
+              {photosCount} fotos · {videosCount} videos
+            </span>
+          </span>
+        </div>
+      )}
+
+      {failedCount > 0 && (
+        <p className={styles.evidenceError} role="alert">
+          {failedCount} {failedCount === 1 ? 'archivo no pudo sincronizarse' : 'archivos no pudieron sincronizarse'}. Vuelve a tener conexión para reintentar.
+        </p>
+      )}
+
       <label className={styles.fieldLabel}>
         Zona del vehículo
         <select className={styles.select} value={zone} onChange={(e) => setZone(e.target.value as RentalEvidenceZone)}>
@@ -155,7 +287,8 @@ export function Stage4ChecklistScreen() {
 
       <fieldset className={styles.fieldset}>
         <legend>
-          Fotos ({photosCount}/{REQUIRED_PHOTOS})
+          Fotos ({photosCount}/{REQUIRED_PHOTOS}
+          {pendingCount > 0 && ` + ${pendingCount} local`})
         </legend>
         <div className={styles.evidenceToolbar}>
           <button

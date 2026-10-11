@@ -12,9 +12,11 @@ import {
   type ReturnChecklistDraft,
 } from './return-session-draft';
 import { SignaturePad } from './SignaturePad';
-import { REQUIRED_PHOTOS, REQUIRED_VIDEOS, RETURN_ZONES } from './return-evidence';
+import { PHOTO_TYPES, REQUIRED_PHOTOS, REQUIRED_VIDEOS, RETURN_ZONES, VIDEO_TYPES } from './return-evidence';
 import { useReturnPermissions } from './return-permissions';
 import { getResponsibilityTemplate, type ResponsibilityTemplateResult } from './returns-client';
+import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
+import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
 import styles from './ReturnForms.module.css';
 
 function useOnline(): boolean {
@@ -34,25 +36,34 @@ function useOnline(): boolean {
 
 /**
  * DEV-04 - Checklist de recepcion (movil primero). Sube fotos/videos reales
- * por URL firmada (mismo patron que ALQ-09). Version ONLINE-ONLY: sin cola
- * offline/IndexedDB (eso es TR-08, fuera de este track): sin conexion la
- * captura se pausa (estado OFFLINE_READ_ONLY). No se marca "confirmado" hasta
- * que el listado del servidor cumple 35 fotos + 3 videos (estado SYNCED).
+ * por URL firmada (mismo patron que ALQ-09). Con soporte offline/Dexie
+ * (ADR-KAI-004, DEV-04): sin conexion, la captura se guarda en la cola local
+ * de Dexie; al recuperar conexion, useSyncManager sube automaticamente.
+ * No se marca "confirmado" hasta que el listado del servidor cumple 35 fotos
+ * + 3 videos (estado SYNCED).
  *
- * Documento de responsabilidad (BR-DEV-009 / EX-DEV-001): el cliente declara no
- * haber incurrido en infracciones; si el titular no esta, firma quien este
+ * REGLA CRITICA (ADR-KAI-004): complete-inspection (DEV-05) solo puede
+ * ejecutarse cuando hay conexion y todo esta SYNCED.
+ *
+ * Documento de responsabilidad (BR-DEV-009 / EX-DEV-001): el cliente declara
+ * no haber incurrido en infracciones; si el titular no esta, firma quien este
  * presente (nombre, relacion con el titular y firma). Es obligatorio para
  * completar el checklist; se guarda en el borrador y se envia en
- * complete-inspection (DEV-05). Sin prototipo Stitch propio: ver reporte.
+ * complete-inspection (DEV-05).
  *
- * Prototipo(s) aprobado(s): PROTO-DEV-04-CHECKLIST-RECEPCION (+ -MOVIL, -CONFIRMADO-POR-SERVIDOR-MOVIL/-DESKTOP, -SIN-CONEXION-MOVIL).
+ * Prototipos aprobados:
+ *   - PROTO-DEV-04-CHECKLIST-RECEPCION (READY desktop 1440px)
+ *   - PROTO-DEV-04-CHECKLIST-RECEPCION-MOVIL (READY mobile 390px)
+ *   - PROTO-DEV-04-CHECKLIST-RECEPCION-SIN-CONEXION-MOVIL (OFFLINE mobile 390px)
+ *   - PROTO-DEV-04-CHECKLIST-RECEPCION-CONFIRMADO-POR-SERVIDOR-MOVIL (SYNCED mobile 390px)
+ *   - PROTO-DEV-04-CHECKLIST-RECEPCION-CONFIRMADO-POR-SERVIDOR-DESKTOP (SYNCED desktop 1440px)
  */
 export function ChecklistScreen() {
   const { id, state, ret, context, getIdToken } = useReturnFlow();
   const navigate = useNavigate();
   const { can } = useReturnPermissions();
   const online = useOnline();
-  const { evidence, loaded, uploading, error, upload } = useReturnEvidence(id, context, getIdToken);
+  const { evidence, loaded, uploading, error, upload, reload } = useReturnEvidence(id, context, getIdToken);
   const [zone, setZone] = useState(RETURN_ZONES[0].value);
   const [draft, setDraft] = useState<ReturnChecklistDraft>(() => loadReturnChecklist(id));
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -60,6 +71,37 @@ export function ChecklistScreen() {
 
   const [template, setTemplate] = useState<ResponsibilityTemplateResult | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
+
+  /** Contador de archivos encolados offline en esta sesion (se resetea al sincronizar). */
+  const [localQueueCount, setLocalQueueCount] = useState(0);
+  /** Error al encolar en Dexie (p.ej. almacenamiento lleno). */
+  const [queueError, setQueueError] = useState<string | null>(null);
+
+  const {
+    syncing: syncerSyncing,
+    pendingCount: syncerPending,
+    failedCount: syncerFailed,
+    triggerSync,
+  } = useSyncManager({
+    returnId: id,
+    companyId: context?.companyId ?? '',
+    branchId: context?.branchId ?? '',
+    getIdToken,
+    onSyncComplete: () => {
+      setLocalQueueCount(0);
+      void reload();
+    },
+  });
+
+  // Disparar sincronizacion al montar si ya hay conexion y existen items pendientes
+  // de sesiones previas. syncingRef en useSyncManager evita doble ejecucion.
+  const triggeredOnMount = useRef(false);
+  useEffect(() => {
+    if (online && !triggeredOnMount.current) {
+      triggeredOnMount.current = true;
+      triggerSync();
+    }
+  }, [online, triggerSync]);
 
   useEffect(() => {
     if (!id || !context || !context.companyId || !context.branchId) return;
@@ -82,7 +124,23 @@ export function ChecklistScreen() {
   const doc = draft.responsibilityDocument;
   const docComplete = Boolean(signedDoc) || isResponsibilityDocumentComplete(doc);
   const wrongState = ret.status !== 'INSPECCION' && ret.status !== 'SIN_DANOS' && ret.status !== 'CON_DANOS';
-  const canUpload = online && can('UPLOAD_EVIDENCE') && !uploading && !wrongState;
+
+  /** Items pendientes de sincronizar: combinacion de los encolados en esta sesion y los pre-existentes en Dexie. */
+  const totalPending = Math.max(localQueueCount, syncerPending);
+  const hasPending = totalPending > 0;
+
+  /**
+   * La captura (foto/video) esta habilitada aunque sin conexion para poder
+   * guardar en la cola offline de Dexie. Se bloquea solo si el estado del
+   * retorno no permite evidencia o si hay una subida directa en curso.
+   */
+  const canCapture = can('UPLOAD_EVIDENCE') && !uploading && !wrongState;
+
+  /**
+   * ADR-KAI-004: complete-inspection SOLO puede ejecutarse online y sin
+   * items pendientes de sincronizar.
+   */
+  const continueDisabled = !online || syncerSyncing || hasPending || !synced || !docComplete;
 
   function update(patch: Partial<ReturnChecklistDraft>) {
     setDraft((prev) => {
@@ -96,9 +154,41 @@ export function ChecklistScreen() {
     update({ responsibilityDocument: { ...draft.responsibilityDocument, ...patch } });
   }
 
+  async function enqueueFiles(type: 'PHOTO' | 'VIDEO', files: File[]): Promise<void> {
+    setQueueError(null);
+    let added = 0;
+    for (const file of files) {
+      const allowed = type === 'PHOTO' ? PHOTO_TYPES : VIDEO_TYPES;
+      if (!allowed.includes(file.type)) {
+        setQueueError(type === 'PHOTO' ? 'Solo se admiten imágenes JPEG o WebP.' : 'Solo se admiten videos MP4 o WebM.');
+        continue;
+      }
+      try {
+        await addEvidenceToQueue({
+          returnId: id,
+          rentalId: null,
+          type,
+          zone,
+          mimeType: file.type,
+          blob: file,
+        });
+        added++;
+      } catch {
+        setQueueError('No se pudo guardar el archivo en el dispositivo. Verifica el espacio disponible.');
+        break;
+      }
+    }
+    if (added > 0) setLocalQueueCount((prev) => prev + added);
+  }
+
   function onFiles(type: 'PHOTO' | 'VIDEO', event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     event.target.value = '';
+    if (files.length === 0) return;
+    if (!online) {
+      void enqueueFiles(type, files);
+      return;
+    }
     void upload(type, zone, files);
   }
 
@@ -110,32 +200,46 @@ export function ChecklistScreen() {
       title="Checklist de recepción"
       onContinue={() => navigate(`/devoluciones/${id}/resultado`, { state: context })}
       continueLabel="Continuar a Resultado"
-      continueDisabled={!synced || !docComplete}
+      continueDisabled={continueDisabled}
     >
       <h1 className={styles.pageHeading}>
         Recepción — {ret.vehiclePlate ?? 'Vehículo'}
       </h1>
       <p className={styles.pageSubtitle}>35 fotos, 3 videos, FIV y FCKE del vehículo devuelto.</p>
 
+      {/* ── Banners de estado ── */}
       {!online && (
         <p className={`${styles.banner} ${styles.banner_warning}`} role="status">
-          Sin conexión — la captura se pausa hasta recuperar la conexión; esta versión no guarda archivos en el dispositivo.
+          Sin conexión — las fotos y videos se guardan en este dispositivo.
+          {localQueueCount > 0 && ` ${localQueueCount} archivo${localQueueCount !== 1 ? 's' : ''} pendiente${localQueueCount !== 1 ? 's' : ''} de sincronizar.`}
         </p>
       )}
-      {online && uploading && (
+      {online && syncerSyncing && (
+        <p className={`${styles.banner} ${styles.banner_info}`} role="status">
+          Sincronizando {totalPending > 0 ? `${totalPending} archivo${totalPending !== 1 ? 's' : ''}` : 'archivos'}…
+        </p>
+      )}
+      {online && !syncerSyncing && uploading && (
         <p className={`${styles.banner} ${styles.banner_info}`} role="status">
           Sincronizando archivos con el servidor…
         </p>
       )}
-      {online && !uploading && synced && (
+      {online && !syncerSyncing && !uploading && synced && !hasPending && (
         <p className={`${styles.banner} ${styles.banner_success}`} role="status">
           Confirmado por el servidor — recepción completa
         </p>
       )}
-      {online && !uploading && !synced && loaded && (
+      {online && !syncerSyncing && !uploading && !synced && loaded && !hasPending && (
         <p className={`${styles.banner} ${styles.banner_info}`} role="status">
           Faltan {Math.max(0, REQUIRED_PHOTOS - photosCount)} fotos y {Math.max(0, REQUIRED_VIDEOS - videosCount)} videos
           para completar la recepción.
+        </p>
+      )}
+      {online && !syncerSyncing && hasPending && !uploading && (
+        <p className={`${styles.banner} ${styles.banner_info}`} role="status">
+          {syncerFailed > 0
+            ? `${syncerFailed} archivo${syncerFailed !== 1 ? 's' : ''} no pudo sincronizarse. Verifica tu conexión.`
+            : `${totalPending} archivo${totalPending !== 1 ? 's' : ''} pendiente${totalPending !== 1 ? 's' : ''} de sincronizar.`}
         </p>
       )}
 
@@ -152,7 +256,7 @@ export function ChecklistScreen() {
 
       <fieldset className={styles.fieldset}>
         <legend>
-          Fotos ({photosCount}/{REQUIRED_PHOTOS})
+          Fotos ({photosCount}/{REQUIRED_PHOTOS}{localQueueCount > 0 ? ` + ${localQueueCount} en cola` : ''})
         </legend>
         <div
           className={styles.meter}
@@ -165,7 +269,12 @@ export function ChecklistScreen() {
           <div className={styles.meterFill} style={{ width: `${photoPct}%` }} />
         </div>
         <div className={styles.evidenceToolbar}>
-          <button type="button" className={styles.secondaryButton} disabled={!canUpload} onClick={() => photoInputRef.current?.click()}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled={!canCapture}
+            onClick={() => photoInputRef.current?.click()}
+          >
             {uploading ? 'Subiendo…' : 'Agregar fotos'}
           </button>
           <input
@@ -186,7 +295,12 @@ export function ChecklistScreen() {
           Videos ({videosCount}/{REQUIRED_VIDEOS})
         </legend>
         <div className={styles.evidenceToolbar}>
-          <button type="button" className={styles.secondaryButton} disabled={!canUpload} onClick={() => videoInputRef.current?.click()}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            disabled={!canCapture}
+            onClick={() => videoInputRef.current?.click()}
+          >
             {uploading ? 'Subiendo…' : 'Agregar video'}
           </button>
           <input
@@ -201,9 +315,9 @@ export function ChecklistScreen() {
         </div>
       </fieldset>
 
-      {error && (
+      {(error ?? queueError) && (
         <p className={styles.evidenceError} role="alert">
-          {error}
+          {error ?? queueError}
         </p>
       )}
 

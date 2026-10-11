@@ -326,3 +326,93 @@
   font-size: 0.8rem;
   color: var(--color-success, #2e7d32);
 }
+
+/* ── Offline / Sync banners (ALQ-09) ── */
+.offlineBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  background: #fdf1de;
+  border-top: 1px solid #f2e2c8;
+  border-bottom: 1px solid #f2e2c8;
+  padding: 0.625rem 0.875rem;
+  margin-bottom: 1rem;
+  font-size: 13px;
+  color: #8a5505;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.offlineBanner svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.syncingBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: #eaf4fb;
+  border-top: 1px solid #b9dff0;
+  border-bottom: 1px solid #b9dff0;
+  padding: 0.625rem 0.875rem;
+  margin-bottom: 1rem;
+  font-size: 13px;
+  color: #1465a3;
+  font-weight: 500;
+}
+
+.syncedBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: #e7f5ec;
+  border-top: 1px solid #c2e7ce;
+  border-bottom: 1px solid #c2e7ce;
+  padding: 0.625rem 0.875rem;
+  margin-bottom: 1rem;
+  font-size: 13px;
+  color: #1e7d4b;
+  font-weight: 500;
+}
+
+.syncedBanner svg,
+.syncingBanner svg {
+  flex-shrink: 0;
+}
+
+.offlinePendingBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #f2e2c8;
+  color: #8a5505;
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.syncedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #d1f0dc;
+  color: #1e7d4b;
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.spinnerIcon {
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
