@@ -298,90 +298,6 @@ export async function formalizeContract(
   return data as unknown as RentalResponse;
 }
 
-/** UC-ALQ-006 / BR-ALQ-012 - Solicitar ampliacion de alquiler. */
-export async function requestExtension(
-  idToken: string,
-  id: string,
-  companyId: string,
-  branchId: string,
-  version: number,
-  requestedEndAt: string,
-): Promise<RentalResponse> {
-  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/request-extension', {
-    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
-    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-    body: { companyId, branchId, requestedEndAt } as never,
-  });
-  if (error || !data) {
-    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
-    throw new RentalCommandError(response.status, problem);
-  }
-  return data as unknown as RentalResponse;
-}
-
-/** UC-ALQ-006 / BR-ALQ-012 - Autorizar ampliacion de alquiler (solo Gerencia). */
-export async function authorizeExtension(
-  idToken: string,
-  id: string,
-  companyId: string,
-  branchId: string,
-  version: number,
-  paymentId?: string,
-  addendumDocumentRef?: string,
-): Promise<RentalResponse> {
-  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/authorize-extension', {
-    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
-    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-    body: { companyId, branchId, paymentId, addendumDocumentRef } as never,
-  });
-  if (error || !data) {
-    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
-    throw new RentalCommandError(response.status, problem);
-  }
-  return data as unknown as RentalResponse;
-}
-
-/** UC-ALQ-006 / BR-ALQ-012 - Rechazar ampliacion de alquiler. */
-export async function rejectExtension(
-  idToken: string,
-  id: string,
-  companyId: string,
-  branchId: string,
-  version: number,
-): Promise<RentalResponse> {
-  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/reject-extension', {
-    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
-    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-    body: { companyId, branchId } as never,
-  });
-  if (error || !data) {
-    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
-    throw new RentalCommandError(response.status, problem);
-  }
-  return data as unknown as RentalResponse;
-}
-
-/** UC-ALQ-006b / BR-ALQ-013 - Reportar falta grave de ampliacion (retiene 100% fianza y marca cliente Rojo). */
-export async function reportExtensionBreach(
-  idToken: string,
-  id: string,
-  companyId: string,
-  branchId: string,
-  version: number,
-  notes?: string,
-): Promise<RentalResponse> {
-  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/report-extension-breach', {
-    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
-    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-    body: { companyId, branchId, notes } as never,
-  });
-  if (error || !data) {
-    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
-    throw new RentalCommandError(response.status, problem);
-  }
-  return data as unknown as RentalResponse;
-}
-
 /**
  * ENTREGA-04/05 - confirmacion de entrega (accion irreversible). BR-INS-003/004
  * ya no se valida con photosCount/videosCount (quedan deprecados en el
@@ -429,3 +345,12 @@ export {
   recordRentalDocument,
   listRentalDocuments,
 } from './rentals-documents-client';
+
+// --- UC-ALQ-006 / BR-ALQ-012 - Ciclo de vida de ampliaciones de alquiler ---
+// Exportados desde rentals-extensions-client.ts para cumplir con File Size Pattern (<500 líneas).
+export {
+  requestExtension,
+  authorizeExtension,
+  rejectExtension,
+  reportExtensionBreach,
+} from './rentals-extensions-client';

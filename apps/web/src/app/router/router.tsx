@@ -20,6 +20,7 @@ import { AuditEventsScreen } from '../admin/AuditEventsScreen';
 import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
 import { RolePermissionMatrixScreen } from '../admin/RolePermissionMatrixScreen';
 import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
+import { DocumentTemplatesScreen } from '../admin/DocumentTemplatesScreen';
 import { ModuleHubScreen } from '../modules/ModuleHubScreen';
 import { FleetListScreen } from '../fleet/FleetListScreen';
 import { VehicleDetailScreen } from '../fleet/VehicleDetailScreen';
@@ -153,6 +154,7 @@ export const router = createBrowserRouter([
               // guard: el backend valida ADMIN.MANAGE_PERMISSIONS — la UI maneja el 403 con estado de error. Guard proactivo pendiente de TR-10.
               { path: '/admin/permisos', element: <RolePermissionMatrixScreen /> },
               { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
+              { path: '/admin/plantillas', element: <DocumentTemplatesScreen /> },
               { path: '/modulos', element: <ModuleHubScreen /> },
             ],
           },

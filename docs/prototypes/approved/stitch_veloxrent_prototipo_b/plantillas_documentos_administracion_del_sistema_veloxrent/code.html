@@ -1,0 +1,673 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plantillas de documentos — Administración del sistema - VeloxRent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Public Sans"', 'sans-serif'],
+            mono: ['"Space Grotesk"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              navy: '#1F2A33',
+              orange: '#C6600A',
+              accent: '#B5720A',
+              red: '#C22B2B',
+              green: '#1E7D4B',
+              blue: '#2166B0',
+            },
+            surface: {
+              DEFAULT: '#FFFFFF',
+              light: '#F8F7F4',
+              border: '#E5E2DC',
+              muted: '#706E6B',
+              heading: '#1A1918',
+            }
+          },
+          borderRadius: {
+            DEFAULT: '4px',
+            sm: '2px',
+            md: '4px',
+            lg: '6px',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Public Sans', sans-serif; background-color: #FFFFFF; color: #1A1918; -webkit-font-smoothing: antialiased; }
+    .font-mono-code { font-family: 'Space Grotesk', monospace; }
+    .tab-btn { border-bottom: 2px solid transparent; }
+    .tab-btn.active { border-bottom-color: #1F2A33; color: #1F2A33; font-weight: 600; }
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+    .step-indicator { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: 'Space Grotesk', monospace; }
+    .step-indicator.done { background: #1E7D4B; color: white; }
+    .step-indicator.current { background: #1F2A33; color: white; }
+    .step-indicator.pending { background: #E5E2DC; color: #706E6B; }
+    .drop-zone { border: 2px dashed #E5E2DC; border-radius: 4px; transition: border-color 0.2s; }
+    .drop-zone.dragging { border-color: #C6600A; background: #FDF1DE; }
+    .type-tab { padding: 8px 16px; font-size: 13px; font-weight: 500; color: #706E6B; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; }
+    .type-tab.active { color: #1F2A33; border-bottom-color: #1F2A33; font-weight: 600; }
+    .type-tab:hover:not(.active) { color: #1F2A33; }
+  </style>
+</head>
+<body class="bg-white text-surface-heading min-h-screen flex flex-col text-[14px]">
+
+  <!-- TOP HEADER -->
+  <header class="border-b border-[#E5E2DC] bg-white sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-6">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 bg-[#C6600A] rounded flex items-center justify-center text-white font-bold font-mono-code text-xl tracking-tight shadow-sm">V</div>
+          <div class="flex flex-col">
+            <span class="font-bold text-lg leading-tight tracking-tight text-[#1F2A33]">VeloxRent</span>
+            <span class="text-[10px] text-[#706E6B] font-mono-code font-semibold tracking-wider">ERP v3.4</span>
+          </div>
+        </div>
+        <div class="h-5 w-[1px] bg-[#E5E2DC]"></div>
+        <nav class="flex items-center space-x-2 text-[13px] text-[#706E6B]">
+          <span class="hover:text-[#1F2A33] transition-colors cursor-pointer">Administración del sistema</span>
+          <span class="text-[#A39C90]">›</span>
+          <span class="text-[#1F2A33] font-semibold">Plantillas de documentos</span>
+        </nav>
+      </div>
+      <div class="flex items-center space-x-5">
+        <div class="flex items-center space-x-2 bg-[#E8F5EC] text-[#1E7D4B] px-2.5 py-1 rounded-full text-xs font-semibold">
+          <span class="w-2 h-2 rounded-full bg-[#1E7D4B] animate-pulse"></span>
+          <span>En línea</span>
+        </div>
+        <div class="flex items-center space-x-1.5 text-xs text-[#4E4A45] bg-[#F8F7F4] border border-[#E5E2DC] px-3 py-1 rounded">
+          <svg class="w-3.5 h-3.5 text-[#706E6B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>Ayacucho — Sede Central</span>
+        </div>
+        <div class="flex items-center space-x-3 pl-2 border-l border-[#E5E2DC]">
+          <div class="w-8 h-8 rounded-full bg-[#1F2A33] text-white flex items-center justify-center font-bold text-xs font-mono-code">GA</div>
+          <div class="flex flex-col text-left">
+            <span class="text-xs font-bold text-[#1F2A33] leading-tight">Gustavo Alarcón</span>
+            <span class="text-[11px] text-[#706E6B] leading-tight">Administrador de Sistemas</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-grow max-w-[1440px] w-full mx-auto px-6 py-7">
+
+    <!-- PAGE TITLE BAR -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-[#E5E2DC] gap-4">
+      <div>
+        <div class="flex items-center space-x-3">
+          <h1 class="text-2xl font-bold text-[#1F2A33] tracking-tight">Plantillas de documentos</h1>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-semibold bg-[#F8F7F4] text-[#706E6B] border border-[#E5E2DC]">Módulo Administración</span>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-mono-code font-semibold bg-[#EFF6FF] text-[#2166B0] border border-[#BFDBFE]">ADM-03 / TPL</span>
+        </div>
+        <p class="text-[13px] text-[#706E6B] mt-1">Gestión de plantillas base para contratos de alquiler, reserva y documentos de responsabilidad. Una sola versión vigente por tipo y empresa.</p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <select id="empresa-filter" class="py-2 px-3 border border-[#E5E2DC] rounded bg-white text-xs text-[#1F2A33] font-medium focus:ring-1 focus:ring-[#1F2A33] focus:border-[#1F2A33]">
+          <option>VeloxRent Perú S.A.C. — Ayacucho</option>
+          <option>VeloxRent Perú S.A.C. — Lima</option>
+          <option>Casa del Auto S.A.C.</option>
+          <option>Motrix S.R.L.</option>
+          <option>RENOVA S.A.C.</option>
+        </select>
+        <button onclick="openWizard()" class="inline-flex items-center px-4 py-2 bg-[#C6600A] hover:bg-[#A85108] text-white text-xs font-semibold rounded shadow-sm transition-colors">
+          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Nueva plantilla
+        </button>
+      </div>
+    </div>
+
+    <!-- GOVERNANCE NOTICE -->
+    <div class="mt-5 bg-[#FEF2F2] border border-[#F87171] rounded p-4 flex items-start space-x-3 text-xs text-[#991B1B]">
+      <svg class="w-4 h-4 text-[#C22B2B] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <div class="leading-relaxed">
+        <strong class="font-bold text-[#C22B2B]">Aviso normativo (TDD-TPL-ADR-003):</strong> Solo puede existir <strong>una única plantilla vigente</strong> por tipo y empresa en todo momento. Activar una nueva versión <strong>retira automáticamente</strong> la versión vigente actual. Esta acción queda registrada en auditoría.
+      </div>
+    </div>
+
+    <!-- TYPE TABS -->
+    <div class="mt-6 border-b border-[#E5E2DC]">
+      <div class="flex space-x-0 overflow-x-auto">
+        <button onclick="switchType('rental')" id="tab-rental" class="type-tab active">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Contrato de alquiler</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E8F5EC] text-[#1E7D4B] border border-[#A7F3D0]">1 vigente</span>
+          </div>
+        </button>
+        <button onclick="switchType('reservation')" id="tab-reservation" class="type-tab">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>Contrato de reserva</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#FDF1DE] text-[#B5720A] border border-[#F6D296]">Sin vigente</span>
+          </div>
+        </button>
+        <button onclick="switchType('return')" id="tab-return" class="type-tab">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <span>Documento de responsabilidad</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E8F5EC] text-[#1E7D4B] border border-[#A7F3D0]">1 vigente</span>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- PANEL: RENTAL_CONTRACT -->
+    <div id="panel-rental" class="mt-6 space-y-3">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-[11px] text-[#706E6B] font-mono-code uppercase tracking-wider">Tipo: <strong class="text-[#1F2A33]">RENTAL_CONTRACT</strong> · 1 vigente · 2 archivadas · 1 borrador</div>
+        <div class="inline-flex items-center space-x-1 bg-[#F8F7F4] border border-[#E5E2DC] rounded p-0.5 text-xs">
+          <button class="px-2.5 py-1 rounded bg-[#1F2A33] text-white font-semibold">Todos (4)</button>
+          <button class="px-2.5 py-1 rounded text-[#706E6B] hover:text-[#1F2A33]">Vigente (1)</button>
+          <button class="px-2.5 py-1 rounded text-[#706E6B] hover:text-[#1F2A33]">Borrador (1)</button>
+          <button class="px-2.5 py-1 rounded text-[#706E6B] hover:text-[#1F2A33]">Archivados (2)</button>
+        </div>
+      </div>
+
+      <!-- ACTIVE template -->
+      <div class="border-2 border-[#1E7D4B] bg-[#F7FBF8] rounded p-4 shadow-sm">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1.5">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-[#706E6B] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <span class="font-bold text-sm text-[#1F2A33]">Contrato Marco de Arrendamiento Vehicular v2026-10</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-[#E8F5EC] text-[#1E7D4B] border border-[#A7F3D0]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#1E7D4B] mr-1.5"></span>Vigente
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono-code font-semibold bg-[#F8F7F4] text-[#706E6B] border border-[#E5E2DC]">v3</span>
+            </div>
+            <p class="text-xs text-[#4E4A45]">Plantilla oficial con cláusula de allanamiento notarial, retención de garantía y penalidad por paralización. Incluye adendas octubre 2026.</p>
+            <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#706E6B] font-mono-code pt-1">
+              <span>ID: <strong>LEG-TPL-2026-10</strong></span>
+              <span>Formato: <strong>DOCX</strong></span>
+              <span>Vigente desde: <strong>01/10/2026</strong></span>
+              <span>Activado por: <strong>Gustavo Alarcón</strong></span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
+            <button class="px-2.5 py-1.5 text-xs text-[#1F2A33] border border-[#E5E2DC] rounded hover:bg-white bg-[#F8F7F4] font-medium inline-flex items-center space-x-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span>Descargar</span>
+            </button>
+            <span class="inline-flex items-center px-3 py-1.5 bg-[#E8F5EC] text-[#1E7D4B] text-xs font-bold rounded cursor-default">
+              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              En uso
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRAFT template -->
+      <div class="border-2 border-dashed border-[#E5E2DC] bg-[#FCFCFB] rounded p-4">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1.5">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-[#706E6B] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <span class="font-semibold text-sm text-[#1F2A33]">Contrato Marco de Arrendamiento v2026-11 (nueva versión)</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-[#EFF6FF] text-[#2166B0] border border-[#BFDBFE]">
+                Borrador
+              </span>
+            </div>
+            <p class="text-xs text-[#706E6B]">Borrador pendiente de subida de archivo. Requiere completar los 3 pasos para activarse.</p>
+            <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#706E6B] font-mono-code pt-1">
+              <span>Creado: <strong>09/10/2026</strong></span>
+              <span>Vigencia prevista desde: <strong>01/11/2026</strong></span>
+              <span>Archivo: <strong class="text-[#C22B2B]">Sin subir</strong></span>
+            </div>
+            <!-- Step progress mini -->
+            <div class="flex items-center space-x-2 pt-2">
+              <div class="flex items-center space-x-1">
+                <span class="w-5 h-5 rounded-full bg-[#1E7D4B] text-white flex items-center justify-center text-[10px] font-bold">✓</span>
+                <span class="text-[11px] text-[#1E7D4B] font-semibold">Metadatos</span>
+              </div>
+              <div class="w-8 h-[1px] bg-[#E5E2DC]"></div>
+              <div class="flex items-center space-x-1">
+                <span class="w-5 h-5 rounded-full bg-[#E5E2DC] text-[#706E6B] flex items-center justify-center text-[10px] font-bold">2</span>
+                <span class="text-[11px] text-[#706E6B]">Subir archivo</span>
+              </div>
+              <div class="w-8 h-[1px] bg-[#E5E2DC]"></div>
+              <div class="flex items-center space-x-1">
+                <span class="w-5 h-5 rounded-full bg-[#E5E2DC] text-[#706E6B] flex items-center justify-center text-[10px] font-bold">3</span>
+                <span class="text-[11px] text-[#706E6B]">Activar</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
+            <button class="px-3 py-1.5 text-xs font-semibold text-white bg-[#2166B0] hover:bg-[#1A53A0] rounded transition-colors inline-flex items-center space-x-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+              <span>Continuar subida</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RETIRED template 1 -->
+      <div class="border border-[#E5E2DC] bg-white rounded p-4 hover:bg-[#FCFCFB] transition-colors">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1.5">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-[#A39C90] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <span class="font-semibold text-sm text-[#4E4A45]">Contrato de Arrendamiento Vehicular v2026-07</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-[#F8F7F4] text-[#706E6B] border border-[#E5E2DC]">Archivada</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono-code font-semibold bg-[#F8F7F4] text-[#706E6B] border border-[#E5E2DC]">v2</span>
+            </div>
+            <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#706E6B] font-mono-code pt-1">
+              <span>ID: <strong>LEG-TPL-2026-07</strong></span>
+              <span>Vigente: <strong>01/07/2026 – 30/09/2026</strong></span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
+            <button class="px-2.5 py-1.5 text-xs text-[#706E6B] border border-[#E5E2DC] rounded hover:bg-[#F8F7F4] font-medium">Ver</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RETIRED template 2 -->
+      <div class="border border-[#E5E2DC] bg-white rounded p-4 hover:bg-[#FCFCFB] transition-colors opacity-80">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1.5">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-[#A39C90] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <span class="font-semibold text-sm text-[#706E6B]">Contrato Marco Inicial de Arrendamiento v2025-01 (Histórico)</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-[#F8F7F4] text-[#A39C90] border border-[#E5E2DC]">Archivada</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono-code font-semibold bg-[#F8F7F4] text-[#A39C90] border border-[#E5E2DC]">v1</span>
+            </div>
+            <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#A39C90] font-mono-code pt-1">
+              <span>ID: <strong>LEG-TPL-2025-01</strong></span>
+              <span>Vigente: <strong>Enero 2025 – Junio 2026</strong></span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
+            <button class="px-2.5 py-1.5 text-xs text-[#706E6B] border border-[#E5E2DC] rounded hover:bg-[#F8F7F4] font-medium">Ver</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary bar -->
+      <div class="py-3 px-4 border border-[#E5E2DC] rounded bg-[#F8F7F4] flex items-center justify-between text-xs text-[#706E6B]">
+        <div class="flex items-center space-x-2">
+          <svg class="w-4 h-4 text-[#1E7D4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>1 vigente en producción · 1 borrador pendiente · 2 archivadas</span>
+        </div>
+        <span class="font-mono-code text-[11px]">RENTAL_CONTRACT · VeloxRent Ayacucho</span>
+      </div>
+    </div>
+
+    <!-- PANEL: RESERVATION_CONTRACT -->
+    <div id="panel-reservation" class="mt-6 space-y-3 hidden">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-[11px] text-[#706E6B] font-mono-code uppercase tracking-wider">Tipo: <strong class="text-[#1F2A33]">RESERVATION_CONTRACT</strong> · Sin vigente</div>
+      </div>
+
+      <!-- EMPTY STATE -->
+      <div class="border-2 border-dashed border-[#E5E2DC] rounded-lg p-12 flex flex-col items-center justify-center text-center space-y-4">
+        <div class="w-14 h-14 rounded-full bg-[#FDF1DE] flex items-center justify-center">
+          <svg class="w-7 h-7 text-[#B5720A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-[#1F2A33] mb-1">Sin plantilla de contrato de reserva</h3>
+          <p class="text-xs text-[#706E6B] max-w-sm">Esta empresa aún no tiene una plantilla vigente para contratos de reserva. Crea una nueva plantilla y súbela para activarla.</p>
+        </div>
+        <button onclick="openWizard()" class="inline-flex items-center px-4 py-2 bg-[#C6600A] hover:bg-[#A85108] text-white text-xs font-semibold rounded shadow-sm transition-colors">
+          <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Crear primera plantilla
+        </button>
+      </div>
+
+      <!-- Summary bar empty -->
+      <div class="py-3 px-4 border border-[#E5E2DC] rounded bg-[#F8F7F4] flex items-center justify-between text-xs text-[#706E6B]">
+        <div class="flex items-center space-x-2">
+          <svg class="w-4 h-4 text-[#B5720A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Sin plantilla vigente · RESERVATION_CONTRACT</span>
+        </div>
+        <span class="font-mono-code text-[11px]">RESERVATION_CONTRACT · VeloxRent Ayacucho</span>
+      </div>
+    </div>
+
+    <!-- PANEL: RETURN_RESPONSIBILITY -->
+    <div id="panel-return" class="mt-6 space-y-3 hidden">
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-[11px] text-[#706E6B] font-mono-code uppercase tracking-wider">Tipo: <strong class="text-[#1F2A33]">RETURN_RESPONSIBILITY</strong> · 1 vigente · 1 archivada</div>
+        <div class="inline-flex items-center space-x-1 bg-[#F8F7F4] border border-[#E5E2DC] rounded p-0.5 text-xs">
+          <button class="px-2.5 py-1 rounded bg-[#1F2A33] text-white font-semibold">Todos (2)</button>
+          <button class="px-2.5 py-1 rounded text-[#706E6B] hover:text-[#1F2A33]">Vigente (1)</button>
+          <button class="px-2.5 py-1 rounded text-[#706E6B] hover:text-[#1F2A33]">Archivados (1)</button>
+        </div>
+      </div>
+
+      <!-- ACTIVE -->
+      <div class="border-2 border-[#1E7D4B] bg-[#F7FBF8] rounded p-4 shadow-sm">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1.5">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-[#706E6B] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              <span class="font-bold text-sm text-[#1F2A33]">Declaración de Responsabilidad y Estado del Vehículo v2026</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-bold bg-[#E8F5EC] text-[#1E7D4B] border border-[#A7F3D0]">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#1E7D4B] mr-1.5"></span>Vigente
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono-code font-semibold bg-[#F8F7F4] text-[#706E6B] border border-[#E5E2DC]">v2</span>
+            </div>
+            <p class="text-xs text-[#4E4A45]">Formulario de devolución con inventario de daños, estado de combustible, firmas de cliente y operador, y cláusula de responsabilidad civil.</p>
+            <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#706E6B] font-mono-code pt-1">
+              <span>Formato: <strong>PDF</strong></span>
+              <span>Vigente desde: <strong>15/09/2026</strong></span>
+              <span>Activado por: <strong>Gustavo Alarcón</strong></span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 flex-shrink-0 ml-4">
+            <button class="px-2.5 py-1.5 text-xs text-[#1F2A33] border border-[#E5E2DC] rounded hover:bg-white bg-[#F8F7F4] font-medium inline-flex items-center space-x-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+              <span>Descargar</span>
+            </button>
+            <span class="inline-flex items-center px-3 py-1.5 bg-[#E8F5EC] text-[#1E7D4B] text-xs font-bold rounded cursor-default">
+              <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              En uso
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RETIRED -->
+      <div class="border border-[#E5E2DC] bg-white rounded p-4 hover:bg-[#FCFCFB] transition-colors">
+        <div class="flex items-start justify-between">
+          <div class="space-y-1.5">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-[#A39C90] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              <span class="font-semibold text-sm text-[#4E4A45]">Declaración de Responsabilidad v2025 (anterior)</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-[#F8F7F4] text-[#706E6B] border border-[#E5E2DC]">Archivada</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono-code font-semibold bg-[#F8F7F4] text-[#706E6B] border border-[#E5E2DC]">v1</span>
+            </div>
+            <div class="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#706E6B] font-mono-code pt-1">
+              <span>Vigente: <strong>Enero 2025 – 14/09/2026</strong></span>
+            </div>
+          </div>
+          <button class="flex-shrink-0 px-2.5 py-1.5 text-xs text-[#706E6B] border border-[#E5E2DC] rounded hover:bg-[#F8F7F4] font-medium ml-4">Ver</button>
+        </div>
+      </div>
+
+      <div class="py-3 px-4 border border-[#E5E2DC] rounded bg-[#F8F7F4] flex items-center justify-between text-xs text-[#706E6B]">
+        <div class="flex items-center space-x-2">
+          <svg class="w-4 h-4 text-[#1E7D4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>1 vigente en producción · 1 archivada</span>
+        </div>
+        <span class="font-mono-code text-[11px]">RETURN_RESPONSIBILITY · VeloxRent Ayacucho</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- UPLOAD WIZARD MODAL (in-flow overlay) -->
+  <div id="wizard-overlay" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-start justify-center py-10 px-4">
+    <div class="bg-white rounded-lg border border-[#E5E2DC] shadow-xl w-full max-w-[600px] max-h-[85vh] overflow-y-auto">
+
+      <!-- Wizard Header -->
+      <div class="p-5 border-b border-[#E5E2DC] bg-[#FCFCFB] flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-bold text-[#1F2A33]">Nueva plantilla de documento</h2>
+          <p class="text-[11px] text-[#706E6B] font-mono-code mt-0.5">3 pasos: Metadatos → Subir archivo → Activar</p>
+        </div>
+        <button onclick="closeWizard()" class="p-1.5 text-[#706E6B] hover:text-[#1F2A33] rounded hover:bg-[#F8F7F4]">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Step Indicator -->
+      <div class="px-6 py-4 border-b border-[#E5E2DC] bg-[#FCFCFB]">
+        <div class="flex items-center justify-between relative">
+          <div class="absolute top-4 left-8 right-8 h-[1px] bg-[#E5E2DC]" id="wizard-line"></div>
+          <div class="flex flex-col items-center space-y-1.5 relative z-10">
+            <div class="step-indicator done" id="step-ind-1">✓</div>
+            <span class="text-[10px] font-semibold font-mono-code text-[#1E7D4B]">Metadatos</span>
+          </div>
+          <div class="flex flex-col items-center space-y-1.5 relative z-10">
+            <div class="step-indicator current" id="step-ind-2">2</div>
+            <span class="text-[10px] font-semibold font-mono-code text-[#1F2A33]">Subir archivo</span>
+          </div>
+          <div class="flex flex-col items-center space-y-1.5 relative z-10">
+            <div class="step-indicator pending" id="step-ind-3">3</div>
+            <span class="text-[10px] font-semibold font-mono-code text-[#A39C90]">Activar</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1: Metadatos -->
+      <div id="wizard-step-1" class="wizard-step p-6 space-y-4">
+        <h3 class="text-sm font-bold text-[#1F2A33]">Paso 1 — Registrar metadatos</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-[#4E4A45] mb-1.5">Tipo de plantilla <span class="text-[#C22B2B]">*</span></label>
+            <select class="w-full py-2 px-3 border border-[#E5E2DC] rounded text-xs text-[#1F2A33] bg-white focus:ring-1 focus:ring-[#1F2A33] focus:border-[#1F2A33]">
+              <option>RENTAL_CONTRACT — Contrato de alquiler</option>
+              <option>RESERVATION_CONTRACT — Contrato de reserva</option>
+              <option>RETURN_RESPONSIBILITY — Documento de responsabilidad</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-[#4E4A45] mb-1.5">Nombre descriptivo <span class="text-[#C22B2B]">*</span></label>
+            <input type="text" placeholder="Ej: Contrato Marco de Arrendamiento v2026-11" class="w-full py-2 px-3 border border-[#E5E2DC] rounded text-xs text-[#1F2A33] bg-white focus:ring-1 focus:ring-[#1F2A33] focus:border-[#1F2A33]" value="Contrato Marco de Arrendamiento v2026-11">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-[#4E4A45] mb-1.5">Empresa <span class="text-[#C22B2B]">*</span></label>
+              <select class="w-full py-2 px-3 border border-[#E5E2DC] rounded text-xs text-[#1F2A33] bg-white focus:ring-1 focus:ring-[#1F2A33]">
+                <option>VeloxRent Perú S.A.C.</option>
+                <option>Casa del Auto S.A.C.</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-[#4E4A45] mb-1.5">Sede de gestión <span class="text-[#C22B2B]">*</span></label>
+              <select class="w-full py-2 px-3 border border-[#E5E2DC] rounded text-xs text-[#1F2A33] bg-white focus:ring-1 focus:ring-[#1F2A33]">
+                <option>Ayacucho — Sede Central</option>
+                <option>Lima — Aeropuerto</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-[#4E4A45] mb-1.5">Vigente desde (opcional)</label>
+            <input type="date" value="2026-11-01" class="w-full py-2 px-3 border border-[#E5E2DC] rounded text-xs text-[#1F2A33] bg-white focus:ring-1 focus:ring-[#1F2A33] focus:border-[#1F2A33]">
+            <p class="text-[11px] text-[#706E6B] mt-1">Informativo — no bloquea la activación.</p>
+          </div>
+        </div>
+        <div class="flex justify-end pt-2">
+          <button onclick="wizardNext(1)" class="px-5 py-2 bg-[#1F2A33] hover:bg-[#2B3B48] text-white text-xs font-semibold rounded transition-colors inline-flex items-center space-x-2">
+            <span>Guardar y continuar</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Subir archivo -->
+      <div id="wizard-step-2" class="wizard-step active p-6 space-y-4">
+        <div class="bg-[#E8F5EC] border border-[#A7F3D0] rounded p-3 flex items-center space-x-2 text-xs text-[#1E7D4B]">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Borrador creado: <strong>Contrato Marco de Arrendamiento v2026-11</strong> · ID: <span class="font-mono-code">tmp-a9f3-1234</span></span>
+        </div>
+        <h3 class="text-sm font-bold text-[#1F2A33]">Paso 2 — Subir archivo</h3>
+        <p class="text-xs text-[#706E6B]">El sistema generará una URL firmada PUT directa a GCS. El archivo no transita por el servidor. Máximo 20 MB.</p>
+        <div class="drop-zone p-8 flex flex-col items-center justify-center text-center cursor-pointer" onclick="simulateUpload()">
+          <svg class="w-10 h-10 text-[#A39C90] mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <p class="text-sm font-semibold text-[#1F2A33] mb-1">Arrastra el archivo aquí o haz clic</p>
+          <p class="text-xs text-[#706E6B]">PDF o DOCX · Máximo 20 MB</p>
+          <p class="text-[11px] text-[#A39C90] mt-2 font-mono-code">Tipos permitidos: application/pdf · application/vnd.openxmlformats-officedocument.wordprocessingml.document</p>
+        </div>
+        <div id="upload-progress" class="hidden space-y-2 bg-[#EFF6FF] border border-[#BFDBFE] rounded p-3">
+          <div class="flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-[#2166B0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              <span class="font-medium text-[#1F2A33]">contrato_alquiler_v2026-11.docx</span>
+            </div>
+            <span class="font-mono-code text-[#2166B0]" id="upload-pct">0%</span>
+          </div>
+          <div class="w-full bg-[#BFDBFE] rounded-full h-1.5"><div class="bg-[#2166B0] h-1.5 rounded-full transition-all duration-300" id="upload-bar" style="width: 0%"></div></div>
+          <p class="text-[11px] text-[#2166B0] font-mono-code">Subida directa GCS vía URL firmada · Validez 15 min</p>
+        </div>
+        <div class="flex items-center justify-between pt-2">
+          <button onclick="wizardBack(2)" class="px-4 py-2 text-xs font-medium text-[#706E6B] border border-[#E5E2DC] rounded hover:bg-[#F8F7F4] transition-colors">Atrás</button>
+          <button onclick="wizardNext(2)" id="btn-step2" class="px-5 py-2 bg-[#1F2A33] hover:bg-[#2B3B48] text-white text-xs font-semibold rounded transition-colors inline-flex items-center space-x-2">
+            <span>Subir y continuar</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Activar -->
+      <div id="wizard-step-3" class="wizard-step p-6 space-y-4">
+        <div class="bg-[#E8F5EC] border border-[#A7F3D0] rounded p-3 flex items-center space-x-2 text-xs text-[#1E7D4B]">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <span>Archivo subido: <strong class="font-mono-code">gs://kairos-bucket/templates/veloxrent-aya/RENTAL_CONTRACT/v_draft.docx</strong></span>
+        </div>
+        <h3 class="text-sm font-bold text-[#1F2A33]">Paso 3 — Activar plantilla</h3>
+
+        <!-- Confirmation summary -->
+        <div class="bg-[#F8F7F4] border border-[#E5E2DC] rounded p-4 space-y-2 text-xs">
+          <div class="text-[11px] font-bold text-[#706E6B] uppercase tracking-wider font-mono-code mb-2">Resumen de activación</div>
+          <div class="flex items-center justify-between py-1.5 border-b border-[#E5E2DC]">
+            <span class="text-[#706E6B]">Tipo</span>
+            <span class="font-semibold font-mono-code text-[#1F2A33]">RENTAL_CONTRACT</span>
+          </div>
+          <div class="flex items-center justify-between py-1.5 border-b border-[#E5E2DC]">
+            <span class="text-[#706E6B]">Nombre</span>
+            <span class="font-semibold text-[#1F2A33]">Contrato Marco de Arrendamiento v2026-11</span>
+          </div>
+          <div class="flex items-center justify-between py-1.5 border-b border-[#E5E2DC]">
+            <span class="text-[#706E6B]">Formato</span>
+            <span class="font-semibold font-mono-code text-[#1F2A33]">DOCX</span>
+          </div>
+          <div class="flex items-center justify-between py-1.5">
+            <span class="text-[#706E6B]">Nueva versión</span>
+            <span class="font-semibold font-mono-code text-[#1F2A33]">v4 (asignada al activar)</span>
+          </div>
+        </div>
+
+        <!-- Warning: retire previous -->
+        <div class="bg-[#FEF2F2] border border-[#F87171] rounded p-3 flex items-start space-x-3 text-xs text-[#991B1B]">
+          <svg class="w-4 h-4 text-[#C22B2B] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <div class="leading-relaxed">
+            Al activar esta plantilla, la versión actual vigente <strong>«Contrato Marco de Arrendamiento Vehicular v2026-10» (v3)</strong> pasará automáticamente a estado <strong>Archivada</strong>. Esta acción no puede deshacerse.
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <button onclick="wizardBack(3)" class="px-4 py-2 text-xs font-medium text-[#706E6B] border border-[#E5E2DC] rounded hover:bg-[#F8F7F4] transition-colors">Atrás</button>
+          <button onclick="activateTemplate()" class="px-5 py-2 bg-[#1E7D4B] hover:bg-[#155E38] text-white text-xs font-bold rounded transition-colors inline-flex items-center space-x-2 shadow-sm">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span>Confirmar activación</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: Success -->
+      <div id="wizard-step-4" class="wizard-step p-8 flex flex-col items-center text-center space-y-4">
+        <div class="w-16 h-16 rounded-full bg-[#E8F5EC] flex items-center justify-center">
+          <svg class="w-8 h-8 text-[#1E7D4B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-[#1F2A33] mb-2">Plantilla activada correctamente</h3>
+          <p class="text-xs text-[#706E6B] max-w-xs">«Contrato Marco de Arrendamiento v2026-11» ahora es la versión vigente (v4). La versión anterior ha sido archivada.</p>
+        </div>
+        <div class="text-[11px] font-mono-code text-[#706E6B] bg-[#F8F7F4] border border-[#E5E2DC] rounded px-4 py-2">
+          ID: <strong>tpl-a9f3-1234</strong> · Versión: <strong>v4</strong> · Estado: <strong class="text-[#1E7D4B]">ACTIVE</strong>
+        </div>
+        <button onclick="closeWizard()" class="px-5 py-2 bg-[#1F2A33] hover:bg-[#2B3B48] text-white text-xs font-semibold rounded transition-colors">
+          Cerrar y volver al listado
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-[#E5E2DC] bg-white py-4 mt-12">
+    <div class="max-w-[1440px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#706E6B] gap-2">
+      <div class="flex items-center space-x-4">
+        <span class="font-medium text-[#1F2A33]">VeloxRent © 2026</span>
+        <span>•</span>
+        <span>Sistema de Gestión Comercial y Flotas</span>
+        <span>•</span>
+        <span>Módulo Administración / Plantillas de documentos</span>
+      </div>
+      <div class="flex items-center space-x-6">
+        <span>Mesa TI: <strong class="text-[#1F2A33] font-mono-code">anexo 101</strong></span>
+        <a href="#" class="text-[#C22B2B] hover:underline flex items-center space-x-1 font-medium">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          <span>Cerrar sesión</span>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function switchType(type) {
+      ['rental','reservation','return'].forEach(t => {
+        document.getElementById('panel-'+t).classList.add('hidden');
+        document.getElementById('tab-'+t).classList.remove('active');
+      });
+      document.getElementById('panel-'+type).classList.remove('hidden');
+      document.getElementById('tab-'+type).classList.add('active');
+    }
+
+    function openWizard() {
+      document.getElementById('wizard-overlay').classList.remove('hidden');
+    }
+    function closeWizard() {
+      document.getElementById('wizard-overlay').classList.add('hidden');
+      resetWizard();
+    }
+
+    function resetWizard() {
+      ['wizard-step-1','wizard-step-2','wizard-step-3','wizard-step-4'].forEach(s => {
+        document.getElementById(s).classList.remove('active');
+      });
+      document.getElementById('wizard-step-2').classList.add('active');
+      document.getElementById('upload-progress').classList.add('hidden');
+    }
+
+    function wizardNext(from) {
+      if (from === 2) {
+        const prog = document.getElementById('upload-progress');
+        prog.classList.remove('hidden');
+        let pct = 0;
+        const interval = setInterval(() => {
+          pct += 8;
+          document.getElementById('upload-bar').style.width = pct + '%';
+          document.getElementById('upload-pct').textContent = pct + '%';
+          if (pct >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+              goToStep(3);
+            }, 400);
+          }
+        }, 80);
+        return;
+      }
+      goToStep(from + 1);
+    }
+
+    function wizardBack(from) { goToStep(from - 1); }
+
+    function goToStep(n) {
+      ['wizard-step-1','wizard-step-2','wizard-step-3','wizard-step-4'].forEach((s,i) => {
+        document.getElementById(s).classList.remove('active');
+      });
+      document.getElementById('wizard-step-'+n).classList.add('active');
+    }
+
+    function simulateUpload() {
+      const prog = document.getElementById('upload-progress');
+      prog.classList.remove('hidden');
+    }
+
+    function activateTemplate() { goToStep(4); }
+  </script>
+
+</body></html>
