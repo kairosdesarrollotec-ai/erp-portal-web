@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useRentalsList } from './useRentalsList';
 import { RENTAL_STATUS_LABELS, rentalStageForStatus, rentalWizardPathForStatus } from './rental-status';
+import { type RentalResponse } from './rentals-client';
 import { AppHeader } from '../shared/AppHeader';
 import { useIncidentPermissions } from '../incidents/incident-permissions';
+import { usePermissions } from '../shared/usePermissions';
+import { SeriousBreachModal } from './SeriousBreachModal';
 import styles from './RentalsListScreen.module.css';
 
 /**
@@ -14,9 +18,13 @@ import styles from './RentalsListScreen.module.css';
  * "Convertir a Alquiler").
  */
 export function RentalsListScreen() {
-  const { state, rentals, context } = useRentalsList();
+  const { state, rentals, context, reload } = useRentalsList();
   const navigate = useNavigate();
   const { can: canIncident } = useIncidentPermissions();
+  const { can } = usePermissions();
+  const canReportBreach = can('RENTAL', 'REPORT_EXTENSION_BREACH');
+
+  const [breachTarget, setBreachTarget] = useState<RentalResponse | null>(null);
 
   function openRental(rental: (typeof rentals)[number]) {
     // ACTIVE ya no pertenece al asistente de Entrega: el alquiler en curso se
@@ -124,6 +132,20 @@ export function RentalsListScreen() {
                               Ver/Registrar incidencias
                             </Link>
                           )}
+                        {rental.status === 'EXTENSION_PENDING' && canReportBreach && (
+                          // UC-ALQ-006b / BR-ALQ-013 — solo Gerencia (RENTAL.REPORT_EXTENSION_BREACH).
+                          <button
+                            type="button"
+                            className={styles.destructiveButton}
+                            aria-label={`Registrar falta grave de ampliación de ${rental.vehiclePlate}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setBreachTarget(rental);
+                            }}
+                          >
+                            Registrar falta grave
+                          </button>
+                        )}
                         {rental.status !== 'CLOSED' &&
                           rental.status !== 'CANCELLED' &&
                           rental.status !== 'ACTIVE' &&
@@ -148,6 +170,20 @@ export function RentalsListScreen() {
           </div>
         )}
       </div>
+
+      {breachTarget && context && (
+        <SeriousBreachModal
+          open={breachTarget !== null}
+          rental={breachTarget}
+          companyId={context.companyId}
+          branchId={context.branchId}
+          onClose={() => setBreachTarget(null)}
+          onSuccess={() => {
+            setBreachTarget(null);
+            void reload();
+          }}
+        />
+      )}
     </main>
   );
 }
