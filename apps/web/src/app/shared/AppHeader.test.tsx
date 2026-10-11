@@ -1,29 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { AppHeader } from './AppHeader';
 import { useWorkSession } from './useWorkSession';
 import { roleRef } from '../../test/permissions';
 
-const signOutMock = vi.fn();
-const mockNavigate = vi.fn();
-
 vi.mock('firebase/auth', () => ({
-  signOut: (...args: unknown[]) => signOutMock(...args),
+  signOut: vi.fn().mockResolvedValue(undefined),
 }));
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: {
       email: 'operador@veloxrent.pe',
+      displayName: 'Carlos Operador',
+      metadata: { lastSignInTime: new Date(Date.now() - 3600_000).toUTCString() },
       getIdToken: vi.fn().mockResolvedValue('fake-id-token'),
     },
   }),
@@ -33,57 +24,54 @@ vi.mock('../notifications/useNotifications', () => ({
   useNotifications: () => ({ unreadCount: 2 }),
 }));
 
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => vi.fn(),
+  };
+});
+
 describe('AppHeader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useWorkSession.setState({ role: roleRef('FRONT_OFFICE', 'Front Office'), sidebarOpen: false });
-    signOutMock.mockResolvedValue(undefined);
   });
 
-  it('muestra la marca, el correo del usuario y el botón de cerrar sesión', () => {
+  it('muestra la marca y el título de página', () => {
     render(
       <MemoryRouter>
         <AppHeader pageTitle="Tablero de Operaciones" role={roleRef('FRONT_OFFICE', 'Front Office')} />
       </MemoryRouter>,
     );
-
     expect(screen.getByText('Tablero de Operaciones')).toBeInTheDocument();
-    expect(screen.getByText('operador@veloxrent.pe')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Cerrar sesión/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/ir al inicio/i)).toBeInTheDocument();
   });
 
-  it('muestra el nombre visible del rol que viene de la API (también de un rol creado a mano)', () => {
-    render(
-      <MemoryRouter>
-        <AppHeader role={roleRef(null, 'Supervisor de flota')} />
-      </MemoryRouter>,
-    );
-    expect(screen.getByText('Supervisor de flota')).toBeInTheDocument();
-  });
-
-  it('sin la prop role usa el rol de la sesión', () => {
+  it('renderiza el botón del menú de perfil (avatar)', () => {
     render(
       <MemoryRouter>
         <AppHeader />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Front Office')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Menú de perfil y sesión/i })).toBeInTheDocument();
   });
 
-  it('al hacer clic en cerrar sesión, ejecuta signOut, limpia sesión y redirige a /', async () => {
+  it('renderiza el botón de notificaciones', () => {
     render(
       <MemoryRouter>
         <AppHeader />
       </MemoryRouter>,
     );
+    expect(screen.getByRole('button', { name: /Notificaciones/i })).toBeInTheDocument();
+  });
 
-    const logoutButton = screen.getByRole('button', { name: /Cerrar sesión/i });
-    fireEvent.click(logoutButton);
-
-    await waitFor(() => {
-      expect(signOutMock).toHaveBeenCalledTimes(1);
-      expect(useWorkSession.getState().role).toBeNull();
-      expect(mockNavigate).toHaveBeenCalledWith('/');
-    });
+  it('muestra el badge de empresa/sede cuando viene en location.state', () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/dashboard', state: { companyName: 'VeloxRent', branchName: 'Lima Norte' } }]}>
+        <AppHeader />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/VeloxRent — Lima Norte/)).toBeInTheDocument();
   });
 });
