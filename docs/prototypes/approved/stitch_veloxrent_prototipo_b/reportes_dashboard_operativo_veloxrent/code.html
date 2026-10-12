@@ -1,0 +1,264 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes — Dashboard Operativo - VeloxRent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { brand: { primary:'#1F2A33', accent:'#C6600A', neutralMuted:'#4E4A45', border:'#E5E2DC', bgLight:'#F9F8F6' } },
+          fontFamily: { sans:['"Public Sans"','sans-serif'], display:['"Space Grotesk"','sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    .kpi-trend-up   { color:#1B5E20; }
+    .kpi-trend-down { color:#880E4F; }
+    .bar { display:flex; align-items:flex-end; gap:4px; height:80px; }
+    .bar-col { flex:1; background:#1F2A33; border-radius:4px 4px 0 0; opacity:0.7; }
+    .bar-col.active { opacity:1; background:#C6600A; }
+  </style>
+</head>
+<body class="bg-[#F9F8F6] text-[#1F2A33] font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-[#E5E2DC] bg-[#FFFFFF] sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <span class="font-display font-bold text-2xl tracking-tight text-[#1F2A33]">Velox<span class="text-[#C6600A]">Rent</span></span>
+        <div class="h-5 w-px bg-[#E5E2DC]"></div>
+        <nav class="flex items-center space-x-2 text-sm text-[#4E4A45]">
+          <a href="#" class="px-2.5 py-1 text-xs font-medium rounded-md bg-[#F4F3F0] text-[#1F2A33]">Gestión Interna</a>
+          <span class="text-[#A39C90] text-xs"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+          <span class="text-[#1F2A33] font-semibold text-sm">Reportes</span>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="relative p-2 rounded-full hover:bg-[#F4F3F0] text-[#4E4A45]">
+          <i class="fa-regular fa-bell text-lg"></i>
+        </button>
+        <div class="flex items-center gap-2 pl-3 border-l border-[#E5E2DC]">
+          <div class="w-8 h-8 rounded-full bg-[#1F2A33] flex items-center justify-center text-white text-xs font-semibold">GM</div>
+          <div class="hidden md:block">
+            <p class="text-xs font-semibold text-[#1F2A33] leading-none">Gerardo M.</p>
+            <p class="text-[10px] text-[#4E4A45] mt-0.5">Ops. Manager</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 max-w-[1440px] mx-auto w-full">
+
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex flex-col w-56 shrink-0 border-r border-[#E5E2DC] bg-[#FFFFFF] py-4 gap-1 px-2">
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-gauge-high w-4 text-center"></i> Tablero
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-car w-4 text-center"></i> Alquileres
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-rotate-left w-4 text-center"></i> Devoluciones
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-coins w-4 text-center"></i> Pagos y Garantías
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-[#1F2A33] text-white font-medium">
+        <i class="fa-solid fa-chart-line w-4 text-center"></i> Reportes
+      </a>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 p-6 overflow-auto">
+
+      <!-- Header row -->
+      <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 class="text-xl font-bold text-[#1F2A33] font-display">Reportes</h1>
+          <p class="text-sm text-[#4E4A45] mt-0.5">VeloxRent · Sede Lima · Actualizado hace 2 min</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Tabs -->
+          <div class="flex bg-[#F4F3F0] rounded-lg p-0.5 text-sm">
+            <button class="px-4 py-1.5 rounded-md bg-white shadow-sm font-semibold text-[#1F2A33]">Operativo</button>
+            <button class="px-4 py-1.5 rounded-md text-[#4E4A45] hover:text-[#1F2A33]">Financiero</button>
+          </div>
+          <!-- Export -->
+          <button class="flex items-center gap-2 px-3 py-2 border border-[#E5E2DC] rounded-lg text-sm font-medium text-[#1F2A33] bg-white hover:bg-[#F4F3F0]">
+            <i class="fa-solid fa-arrow-down-to-bracket text-xs text-[#C6600A]"></i> Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Grid — Operational -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#E3EFF7] flex items-center justify-center">
+              <i class="fa-solid fa-car text-[#2166B0] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Alquileres activos</p>
+          </div>
+          <p class="text-3xl font-bold text-[#1F2A33] font-display">23</p>
+          <p class="text-xs kpi-trend-up mt-1"><i class="fa-solid fa-arrow-up text-[10px]"></i> +3 vs ayer</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#FFF3E0] flex items-center justify-center">
+              <i class="fa-solid fa-rotate-left text-[#E65100] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Devoluciones pendientes</p>
+          </div>
+          <p class="text-3xl font-bold text-[#E65100] font-display">7</p>
+          <p class="text-xs text-[#4E4A45] mt-1">3 con daño activo</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#E8F5E9] flex items-center justify-center">
+              <i class="fa-solid fa-truck text-[#1B5E20] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Flota disponible</p>
+          </div>
+          <p class="text-3xl font-bold text-[#1B5E20] font-display">14</p>
+          <p class="text-xs text-[#4E4A45] mt-1">de 44 vehículos totales</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#F3E5F5] flex items-center justify-center">
+              <i class="fa-solid fa-calendar-check text-[#6A1B9A] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Reservas activas</p>
+          </div>
+          <p class="text-3xl font-bold text-[#1F2A33] font-display">11</p>
+          <p class="text-xs text-[#4E4A45] mt-1">Próximas 48h</p>
+        </div>
+
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#FCE4EC] flex items-center justify-center">
+              <i class="fa-solid fa-triangle-exclamation text-[#880E4F] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Incidencias abiertas</p>
+          </div>
+          <p class="text-3xl font-bold text-[#880E4F] font-display">2</p>
+          <p class="text-xs text-[#4E4A45] mt-1">Sin incidencias críticas</p>
+        </div>
+
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+        <!-- Alquileres por día (simple bar chart) -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-[#1F2A33]">Alquileres diarios — últimos 7 días</h2>
+          </div>
+          <div class="bar mb-2">
+            <div class="bar-col" style="height:40%"></div>
+            <div class="bar-col" style="height:60%"></div>
+            <div class="bar-col" style="height:55%"></div>
+            <div class="bar-col" style="height:80%"></div>
+            <div class="bar-col" style="height:65%"></div>
+            <div class="bar-col" style="height:70%"></div>
+            <div class="bar-col active" style="height:85%"></div>
+          </div>
+          <div class="flex justify-between text-[10px] text-[#A39C90] px-0.5">
+            <span>05 oct</span><span>06</span><span>07</span><span>08</span><span>09</span><span>10</span><span>Hoy</span>
+          </div>
+          <p class="text-xs text-[#4E4A45] mt-3 text-right">Hoy: <strong class="text-[#C6600A]">23</strong> alquileres activos</p>
+        </div>
+
+        <!-- Utilización de flota -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-[#1F2A33]">Utilización de flota</h2>
+            <span class="text-xs text-[#4E4A45]">44 vehículos totales</span>
+          </div>
+          <!-- Horizontal stacked bar -->
+          <div class="flex items-center gap-2 mb-3">
+            <div class="flex-1 h-8 rounded-lg overflow-hidden flex">
+              <div class="bg-[#1F2A33]" style="width:52%" title="Alquilados: 23"></div>
+              <div class="bg-[#C6600A]" style="width:16%" title="En devolución: 7"></div>
+              <div class="bg-[#E5E2DC]" style="width:32%" title="Disponibles: 14"></div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-4 text-xs text-[#4E4A45]">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#1F2A33]"></span> Alquilados (23)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#C6600A]"></span> En devolución (7)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-[#E5E2DC]"></span> Disponibles (14)</span>
+          </div>
+          <div class="mt-4 pt-4 border-t border-[#F0EEE9]">
+            <p class="text-xs text-[#4E4A45]">Tasa de utilización</p>
+            <p class="text-2xl font-bold text-[#1F2A33] font-display mt-0.5">68%</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="bg-white rounded-xl border border-[#E5E2DC] p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold text-[#1F2A33]">Actividad reciente</h2>
+          <span class="text-xs text-[#4E4A45]">Últimos 10 eventos</span>
+        </div>
+        <div class="space-y-3">
+
+          <div class="flex items-start gap-3">
+            <div class="w-7 h-7 rounded-full bg-[#E8F5E9] flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-car text-[#1B5E20] text-xs"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm text-[#1F2A33]"><strong>ALQ-1203</strong> — Alquiler iniciado · Rodrigo Paredes · Toyota Hilux Z7A-434</p>
+              <p class="text-xs text-[#A39C90]">Hace 2 horas · Cajero: Miguel R.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-7 h-7 rounded-full bg-[#FFF3E0] flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-rotate-left text-[#E65100] text-xs"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm text-[#1F2A33]"><strong>DEV-0894</strong> — Devolución recibida con daños · Ana Torres · Chevrolet Spin B3C-102</p>
+              <p class="text-xs text-[#A39C90]">Hace 3 horas · Admin: Luis F.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-7 h-7 rounded-full bg-[#E8F5E9] flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-coins text-[#1B5E20] text-xs"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm text-[#1F2A33]"><strong>ALQ-1187</strong> — Garantía devuelta · S/ 1,500 · Carlos Méndez</p>
+              <p class="text-xs text-[#A39C90]">Hace 5 horas · Aprobador: Fiorella A.</p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-3">
+            <div class="w-7 h-7 rounded-full bg-[#E3EFF7] flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-calendar-check text-[#2166B0] text-xs"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm text-[#1F2A33]"><strong>RES-0318</strong> — Reserva confirmada · Kia Sportage A1F-887 · 14 oct 2026</p>
+              <p class="text-xs text-[#A39C90]">Hace 6 horas · Agente: Patricia Q.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+</body></html>

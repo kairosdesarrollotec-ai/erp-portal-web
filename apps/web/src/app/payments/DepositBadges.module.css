@@ -1,0 +1,42 @@
+/* Badges de estado de garantía (PAG-01/PAG-02).
+ * Colores según PROTO-PAG-01-BANDEJA-GARANTIAS-DESKTOP. */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+/* HELD — En custodia (naranja) */
+.status_HELD {
+  background: #FFF3E0;
+  color: #E65100;
+  border-color: #FFCC80;
+}
+
+/* RETURNED — Devuelta (verde) */
+.status_RETURNED {
+  background: #E8F5E9;
+  color: #1B5E20;
+  border-color: #A5D6A7;
+}
+
+/* RETAINED — Retenida (rosa/rojo) */
+.status_RETAINED {
+  background: #FCE4EC;
+  color: #880E4F;
+  border-color: #F48FB1;
+}
+
+/* PARTIALLY_RETAINED — Parcialmente retenida (amarillo) */
+.status_PARTIALLY_RETAINED {
+  background: #FFF8E1;
+  color: #F57F17;
+  border-color: #FFE082;
+}

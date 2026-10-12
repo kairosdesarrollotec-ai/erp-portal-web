@@ -1,0 +1,397 @@
+/* PAG-02 — Detalle de Garantía.
+ * Baseline: PROTO-PAG-02-DETALLE-GARANTIA-DESKTOP (APPROVED 2026-10-11). */
+
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  overflow-x: hidden;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.backLink {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 1.25rem;
+  color: var(--color-ink-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.backLink:hover {
+  color: var(--color-ink);
+}
+
+.statusText {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.notice {
+  font-size: 13px;
+  color: var(--color-success);
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.errorBanner {
+  font-size: 13px;
+  color: var(--color-error);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin: 0 0 1rem;
+}
+
+/* Layout 2/3 + 1/3 — apilado en mobile */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 960px) {
+  .layout {
+    grid-template-columns: 2fr 1fr;
+    align-items: start;
+  }
+}
+
+.mainColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sideColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-surface-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+/* Cabecera de garantía */
+.cardHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.depositTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.375rem;
+}
+
+.depositHeading {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.depositSubtitle {
+  font-size: 13px;
+  color: var(--color-ink-muted);
+  margin: 0;
+}
+
+.amountsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.875rem;
+  margin-top: 0.75rem;
+}
+
+.amountBox {
+  background: var(--color-surface-muted, #F9F8F6);
+  border: 1px solid #F0EEE9;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.amountLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  margin: 0 0 0.25rem;
+}
+
+.amountValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.amountWarning {
+  color: #E65100;
+}
+
+/* Historial de ajustes */
+.adjHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 0.75rem;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emptyAdj {
+  font-size: 13px;
+  color: var(--color-ink-muted);
+  margin: 0 0 0.75rem;
+}
+
+.adjList {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.adjItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--color-surface-muted, #F9F8F6);
+  border: 1px solid #F0EEE9;
+}
+
+.adjIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.adjIcon_DISCOUNT        { background: #FFF3E0; color: #E65100; }
+.adjIcon_FULL_RETENTION  { background: #FCE4EC; color: #880E4F; }
+.adjIcon_RELEASE         { background: #E8F5E9; color: #1B5E20; }
+.adjIcon_IMMOBILIZATION_CHARGE { background: #FFF8E1; color: #F57F17; }
+
+.adjBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.adjRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.adjTypeName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  margin: 0;
+}
+
+.adjAmount {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.adjAmountNegative { color: #E65100; }
+.adjAmountPositive { color: #1B5E20; }
+
+.adjReason {
+  font-size: 12px;
+  color: var(--color-ink-muted);
+  margin: 0 0 0.375rem;
+  overflow-wrap: anywhere;
+}
+
+.adjMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 11px;
+  color: var(--color-ink-subtle);
+}
+
+.adjTypeBadge {
+  padding: 0.125rem 0.375rem;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.adjTypeBadge_DISCOUNT        { background: #FFF3E0; color: #E65100; }
+.adjTypeBadge_FULL_RETENTION  { background: #FCE4EC; color: #880E4F; }
+.adjTypeBadge_RELEASE         { background: #E8F5E9; color: #1B5E20; }
+.adjTypeBadge_IMMOBILIZATION_CHARGE { background: #FFF8E1; color: #F57F17; }
+
+.immutabilityNote {
+  font-size: 11px;
+  color: var(--color-ink-subtle);
+  text-align: center;
+  margin: 0;
+}
+
+/* Info de alquiler */
+.infoList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 13px;
+}
+
+.infoRow dt {
+  color: var(--color-ink-muted);
+}
+
+.infoRow dd {
+  margin: 0;
+  font-weight: 500;
+  color: var(--color-ink);
+  text-align: right;
+}
+
+.infoCode {
+  font-weight: 700;
+}
+
+/* Acciones */
+.actionItem {
+  margin-bottom: 0.75rem;
+}
+
+.actionItem:last-child {
+  margin-bottom: 0;
+}
+
+.actionButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.actionButton:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.actionButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.actionButtonSecondary {
+  composes: actionButton;
+  border-color: var(--color-surface-border);
+  color: var(--color-ink-muted);
+}
+
+.actionButtonSecondary:hover:not(:disabled) {
+  background: var(--color-surface-muted, #F9F8F6);
+}
+
+.actionHint {
+  font-size: 11px;
+  color: var(--color-ink-subtle);
+  text-align: center;
+  margin: 0.25rem 0 0;
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .amountsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .adjRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

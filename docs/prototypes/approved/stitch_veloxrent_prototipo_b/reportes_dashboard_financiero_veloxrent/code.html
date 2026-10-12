@@ -1,0 +1,251 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes — Dashboard Financiero - VeloxRent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { brand: { primary:'#1F2A33', accent:'#C6600A', neutralMuted:'#4E4A45', border:'#E5E2DC', bgLight:'#F9F8F6' } },
+          fontFamily: { sans:['"Public Sans"','sans-serif'], display:['"Space Grotesk"','sans-serif'] }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#F9F8F6] text-[#1F2A33] font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-[#E5E2DC] bg-[#FFFFFF] sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <span class="font-display font-bold text-2xl tracking-tight text-[#1F2A33]">Velox<span class="text-[#C6600A]">Rent</span></span>
+        <div class="h-5 w-px bg-[#E5E2DC]"></div>
+        <nav class="flex items-center space-x-2 text-sm text-[#4E4A45]">
+          <a href="#" class="px-2.5 py-1 text-xs font-medium rounded-md bg-[#F4F3F0] text-[#1F2A33]">Gestión Interna</a>
+          <span class="text-[#A39C90] text-xs"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+          <span class="text-[#1F2A33] font-semibold text-sm">Reportes</span>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="relative p-2 rounded-full hover:bg-[#F4F3F0] text-[#4E4A45]">
+          <i class="fa-regular fa-bell text-lg"></i>
+        </button>
+        <div class="flex items-center gap-2 pl-3 border-l border-[#E5E2DC]">
+          <div class="w-8 h-8 rounded-full bg-[#1F2A33] flex items-center justify-center text-white text-xs font-semibold">GM</div>
+          <div class="hidden md:block">
+            <p class="text-xs font-semibold text-[#1F2A33] leading-none">Gerardo M.</p>
+            <p class="text-[10px] text-[#4E4A45] mt-0.5">Ops. Manager</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 max-w-[1440px] mx-auto w-full">
+
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex flex-col w-56 shrink-0 border-r border-[#E5E2DC] bg-[#FFFFFF] py-4 gap-1 px-2">
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-gauge-high w-4 text-center"></i> Tablero
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-car w-4 text-center"></i> Alquileres
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-rotate-left w-4 text-center"></i> Devoluciones
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-coins w-4 text-center"></i> Pagos y Garantías
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-[#1F2A33] text-white font-medium">
+        <i class="fa-solid fa-chart-line w-4 text-center"></i> Reportes
+      </a>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 p-6 overflow-auto">
+
+      <!-- Header row -->
+      <div class="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 class="text-xl font-bold text-[#1F2A33] font-display">Reportes</h1>
+          <p class="text-sm text-[#4E4A45] mt-0.5">VeloxRent · Sede Lima · Actualizado hace 2 min</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Date range filter -->
+          <div class="flex items-center gap-2 bg-white border border-[#E5E2DC] rounded-lg px-3 py-2 text-sm">
+            <i class="fa-regular fa-calendar text-[#C6600A] text-xs"></i>
+            <span class="text-[#4E4A45]">11 sep 2026</span>
+            <span class="text-[#A39C90]">–</span>
+            <span class="text-[#4E4A45]">11 oct 2026</span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-[#A39C90] ml-1"></i>
+          </div>
+          <!-- Tabs -->
+          <div class="flex bg-[#F4F3F0] rounded-lg p-0.5 text-sm">
+            <button class="px-4 py-1.5 rounded-md text-[#4E4A45] hover:text-[#1F2A33]">Operativo</button>
+            <button class="px-4 py-1.5 rounded-md bg-white shadow-sm font-semibold text-[#1F2A33]">Financiero</button>
+          </div>
+          <!-- Export -->
+          <button class="flex items-center gap-2 px-3 py-2 border border-[#E5E2DC] rounded-lg text-sm font-medium text-[#1F2A33] bg-white hover:bg-[#F4F3F0]">
+            <i class="fa-solid fa-arrow-down-to-bracket text-xs text-[#C6600A]"></i> Exportar CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Section label -->
+      <p class="text-xs font-semibold text-[#4E4A45] uppercase tracking-wider mb-3">Ingresos y garantías</p>
+
+      <!-- KPI Grid — Financial (6 cards, 3 col desktop) -->
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+
+        <!-- Ingresos por alquiler -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4 col-span-2 md:col-span-1">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#E8F5E9] flex items-center justify-center">
+              <i class="fa-solid fa-money-bill-wave text-[#1B5E20] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Ingresos por alquiler</p>
+          </div>
+          <p class="text-3xl font-bold text-[#1B5E20] font-display">S/ 48,350</p>
+          <p class="text-xs text-[#4E4A45] mt-1">Suma de garantías originales (alquileres cerrados)</p>
+        </div>
+
+        <!-- Garantías en custodia -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#E3EFF7] flex items-center justify-center">
+              <i class="fa-solid fa-lock text-[#2166B0] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">En custodia</p>
+          </div>
+          <p class="text-3xl font-bold text-[#2166B0] font-display">14</p>
+          <p class="text-xs text-[#4E4A45] mt-1">S/ 18,200 retenidos</p>
+        </div>
+
+        <!-- Garantías devueltas -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#E8F5E9] flex items-center justify-center">
+              <i class="fa-solid fa-circle-check text-[#1B5E20] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Devueltas</p>
+          </div>
+          <p class="text-3xl font-bold text-[#1B5E20] font-display">42</p>
+          <p class="text-xs text-[#4E4A45] mt-1">S/ 35,600 liberados</p>
+        </div>
+
+        <!-- Garantías retenidas -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#FCE4EC] flex items-center justify-center">
+              <i class="fa-solid fa-triangle-exclamation text-[#B71C1C] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Retenidas</p>
+          </div>
+          <p class="text-3xl font-bold text-[#B71C1C] font-display">8</p>
+          <p class="text-xs text-[#4E4A45] mt-1">S/ 7,200 retenidos</p>
+        </div>
+
+        <!-- Parcialmente retenidas -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#FFF3E0] flex items-center justify-center">
+              <i class="fa-solid fa-circle-half-stroke text-[#E65100] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Parcialmente retenidas</p>
+          </div>
+          <p class="text-3xl font-bold text-[#E65100] font-display">3</p>
+          <p class="text-xs text-[#4E4A45] mt-1">S/ 1,850 retenidos</p>
+        </div>
+
+        <!-- Neto retenido -->
+        <div class="bg-white rounded-xl border-2 border-[#C6600A] p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-8 h-8 rounded-lg bg-[#FFF3E0] flex items-center justify-center">
+              <i class="fa-solid fa-scale-balanced text-[#C6600A] text-sm"></i>
+            </div>
+            <p class="text-xs text-[#4E4A45] font-medium leading-tight">Neto retenido</p>
+          </div>
+          <p class="text-3xl font-bold text-[#C6600A] font-display">S/ 9,050</p>
+          <p class="text-xs text-[#4E4A45] mt-1">Retenciones totales confirmadas</p>
+        </div>
+
+      </div>
+
+      <!-- Breakdown table -->
+      <div class="bg-white rounded-xl border border-[#E5E2DC] overflow-hidden">
+        <div class="px-5 py-4 border-b border-[#E5E2DC] flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-[#1F2A33]">Detalle por estado de garantía</h2>
+        </div>
+        <table class="w-full text-sm">
+          <thead class="bg-[#F9F8F6] text-[#4E4A45] text-xs">
+            <tr>
+              <th class="px-5 py-3 text-left font-medium">Estado</th>
+              <th class="px-5 py-3 text-right font-medium">Cantidad</th>
+              <th class="px-5 py-3 text-right font-medium">Monto total</th>
+              <th class="px-5 py-3 text-right font-medium">% del scope</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#F4F3F0]">
+            <tr class="hover:bg-[#FAFAF9]">
+              <td class="px-5 py-3.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E3EFF7] text-[#2166B0]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#2166B0]"></span>En custodia
+                </span>
+              </td>
+              <td class="px-5 py-3.5 text-right font-mono font-medium">14</td>
+              <td class="px-5 py-3.5 text-right font-mono">S/ 18,200.00</td>
+              <td class="px-5 py-3.5 text-right text-[#4E4A45]">29.0%</td>
+            </tr>
+            <tr class="hover:bg-[#FAFAF9]">
+              <td class="px-5 py-3.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E8F5E9] text-[#1B5E20]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#1B5E20]"></span>Devuelta
+                </span>
+              </td>
+              <td class="px-5 py-3.5 text-right font-mono font-medium">42</td>
+              <td class="px-5 py-3.5 text-right font-mono">S/ 35,600.00</td>
+              <td class="px-5 py-3.5 text-right text-[#4E4A45]">56.8%</td>
+            </tr>
+            <tr class="hover:bg-[#FAFAF9]">
+              <td class="px-5 py-3.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FCE4EC] text-[#B71C1C]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#B71C1C]"></span>Retenida
+                </span>
+              </td>
+              <td class="px-5 py-3.5 text-right font-mono font-medium">8</td>
+              <td class="px-5 py-3.5 text-right font-mono">S/ 7,200.00</td>
+              <td class="px-5 py-3.5 text-right text-[#4E4A45]">11.5%</td>
+            </tr>
+            <tr class="hover:bg-[#FAFAF9]">
+              <td class="px-5 py-3.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#FFF3E0] text-[#E65100]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#E65100]"></span>Parcialmente retenida
+                </span>
+              </td>
+              <td class="px-5 py-3.5 text-right font-mono font-medium">3</td>
+              <td class="px-5 py-3.5 text-right font-mono">S/ 1,850.00</td>
+              <td class="px-5 py-3.5 text-right text-[#4E4A45]">3.0%</td>
+            </tr>
+          </tbody>
+          <tfoot class="bg-[#F9F8F6] font-semibold text-[#1F2A33]">
+            <tr>
+              <td class="px-5 py-3.5 text-xs uppercase tracking-wide text-[#4E4A45]">Total scope</td>
+              <td class="px-5 py-3.5 text-right font-mono">67</td>
+              <td class="px-5 py-3.5 text-right font-mono">S/ 62,850.00</td>
+              <td class="px-5 py-3.5 text-right">100%</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+    </main>
+  </div>
+
+</body></html>

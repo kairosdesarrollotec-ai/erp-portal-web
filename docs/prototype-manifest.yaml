@@ -435,8 +435,8 @@ screens:
   supersedes: null
   note: cola autorizacion movil
   is_reference_asset: false
-- proto_id: PROTO-ASSET-b-squeda-global-desplegable-veloxrent
-  ux_id: null
+- proto_id: PROTO-BUS-01-DROPDOWN-DESKTOP
+  ux_id: BUS-01
   module: transversal
   source: stitch_veloxrent_prototipo_b
   folder: b_squeda_global_desplegable_veloxrent
@@ -451,16 +451,16 @@ screens:
     label: desktop
   theme: light
   locale: es-PE
-  status: PENDING_TRACE_REVIEW
-  approved_by_role: null
-  approved_at: null
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-10-11'
   sha256: 3ebeb7489734b8f7f51c60105bd99357f8fc8f81b30c316fd173a80e50217d6b
   bytes: 197504
   supersedes: null
   note: shell global - busqueda, sin UX-ID canonico dedicado
   is_reference_asset: false
-- proto_id: PROTO-ASSET-b-squeda-global-m-vil-veloxrent
-  ux_id: null
+- proto_id: PROTO-BUS-01-DROPDOWN-MOBILE
+  ux_id: BUS-01
   module: transversal
   source: stitch_veloxrent_prototipo_b
   folder: b_squeda_global_m_vil_veloxrent
@@ -475,16 +475,16 @@ screens:
     label: mobile
   theme: light
   locale: es-PE
-  status: PENDING_TRACE_REVIEW
-  approved_by_role: null
-  approved_at: null
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-10-11'
   sha256: a81e8c93957938f4ac4001d73ccf9fc20ce6bb4de8ed5ad19ff649b143f0a641
   bytes: 117590
   supersedes: null
   note: shell global - busqueda movil
   is_reference_asset: false
-- proto_id: PROTO-ASSET-b-squeda-global-sin-resultados-veloxrent
-  ux_id: null
+- proto_id: PROTO-BUS-01-EMPTY-DESKTOP
+  ux_id: BUS-01
   module: transversal
   source: stitch_veloxrent_prototipo_b
   folder: b_squeda_global_sin_resultados_veloxrent
@@ -499,9 +499,9 @@ screens:
     label: desktop
   theme: light
   locale: es-PE
-  status: PENDING_TRACE_REVIEW
-  approved_by_role: null
-  approved_at: null
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-10-11'
   sha256: dd58114fb9a1f69f6ab4df7c418b34722d87f9c29676b7f43cd3c1c28d4e6797
   bytes: 165730
   supersedes: null
@@ -4071,4 +4071,176 @@ screens:
     y el Design System aprobado (stitch_veloxrent_prototipo_b).
     Incluye wizard de subida de 3 pasos (DRAFT → upload → activate).
     Aprobado por PRODUCTO el 2026-10-09. Baseline vigente para TPL-TODO-004.
+  is_reference_asset: false
+- proto_id: PROTO-PAG-01-BANDEJA-GARANTIAS-DESKTOP
+  ux_id: PAG-01
+  module: payments
+  source: stitch_veloxrent_prototipo_b
+  folder: pagos_garantias_bandeja_veloxrent
+  files:
+    screenshot: null
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/pagos_garantias_bandeja_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 1440
+    height: 1024
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: \'2026-10-11\'
+  sha256: null
+  bytes: 15086
+  supersedes: null
+  note: >
+    PAG-01 lista de garantías de alquiler — creado 11-oct-2026 como base usable
+    inicial a partir de BDD-PAG-001 / SDD-PAG-001 / TDD-PAG-001.
+    Aprobado por PRODUCTO 11-oct-2026. Implementado en DepositsListScreen.tsx.
+  is_reference_asset: false
+- proto_id: PROTO-PAG-01-BANDEJA-GARANTIAS-MOBILE
+  ux_id: PAG-01
+  module: payments
+  source: stitch_veloxrent_prototipo_b
+  folder: pagos_garantias_bandeja_mobile_veloxrent
+  files:
+    screenshot: null
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/pagos_garantias_bandeja_mobile_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 375
+    height: 812
+    dpr: 2
+    label: mobile
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-10-12'
+  sha256: null
+  bytes: null
+  supersedes: null
+  note: >
+    PAG-01 lista de garantías — variante mobile (375px). Layout de cards con grid
+    2×2 de resumen, una card por garantía (rentalCode, cliente, estado, montos, fecha),
+    botón "Ver detalle" por card, "Cargar más" al pie. Creado 12-oct-2026 conforme al
+    Design System VeloxRent. Aprobado por PRODUCTO 12-oct-2026.
+  is_reference_asset: false
+- proto_id: PROTO-PAG-02-DETALLE-GARANTIA-DESKTOP
+  ux_id: PAG-02
+  module: payments
+  source: stitch_veloxrent_prototipo_b
+  folder: pagos_garantia_detalle_veloxrent
+  files:
+    screenshot: null
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/pagos_garantia_detalle_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 1440
+    height: 1024
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: \'2026-10-11\'
+  sha256: null
+  bytes: 10482
+  supersedes: null
+  note: >
+    PAG-02 detalle y resolución de garantía — creado 11-oct-2026 como base usable
+    inicial. Muestra monto original, ajustes append-only y acciones contextuales
+    (REGISTER_ADJUSTMENT, APPROVE_REFUND, CLOSE_FINANCIAL) según permiso del actor.
+    Aprobado por PRODUCTO 11-oct-2026. Implementado en DepositDetailScreen.tsx.
+  is_reference_asset: false
+- proto_id: PROTO-PAG-02-DETALLE-GARANTIA-MOBILE
+  ux_id: PAG-02
+  module: payments
+  source: stitch_veloxrent_prototipo_b
+  folder: pagos_garantias_detalle_mobile_veloxrent
+  files:
+    screenshot: null
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/pagos_garantias_detalle_mobile_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 375
+    height: 812
+    dpr: 2
+    label: mobile
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-10-12'
+  sha256: null
+  bytes: 10412
+  supersedes: null
+  note: >
+    PAG-02 detalle y resolución de garantía — variante mobile (375px). Layout de columna
+    única: back button, encabezado con código y badge de estado, chip de vehículo, grid
+    2×2 de montos, acordeón de info de alquiler, historial de ajustes con botón inline,
+    panel de acciones apilado (devolución y cerrar expediente con estados deshabilitado /
+    activo según permiso) y línea de tiempo. Creado 12-oct-2026 conforme al Design System
+    VeloxRent. Aprobado por PRODUCTO 12-oct-2026. Implementado en DepositDetailScreen.tsx.
+  is_reference_asset: false
+- proto_id: PROTO-REP-01-DASHBOARD-OPERATIVO-DESKTOP
+  ux_id: REP-01
+  module: reporting
+  source: stitch_veloxrent_prototipo_b
+  folder: reportes_dashboard_operativo_veloxrent
+  files:
+    screenshot: null
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/reportes_dashboard_operativo_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 1440
+    height: 1024
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: \'2026-10-11\'
+  sha256: null
+  bytes: 13703
+  supersedes: null
+  note: >
+    REP-01 dashboard operativo — creado 11-oct-2026 como base usable inicial a
+    partir de BDD-REP-001 / SDD-REP-001 / TDD-REP-001. Incluye KPIs operativos
+    (alquileres activos, devoluciones, flota, reservas, incidencias), gráfico de
+    alquileres diarios, utilización de flota y feed de actividad reciente.
+    Aprobado por PRODUCTO 11-oct-2026. Implementado en ReportsDashboardScreen.tsx (tab Operativo).
+  is_reference_asset: false
+- proto_id: PROTO-REP-01-DASHBOARD-FINANCIERO-DESKTOP
+  ux_id: REP-01
+  module: reporting
+  source: stitch_veloxrent_prototipo_b
+  folder: reportes_dashboard_financiero_veloxrent
+  files:
+    screenshot: null
+    code: docs/prototypes/approved/stitch_veloxrent_prototipo_b/reportes_dashboard_financiero_veloxrent/code.html
+  screen_state: READY
+  viewport:
+    width: 1440
+    height: 1024
+    dpr: 1
+    label: desktop
+  theme: light
+  locale: es-PE
+  status: APPROVED
+  approved_by_role: PRODUCTO
+  approved_at: '2026-10-11'
+  sha256: null
+  bytes: null
+  supersedes: null
+  note: >
+    REP-01 dashboard financiero — creado 11-oct-2026 como base usable inicial
+    a partir de reporting.yaml v0.1.0. Muestra 6 KPIs financieros: ingresos por
+    alquiler, garantías en custodia/devueltas/retenidas/parciales y neto retenido.
+    Incluye tabla de detalle por estado con porcentajes del scope.
+    Sigue el lenguaje visual de PROTO-REP-01-DASHBOARD-OPERATIVO-DESKTOP.
+    Aprobado por PRODUCTO 11-oct-2026. Implementado en ReportsDashboardScreen.tsx (tab Financiero).
   is_reference_asset: false

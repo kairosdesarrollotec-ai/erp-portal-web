@@ -7,6 +7,7 @@ import type { RoleRef } from './role-ref';
 import { APP_BRAND } from '../config/brand';
 import { useWorkSession } from './useWorkSession';
 import { UserMenuDropdown } from './UserMenuDropdown';
+import { GlobalSearch } from './GlobalSearch/GlobalSearch';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
@@ -77,6 +78,7 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
               {branchBadge}
             </span>
           )}
+          <GlobalSearch />
           <button
             type="button"
             className={styles.bellButton}

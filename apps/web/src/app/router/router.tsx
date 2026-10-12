@@ -64,6 +64,9 @@ import { FieldTripAuthorizationScreen } from '../hr-administration/FieldTripAuth
 import { ReturnFollowUpScreen } from '../hr-administration/ReturnFollowUpScreen';
 import { TerminationScreen } from '../hr-administration/TerminationScreen';
 import { TrainingScreen } from '../hr-administration/TrainingScreen';
+import { ReportsDashboardScreen } from '../reporting/ReportsDashboardScreen';
+import { DepositsListScreen } from '../payments/DepositsListScreen';
+import { DepositDetailScreen } from '../payments/DepositDetailScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -156,6 +159,12 @@ export const router = createBrowserRouter([
               { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
               { path: '/admin/plantillas', element: <DocumentTemplatesScreen /> },
               { path: '/modulos', element: <ModuleHubScreen /> },
+              // Reportes REP-01 — PROTO-REP-01-DASHBOARD-OPERATIVO-DESKTOP (APPROVED 2026-10-11).
+              { path: '/reportes', element: <ReportsDashboardScreen /> },
+              // Pagos y Garantias PAG-01 (bandeja) / PAG-02 (detalle).
+              // Baselines: PROTO-PAG-01-BANDEJA-GARANTIAS-DESKTOP / PROTO-PAG-02-DETALLE-GARANTIA-DESKTOP (APPROVED 2026-10-11).
+              { path: '/pagos/garantias', element: <DepositsListScreen /> },
+              { path: '/pagos/garantias/:depositId', element: <DepositDetailScreen /> },
             ],
           },
         ],

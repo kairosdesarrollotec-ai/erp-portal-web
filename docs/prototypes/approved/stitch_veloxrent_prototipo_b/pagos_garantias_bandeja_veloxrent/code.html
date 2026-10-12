@@ -1,0 +1,280 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pagos y Garantías — Bandeja - VeloxRent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              primary: '#1F2A33',
+              accent: '#C6600A',
+              accentHover: '#ab5206',
+              neutralDark: '#1F2A33',
+              neutralMuted: '#4E4A45',
+              border: '#E5E2DC',
+              borderLight: '#F0EEE9',
+              bgLight: '#F9F8F6',
+              bgSurface: '#FFFFFF',
+            }
+          },
+          fontFamily: {
+            sans: ['"Public Sans"', 'sans-serif'],
+            display: ['"Space Grotesk"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .status-held    { background:#FFF3E0; color:#E65100; border:1px solid #FFCC80; }
+    .status-returned { background:#E8F5E9; color:#1B5E20; border:1px solid #A5D6A7; }
+    .status-retained { background:#FCE4EC; color:#880E4F; border:1px solid #F48FB1; }
+    .status-partial  { background:#FFF8E1; color:#F57F17; border:1px solid #FFE082; }
+  </style>
+</head>
+<body class="bg-[#F9F8F6] text-[#1F2A33] font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-[#E5E2DC] bg-[#FFFFFF] sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-2">
+          <span class="font-display font-bold text-2xl tracking-tight text-[#1F2A33]">Velox<span class="text-[#C6600A]">Rent</span></span>
+        </div>
+        <div class="h-5 w-px bg-[#E5E2DC]"></div>
+        <nav class="flex items-center space-x-2 text-sm text-[#4E4A45]">
+          <a href="#" class="px-2.5 py-1 text-xs font-medium rounded-md bg-[#F4F3F0] text-[#1F2A33] hover:bg-[#EAE8E3] transition-colors">Gestión Interna</a>
+          <span class="text-[#A39C90] text-xs"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+          <span class="text-[#1F2A33] font-semibold text-sm">Pagos y Garantías</span>
+        </nav>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="relative p-2 rounded-full hover:bg-[#F4F3F0] text-[#4E4A45]">
+          <i class="fa-regular fa-bell text-lg"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 bg-[#C6600A] rounded-full"></span>
+        </button>
+        <div class="flex items-center gap-2 pl-3 border-l border-[#E5E2DC]">
+          <div class="w-8 h-8 rounded-full bg-[#1F2A33] flex items-center justify-center text-white text-xs font-semibold">FA</div>
+          <div class="hidden md:block">
+            <p class="text-xs font-semibold text-[#1F2A33] leading-none">Fiorella A.</p>
+            <p class="text-[10px] text-[#4E4A45] mt-0.5">Aprobador Financiero</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 max-w-[1440px] mx-auto w-full">
+
+    <!-- Sidebar -->
+    <aside class="hidden lg:flex flex-col w-56 shrink-0 border-r border-[#E5E2DC] bg-[#FFFFFF] py-4 gap-1 px-2">
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-gauge-high w-4 text-center"></i> Tablero
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-car w-4 text-center"></i> Alquileres
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-rotate-left w-4 text-center"></i> Devoluciones
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-[#1F2A33] text-white font-medium">
+        <i class="fa-solid fa-coins w-4 text-center"></i> Pagos y Garantías
+      </a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[#4E4A45] hover:bg-[#F4F3F0]">
+        <i class="fa-solid fa-chart-line w-4 text-center"></i> Reportes
+      </a>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-6 overflow-auto">
+
+      <!-- Page Header -->
+      <div class="mb-6 flex items-center justify-between">
+        <div>
+          <h1 class="text-xl font-bold text-[#1F2A33] font-display">Pagos y Garantías</h1>
+          <p class="text-sm text-[#4E4A45] mt-0.5">Gestión de garantías y resolución financiera de alquileres</p>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <p class="text-xs text-[#4E4A45] font-medium uppercase tracking-wide">En custodia</p>
+          <p class="text-2xl font-bold text-[#1F2A33] mt-1 font-display">14</p>
+          <p class="text-xs text-[#C6600A] mt-0.5">S/ 18,200 retenidos</p>
+        </div>
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <p class="text-xs text-[#4E4A45] font-medium uppercase tracking-wide">Pendientes de resolución</p>
+          <p class="text-2xl font-bold text-[#E65100] mt-1 font-display">3</p>
+          <p class="text-xs text-[#4E4A45] mt-0.5">Con daño activo</p>
+        </div>
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <p class="text-xs text-[#4E4A45] font-medium uppercase tracking-wide">Devueltas (mes)</p>
+          <p class="text-2xl font-bold text-[#1B5E20] mt-1 font-display">28</p>
+          <p class="text-xs text-[#4E4A45] mt-0.5">S/ 34,500 liberados</p>
+        </div>
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <p class="text-xs text-[#4E4A45] font-medium uppercase tracking-wide">Retenidas definitivas</p>
+          <p class="text-2xl font-bold text-[#880E4F] mt-1 font-display">2</p>
+          <p class="text-xs text-[#4E4A45] mt-0.5">S/ 1,800 retenidos</p>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-white rounded-xl border border-[#E5E2DC] p-4 mb-4 flex flex-wrap gap-3 items-center">
+        <div class="flex-1 min-w-[200px]">
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[#A39C90] text-sm"></i>
+            <input type="text" placeholder="Buscar por alquiler, cliente o vehículo…" class="w-full pl-9 pr-4 py-2 text-sm border border-[#E5E2DC] rounded-lg bg-[#F9F8F6] focus:outline-none focus:ring-2 focus:ring-[#1F2A33]/20">
+          </div>
+        </div>
+        <select class="px-3 py-2 text-sm border border-[#E5E2DC] rounded-lg bg-[#F9F8F6] focus:outline-none text-[#1F2A33]">
+          <option>Todos los estados</option>
+          <option>En custodia (HELD)</option>
+          <option>Devuelta (RETURNED)</option>
+          <option>Retenida (RETAINED)</option>
+          <option>Parcialmente retenida</option>
+        </select>
+        <div class="flex items-center gap-2 text-sm text-[#4E4A45]">
+          <input type="date" class="px-3 py-2 border border-[#E5E2DC] rounded-lg bg-[#F9F8F6] text-sm focus:outline-none" value="2026-10-01">
+          <span class="text-[#A39C90]">—</span>
+          <input type="date" class="px-3 py-2 border border-[#E5E2DC] rounded-lg bg-[#F9F8F6] text-sm focus:outline-none" value="2026-10-11">
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-xl border border-[#E5E2DC] overflow-hidden">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-[#F4F3F0] border-b border-[#E5E2DC]">
+              <th class="text-left px-4 py-3 text-xs font-semibold text-[#4E4A45] uppercase tracking-wide">Alquiler</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-[#4E4A45] uppercase tracking-wide">Cliente</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-[#4E4A45] uppercase tracking-wide">Vehículo</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-[#4E4A45] uppercase tracking-wide">Monto original</th>
+              <th class="text-right px-4 py-3 text-xs font-semibold text-[#4E4A45] uppercase tracking-wide">Saldo neto</th>
+              <th class="text-center px-4 py-3 text-xs font-semibold text-[#4E4A45] uppercase tracking-wide">Estado</th>
+              <th class="text-left px-4 py-3 text-xs font-semibold text-[#4E4A45] uppercase tracking-wide">Registrado</th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#F0EEE9]">
+
+            <tr class="hover:bg-[#F9F8F6] transition-colors">
+              <td class="px-4 py-3">
+                <span class="font-display text-xs font-semibold text-[#1F2A33]">ALQ-1203</span>
+              </td>
+              <td class="px-4 py-3">
+                <p class="font-medium text-[#1F2A33]">Rodrigo Paredes L.</p>
+                <p class="text-xs text-[#4E4A45]">DNI 45621389</p>
+              </td>
+              <td class="px-4 py-3">
+                <p class="text-[#1F2A33]">Toyota Hilux</p>
+                <p class="text-xs text-[#4E4A45]">Z7A-434</p>
+              </td>
+              <td class="px-4 py-3 text-right font-medium text-[#1F2A33]">S/ 1,200.00</td>
+              <td class="px-4 py-3 text-right font-semibold text-[#1F2A33]">S/ 1,200.00</td>
+              <td class="px-4 py-3 text-center">
+                <span class="status-held text-xs font-semibold px-2 py-0.5 rounded-full">En custodia</span>
+              </td>
+              <td class="px-4 py-3 text-xs text-[#4E4A45]">08 oct 2026</td>
+              <td class="px-4 py-3 text-right">
+                <a href="#" class="text-xs font-medium text-[#C6600A] hover:text-[#ab5206]">Ver detalle</a>
+              </td>
+            </tr>
+
+            <tr class="hover:bg-[#F9F8F6] transition-colors">
+              <td class="px-4 py-3">
+                <span class="font-display text-xs font-semibold text-[#1F2A33]">ALQ-1198</span>
+              </td>
+              <td class="px-4 py-3">
+                <p class="font-medium text-[#1F2A33]">Ana Torres C.</p>
+                <p class="text-xs text-[#4E4A45]">DNI 72834561</p>
+              </td>
+              <td class="px-4 py-3">
+                <p class="text-[#1F2A33]">Chevrolet Spin</p>
+                <p class="text-xs text-[#4E4A45]">B3C-102</p>
+              </td>
+              <td class="px-4 py-3 text-right font-medium text-[#1F2A33]">S/ 800.00</td>
+              <td class="px-4 py-3 text-right font-semibold text-[#880E4F]">S/ 620.00</td>
+              <td class="px-4 py-3 text-center">
+                <span class="status-partial text-xs font-semibold px-2 py-0.5 rounded-full">Parcial</span>
+              </td>
+              <td class="px-4 py-3 text-xs text-[#4E4A45]">05 oct 2026</td>
+              <td class="px-4 py-3 text-right">
+                <a href="#" class="text-xs font-medium text-[#C6600A] hover:text-[#ab5206]">Ver detalle</a>
+              </td>
+            </tr>
+
+            <tr class="hover:bg-[#F9F8F6] transition-colors">
+              <td class="px-4 py-3">
+                <span class="font-display text-xs font-semibold text-[#1F2A33]">ALQ-1187</span>
+              </td>
+              <td class="px-4 py-3">
+                <p class="font-medium text-[#1F2A33]">Carlos Méndez V.</p>
+                <p class="text-xs text-[#4E4A45]">DNI 38271645</p>
+              </td>
+              <td class="px-4 py-3">
+                <p class="text-[#1F2A33]">Kia Sportage</p>
+                <p class="text-xs text-[#4E4A45]">A1F-887</p>
+              </td>
+              <td class="px-4 py-3 text-right font-medium text-[#1F2A33]">S/ 1,500.00</td>
+              <td class="px-4 py-3 text-right font-semibold text-[#1B5E20]">S/ 1,500.00</td>
+              <td class="px-4 py-3 text-center">
+                <span class="status-returned text-xs font-semibold px-2 py-0.5 rounded-full">Devuelta</span>
+              </td>
+              <td class="px-4 py-3 text-xs text-[#4E4A45]">01 oct 2026</td>
+              <td class="px-4 py-3 text-right">
+                <a href="#" class="text-xs font-medium text-[#C6600A] hover:text-[#ab5206]">Ver detalle</a>
+              </td>
+            </tr>
+
+            <tr class="hover:bg-[#F9F8F6] transition-colors">
+              <td class="px-4 py-3">
+                <span class="font-display text-xs font-semibold text-[#1F2A33]">ALQ-1175</span>
+              </td>
+              <td class="px-4 py-3">
+                <p class="font-medium text-[#1F2A33]">Daniela Quispe M.</p>
+                <p class="text-xs text-[#4E4A45]">DNI 61923847</p>
+              </td>
+              <td class="px-4 py-3">
+                <p class="text-[#1F2A33]">Toyota Corolla</p>
+                <p class="text-xs text-[#4E4A45]">P2G-991</p>
+              </td>
+              <td class="px-4 py-3 text-right font-medium text-[#1F2A33]">S/ 900.00</td>
+              <td class="px-4 py-3 text-right font-semibold text-[#880E4F]">S/ 900.00</td>
+              <td class="px-4 py-3 text-center">
+                <span class="status-retained text-xs font-semibold px-2 py-0.5 rounded-full">Retenida</span>
+              </td>
+              <td class="px-4 py-3 text-xs text-[#4E4A45]">28 sep 2026</td>
+              <td class="px-4 py-3 text-right">
+                <a href="#" class="text-xs font-medium text-[#C6600A] hover:text-[#ab5206]">Ver detalle</a>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between px-4 py-3 border-t border-[#F0EEE9]">
+          <p class="text-xs text-[#4E4A45]">Mostrando 1–4 de 47 garantías</p>
+          <div class="flex items-center gap-1">
+            <button class="px-3 py-1.5 text-xs border border-[#E5E2DC] rounded-lg text-[#4E4A45] disabled:opacity-40">Anterior</button>
+            <button class="px-3 py-1.5 text-xs bg-[#1F2A33] text-white rounded-lg font-medium">1</button>
+            <button class="px-3 py-1.5 text-xs border border-[#E5E2DC] rounded-lg text-[#4E4A45] hover:bg-[#F4F3F0]">2</button>
+            <button class="px-3 py-1.5 text-xs border border-[#E5E2DC] rounded-lg text-[#4E4A45] hover:bg-[#F4F3F0]">3</button>
+            <button class="px-3 py-1.5 text-xs border border-[#E5E2DC] rounded-lg text-[#4E4A45] hover:bg-[#F4F3F0]">Siguiente</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+</body></html>
