@@ -49,6 +49,31 @@ describe('fleet-client', () => {
       expect(result).toEqual({ items: [], total: 0 });
     });
 
+    it('envía availableFrom/availableTo solo cuando vienen ambos', async () => {
+      const captured: Request[] = [];
+      server.use(
+        http.get(`${BASE_URL}/fleet/vehicles`, ({ request }) => {
+          captured.push(request);
+          return HttpResponse.json({ items: [], total: 0 });
+        }),
+      );
+
+      await listVehicles('t', {
+        companyId: 'comp-1',
+        branchId: 'branch-1',
+        availableFrom: '2026-09-20T00:00:00.000Z',
+        availableTo: '2026-09-23T00:00:00.000Z',
+      });
+      await listVehicles('t', { companyId: 'comp-1', branchId: 'branch-1', availableFrom: '2026-09-20T00:00:00.000Z' });
+
+      const first = new URL(captured[0].url);
+      expect(first.searchParams.get('availableFrom')).toBe('2026-09-20T00:00:00.000Z');
+      expect(first.searchParams.get('availableTo')).toBe('2026-09-23T00:00:00.000Z');
+      const second = new URL(captured[1].url);
+      expect(second.searchParams.has('availableFrom')).toBe(false);
+      expect(second.searchParams.has('availableTo')).toBe(false);
+    });
+
     it('lanza FleetApiError cuando la respuesta no es ok', async () => {
       server.use(
         http.get(`${BASE_URL}/fleet/vehicles`, () =>
