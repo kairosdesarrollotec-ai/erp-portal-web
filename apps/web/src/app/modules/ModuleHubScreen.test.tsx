@@ -14,6 +14,9 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 import { ModuleHubScreen } from './ModuleHubScreen';
 import { clearPermissions, roleRef, setPermissions, INCIDENT_VIEW_ONLY } from '../../test/permissions';
 
@@ -62,19 +65,26 @@ describe('ModuleHubScreen', () => {
     expect(screen.getByText(/no pudimos determinar/i)).toBeDefined();
   });
 
-  it('muestra 13 módulos a quien tiene permisos de Administración, Reclutamiento y Personal', () => {
-    setPermissions([...INCIDENT_VIEW_ONLY, 'ADMIN.MANAGE_USERS', 'RECRUITMENT.VIEW_VACANCY', 'HR_ADMINISTRATION.VIEW_EMPLOYEES']);
+  it('muestra 13 módulos a quien tiene permisos de Administración, Reclutamiento, Personal, Pagos y Reportes', () => {
+    setPermissions([
+      ...INCIDENT_VIEW_ONLY,
+      'ADMIN.MANAGE_USERS',
+      'RECRUITMENT.VIEW_VACANCY',
+      'HR_ADMINISTRATION.VIEW_EMPLOYEES',
+      'PAYMENT.READ_LIST',
+      'REPORT.READ_OPERATIONAL',
+    ]);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('ADMINISTRACION') });
     renderHub();
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(13);
   });
 
-  it('muestra 10 módulos a quien no tiene permisos ADMIN.*, de Reclutamiento ni de Personal (sin Admin, Personal ni Reclutamiento)', () => {
+  it('muestra 8 módulos a quien no tiene permisos de Admin, Reclutamiento, Personal, Pagos ni Reportes', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(10);
+    expect(items).toHaveLength(8);
     expect(screen.queryByText('Admin')).toBeNull();
   });
 
@@ -99,14 +109,13 @@ describe('ModuleHubScreen', () => {
     expect(flota).toBeDefined();
   });
 
-  it('muestra badge "Próximamente" para módulos no implementados', () => {
+  it('ya no quedan módulos "Próximamente": Pagos y Reportes tienen ruta y se muestran solo con permiso', () => {
+    setPermissions([...INCIDENT_VIEW_ONLY, 'PAYMENT.READ_LIST', 'REPORT.READ_OPERATIONAL']);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
-    const badges = screen.getAllByText(/próximamente/i);
-    // 2 módulos sin ruta implementada (Pagos, Reportes). Alquileres, Devoluciones,
-    // Incidencias, Personal y Reclutamiento salieron de esta lista
-    // (module-definitions.tsx, path en vez de null) - ya estan construidos.
-    expect(badges.length).toBe(2);
+    expect(screen.queryAllByText(/próximamente/i)).toHaveLength(0);
+    expect(screen.getByRole('link', { name: /pagos y garantías/i }).getAttribute('href')).toBe('/pagos/garantias');
+    expect(screen.getByRole('link', { name: /reportes/i }).getAttribute('href')).toBe('/reportes');
   });
 
   it('Personal lleva a ADP-01 (/personal) y solo se muestra con HR_ADMINISTRATION.VIEW_EMPLOYEES', () => {
