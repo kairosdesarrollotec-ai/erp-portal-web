@@ -65,7 +65,8 @@ export const TERMINATION_REASON_LABEL: Record<TerminationReason, string> = {
 };
 
 /** Cascada BR-ADP-004: exactamente 3 niveles (no existe un cuarto). */
-export const CASCADE_LEVEL_NAME: Record<1 | 2 | 3, string> = { 1: 'Fiorella', 2: 'José', 3: 'Cecilia' };
+/** La cascada es generica: nunca se nombra a una persona, la autorizacion la decide el permiso (BR-ADP-004). */
+export const CASCADE_LEVEL_LABEL: Record<1 | 2 | 3, string> = { 1: 'Nivel 1 de 3', 2: 'Nivel 2 de 3', 3: 'Nivel 3 de 3' };
 export const CASCADE_TIMEOUT_SECONDS = 300;
 
 export const ORDINAL_FEM = ['', '1ª', '2ª', '3ª', '4ª'];
@@ -223,4 +224,15 @@ export function noticeDaysBetween(noticeDate: string, lastDay: string): number {
   if (!noticeDate || !lastDay) return 0;
   const diff = (new Date(`${lastDay}T00:00:00`).getTime() - new Date(`${noticeDate}T00:00:00`).getTime()) / 86_400_000;
   return Math.max(0, Math.round(diff));
+}
+
+/** El contrato no tiene catalogo de areas: un area nueva recibe un id estable derivado de su nombre. */
+export function areaIdFromName(name: string): string {
+  return name
+    .trim()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }

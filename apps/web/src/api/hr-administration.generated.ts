@@ -222,7 +222,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Autorizar salida a campo en el nivel actual (1=Fiorella, 2=José, 3=Cecilia, BR-ADP-004) */
+        /** Autorizar salida a campo en el nivel actual (Nivel 1 de 3, 2 de 3 o 3 de 3; lo decide el permiso AUTHORIZE_FIELD_TRIP, BR-ADP-004) */
         post: operations["authorizeFieldTrip"];
         delete?: never;
         options?: never;
@@ -275,6 +275,144 @@ export interface paths {
         put?: never;
         /** Registrar desvinculación laboral (renuncia/despido) y emitir RelacionLaboralTerminada (BR-ADP-006, ADR-KAI-006) */
         post: operations["terminateEmployment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/field-trips/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rechazar salida a campo con motivo (ADP-07); queda NO_AUTORIZADA sin abrir niveles adicionales */
+        post: operations["rejectFieldTrip"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/{id}/reclassify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Reclasificar una falta como justificada o injustificada con su justificación (ADP-03) */
+        patch: operations["reclassifyAttendance"];
+        trace?: never;
+    };
+    "/leaves/{id}/evidence/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pedir URL firmada para subir el sustento de un permiso pendiente (ADP-04) */
+        post: operations["requestLeaveEvidenceUploadUrl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/leaves/{id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar la evidencia adjunta de un permiso (ADP-04) */
+        get: operations["listLeaveEvidence"];
+        put?: never;
+        /** Registrar la evidencia ya subida con la URL firmada (ADP-04) */
+        post: operations["recordLeaveEvidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{id}/memos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Memos de advertencia del colaborador, generados automáticamente por reincidencia (ADP-01, ADP-08) */
+        get: operations["getEmployeeMemos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{id}/trainings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Historial de capacitaciones internas del colaborador (ADP-10) */
+        get: operations["getEmployeeTrainings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/employee": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ficha del propio usuario para solicitar salidas a campo (ADP-06); no exige permisos de Personal */
+        get: operations["getMyEmployee"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/trainings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar los talleres internos registrados (ADP-10) */
+        get: operations["listTrainings"];
+        put?: never;
+        /** Registrar un taller interno informal con sus asistentes (ADP-10, BR-ADP-008) */
+        post: operations["registerTraining"];
         delete?: never;
         options?: never;
         head?: never;
@@ -393,6 +531,8 @@ export interface components {
             recentVacations?: components["schemas"]["VacationRequestResponse"][];
             recentFieldTrips?: components["schemas"]["FieldTripResponse"][];
             termination?: components["schemas"]["EmploymentTerminationResponse"] | null;
+            recentMemos?: components["schemas"]["HrMemoResponse"][];
+            recentTrainings?: components["schemas"]["TrainingResponse"][];
         };
         LogAttendanceRequest: {
             /** Format: date */
@@ -402,10 +542,10 @@ export interface components {
             /** Format: date-time */
             checkOutTime?: string | null;
             status: components["schemas"]["AttendanceStatus"];
-            /** @default 0 */
-            minutesLate: number;
-            /** @default 0 */
-            deductionAmount: number;
+            /** @description Opcional; una tardanza lo exige mayor a 0 (el sistema no asume 0) */
+            minutesLate?: number;
+            /** @description Opcional; si no se envía lo calcula el sistema */
+            deductionAmount?: number;
             notes?: string | null;
         };
         AttendanceRecordResponse: {
@@ -428,6 +568,11 @@ export interface components {
             /** Format: date-time */
             deductionAppliedAt?: string | null;
             notes?: string | null;
+            justification?: string | null;
+            /** Format: date-time */
+            reclassifiedAt?: string | null;
+            /** @description Memo generado automáticamente por reiteración de faltas injustificadas del mes */
+            memo?: components["schemas"]["HrMemoResponse"] | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -548,7 +693,7 @@ export interface components {
             estimatedReturn: string;
         };
         AuthorizeFieldTripRequest: {
-            /** @description Nivel de autorización (1=Fiorella, 2=José, 3=Cecilia - NUNCA 4) */
+            /** @description Nivel de autorización alcanzado (Nivel 1 de 3, 2 de 3 o 3 de 3 - NUNCA 4) */
             authorizationLevel: number;
             notes?: string | null;
         };
@@ -587,6 +732,16 @@ export interface components {
             level3TimeoutAt?: string | null;
             lateMinutes: number;
             returnNotes?: string | null;
+            employee?: components["schemas"]["FieldTripEmployeeSummary"];
+            rejectedById?: string | null;
+            rejectedByName?: string | null;
+            /** Format: date-time */
+            rejectedAt?: string | null;
+            /** @description Nivel que estaba pendiente al rechazar */
+            rejectedAtLevel?: number | null;
+            rejectionReason?: string | null;
+            /** @description Memo generado automáticamente al registrar el retorno (4ª tardanza en adelante) */
+            memo?: components["schemas"]["HrMemoResponse"] | null;
             /** @description Mensaje informativo (ej. al terminar en NO_AUTORIZADA) */
             message?: string | null;
             /** Format: date-time */
@@ -627,6 +782,114 @@ export interface components {
              * @description Vacante creada automáticamente en Reclutamiento
              */
             vacancyCreatedId?: string | null;
+        };
+        RejectFieldTripRequest: {
+            /** @description Motivo del rechazo (obligatorio) */
+            reason: string;
+        };
+        ReclassifyAttendanceRequest: {
+            /** @enum {string} */
+            status: "FALTA_JUSTIFICADA" | "FALTA_INJUSTIFICADA";
+            justification: string;
+        };
+        HrMemoResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            employeeId: string;
+            employeeName?: string;
+            /** @description Causa del memo: tardanza reiterada al regresar de campo o falta injustificada reiterada */
+            kind: string;
+            /** @description Número de la infracción que lo originó (4ª tardanza */
+            violationNumber: number;
+            reason: string;
+            /** Format: date */
+            issuedOn: string;
+            /** @description SISTEMA cuando se genera automáticamente */
+            generatedBy: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        TrainingResponse: {
+            /** Format: uuid */
+            id: string;
+            topic: string;
+            /** Format: date */
+            heldOn: string;
+            durationMinutes: number;
+            /** @description Nota cualitativa; NO es una evaluación formal de desempeño (BR-ADP-007) */
+            comprehensionNotes?: string | null;
+            attendees: {
+                /** Format: uuid */
+                employeeId: string;
+                fullName: string;
+            }[];
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RegisterTrainingRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            topic: string;
+            /** Format: date */
+            heldOn: string;
+            /** @description Referencia ~60 min; no bloqueante */
+            durationMinutes?: number;
+            attendeeIds: string[];
+            comprehensionNotes?: string | null;
+        };
+        RequestLeaveEvidenceUploadRequest: {
+            /** @enum {string} */
+            contentType: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+            contentLength: number;
+        };
+        LeaveEvidenceUploadSessionResponse: {
+            uploadUrl: string;
+            objectUrl: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        RecordLeaveEvidenceRequest: {
+            objectUrl: string;
+            /** @enum {string} */
+            contentType: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
+        };
+        LeaveEvidenceResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            leaveId: string;
+            objectUrl: string;
+            contentType: string;
+            uploadedById: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        MyEmployeeResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            fullName: string;
+            areaId: string;
+            areaName: string;
+            jobTitle: string;
+            status: components["schemas"]["EmployeeStatus"];
+            fieldTripLateCount: number;
+            isFieldTripObserved: boolean;
+        };
+        FieldTripEmployeeSummary: {
+            /** Format: uuid */
+            id: string;
+            fullName: string;
+            areaName: string;
+            jobTitle: string;
+            fieldTripLateCount: number;
+            isFieldTripObserved: boolean;
         };
         /** @description Cuerpo de error de dominio (DomainExceptionFilter). `code` es estable y apto para que el front decida el mensaje. */
         ProblemDetail: {
@@ -1418,7 +1681,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso HR_ADMINISTRATION.REQUEST_FIELD_TRIP ni AUTHORIZE_FIELD_TRIP */
+            /** @description Rol sin permiso HR_ADMINISTRATION.REQUEST_FIELD_TRIP */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1763,6 +2026,536 @@ export interface operations {
                 content?: never;
             };
             /** @description Reglas de BR-ADP-006 incumplidas - renuncia sin pago de la quincena pendiente (FINAL_SETTLEMENT_REQUIRED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    rejectFieldTrip: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectFieldTripRequest"];
+            };
+        };
+        responses: {
+            /** @description Salida rechazada (NO_AUTORIZADA) con el nivel pendiente y el motivo registrados */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldTripResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Salida a campo no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La salida no está pendiente de autorización (FIELD_TRIP_NOT_PENDING) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta el motivo del rechazo (FIELD_TRIP_REJECTION_REASON_REQUIRED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reclassifyAttendance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReclassifyAttendanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Falta reclasificada; el descuento lo recalcula el sistema y sigue pendiente hasta el cierre de mes. Incluye el memo si se generó por reiteración. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceRecordResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.LOG_ATTENDANCE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Registro de asistencia no encontrado (ATTENDANCE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No es una falta */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Clasificación o justificación inválida (INVALID_ATTENDANCE_RECLASSIFICATION) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestLeaveEvidenceUploadUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestLeaveEvidenceUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description URL firmada de subida directa y URL final del objeto */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveEvidenceUploadSessionResponse"];
+                };
+            };
+            /** @description Tipo de archivo no admitido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso sobre permisos del colaborador */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Permiso no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El permiso ya fue resuelto (LEAVE_EVIDENCE_NOT_ALLOWED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Almacenamiento no configurado (EVIDENCE_STORAGE_UNAVAILABLE) */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listLeaveEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Evidencia del permiso */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveEvidenceResponse"][];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso sobre permisos del colaborador */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Permiso no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordLeaveEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordLeaveEvidenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Evidencia adjunta al permiso */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveEvidenceResponse"];
+                };
+            };
+            /** @description URL no emitida para este permiso/empresa o tipo no admitido (INVALID_LEAVE_EVIDENCE) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso sobre permisos del colaborador */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Permiso no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El permiso ya fue resuelto (LEAVE_EVIDENCE_NOT_ALLOWED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getEmployeeMemos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Memos del colaborador, del más reciente al más antiguo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrMemoResponse"][];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Colaborador no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getEmployeeTrainings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Talleres a los que asistió el colaborador */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingResponse"][];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Colaborador no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMyEmployee: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Datos mínimos de la ficha del usuario */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyEmployeeResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin asignación vigente en esa empresa/sede */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El usuario aún no está vinculado a una ficha de colaborador (EMPLOYEE_NOT_LINKED) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listTrainings: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Talleres, del más reciente al más antiguo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingResponse"][];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso sobre Administración de Personal */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    registerTraining: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterTrainingRequest"];
+            };
+        };
+        responses: {
+            /** @description Taller registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainingResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.REGISTER_TRAINING */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tema */
             422: {
                 headers: {
                     [name: string]: unknown;
