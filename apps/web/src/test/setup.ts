@@ -1,7 +1,21 @@
 import '@testing-library/jest-dom/vitest';
-import { expect } from 'vitest';
+import { expect, vi } from 'vitest';
 import { toHaveNoViolations } from 'jest-axe';
 import { configure } from '@testing-library/dom';
+
+// Mock global de useGlobalSearch para evitar que GlobalSearch (renderizado dentro
+// de AppHeader en todas las pantallas) requiera un QueryClientProvider en cada test.
+// Los tests que quieran verificar el comportamiento de búsqueda deben sobreescribir
+// este mock con vi.mock dentro del propio archivo de test.
+vi.mock('../app/shared/GlobalSearch/useGlobalSearch', () => ({
+  useGlobalSearch: () => ({
+    groups: [],
+    isLoading: false,
+    hasResults: false,
+    isIdle: true,
+    showDropdown: false,
+  }),
+}));
 
 configure({ asyncUtilTimeout: 4000 });
 

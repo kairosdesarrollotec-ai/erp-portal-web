@@ -63,7 +63,14 @@ describe('ModuleHubScreen', () => {
   });
 
   it('muestra 13 módulos a quien tiene permisos de Administración, Reclutamiento y Personal', () => {
-    setPermissions([...INCIDENT_VIEW_ONLY, 'ADMIN.MANAGE_USERS', 'RECRUITMENT.VIEW_VACANCY', 'HR_ADMINISTRATION.VIEW_EMPLOYEES']);
+    setPermissions([
+      ...INCIDENT_VIEW_ONLY,
+      'ADMIN.MANAGE_USERS',
+      'RECRUITMENT.VIEW_VACANCY',
+      'HR_ADMINISTRATION.VIEW_EMPLOYEES',
+      'PAYMENT.READ_LIST',
+      'REPORT.READ_OPERATIONAL',
+    ]);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('ADMINISTRACION') });
     renderHub();
     const items = screen.getAllByRole('listitem');
@@ -71,6 +78,7 @@ describe('ModuleHubScreen', () => {
   });
 
   it('muestra 10 módulos a quien no tiene permisos ADMIN.*, de Reclutamiento ni de Personal (sin Admin, Personal ni Reclutamiento)', () => {
+    setPermissions([...INCIDENT_VIEW_ONLY, 'PAYMENT.READ_LIST', 'REPORT.READ_OPERATIONAL']);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const items = screen.getAllByRole('listitem');
@@ -100,13 +108,11 @@ describe('ModuleHubScreen', () => {
   });
 
   it('muestra badge "Próximamente" para módulos no implementados', () => {
+    setPermissions([...INCIDENT_VIEW_ONLY, 'PAYMENT.READ_LIST', 'REPORT.READ_OPERATIONAL']);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
-    const badges = screen.getAllByText(/próximamente/i);
-    // 2 módulos sin ruta implementada (Pagos, Reportes). Alquileres, Devoluciones,
-    // Incidencias, Personal y Reclutamiento salieron de esta lista
-    // (module-definitions.tsx, path en vez de null) - ya estan construidos.
-    expect(badges.length).toBe(2);
+    // Todos los módulos ya tienen ruta implementada (pagos y reportes incluidos).
+    expect(screen.queryAllByText(/próximamente/i)).toHaveLength(0);
   });
 
   it('Personal lleva a ADP-01 (/personal) y solo se muestra con HR_ADMINISTRATION.VIEW_EMPLOYEES', () => {

@@ -78,7 +78,7 @@ describe('DashboardScreen (TR-06)', () => {
     });
 
     await screen.findByText('No tienes pendientes por ahora.');
-    expect(screen.getAllByText('Gerencia')).toHaveLength(2);
+    expect(screen.getAllByText('Gerencia')).toHaveLength(1);
     expect(screen.getByText('No tienes pendientes por ahora.')).toBeInTheDocument();
     expect(getDashboardMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1');
     expect(getWorkContextAssignmentsMock).not.toHaveBeenCalled();
@@ -99,7 +99,7 @@ describe('DashboardScreen (TR-06)', () => {
     renderScreen({ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' });
 
     await screen.findByText('No tienes pendientes por ahora.');
-    expect(screen.getAllByText('Supervisor de flota')).toHaveLength(2);
+    expect(screen.getAllByText('Supervisor de flota')).toHaveLength(1);
   });
 
   it('el rol de sistema PLATFORM_ADMIN ve los accesos directos de configuración en vez de tareas', async () => {
@@ -118,7 +118,7 @@ describe('DashboardScreen (TR-06)', () => {
     renderScreen();
 
     await screen.findByText('No tienes pendientes por ahora.');
-    expect(screen.getAllByText('Front Office')).toHaveLength(2);
+    expect(screen.getAllByText('Front Office')).toHaveLength(1);
     expect(getDashboardMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1');
   });
 
