@@ -22,7 +22,7 @@ function NewEmployee() {
   const candidateParam = params.get('candidateId');
   const candidateId = candidateParam && UUID_PATTERN.test(candidateParam) ? candidateParam : null;
   const { state, data, context, reload } = useHrResource<Record<string, string>>(async (token, scope) => {
-    const { items } = await listEmployees(token, scope, { limit: 200 });
+    const { items } = await listEmployees(token, scope, { limit: 100 });
     return Object.fromEntries(items.map((e) => [e.areaId, e.areaName]));
   }, 'nuevo-colaborador');
   const command = useHrCommand({ context, reload });

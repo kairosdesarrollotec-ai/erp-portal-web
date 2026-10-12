@@ -24,7 +24,7 @@ const REFERENCE_DURATION_TEXT = 'Duración de referencia: ~1 hora (no bloquea el
  */
 function Training() {
   const { state, data, context, reload, setData } = useHrResource<TrainingData>(async (token, scope) => {
-    const [employees, trainings] = await Promise.all([listEmployees(token, scope, { limit: 200 }), listTrainings(token, scope, 20)]);
+    const [employees, trainings] = await Promise.all([listEmployees(token, scope, { limit: 100 }), listTrainings(token, scope, 20)]);
     return { employees: employees.items.filter((e) => e.status !== 'TERMINADO'), trainings };
   }, 'capacitacion');
   const command = useHrCommand({ context, reload });
