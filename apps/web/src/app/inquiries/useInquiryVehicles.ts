@@ -23,6 +23,33 @@ export interface InquiryVehicle {
   photoUrl: string;
   dailyRate: number;
   currency: string;
+  /** false = ocupado en la ventana del viaje (solo si se consulto con fechas). */
+  available: boolean;
+  conflictFrom?: string;
+  conflictTo?: string;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Ventana de disponibilidad del viaje: desde la fecha de viaje a las 00:00 (UTC)
+ * hasta esa fecha + dias estimados. Sin fecha valida o sin dias, no hay ventana
+ * y el catalogo se pide sin filtro de disponibilidad.
+ */
+export function buildAvailabilityWindow(
+  travelDate: string | null | undefined,
+  travelDays: number | null | undefined,
+): { availableFrom: string; availableTo: string } | null {
+  const day = travelDate?.slice(0, 10) ?? '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+  const start = new Date(`${day}T00:00:00.000Z`);
+  if (Number.isNaN(start.getTime())) return null;
+  if (!travelDays || travelDays < 1) return null;
+  const days = Math.floor(travelDays);
+  return {
+    availableFrom: start.toISOString(),
+    availableTo: new Date(start.getTime() + days * DAY_MS).toISOString(),
+  };
 }
 
 function toInquiryVehicle(vehicle: FleetVehicle): InquiryVehicle | null {
@@ -33,6 +60,9 @@ function toInquiryVehicle(vehicle: FleetVehicle): InquiryVehicle | null {
     photoUrl: vehicle.photoUrl ?? PLACEHOLDER_PHOTO_URL,
     dailyRate: vehicle.dailyRate,
     currency: 'PEN',
+    available: vehicle.availability?.available !== false,
+    conflictFrom: vehicle.availability?.conflictFrom,
+    conflictTo: vehicle.availability?.conflictTo,
   };
 }
 
@@ -69,7 +99,7 @@ export function useInquiryVehicles() {
 
   const hasUsableNavState = Boolean(rawNavState?.companyId && rawNavState?.branchId && rawNavState?.version);
 
-  const loadVehicles = useCallback(async (companyId: string, branchId: string) => {
+  const loadVehicles = useCallback(async (companyId: string, branchId: string, travelDate?: string, travelDays?: number) => {
     const requestId = ++requestIdRef.current;
     try {
       const user = getFirebaseAuth().currentUser;
@@ -81,11 +111,14 @@ export function useInquiryVehicles() {
         status: 'AVAILABLE',
         limit: 100,
         offset: 0,
+        ...(buildAvailabilityWindow(travelDate, travelDays) ?? {}),
       });
       if (requestId !== requestIdRef.current) return;
       const mapped = result.items
         .map(toInquiryVehicle)
-        .filter((v): v is InquiryVehicle => v !== null);
+        .filter((v): v is InquiryVehicle => v !== null)
+        // Los ocupados van al final (sort estable: se conserva el orden del catalogo).
+        .sort((a, b) => Number(b.available) - Number(a.available));
       loadedAtRef.current = Date.now();
       setVehicles(mapped);
       setState(mapped.length === 0 ? 'EMPTY' : 'READY');
@@ -101,7 +134,7 @@ export function useInquiryVehicles() {
     async function resolveDeepLink() {
       if (hasUsableNavState && rawNavState) {
         setNavState(rawNavState);
-        await loadVehicles(rawNavState.companyId, rawNavState.branchId);
+        await loadVehicles(rawNavState.companyId, rawNavState.branchId, rawNavState.travelDate, rawNavState.travelDays);
         return;
       }
       if (contextLoading) return;
@@ -138,7 +171,7 @@ export function useInquiryVehicles() {
           version: inquiry.version,
         };
         setNavState(nextNavState);
-        await loadVehicles(nextNavState.companyId, nextNavState.branchId);
+        await loadVehicles(nextNavState.companyId, nextNavState.branchId, nextNavState.travelDate, nextNavState.travelDays);
       } catch {
         if (!cancelled) setState('RECOVERABLE_ERROR');
       }
@@ -163,7 +196,7 @@ export function useInquiryVehicles() {
 
   const refreshAvailability = useCallback(() => {
     if (!navState) return;
-    void loadVehicles(navState.companyId, navState.branchId);
+    void loadVehicles(navState.companyId, navState.branchId, navState.travelDate, navState.travelDays);
   }, [navState, loadVehicles]);
 
   /**
@@ -179,6 +212,7 @@ export function useInquiryVehicles() {
    */
   async function quoteVehicle(vehicleId: string) {
     if (!id || !navState || state === 'STALE_VERSION' || state === 'RECOVERABLE_ERROR') return;
+    if (vehicles.find((v) => v.id === vehicleId)?.available === false) return;
     setQuotingVehicleId(vehicleId);
     setError(null);
     try {

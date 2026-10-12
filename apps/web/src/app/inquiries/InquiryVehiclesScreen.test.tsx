@@ -220,4 +220,108 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
 
     expect(await screen.findByText(/No pudimos cargar esta consulta/)).toBeInTheDocument();
   });
+
+  describe('disponibilidad por fechas del viaje', () => {
+    const BUSY = {
+      ...FLEET_VEHICLE_1,
+      availability: {
+        available: false,
+        conflictFrom: '2026-09-21T15:00:00Z',
+        conflictTo: '2026-09-24T15:00:00Z',
+        conflictSource: 'RESERVATION',
+      },
+    };
+    const FREE = { ...FLEET_VEHICLE_2, availability: { available: true } };
+
+    it('pide la ventana de viaje (fecha 00:00 UTC + dias estimados) a Fleet', async () => {
+      renderScreen();
+      await screen.findByText('Toyota Hilux 4x4');
+      expect(listVehiclesMock).toHaveBeenCalledWith(
+        'fake-id-token',
+        expect.objectContaining({
+          availableFrom: '2026-09-20T00:00:00.000Z',
+          availableTo: '2026-09-23T00:00:00.000Z',
+        }),
+      );
+    });
+
+    it('sin fecha de viaje no envia la ventana', async () => {
+      renderScreen('PRESENCIAL', {
+        companyId: 'c1', companyName: 'V', branchId: 'b1', branchName: 'S', customerName: 'M',
+        destination: 'Ayacucho', travelDate: '', travelers: 1, travelDays: 3, displayMode: 'PRESENCIAL',
+        channel: 'WHATSAPP', touristUse: true, version: 1,
+      });
+      await screen.findByText('Toyota Hilux 4x4');
+      const params = listVehiclesMock.mock.calls[0][1];
+      expect(params.availableFrom).toBeUndefined();
+      expect(params.availableTo).toBeUndefined();
+    });
+
+    it('deep link: usa fecha y dias de la consulta cargada', async () => {
+      getWorkContextAssignmentsMock.mockResolvedValue([
+        { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' },
+      ]);
+      getInquiryMock.mockResolvedValue({
+        id: 'con-1', status: 'REGISTRADA', channel: 'WHATSAPP', version: 5, companyId: 'c1', customerId: 'c',
+        touristUse: true, createdAt: '2026-09-16T00:00:00Z', interactions: [], quotations: [],
+        travelStartDate: '2026-10-01', estimatedDays: 2, destination: 'Cusco',
+      });
+      renderScreen('PRESENCIAL', null);
+      await screen.findByText('Toyota Hilux 4x4');
+      expect(listVehiclesMock).toHaveBeenCalledWith(
+        'fake-id-token',
+        expect.objectContaining({ availableFrom: '2026-10-01T00:00:00.000Z', availableTo: '2026-10-03T00:00:00.000Z' }),
+      );
+    });
+
+    it('el vehiculo ocupado va al final, deshabilitado y con motivo asociado', async () => {
+      listVehiclesMock.mockResolvedValue({ items: [BUSY, FREE], total: 2 });
+      renderScreen();
+
+      await screen.findByText('Toyota Hilux 4x4');
+      const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+      expect(headings).toEqual(['Hyundai Tucson', 'Toyota Hilux 4x4']);
+
+      const buttons = screen.getAllByRole('button', { name: 'Cotizar este vehículo' });
+      expect(buttons[0]).toBeEnabled();
+      expect(buttons[1]).toBeDisabled();
+      expect(screen.getByText('No disponible en estas fechas')).toBeInTheDocument();
+      expect(screen.getByText('Ocupado del 21/09 al 24/09')).toBeInTheDocument();
+      const reasonId = buttons[1].getAttribute('aria-describedby');
+      expect(reasonId).toBeTruthy();
+      expect(document.getElementById(reasonId!)).toHaveTextContent('No disponible en estas fechas');
+      expect(buttons[0]).not.toHaveAttribute('aria-describedby');
+
+      fireEvent.click(buttons[1]);
+      expect(quoteInquiryMock).not.toHaveBeenCalled();
+    });
+
+    it('muestra el motivo aunque no vengan fechas de conflicto', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [{ ...FLEET_VEHICLE_1, availability: { available: false } }, FREE],
+        total: 2,
+      });
+      renderScreen();
+      await screen.findByText('Toyota Hilux 4x4');
+      expect(screen.getByText('No disponible en estas fechas')).toBeInTheDocument();
+      expect(screen.queryByText(/Ocupado del/)).not.toBeInTheDocument();
+    });
+
+    it('si todos estan ocupados, muestra un mensaje de estado y ningun boton habilitado', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [BUSY, { ...FLEET_VEHICLE_2, availability: { available: false } }],
+        total: 2,
+      });
+      renderScreen();
+      expect(await screen.findByText(/Todos los vehículos están ocupados en las fechas de este viaje/)).toBeInTheDocument();
+      screen.getAllByRole('button', { name: 'Cotizar este vehículo' }).forEach((b) => expect(b).toBeDisabled());
+    });
+
+    it('sin campo availability (sin ventana) los vehiculos se consideran disponibles', async () => {
+      renderScreen();
+      await screen.findByText('Toyota Hilux 4x4');
+      expect(screen.queryByText('No disponible en estas fechas')).not.toBeInTheDocument();
+      screen.getAllByRole('button', { name: 'Cotizar este vehículo' }).forEach((b) => expect(b).toBeEnabled());
+    });
+  });
 });
