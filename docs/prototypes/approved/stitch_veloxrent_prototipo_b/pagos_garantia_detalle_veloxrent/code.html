@@ -1,0 +1,204 @@
+<!DOCTYPE html><html lang="es"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pagos — Detalle de Garantía - VeloxRent</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { brand: { primary:'#1F2A33', accent:'#C6600A', accentHover:'#ab5206', neutralMuted:'#4E4A45', border:'#E5E2DC', bgLight:'#F9F8F6' } },
+          fontFamily: { sans:['"Public Sans"','sans-serif'], display:['"Space Grotesk"','sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    .status-held    { background:#FFF3E0; color:#E65100; border:1px solid #FFCC80; }
+    .status-returned { background:#E8F5E9; color:#1B5E20; border:1px solid #A5D6A7; }
+    .adj-discount    { background:#FFF3E0; color:#E65100; }
+    .adj-release     { background:#E8F5E9; color:#1B5E20; }
+    .adj-immobil     { background:#FCE4EC; color:#880E4F; }
+  </style>
+</head>
+<body class="bg-[#F9F8F6] text-[#1F2A33] font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-[#E5E2DC] bg-[#FFFFFF] sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <span class="font-display font-bold text-2xl tracking-tight text-[#1F2A33]">Velox<span class="text-[#C6600A]">Rent</span></span>
+        <div class="h-5 w-px bg-[#E5E2DC]"></div>
+        <nav class="flex items-center space-x-2 text-sm text-[#4E4A45]">
+          <a href="#" class="px-2.5 py-1 text-xs font-medium rounded-md bg-[#F4F3F0] text-[#1F2A33]">Gestión Interna</a>
+          <span class="text-[#A39C90] text-xs"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+          <a href="#" class="text-xs text-[#C6600A] hover:underline">Pagos y Garantías</a>
+          <span class="text-[#A39C90] text-xs"><i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+          <span class="text-[#1F2A33] font-semibold text-sm">ALQ-1198</span>
+        </nav>
+      </div>
+      <div class="flex items-center gap-2 pl-3 border-l border-[#E5E2DC]">
+        <div class="w-8 h-8 rounded-full bg-[#1F2A33] flex items-center justify-center text-white text-xs font-semibold">FA</div>
+        <div class="hidden md:block">
+          <p class="text-xs font-semibold text-[#1F2A33] leading-none">Fiorella A.</p>
+          <p class="text-[10px] text-[#4E4A45] mt-0.5">Aprobador Financiero</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-[1440px] mx-auto w-full p-6">
+
+    <!-- Back link -->
+    <a href="#" class="flex items-center gap-2 text-sm text-[#4E4A45] hover:text-[#1F2A33] mb-5">
+      <i class="fa-solid fa-arrow-left text-xs"></i> Volver a Pagos y Garantías
+    </a>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left: Guarantee summary + adjustments -->
+      <div class="lg:col-span-2 flex flex-col gap-5">
+
+        <!-- Guarantee Card -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-5">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-display text-lg font-bold text-[#1F2A33]">Garantía — ALQ-1198</span>
+                <span class="status-held text-xs font-semibold px-2 py-0.5 rounded-full">En custodia</span>
+              </div>
+              <p class="text-sm text-[#4E4A45]">Ana Torres C. · DNI 72834561 · Chevrolet Spin B3C-102</p>
+            </div>
+          </div>
+
+          <!-- Amounts -->
+          <div class="grid grid-cols-3 gap-4 mt-4">
+            <div class="bg-[#F9F8F6] rounded-lg p-3 border border-[#F0EEE9]">
+              <p class="text-xs text-[#4E4A45] font-medium">Monto original</p>
+              <p class="text-xl font-bold text-[#1F2A33] mt-1 font-display">S/ 800.00</p>
+            </div>
+            <div class="bg-[#F9F8F6] rounded-lg p-3 border border-[#F0EEE9]">
+              <p class="text-xs text-[#4E4A45] font-medium">Total ajustado</p>
+              <p class="text-xl font-bold text-[#E65100] mt-1 font-display">− S/ 180.00</p>
+            </div>
+            <div class="bg-[#F9F8F6] rounded-lg p-3 border border-[#F0EEE9]">
+              <p class="text-xs text-[#4E4A45] font-medium">Saldo neto</p>
+              <p class="text-xl font-bold text-[#1F2A33] mt-1 font-display">S/ 620.00</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Adjustments History -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-[#1F2A33]">Historial de ajustes</h2>
+            <!-- Cashier action: register adjustment -->
+            <button class="flex items-center gap-2 px-3 py-1.5 bg-[#1F2A33] text-white text-xs font-semibold rounded-lg hover:bg-[#2e3d4a] transition-colors">
+              <i class="fa-solid fa-plus text-xs"></i> Registrar ajuste
+            </button>
+          </div>
+
+          <div class="space-y-3">
+
+            <!-- Adjustment 1 -->
+            <div class="flex items-start gap-3 p-3 rounded-lg bg-[#F9F8F6] border border-[#F0EEE9]">
+              <div class="mt-0.5 w-7 h-7 rounded-full adj-discount flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-minus text-xs"></i>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center justify-between">
+                  <p class="text-sm font-semibold text-[#1F2A33]">Descuento por daño estético</p>
+                  <p class="text-sm font-bold text-[#E65100]">− S/ 180.00</p>
+                </div>
+                <p class="text-xs text-[#4E4A45] mt-0.5">Paño puerta delantera derecha</p>
+                <div class="flex items-center gap-4 mt-1.5 text-[10px] text-[#A39C90]">
+                  <span><i class="fa-regular fa-user mr-1"></i>Fiorella A. (Aprobador Financiero)</span>
+                  <span><i class="fa-regular fa-clock mr-1"></i>06 oct 2026, 14:32</span>
+                  <span class="adj-discount text-[10px] px-1.5 py-0.5 rounded font-semibold">DISCOUNT</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <p class="text-xs text-[#A39C90] mt-3 text-center">Los ajustes son definitivos y no pueden modificarse (BR-PAG-003)</p>
+        </div>
+
+      </div>
+
+      <!-- Right: Actions panel -->
+      <div class="flex flex-col gap-4">
+
+        <!-- Rental Info -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <h3 class="text-sm font-semibold text-[#1F2A33] mb-3">Información del alquiler</h3>
+          <dl class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-[#4E4A45]">Código</dt>
+              <dd class="font-medium font-display text-[#1F2A33]">ALQ-1198</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-[#4E4A45]">Periodo</dt>
+              <dd class="font-medium text-[#1F2A33]">01 – 05 oct 2026</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-[#4E4A45]">Devolución</dt>
+              <dd class="font-medium text-[#1F2A33]">DEV-0892</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-[#4E4A45]">Estado devolución</dt>
+              <dd><span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-[#FFF3E0] text-[#E65100] border border-[#FFCC80]">CON_DANOS</span></dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- Available Actions -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <h3 class="text-sm font-semibold text-[#1F2A33] mb-3">Acciones disponibles</h3>
+
+          <!-- Approve refund (requires PAYMENT.APPROVE_REFUND, only when no grave damage) -->
+          <div class="opacity-40 cursor-not-allowed mb-3">
+            <button disabled class="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#1F2A33] rounded-lg text-sm font-semibold text-[#1F2A33]">
+              <i class="fa-solid fa-check-circle text-[#1B5E20]"></i>
+              Aprobar devolución de garantía
+            </button>
+            <p class="text-[10px] text-[#4E4A45] text-center mt-1">No disponible — devolución con daños activos</p>
+          </div>
+
+          <!-- Close financial -->
+          <div class="opacity-40 cursor-not-allowed">
+            <button disabled class="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-[#E5E2DC] rounded-lg text-sm font-medium text-[#4E4A45]">
+              <i class="fa-solid fa-lock text-[#4E4A45]"></i>
+              Cerrar expediente financiero
+            </button>
+            <p class="text-[10px] text-[#4E4A45] text-center mt-1">Disponible tras resolución de garantía</p>
+          </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="bg-white rounded-xl border border-[#E5E2DC] p-4">
+          <h3 class="text-sm font-semibold text-[#1F2A33] mb-3">Línea de tiempo</h3>
+          <ol class="relative border-l border-[#E5E2DC] ml-2 space-y-3">
+            <li class="ml-4">
+              <div class="absolute w-2.5 h-2.5 bg-[#E65100] rounded-full -left-1.5 border-2 border-white"></div>
+              <p class="text-xs font-semibold text-[#1F2A33]">Descuento registrado</p>
+              <p class="text-[10px] text-[#4E4A45]">06 oct 2026 · Fiorella A.</p>
+            </li>
+            <li class="ml-4">
+              <div class="absolute w-2.5 h-2.5 bg-[#A39C90] rounded-full -left-1.5 border-2 border-white mt-8"></div>
+              <p class="text-xs font-semibold text-[#1F2A33]">Garantía registrada</p>
+              <p class="text-[10px] text-[#4E4A45]">01 oct 2026 · Al formalizar contrato</p>
+            </li>
+          </ol>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+</body></html>

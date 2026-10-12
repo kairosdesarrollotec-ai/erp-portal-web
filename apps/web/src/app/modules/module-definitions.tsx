@@ -120,7 +120,8 @@ export const MODULE_ITEMS: ModuleItem[] = [
     id: 'pagos',
     label: 'Pagos y garantías',
     description: 'PAG-01',
-    path: null,
+    path: '/pagos/garantias',
+    requiredPermissions: [{ module: 'PAYMENT', action: 'READ_LIST' }],
     icon: (
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -178,7 +179,11 @@ export const MODULE_ITEMS: ModuleItem[] = [
     id: 'reportes',
     label: 'Reportes',
     description: 'REP-01',
-    path: null,
+    path: '/reportes',
+    requiredPermissions: [
+      { module: 'REPORT', action: 'READ_OPERATIONAL' },
+      { module: 'REPORT', action: 'READ_FINANCIAL' },
+    ],
     icon: (
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <line x1="18" y1="20" x2="18" y2="10" />
