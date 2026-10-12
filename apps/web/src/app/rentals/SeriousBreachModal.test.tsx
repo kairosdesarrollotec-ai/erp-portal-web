@@ -192,4 +192,27 @@ describe('SeriousBreachModal', () => {
     renderModal({ rental: { ...baseRental, deposit: undefined } });
     expect(screen.getAllByText('—').length).toBeGreaterThan(0);
   });
+
+  it('usa los requisitos reales de la ultima ampliacion (BR-ALQ-012)', () => {
+    renderModal({
+      rental: {
+        ...baseRental,
+        extensions: [
+          {
+            id: 'e1',
+            status: 'REQUESTED',
+            requirements: { noticeGiven: true, authorized: false, paid: true, addendumSigned: false },
+          },
+        ],
+      },
+    });
+    expect(screen.getByText('2 de 4 cumplidos')).toBeInTheDocument();
+    expect(screen.getByText('Pago del periodo extendido registrado')).toBeInTheDocument();
+    expect(screen.getByText('Sin registro de autorización en el expediente')).toBeInTheDocument();
+  });
+
+  it('sin ampliaciones registradas muestra 0 de 4 cumplidos', () => {
+    renderModal();
+    expect(screen.getByText('0 de 4 cumplidos')).toBeInTheDocument();
+  });
 });

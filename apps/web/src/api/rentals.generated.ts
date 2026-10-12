@@ -124,6 +124,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rentals/{id}/contract-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Plantilla de contrato vigente que corresponde al alquiler (BR-DOC-002/003)
+         * @description Devuelve la plantilla ACTIVE de la empresa para la combinación titular persona natural/jurídica × con/sin conductor (BR-DOC-003). Si la empresa aún no cargó la plantilla de esa combinación se devuelve la plantilla genérica `RENTAL_CONTRACT` con `fallbackUsed: true`. Sin `holderType` solo se consulta la genérica. `template` es null cuando no hay ninguna vigente (formalizar fallaría con NO_ACTIVE_CONTRACT_TEMPLATE). Solo lectura: formalize-contract vuelve a resolverla en el servidor.
+         */
+        get: operations["getRentalContractTemplate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rentals/{id}/commands/formalize-contract": {
         parameters: {
             query?: never;
@@ -133,7 +153,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Formalizar contrato firmado y registrar garantía (BR-DOC-002/003) */
+        /**
+         * Formalizar contrato firmado y registrar garantía (BR-DOC-002/003)
+         * @description `depositAmount` es la garantía TOTAL del vehículo (se digita a mano hasta que Flota la provea). En alquileres de origen Reserva el monto pagado por la reserva se traslada íntegro a esa garantía (P0-03 opción a) y solo se cobra la diferencia: la respuesta trae `deposit.reservationCreditAmount` y `deposit.amountCollected`. En alquiler directo no hay traslado. El traslado solo aplica si la reserva sigue CONFIRMED/CONVERTED con el pago validado; una reserva cancelada (incluye no-show) no traslada nada. La plantilla se elige por `holderType` + `withDriver` (BR-DOC-003).
+         */
         post: operations["formalizeContract"];
         delete?: never;
         options?: never;
@@ -150,7 +173,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Completar entrega física del vehículo con checklist (BR-INS-003/004) */
+        /**
+         * Completar entrega física del vehículo con checklist (BR-INS-003/004)
+         * @description Alquiler directo (sin reserva): fija startAt = ahora y, si viene de una consulta, expectedEndAt = startAt + estimatedDays de la cotizacion vinculada, re-chequeando la disponibilidad del vehiculo. Alquiler de origen Reserva: conserva las fechas acordadas.
+         */
         post: operations["completeDelivery"];
         delete?: never;
         options?: never;
@@ -305,31 +331,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/rentals/contract-templates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Listar plantillas de contrato de una empresa (BR-DOC-002)
-         * @description Devuelve todas las versiones de plantillas de contrato de la empresa y sede indicadas, ordenadas por effectiveFrom descendente. Incluye plantillas ACTIVE y SUPERSEDED.
-         */
-        get: operations["listContractTemplates"];
-        put?: never;
-        /**
-         * Crear plantilla de contrato (BR-DOC-002 / TDD-ALQ-001 §9.3)
-         * @description Crea una nueva versión de plantilla de contrato para la empresa indicada. Si ya existe una plantilla activa del mismo tipo en esa empresa, la versión anterior pasa a SUPERSEDED y la nueva queda como ACTIVE.
-         *     La operación es idempotente mediante Idempotency-Key.
-         */
-        post: operations["createContractTemplate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -410,15 +411,14 @@ export interface components {
             companyId: string;
             /** Format: uuid */
             branchId: string;
-            /**
-             * Format: uuid
-             * @description Opcional - si se omite, el backend resuelve la plantilla ACTIVE vigente de la empresa.
-             */
-            templateVersionId?: string;
             documentRef: string;
+            /** @description Garantía TOTAL del vehículo (incluye el monto de reserva que se traslada, si lo hay). */
             depositAmount: string;
             /** @enum {string} */
             depositCurrency: "PEN" | "USD";
+            holderType?: components["schemas"]["ContractHolderType"];
+            /** @description BR-DOC-003. El vehículo lo maneja un conductor distinto del titular (conductor de la empresa o conductor propio autorizado). Obligatorio si se envía holderType. */
+            withDriver?: boolean;
             /** @description Firma digital del cliente capturada en canvas como PNG base64 (data URI sin el prefijo "data:image/png;base64,"). Opcional - se almacena junto al contrato cuando se proporciona. */
             signatureData?: string | null;
         };
@@ -546,22 +546,88 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** Format: uuid */
-            templateVersionId: string;
+            templateId?: string | null;
             documentRef: string;
             status: string;
             /** Format: date-time */
             signedAt?: string | null;
+            /** @description Combinación con la que se eligió la plantilla (p. ej. NATURAL_NO_DRIVER). Null en contratos anteriores. */
+            contractVariant?: string | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        /**
+         * @description BR-DOC-003 - titular persona natural o jurídica.
+         * @enum {string}
+         */
+        ContractHolderType: "NATURAL" | "LEGAL";
+        ContractTemplateSelectionResponse: {
+            /** Format: uuid */
+            rentalId: string;
+            variant?: {
+                holderType: components["schemas"]["ContractHolderType"];
+                withDriver: boolean;
+            } | null;
+            /** @description Tipo de plantilla buscado primero (RENTAL_CONTRACT_NATURAL, ..._NATURAL_DRIVER, ..._LEGAL, ..._LEGAL_DRIVER o RENTAL_CONTRACT). */
+            requestedType: string;
+            /** @description true si no había plantilla vigente para la combinación y se usa la genérica. */
+            fallbackUsed: boolean;
+            template: {
+                /** Format: uuid */
+                id: string;
+                type: string;
+                name: string;
+                version?: number | null;
+                /** Format: date-time */
+                effectiveFrom?: string | null;
+            } | null;
         };
         RentalDepositResponse: {
             /** Format: uuid */
             id: string;
+            /** @description Garantía TOTAL retenida (incluye el monto de reserva trasladado). */
             originalAmount: string;
             currency: string;
             status: string;
+            /** @description P0-03 (a) - parte de la garantía ya pagada como reserva. "0.00" en alquiler directo. */
+            reservationCreditAmount: string;
+            /** @description Diferencia cobrada al formalizar = originalAmount - reservationCreditAmount. */
+            amountCollected: string;
             /** Format: date-time */
             createdAt: string;
+        };
+        /** @description P0-03 (a) - vista previa del traslado del monto de la reserva a la garantía (solo GET detalle, solo alquileres de origen Reserva). */
+        ReservationCreditResponse: {
+            applicable: boolean;
+            /** @enum {string} */
+            reason: "APPLIED" | "NO_RESERVATION" | "RESERVATION_NOT_ACTIVE" | "PAYMENT_NOT_VALIDATED";
+            /** Format: uuid */
+            reservationId: string | null;
+            amount: string;
+            currency: string | null;
+        };
+        /** @description BR-ALQ-012/013 - estado de los 4 requisitos de la ampliación según lo registrado. */
+        ExtensionRequirements: {
+            /** @description Aviso con 12 h de anticipación al vencimiento. Null si ya no se puede reconstruir. */
+            noticeGiven: boolean | null;
+            authorized: boolean;
+            paid: boolean;
+            addendumSigned: boolean;
+        };
+        RentalExtensionResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            requestedEndAt: string;
+            /** @enum {string} */
+            status: "PENDING" | "AUTHORIZED" | "REJECTED" | "BREACH";
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: date-time */
+            resolvedAt: string | null;
+            paymentId: string | null;
+            addendumDocumentRef: string | null;
+            requirements: components["schemas"]["ExtensionRequirements"];
         };
         RentalResponse: {
             /** Format: uuid */
@@ -606,53 +672,10 @@ export interface components {
             notaryEvaluation?: components["schemas"]["NotaryEvaluationResponse"] | null;
             contract?: components["schemas"]["RentalContractResponse"] | null;
             deposit?: components["schemas"]["RentalDepositResponse"] | null;
-        };
-        CreateContractTemplateRequest: {
-            /**
-             * Format: uuid
-             * @description UUID de la empresa para la que se crea la plantilla.
-             */
-            companyId: string;
-            /**
-             * Format: uuid
-             * @description UUID de la sede del contexto de trabajo.
-             */
-            branchId: string;
-            /**
-             * @description Tipo de plantilla. Valor canónico actual: 'RENTAL_CONTRACT'. El campo es abierto (varchar 30) para tipos futuros (addendums, etc.).
-             * @example RENTAL_CONTRACT
-             */
-            type: string;
-            /**
-             * Format: date-time
-             * @description Fecha de vigencia ISO 8601. Si se omite, se usa el momento de creación.
-             * @example 2026-10-02T00:00:00.000Z
-             */
-            effectiveFrom?: string;
-        };
-        ContractTemplateResponse: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            companyId: string;
-            /** @example RENTAL_CONTRACT */
-            type: string;
-            /** @description Versión incremental dentro del mismo tipo y empresa. Comienza en 1. */
-            version: number;
-            /** Format: date-time */
-            effectiveFrom: string;
-            /**
-             * Format: date-time
-             * @description Fecha de cierre de vigencia (se fija cuando llega una versión más nueva). null si es la versión activa.
-             */
-            effectiveTo: string | null;
-            /**
-             * @description ACTIVE = versión vigente. SUPERSEDED = reemplazada por una versión posterior.
-             * @enum {string}
-             */
-            status: "ACTIVE" | "SUPERSEDED";
-            /** Format: date-time */
-            createdAt: string;
+            /** @description Solo en GET /rentals/{id}. Null = alquiler sin reserva de origen. */
+            reservationCredit?: components["schemas"]["ReservationCreditResponse"] | null;
+            /** @description Solo en GET /rentals/{id}. Ampliaciones, la más reciente primero. */
+            extensions?: components["schemas"]["RentalExtensionResponse"][];
         };
         /**
          * @description Tipo de documento del cliente adjunto a un alquiler.
@@ -814,14 +837,21 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Cliente o vehículo no encontrado en la empresa */
+            /** @description Cliente, vehículo o consulta (inquiryId) no encontrado en la empresa */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Período de alquiler inválido */
+            /** @description VEHICLE_NOT_AVAILABLE - vehículo no AVAILABLE, de otra sede o con reserva/compromiso solapado */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Período de alquiler inválido, CUSTOMER_BLOCKED (cliente ROJO) o INQUIRY_NOT_TRANSITIONABLE (inquiryId no está COTIZADA) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1233,6 +1263,62 @@ export interface operations {
             };
         };
     };
+    getRentalContractTemplate: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+                holderType?: components["schemas"]["ContractHolderType"];
+                /** @description Obligatorio si se envía holderType. */
+                withDriver?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plantilla resuelta (o null si no hay vigente) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContractTemplateSelectionResponse"];
+                };
+            };
+            /** @description Parámetros inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado en la empresa y sede */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     formalizeContract: {
         parameters: {
             query?: never;
@@ -1259,7 +1345,7 @@ export interface operations {
                     "application/json": components["schemas"]["RentalResponse"];
                 };
             };
-            /** @description Plantilla de contrato no pertenece a la empresa o monto de garantía inválido */
+            /** @description Monto de garantía inválido, o NO_ACTIVE_CONTRACT_TEMPLATE (la empresa no tiene plantilla vigente para la combinación) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1289,6 +1375,13 @@ export interface operations {
             };
             /** @description Versión no coincide (If-Match) */
             412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_CREDIT_EXCEEDS_DEPOSIT (el monto de la reserva supera la garantía) o RESERVATION_CREDIT_CURRENCY_MISMATCH (moneda distinta) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1343,7 +1436,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Estado incompatible (debe estar en PENDING_DELIVERY) */
+            /** @description Estado incompatible (debe estar en PENDING_DELIVERY), o VEHICLE_NOT_AVAILABLE al re-chequear disponibilidad (solo alquiler directo) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1905,7 +1998,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Falta grave registrada; extension pasa a BREACH, garantia retenida al 100% y cliente marcado "rojo" */
+            /** @description Falta grave registrada; extension pasa a BREACH, garantia retenida al 100%, cliente marcado "rojo" y el alquiler vuelve a ACTIVE para poder iniciar la devolucion */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1944,114 +2037,6 @@ export interface operations {
             };
             /** @description Falta header If-Match */
             428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    listContractTemplates: {
-        parameters: {
-            query: {
-                /** @description UUID de la empresa. */
-                companyId: string;
-                /** @description UUID de la sede. */
-                branchId: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Lista de plantillas (puede ser vacía). */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractTemplateResponse"][];
-                };
-            };
-            /** @description Token de autenticación ausente o inválido. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No autorizado para el contexto o rol insuficiente. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description companyId o branchId no son UUIDs válidos. */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    createContractTemplate: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description UUID único por intento de creación. */
-                "Idempotency-Key": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                /**
-                 * @example {
-                 *       "companyId": "550e8400-e29b-41d4-a716-446655440010",
-                 *       "branchId": "550e8400-e29b-41d4-a716-446655440011",
-                 *       "type": "RENTAL_CONTRACT"
-                 *     }
-                 */
-                "application/json": components["schemas"]["CreateContractTemplateRequest"];
-            };
-        };
-        responses: {
-            /** @description Plantilla creada. Devuelve la nueva versión ACTIVE. */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContractTemplateResponse"];
-                };
-            };
-            /** @description Token de autenticación ausente o inválido. */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description No autorizado para el contexto o rol insuficiente. */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Idempotency-Key ya procesada (operación duplicada). */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description companyId, branchId o type inválidos. */
-            422: {
                 headers: {
                     [name: string]: unknown;
                 };

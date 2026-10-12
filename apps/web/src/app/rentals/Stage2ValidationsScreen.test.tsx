@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage2ValidationsScreen } from './Stage2ValidationsScreen';
 
+vi.mock('../shared/AppHeader', () => ({ AppHeader: () => <header>cabecera</header> }));
+
 // ── mocks de infraestructura ────────────────────────────────────────────────
 
 vi.mock('../providers/firebase', () => ({

@@ -33,8 +33,9 @@ export function RentalsListScreen() {
       navigate('/devoluciones', { state: context ?? undefined });
       return;
     }
-    if (rental.status === 'ACTIVE') {
-      startReturn(rental);
+    if (rental.status === 'ACTIVE' || rental.status === 'EXTENSION_PENDING') {
+      // ALQ-10: alquiler activo (resumen, garantia, ampliacion, GPS, acciones).
+      navigate(`/alquileres/${rental.id}`, { state: context ?? undefined });
       return;
     }
     navigate(rentalWizardPathForStatus(rental.id, rental.status), { state: context ?? undefined });

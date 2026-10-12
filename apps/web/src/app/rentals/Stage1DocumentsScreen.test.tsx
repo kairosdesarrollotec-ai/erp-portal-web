@@ -3,6 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage1DocumentsScreen } from './Stage1DocumentsScreen';
 
+vi.mock('../shared/AppHeader', () => ({ AppHeader: () => <header>cabecera</header> }));
+
 const getRentalMock = vi.fn();
 const validateDocumentsMock = vi.fn();
 

@@ -6,11 +6,15 @@ import {
   evaluateNotary,
   approveNotaryException,
   formalizeContract,
+  getContractTemplate,
   RentalCommandError,
   NotaryEvaluationResponse,
+  ContractHolderType,
+  ContractTemplateSelectionResponse,
 } from './rentals-client';
 import { usePermissions } from '../shared/usePermissions';
 import { SignaturePad } from '../shared/SignaturePad';
+import { computeGuaranteeBreakdown, formatPen } from './guarantee-breakdown';
 import styles from './RentalStageForms.module.css';
 
 const NOTARY_RESULT_LABELS: Record<string, string> = {
@@ -43,6 +47,10 @@ export function Stage3ContractScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [evaluating, setEvaluating] = useState(false);
+  const [holderType, setHolderType] = useState<ContractHolderType>('NATURAL');
+  const [withDriver, setWithDriver] = useState(false);
+  const [templateSel, setTemplateSel] = useState<ContractTemplateSelectionResponse | null>(null);
+  const [templateState, setTemplateState] = useState<'LOADING' | 'READY' | 'ERROR'>('LOADING');
 
   useEffect(() => {
     async function runEvaluation() {
@@ -63,12 +71,48 @@ export function Stage3ContractScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rental?.id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTemplate() {
+      if (!rental || !context) return;
+      setTemplateState('LOADING');
+      try {
+        const idToken = await getIdToken();
+        const sel = await getContractTemplate(idToken, id, context.companyId, context.branchId, {
+          holderType,
+          withDriver,
+        });
+        if (cancelled) return;
+        setTemplateSel(sel);
+        setTemplateState('READY');
+      } catch {
+        if (cancelled) return;
+        setTemplateSel(null);
+        setTemplateState('ERROR');
+      }
+    }
+    void loadTemplate();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rental?.id, holderType, withDriver]);
+
   const needsException = evaluation && (evaluation.result === 'MANUAL_REVIEW' || evaluation.result === 'THIRD_PATH_ELIGIBLE');
   const exceptionResolved = !needsException || !!evaluation?.approvedBy;
   const depositMinimum = rental?.vehicleDepositMinimum ?? null;
   const paymentAmountNum = paymentAmount ? parseFloat(paymentAmount) : null;
   const depositBelowMinimum = depositMinimum != null && paymentAmountNum != null && paymentAmountNum < depositMinimum;
-  const canFormalize = exceptionResolved && !!signatureData && !!paymentAmount && !depositBelowMinimum && !rental?.contract;
+  const breakdown = computeGuaranteeBreakdown(paymentAmountNum, rental?.reservationCredit ?? null);
+  const hasTemplate = templateState === 'READY' && !!templateSel?.template;
+  const canFormalize =
+    exceptionResolved &&
+    !!signatureData &&
+    !!paymentAmount &&
+    !depositBelowMinimum &&
+    !rental?.contract &&
+    hasTemplate &&
+    !breakdown.exceedsTotal;
 
   async function handleApproveException() {
     if (!rental || !context || justification.trim().length < 10) return;
@@ -113,6 +157,7 @@ export function Stage3ContractScreen() {
         'PEN',
         undefined,
         signatureData ?? undefined,
+        { holderType, withDriver },
       );
       setRental(updated);
       setConfirmOpen(false);
@@ -175,6 +220,53 @@ export function Stage3ContractScreen() {
       )}
 
       <fieldset className={styles.fieldset}>
+        <legend>Plantilla del contrato</legend>
+        <div className={styles.chipRow} role="group" aria-label="Tipo de titular">
+          <button
+            type="button"
+            aria-pressed={holderType === 'NATURAL'}
+            className={`${styles.chip} ${holderType === 'NATURAL' ? styles.chipActive : ''}`}
+            onClick={() => setHolderType('NATURAL')}
+          >
+            Persona natural
+          </button>
+          <button
+            type="button"
+            aria-pressed={holderType === 'LEGAL'}
+            className={`${styles.chip} ${holderType === 'LEGAL' ? styles.chipActive : ''}`}
+            onClick={() => setHolderType('LEGAL')}
+          >
+            Persona jurídica
+          </button>
+        </div>
+        <label className={styles.fieldLabel}>
+          <input type="checkbox" checked={withDriver} onChange={(e) => setWithDriver(e.target.checked)} />
+          {' '}Con conductor distinto del titular
+        </label>
+        {templateState === 'LOADING' && <p className={styles.statusText}>Buscando plantilla…</p>}
+        {templateState === 'ERROR' && (
+          <p className={styles.blockedNotice} role="alert">
+            No pudimos consultar la plantilla del contrato. Intenta de nuevo.
+          </p>
+        )}
+        {templateState === 'READY' && templateSel?.template && (
+          <p className={styles.summaryLine}>
+            Plantilla: <strong>{templateSel.template.name}</strong>
+          </p>
+        )}
+        {templateState === 'READY' && templateSel?.template && templateSel.fallbackUsed && (
+          <p className={styles.fieldHint} role="status">
+            Aún no hay plantilla específica para esta combinación; se usará la plantilla general de alquiler.
+          </p>
+        )}
+        {templateState === 'READY' && !templateSel?.template && (
+          <p className={styles.blockedNotice} role="alert">
+            No hay plantilla de contrato vigente para esta combinación. Pide a Administración que cargue una antes de formalizar.
+          </p>
+        )}
+      </fieldset>
+
+      <fieldset className={styles.fieldset}>
         <legend>Firma del contrato</legend>
         <SignaturePad onChange={setSignatureData} />
         {!signatureData && (
@@ -193,7 +285,7 @@ export function Stage3ContractScreen() {
           </select>
         </label>
         <label className={styles.fieldLabel}>
-          Monto (PEN)
+          Garantía total (PEN)
           {depositMinimum != null && (
             <span className={styles.fieldHint}>Mínimo requerido: S/ {depositMinimum.toFixed(2)}</span>
           )}
@@ -212,6 +304,26 @@ export function Stage3ContractScreen() {
             </span>
           )}
         </label>
+        {rental.reservationCredit && !rental.reservationCredit.applied && (
+          <p className={styles.fieldHint} role="status">
+            La reserva de origen no traslada monto
+            {rental.reservationCredit.reason === 'RESERVATION_NOT_ACTIVE' ? ' (fue cancelada o no está vigente)' : ''}
+            {rental.reservationCredit.reason === 'PAYMENT_NOT_VALIDATED' ? ' (su pago no fue validado)' : ''}
+            ; se cobra la garantía completa.
+          </p>
+        )}
+        {paymentAmountNum != null && (
+          <dl className={styles.summaryLine} aria-label="Desglose de la garantía" data-testid="guarantee-breakdown">
+            <div><dt>Garantía total</dt><dd>{formatPen(breakdown.total)}</dd></div>
+            <div><dt>Reserva aplicada</dt><dd>- {formatPen(breakdown.credit)}</dd></div>
+            <div><dt>Diferencia a cobrar</dt><dd>{formatPen(breakdown.toCollect)}</dd></div>
+          </dl>
+        )}
+        {breakdown.exceedsTotal && (
+          <span className={styles.evidenceError} role="alert">
+            La reserva aplicada ({formatPen(breakdown.credit)}) supera la garantía indicada.
+          </span>
+        )}
         <div className={styles.chipRow}>
           <button
             type="button"
@@ -235,6 +347,10 @@ export function Stage3ContractScreen() {
           <div className={styles.modalCard}>
             <p className={styles.modalTitle}>¿Formalizar el contrato?</p>
             <p className={styles.summaryLine}>Esta acción es irreversible y no se puede deshacer.</p>
+            <p className={styles.summaryLine}>
+              Garantía total {formatPen(breakdown.total)}; reserva aplicada {formatPen(breakdown.credit)}; a cobrar ahora{' '}
+              {formatPen(breakdown.toCollect)}.
+            </p>
             <div className={styles.modalActions}>
               <button type="button" className={styles.secondaryButton} onClick={() => setConfirmOpen(false)}>
                 Cancelar

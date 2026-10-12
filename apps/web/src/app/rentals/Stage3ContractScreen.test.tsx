@@ -12,6 +12,8 @@ vi.mock('../providers/firebase', () => ({
   }),
 }));
 
+vi.mock('../shared/AppHeader', () => ({ AppHeader: () => <header>cabecera</header> }));
+
 const useRentalWizardMock = vi.fn();
 vi.mock('./useRentalWizard', () => ({
   useRentalWizard: () => useRentalWizardMock(),
@@ -20,6 +22,7 @@ vi.mock('./useRentalWizard', () => ({
 const evaluateNotaryMock = vi.fn();
 const approveNotaryExceptionMock = vi.fn();
 const formalizeContractMock = vi.fn();
+const getContractTemplateMock = vi.fn();
 
 vi.mock('./rentals-client', async () => {
   const actual = await vi.importActual<typeof import('./rentals-client')>('./rentals-client');
@@ -28,6 +31,7 @@ vi.mock('./rentals-client', async () => {
     evaluateNotary: (...args: unknown[]) => evaluateNotaryMock(...args),
     approveNotaryException: (...args: unknown[]) => approveNotaryExceptionMock(...args),
     formalizeContract: (...args: unknown[]) => formalizeContractMock(...args),
+    getContractTemplate: (...args: unknown[]) => getContractTemplateMock(...args),
   };
 });
 
@@ -103,6 +107,16 @@ function renderScreen() {
   );
 }
 
+function templateSelection(overrides?: Record<string, unknown>) {
+  return {
+    variant: { holderType: 'NATURAL', withDriver: false },
+    requestedType: 'RENTAL_CONTRACT_NATURAL',
+    fallbackUsed: false,
+    template: { id: 't1', type: 'RENTAL_CONTRACT_NATURAL', name: 'Contrato persona natural' },
+    ...overrides,
+  };
+}
+
 // ── suite ───────────────────────────────────────────────────────────────────
 
 describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
@@ -110,6 +124,8 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     evaluateNotaryMock.mockReset();
     approveNotaryExceptionMock.mockReset();
     formalizeContractMock.mockReset();
+    getContractTemplateMock.mockReset();
+    getContractTemplateMock.mockResolvedValue(templateSelection());
     useRentalWizardMock.mockReset();
     clearPermissions();
   });
@@ -208,24 +224,26 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
 
   // ── validación: campos necesarios para formalizar ────────────────────────
 
-  it('"Formalizar y continuar" se habilita con firma capturada y monto ingresado', () => {
+  it('"Formalizar y continuar" se habilita con firma capturada y monto ingresado', async () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
-    fireEvent.change(screen.getByLabelText(/Monto \(PEN\)/), { target: { value: '500' } });
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
 
+    await screen.findByText(/Contrato persona natural/);
     expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).not.toBeDisabled();
   });
 
   // ── confirmación: modal de confirmación ──────────────────────────────────
 
-  it('abre el modal de confirmación al hacer clic en "Formalizar y continuar"', () => {
+  it('abre el modal de confirmación al hacer clic en "Formalizar y continuar"', async () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
-    fireEvent.change(screen.getByLabelText(/Monto \(PEN\)/), { target: { value: '500' } });
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
+    await screen.findByText(/Contrato persona natural/);
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -247,7 +265,8 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     renderScreen();
 
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
-    fireEvent.change(screen.getByLabelText(/Monto \(PEN\)/), { target: { value: '500' } });
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
+    await screen.findByText(/Contrato persona natural/);
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
 
@@ -267,12 +286,130 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     renderScreen();
 
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
-    fireEvent.change(screen.getByLabelText(/Monto \(PEN\)/), { target: { value: '500' } });
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
+    await screen.findByText(/Contrato persona natural/);
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
 
     expect(
       await screen.findByText('El alquiler no está en estado válido para formalizar'),
     ).toBeInTheDocument();
+  });
+});
+
+describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DOC-003)', () => {
+  const reservationRental = {
+    ...baseRental,
+    reservationId: 'res-1',
+    reservationCredit: { reservationId: 'res-1', applied: true, reason: 'APPLIED', creditAmount: '300.00', currency: 'PEN' },
+  };
+
+  beforeEach(() => {
+    getContractTemplateMock.mockReset();
+    getContractTemplateMock.mockResolvedValue(templateSelection());
+    formalizeContractMock.mockReset();
+    useRentalWizardMock.mockReset();
+    clearPermissions();
+  });
+
+  async function fillBasics() {
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '1000' } });
+    await screen.findByText(/Contrato persona natural/);
+  }
+
+  it('alquiler de origen Reserva muestra el desglose: total, reserva aplicada y diferencia', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard({ rental: reservationRental }));
+    renderScreen();
+    await fillBasics();
+    const box = screen.getByTestId('guarantee-breakdown');
+    expect(box).toHaveTextContent('S/ 1000.00');
+    expect(box).toHaveTextContent('- S/ 300.00');
+    expect(box).toHaveTextContent('S/ 700.00');
+  });
+
+  it('alquiler directo cobra la garantia completa (reserva aplicada 0)', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+    await fillBasics();
+    const box = screen.getByTestId('guarantee-breakdown');
+    expect(box).toHaveTextContent('- S/ 0.00');
+    expect(box).toHaveTextContent('S/ 1000.00');
+  });
+
+  it('reserva cancelada: avisa que no traslada monto y cobra todo', async () => {
+    const cancelled = {
+      ...reservationRental,
+      reservationCredit: { ...reservationRental.reservationCredit, applied: false, reason: 'RESERVATION_NOT_ACTIVE', creditAmount: '0.00' },
+    };
+    useRentalWizardMock.mockReturnValue(makeWizard({ rental: cancelled }));
+    renderScreen();
+    await fillBasics();
+    expect(screen.getByText(/no traslada monto/)).toBeInTheDocument();
+    expect(screen.getByTestId('guarantee-breakdown')).toHaveTextContent('- S/ 0.00');
+  });
+
+  it('reserva con monto distinto (S/ 450) se descuenta tal cual', async () => {
+    const r = { ...reservationRental, reservationCredit: { ...reservationRental.reservationCredit, creditAmount: '450.00' } };
+    useRentalWizardMock.mockReturnValue(makeWizard({ rental: r }));
+    renderScreen();
+    await fillBasics();
+    expect(screen.getByTestId('guarantee-breakdown')).toHaveTextContent('S/ 550.00');
+  });
+
+  it('reserva mayor que la garantia bloquea formalizar', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard({ rental: reservationRental }));
+    renderScreen();
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '200' } });
+    await screen.findByText(/Contrato persona natural/);
+    expect(screen.getByRole('alert')).toHaveTextContent(/supera la garantía/);
+    expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeDisabled();
+  });
+
+  it('el modal de confirmacion incluye el desglose', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard({ rental: reservationRental }));
+    renderScreen();
+    await fillBasics();
+    fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent(/reserva aplicada S\/ 300\.00; a cobrar ahora S\/ 700\.00/);
+  });
+
+  it('envia holderType y withDriver elegidos a formalize-contract', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    getContractTemplateMock.mockResolvedValue(
+      templateSelection({ template: { id: 't2', type: 'RENTAL_CONTRACT_LEGAL_DRIVER', name: 'Contrato persona jurídica con conductor' } }),
+    );
+    formalizeContractMock.mockResolvedValue({ ...baseRental, status: 'PENDING_DELIVERY', version: 4 });
+    renderScreen();
+    fireEvent.click(screen.getByRole('button', { name: 'Persona jurídica' }));
+    fireEvent.click(screen.getByLabelText(/Con conductor distinto del titular/));
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
+    await screen.findByText(/Contrato persona jurídica con conductor/);
+    await waitFor(() =>
+      expect(getContractTemplateMock).toHaveBeenLastCalledWith('tok', 'rent-1', 'c1', 'b1', { holderType: 'LEGAL', withDriver: true }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
+    await screen.findByText('etapa 4');
+    expect(formalizeContractMock.mock.calls[0][10]).toEqual({ holderType: 'LEGAL', withDriver: true });
+  });
+
+  it('avisa cuando se usa la plantilla general por falta de la especifica', async () => {
+    getContractTemplateMock.mockResolvedValue(templateSelection({ fallbackUsed: true, template: { id: 'g', type: 'RENTAL_CONTRACT', name: 'Contrato general' } }));
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+    expect(await screen.findByText(/plantilla general de alquiler/)).toBeInTheDocument();
+  });
+
+  it('sin plantilla vigente bloquea formalizar con aviso', async () => {
+    getContractTemplateMock.mockResolvedValue(templateSelection({ template: null }));
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
+    expect(await screen.findByText(/No hay plantilla de contrato vigente/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeDisabled();
   });
 });

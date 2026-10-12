@@ -9,7 +9,11 @@ import type { useDocumentTemplateWizard } from './useDocumentTemplateWizard';
 import styles from './DocumentTemplateWizard.module.css';
 
 const TEMPLATE_TYPE_LABELS: Record<TemplateType, string> = {
-  RENTAL_CONTRACT: 'Contrato de alquiler',
+  RENTAL_CONTRACT: 'Contrato de alquiler (genérico)',
+  RENTAL_CONTRACT_NATURAL: 'Contrato de alquiler — persona natural, sin conductor',
+  RENTAL_CONTRACT_NATURAL_DRIVER: 'Contrato de alquiler — persona natural, con conductor',
+  RENTAL_CONTRACT_LEGAL: 'Contrato de alquiler — persona jurídica, sin conductor',
+  RENTAL_CONTRACT_LEGAL_DRIVER: 'Contrato de alquiler — persona jurídica, con conductor',
   RESERVATION_CONTRACT: 'Contrato de reserva',
   RETURN_RESPONSIBILITY: 'Documento de responsabilidad',
 };
@@ -19,7 +23,7 @@ const step1Schema = z.object({
     .string()
     .min(1, 'El nombre es obligatorio.')
     .max(200, 'Máximo 200 caracteres.'),
-  type: z.enum(['RENTAL_CONTRACT', 'RESERVATION_CONTRACT', 'RETURN_RESPONSIBILITY'], {
+  type: z.enum(['RENTAL_CONTRACT', 'RENTAL_CONTRACT_NATURAL', 'RENTAL_CONTRACT_NATURAL_DRIVER', 'RENTAL_CONTRACT_LEGAL', 'RENTAL_CONTRACT_LEGAL_DRIVER', 'RESERVATION_CONTRACT', 'RETURN_RESPONSIBILITY'], {
     errorMap: () => ({ message: 'Selecciona un tipo de plantilla.' }),
   }),
   effectiveFrom: z.string().optional(),
