@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { canRecruitmentAction } from './recruitment-permissions';
-import { defaultStartDate, nextStages, probationDaysRemaining } from './recruitment-domain';
+import {
+  CV_MAX_BYTES,
+  VACANCY_STATUS_LABEL,
+  defaultStartDate,
+  nextStages,
+  probationDaysRemaining,
+  validateCvFile,
+} from './recruitment-domain';
 
 describe('recruitment-domain', () => {
   it('un candidato solo avanza de etapa', () => {
@@ -17,6 +24,23 @@ describe('recruitment-domain', () => {
   it('calcula los dias que faltan para la evaluacion de 3 meses', () => {
     expect(probationDaysRemaining('2026-07-01', new Date(2026, 8, 17))).toBe(14);
     expect(probationDaysRemaining('2026-01-01', new Date(2026, 8, 17))).toBe(0);
+  });
+});
+
+describe('validateCvFile', () => {
+  it('acepta PDF, docx, JPG y PNG hasta 10 MB', () => {
+    expect(validateCvFile({ type: 'application/pdf', size: 1024 })).toBeNull();
+    expect(validateCvFile({ type: 'image/png', size: CV_MAX_BYTES })).toBeNull();
+  });
+
+  it('rechaza tipos no permitidos, vacíos y archivos de más de 10 MB', () => {
+    expect(validateCvFile({ type: 'application/zip', size: 1024 })).toMatch(/PDF, Word/);
+    expect(validateCvFile({ type: 'application/pdf', size: 0 })).toMatch(/vacío/);
+    expect(validateCvFile({ type: 'application/pdf', size: CV_MAX_BYTES + 1 })).toMatch(/10 MB/);
+  });
+
+  it('etiqueta el estado Pausada', () => {
+    expect(VACANCY_STATUS_LABEL.PAUSADA).toBe('Pausada');
   });
 });
 

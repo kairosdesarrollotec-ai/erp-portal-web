@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppHeader } from '../shared/AppHeader';
 import { useRecruitmentPermissions } from './recruitment-permissions';
 import { useVacanciesList } from './useVacanciesList';
+import { PauseVacancyControl } from './PauseVacancyControl';
 import { NewVacancyDialog } from './NewVacancyDialog';
 import {
   VACANCY_SOURCE_LABEL,
@@ -31,7 +32,7 @@ function SourceBadge({ source }: { source: VacancySource }) {
  * solo con CREATE_VACANCY; por fila "Abrir" al perfil.
  */
 function VacanciesList() {
-  const { state, vacancies, context, reload, status, setStatus, hasMore, loadingMore, loadMore } = useVacanciesList();
+  const { state, vacancies, replaceVacancy, context, reload, status, setStatus, hasMore, loadingMore, loadMore } = useVacanciesList();
   const { can } = useRecruitmentPermissions();
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
@@ -119,6 +120,15 @@ function VacanciesList() {
                         >
                           Abrir
                         </button>
+                        {context && (
+                          <PauseVacancyControl
+                            vacancy={item}
+                            context={context}
+                            buttonClassName={styles.openButton}
+                            onChanged={(detail) => replaceVacancy(detail)}
+                            onStale={reload}
+                          />
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { CandidateSummary } from './CandidateSummary';
+import { ProbationFeesCard } from './ProbationFeesCard';
 import { FlowFrame } from './FlowFrame';
 import { formatDate, formatDateTime } from './flow-format';
 import { RecruitmentDialog } from './RecruitmentDialog';
@@ -17,7 +18,7 @@ import dialogStyles from './RecruitmentDialog.module.css';
  * planilla en el mes 4 (el propio comando lo hace), negativa termina la relación.
  * Decisión: si aún no se cumplen los 3 meses (EXTERNAL_DEPENDENCY_PENDING) se permite
  * evaluar, porque el servidor no lo impide, pero se avisa los días que faltan y se pide
- * una confirmación extra. No se muestran honorarios: el módulo no los guarda.
+ * una confirmación extra. Honorarios: tarjeta propia, solo con permiso de datos sensibles.
  */
 export function ProbationScreen() {
   const { id } = useParams();
@@ -144,6 +145,19 @@ export function ProbationScreen() {
                   </p>
                 )}
               </section>
+
+              <ProbationFeesCard
+                key={`${onboarding.id}-${onboarding.version}`}
+                candidateId={id as string}
+                onboarding={onboarding}
+                canEdit={can('EVALUATE_PROBATION') && can('VIEW_CANDIDATE_SENSITIVE_DATA')}
+                saving={saving}
+                run={run}
+                onSaved={async (message) => {
+                  setNotice(message);
+                  await detail.reload();
+                }}
+              />
 
               <section className={styles.card} aria-labelledby="prob-payroll-title">
                 <h2 id="prob-payroll-title" className={styles.sectionTitle}>

@@ -9,6 +9,12 @@ export type CandidateDetail = components['schemas']['CandidateDetailResponse'];
 export type InterviewResponse = components['schemas']['CandidateInterviewResponse'];
 export type Interviewer = components['schemas']['InterviewerResponse'];
 export type OnboardingResponse = components['schemas']['OnboardingResponse'];
+export type NegotiationResponse = components['schemas']['NegotiationResponse'];
+export type CandidateCvMeta = components['schemas']['CandidateCvResponse'];
+export type CandidateCvView = components['schemas']['CandidateCvViewResponse'];
+export type CvUploadSession = components['schemas']['CandidateCvUploadSessionResponse'];
+export type RecordNegotiationInput = Omit<components['schemas']['RecordNegotiationRequest'], 'companyId' | 'branchId'>;
+export type SetProbationFeesInput = Omit<components['schemas']['SetProbationFeesRequest'], 'companyId' | 'branchId'>;
 
 /** Error HTTP de lectura (GET) - mismo patron que IncidentApiError / ReturnApiError. */
 export class RecruitmentApiError extends Error {
@@ -132,6 +138,39 @@ export async function publishVacancy(
   return data;
 }
 
+/** REC-01 / REC-02 - "Pausar" (If-Match); la vacante deja de recibir candidatos hasta reanudarla. */
+export async function pauseVacancy(
+  idToken: string,
+  id: string,
+  version: number,
+  scope: RecruitmentScope,
+  reason?: string,
+): Promise<VacancyDetail> {
+  const { data, error, response } = await recruitmentApiClient.POST('/vacancies/{id}/commands/pause', {
+    params: { path: { id }, header: { 'If-Match': ifMatch(version) } },
+    headers: authHeaders(idToken),
+    body: { ...scope, ...(reason ? { reason } : {}) },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** REC-01 / REC-02 - "Reanudar" una vacante pausada (If-Match). */
+export async function resumeVacancy(
+  idToken: string,
+  id: string,
+  version: number,
+  scope: RecruitmentScope,
+): Promise<VacancyDetail> {
+  const { data, error, response } = await recruitmentApiClient.POST('/vacancies/{id}/commands/resume', {
+    params: { path: { id }, header: { 'If-Match': ifMatch(version) } },
+    headers: authHeaders(idToken),
+    body: { ...scope },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
 // --- Candidatos (REC-03 / REC-04) ----------------------------------------------
 
 /** REC-03 - candidatos de una vacante (opcionalmente por etapa). */
@@ -157,7 +196,8 @@ export interface RegisterCandidateInput {
   documentNumber: string;
   email?: string;
   phone?: string;
-  cvDocumentId: string;
+  /** Obsoleto: el CV se sube con el visor (upload-session + record-cv). */
+  cvDocumentId?: string;
   salaryExpectation?: number;
 }
 
@@ -176,7 +216,7 @@ export async function registerCandidate(
       fullName: input.fullName,
       documentType: input.documentType ?? 'DNI',
       documentNumber: input.documentNumber,
-      cvDocumentId: input.cvDocumentId,
+      ...(input.cvDocumentId ? { cvDocumentId: input.cvDocumentId } : {}),
       ...(input.email ? { email: input.email } : {}),
       ...(input.phone ? { phone: input.phone } : {}),
       ...(input.salaryExpectation !== undefined ? { salaryExpectation: input.salaryExpectation } : {}),
@@ -335,6 +375,118 @@ export async function evaluateProbation(
     params: { path: { id: candidateId } },
     headers: authHeaders(idToken),
     body: { ...scope, passed, qualitativeEvaluation },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+// --- CV del candidato (REC-03 / REC-04) ----------------------------------------
+
+/** Paso 1: pide al backend una URL firmada de subida (tipo y tamano se validan alli). */
+export async function requestCvUploadSession(
+  idToken: string,
+  candidateId: string,
+  scope: RecruitmentScope,
+  file: { type: string; size: number },
+): Promise<CvUploadSession> {
+  const { data, error, response } = await recruitmentApiClient.POST('/candidates/{id}/cv/upload-session', {
+    params: { path: { id: candidateId } },
+    headers: authHeaders(idToken),
+    body: {
+      ...scope,
+      contentType: file.type as components['schemas']['RequestCandidateCvUploadSessionRequest']['contentType'],
+      contentLength: file.size,
+    },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** Paso 2: sube el archivo directo al almacenamiento con la URL firmada (sin credenciales propias). */
+export async function putCvToStorage(session: CvUploadSession, file: Blob): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(session.uploadUrl, { method: 'PUT', headers: session.uploadHeaders, body: file });
+  } catch {
+    throw new RecruitmentCommandError(0, { code: 'CV_UPLOAD_FAILED' });
+  }
+  if (!response.ok) throw new RecruitmentCommandError(response.status, { code: 'CV_UPLOAD_FAILED' });
+}
+
+/** Paso 3: confirma el CV subido (If-Match de la ficha). */
+export async function recordCandidateCv(
+  idToken: string,
+  candidateId: string,
+  version: number,
+  scope: RecruitmentScope,
+  session: CvUploadSession,
+  fileName: string,
+): Promise<CandidateDetail> {
+  const { data, error, response } = await recruitmentApiClient.POST('/candidates/{id}/commands/record-cv', {
+    params: { path: { id: candidateId }, header: { 'If-Match': ifMatch(version) } },
+    headers: authHeaders(idToken),
+    body: { ...scope, objectUrl: session.objectUrl, fileName },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** Flujo completo de carga del CV (sesion firmada, PUT y confirmacion). */
+export async function uploadCandidateCv(
+  idToken: string,
+  candidateId: string,
+  version: number,
+  scope: RecruitmentScope,
+  file: File,
+): Promise<CandidateDetail> {
+  const session = await requestCvUploadSession(idToken, candidateId, scope, file);
+  await putCvToStorage(session, file);
+  return recordCandidateCv(idToken, candidateId, version, scope, session, file.name);
+}
+
+/** Visor del CV: URL firmada temporal (no se almacena ni se registra). */
+export async function getCandidateCv(idToken: string, candidateId: string, scope: RecruitmentScope): Promise<CandidateCvView> {
+  const { data, error, response } = await recruitmentApiClient.GET('/candidates/{id}/cv', {
+    params: { path: { id: candidateId }, query: scope },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new RecruitmentApiError(response.status);
+  return data;
+}
+
+// --- Negociacion (REC-04) y honorarios de prueba (REC-08) ----------------------
+
+export async function recordNegotiation(
+  idToken: string,
+  candidateId: string,
+  version: number,
+  scope: RecruitmentScope,
+  input: RecordNegotiationInput,
+): Promise<CandidateDetail> {
+  const { data, error, response } = await recruitmentApiClient.POST('/candidates/{id}/negotiations', {
+    params: {
+      path: { id: candidateId },
+      header: { 'If-Match': ifMatch(version), 'Idempotency-Key': crypto.randomUUID() },
+    },
+    headers: authHeaders(idToken),
+    body: { ...scope, ...input },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** REC-08 - captura de honorarios de la prueba (If-Match de la incorporacion). */
+export async function setProbationFees(
+  idToken: string,
+  candidateId: string,
+  version: number,
+  scope: RecruitmentScope,
+  input: SetProbationFeesInput,
+): Promise<OnboardingResponse> {
+  const { data, error, response } = await recruitmentApiClient.POST('/candidates/{id}/commands/set-probation-fees', {
+    params: { path: { id: candidateId }, header: { 'If-Match': ifMatch(version) } },
+    headers: authHeaders(idToken),
+    body: { ...scope, ...input },
   });
   if (error || !data) throw toCommandError(error, response.status);
   return data;

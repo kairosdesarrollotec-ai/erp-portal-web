@@ -6,12 +6,16 @@ import { setPermissions } from '../../test/permissions';
 
 const listVacanciesMock = vi.fn();
 const registerVacancyMock = vi.fn();
+const pauseVacancyMock = vi.fn();
+const resumeVacancyMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
   }),
 }));
+// AppHeader incluye la busqueda global (React Query); aqui no se prueba.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../notifications/useNotifications', () => ({
   useNotifications: () => ({ unreadCount: 0, notifications: [], markRead: vi.fn(), reload: vi.fn() }),
 }));
@@ -21,6 +25,8 @@ vi.mock('./recruitment-client', async () => {
     ...actual,
     listVacancies: (...args: unknown[]) => listVacanciesMock(...args),
     registerVacancy: (...args: unknown[]) => registerVacancyMock(...args),
+    pauseVacancy: (...args: unknown[]) => pauseVacancyMock(...args),
+    resumeVacancy: (...args: unknown[]) => resumeVacancyMock(...args),
   };
 });
 
@@ -48,6 +54,8 @@ describe('VacanciesListScreen (REC-01)', () => {
   beforeEach(() => {
     listVacanciesMock.mockReset();
     registerVacancyMock.mockReset();
+    pauseVacancyMock.mockReset();
+    resumeVacancyMock.mockReset();
     setPermissions(['RECRUITMENT.VIEW_VACANCY', 'RECRUITMENT.CREATE_VACANCY']);
   });
 
@@ -119,5 +127,45 @@ describe('VacanciesListScreen (REC-01)', () => {
       { companyId: 'c1', branchId: 'b1' },
       { title: 'Asesor', department: 'Ventas', source: 'CRECIMIENTO', isMechanic: true },
     );
+  });
+
+  describe('Pausar / Reanudar', () => {
+    beforeEach(() => {
+      setPermissions(['RECRUITMENT.VIEW_VACANCY', 'RECRUITMENT.PUBLISH_VACANCY']);
+    });
+
+    it('ofrece Pausar solo en vacantes publicadas y actualiza la fila al confirmar', async () => {
+      listVacanciesMock.mockResolvedValue([
+        makeVacancy({ id: 'v1', status: 'PUBLICADA', version: 2 }),
+        makeVacancy({ id: 'v2', title: 'Asesor', status: 'NECESIDAD_REGISTRADA' }),
+      ]);
+      pauseVacancyMock.mockResolvedValue({ ...makeVacancy({ id: 'v1', status: 'PAUSADA', version: 3 }) });
+      renderScreen();
+      await screen.findByRole('table');
+      expect(screen.queryByRole('button', { name: 'Pausar Asesor' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Pausar Mecánico' }));
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Pausar vacante' }));
+      await waitFor(() =>
+        expect(pauseVacancyMock).toHaveBeenCalledWith('fake-id-token', 'v1', 2, { companyId: 'c1', branchId: 'b1' }, undefined),
+      );
+      expect(await within(screen.getByRole('table')).findByText('Pausada')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Reanudar Mecánico' })).toBeInTheDocument();
+    });
+
+    it('sin PUBLISH_VACANCY no aparece la acción', async () => {
+      setPermissions(['RECRUITMENT.VIEW_VACANCY']);
+      listVacanciesMock.mockResolvedValue([makeVacancy({ status: 'PUBLICADA' })]);
+      renderScreen();
+      await screen.findByRole('table');
+      expect(screen.queryByRole('button', { name: /Pausar|Reanudar/ })).toBeNull();
+    });
+
+    it('el filtro de estado incluye Pausada', async () => {
+      listVacanciesMock.mockResolvedValue([makeVacancy()]);
+      renderScreen();
+      await screen.findByRole('table');
+      expect(within(screen.getByLabelText('Estado')).getByRole('option', { name: 'Pausada' })).toBeInTheDocument();
+    });
   });
 });

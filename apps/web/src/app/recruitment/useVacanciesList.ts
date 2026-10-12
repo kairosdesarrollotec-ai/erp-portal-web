@@ -71,5 +71,9 @@ export function useVacanciesList() {
     }
   }, [context, contextLoading, reload]);
 
-  return { state, vacancies, context, reload, status, setStatus, hasMore, loadingMore, loadMore };
+  const replaceVacancy = useCallback((updated: VacancyResponse) => {
+    setVacancies((prev) => prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
+  }, []);
+
+  return { state, vacancies, replaceVacancy, context, reload, status, setStatus, hasMore, loadingMore, loadMore };
 }

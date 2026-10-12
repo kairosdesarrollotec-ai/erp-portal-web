@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type ReactNode } from 'react';
 import { Lock } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppHeader } from '../shared/AppHeader';
@@ -10,8 +10,19 @@ import {
   CANDIDATE_STAGES,
   CANDIDATE_STAGE_LABEL,
   INTERVIEW_RESULT_LABEL,
+  NEGOTIATION_OUTCOME_LABEL,
+  validateCvFile,
 } from './recruitment-domain';
-import { changeCandidateStage, decideCandidate } from './recruitment-client';
+import {
+  changeCandidateStage,
+  decideCandidate,
+  getCandidateCv,
+  recordNegotiation,
+  uploadCandidateCv,
+  type NegotiationResponse,
+  type RecordNegotiationInput,
+} from './recruitment-client';
+import { NegotiationDialog } from './NegotiationDialog';
 import { describeRecruitmentError, isStaleRecruitmentError } from './recruitment-errors';
 import { DiscardCandidateDialog } from './DiscardCandidateDialog';
 import styles from './CandidateFileScreen.module.css';
@@ -41,7 +52,7 @@ const money = (value: number) =>
 /**
  * REC-04 - Ficha y negociacion. Los datos sensibles se enmascaran con un candado
  * cuando la vista es restringida o falta el permiso; el resto de la ficha sigue visible.
- * El sistema no guarda condiciones ofrecidas: la negociacion es guia + pretension del candidato.
+ * Historial de negociacion (condiciones ofrecidas / pedidas / acordadas) y CV con carga y visor.
  */
 export function CandidateFileScreen() {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +65,10 @@ export function CandidateFileScreen() {
   const [problem, setProblem] = useState<string | null>(null);
   const [discarding, setDiscarding] = useState(false);
   const [discardError, setDiscardError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [cvBusy, setCvBusy] = useState(false);
+  const [negotiating, setNegotiating] = useState(false);
+  const [negotiationError, setNegotiationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (state === 'READY') titleRef.current?.focus();
@@ -134,6 +149,73 @@ export function CandidateFileScreen() {
     navigate(interviewPath, { state: context ?? undefined });
   }
 
+  async function onCvSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !scope) return;
+    setProblem(null);
+    setNotice(null);
+    const invalid = validateCvFile(file);
+    if (invalid) {
+      setProblem(invalid);
+      return;
+    }
+    setCvBusy(true);
+    try {
+      const idToken = await getToken();
+      const updated = await uploadCandidateCv(idToken, c.id, c.version, scope, file);
+      replace(updated);
+      setNotice('El CV se subió correctamente.');
+    } catch (err) {
+      setProblem(describeRecruitmentError(err, 'No pudimos subir el CV. Intenta de nuevo.'));
+      if (isStaleRecruitmentError(err)) void reload();
+    } finally {
+      setCvBusy(false);
+    }
+  }
+
+  async function viewCv() {
+    if (!scope) return;
+    setProblem(null);
+    setCvBusy(true);
+    try {
+      const idToken = await getToken();
+      const view = await getCandidateCv(idToken, c.id, scope);
+      // URL firmada de corta vigencia: se abre y no se guarda.
+      window.open(view.url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      setProblem(describeRecruitmentError(err, 'No pudimos abrir el CV. Intenta de nuevo.'));
+    } finally {
+      setCvBusy(false);
+    }
+  }
+
+  async function saveNegotiation(input: RecordNegotiationInput) {
+    if (!scope) return;
+    setBusy(true);
+    setNegotiationError(null);
+    try {
+      const idToken = await getToken();
+      const updated = await recordNegotiation(idToken, c.id, c.version, scope, input);
+      replace(updated);
+      setNegotiating(false);
+      setNotice(
+        input.outcome === 'ACORDADA'
+          ? 'Negociación registrada. El candidato pasó a la etapa Entrevista.'
+          : 'Negociación registrada en el historial.',
+      );
+    } catch (err) {
+      setNegotiationError(describeRecruitmentError(err, 'No pudimos registrar la negociación. Intenta de nuevo.'));
+      if (isStaleRecruitmentError(err)) {
+        setNegotiating(false);
+        setProblem(describeRecruitmentError(err, 'El registro cambió. Revisa y vuelve a intentar.'));
+        void reload();
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function discard(reason: string) {
     if (!scope) return;
     setBusy(true);
@@ -167,6 +249,7 @@ export function CandidateFileScreen() {
         </button>
         <h1 ref={titleRef} tabIndex={-1} className={styles.title}>{c.fullName}</h1>
         {problem && <p className={styles.problem} role="alert">{problem}</p>}
+        <div aria-live="polite">{notice && <p className={styles.notice} role="status">{notice}</p>}</div>
 
         <section className={styles.section} aria-labelledby="sec-general">
           <h2 id="sec-general" className={styles.sectionTitle}>Datos generales</h2>
@@ -183,11 +266,35 @@ export function CandidateFileScreen() {
             <Field label="Correo">{sensitiveHidden ? <Restricted /> : (c.email || 'No registrado')}</Field>
             <Field label="Teléfono">{sensitiveHidden ? <Restricted /> : (c.phone || 'No registrado')}</Field>
             <Field label="CV adjunto">
-              {sensitiveHidden ? <Restricted /> : c.cvDocumentId ? (
-                <span>CV adjunto · código {c.cvDocumentId.slice(0, 8)}</span>
+              {sensitiveHidden ? <Restricted /> : c.cv ? (
+                <span className={styles.cvRow}>
+                  <span>
+                    {c.cv.fileName}
+                    <span className={styles.cvMeta}>
+                      {' '}· {(c.cv.sizeBytes / 1024 / 1024).toFixed(2)} MB · subido{' '}
+                      {new Date(c.cv.uploadedAt).toLocaleDateString('es-PE', { dateStyle: 'medium' })}
+                    </span>
+                  </span>
+                  <button type="button" className={styles.linkButton} disabled={cvBusy} onClick={() => void viewCv()}>
+                    Ver CV
+                  </button>
+                </span>
+              ) : c.cvDocumentId ? (
+                <span>CV adjunto (referencia anterior) · código {c.cvDocumentId.slice(0, 8)}</span>
               ) : 'Sin CV'}
             </Field>
           </dl>
+          {!sensitiveHidden && canRegister && !decided && (
+            <div className={styles.cvRow}>
+              <input id="cv-file" type="file" className={styles.fileInput} disabled={cvBusy}
+                accept=".pdf,.docx,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
+                onChange={(e) => void onCvSelected(e)} />
+              <label htmlFor="cv-file" className={`${styles.secondaryButton} ${styles.fileLabel}`}>
+                {cvBusy ? 'Procesando CV…' : c.cv ? 'Reemplazar CV' : 'Subir CV'}
+              </label>
+              <span className={styles.cvMeta}>PDF, Word (docx), JPG o PNG de hasta 10 MB.</span>
+            </div>
+          )}
         </section>
 
         <section className={styles.section} aria-labelledby="sec-nego">
@@ -197,10 +304,48 @@ export function CandidateFileScreen() {
               {sensitiveHidden ? <Restricted /> : c.salaryExpectation != null ? money(c.salaryExpectation) : 'No indicada'}
             </Field>
           </dl>
-          <p className={styles.guide}>
-            Conversa las condiciones con el candidato (sueldo, horario y fecha de ingreso). El sistema no guarda
-            las condiciones acordadas: déjalas por escrito en tu acta o correo y continúa con la entrevista.
-          </p>
+          {sensitiveHidden ? null : (c.negotiations ?? []).length === 0 ? (
+            <p className={styles.guide}>Todavía no hay negociaciones registradas para este candidato.</p>
+          ) : (
+            <ol className={styles.history} aria-label="Historial de negociación">
+              {(c.negotiations ?? []).map((n: NegotiationResponse) => (
+                <li key={n.id} className={styles.historyItem}>
+                  <div className={styles.historyHead}>
+                    <span>{NEGOTIATION_OUTCOME_LABEL[n.outcome]}</span>
+                    <span className={styles.historyMeta}>
+                      {new Date(n.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })}
+                    </span>
+                  </div>
+                  <p className={styles.historyLine}>
+                    Ofrecido: {money(n.offeredSalary)}
+                    {n.offeredSchedule ? ` · ${n.offeredSchedule}` : ''}
+                    {n.offeredOtherConditions ? ` · ${n.offeredOtherConditions}` : ''}
+                  </p>
+                  {(n.candidateSalary != null || n.candidateSchedule || n.candidateOtherConditions || n.candidateStartDate) && (
+                    <p className={styles.historyLine}>
+                      Candidato pide:{n.candidateSalary != null ? ` ${money(n.candidateSalary)}` : ''}
+                      {n.candidateSchedule ? ` · ${n.candidateSchedule}` : ''}
+                      {n.candidateOtherConditions ? ` · ${n.candidateOtherConditions}` : ''}
+                      {n.candidateStartDate ? ` · ingreso ${n.candidateStartDate}` : ''}
+                    </p>
+                  )}
+                  {n.agreedSalary != null && (
+                    <p className={styles.historyLine}>
+                      Acordado: {money(n.agreedSalary)}{n.agreedConditions ? ` · ${n.agreedConditions}` : ''}
+                    </p>
+                  )}
+                  {n.reason && <p className={styles.historyLine}>Motivo: {n.reason}</p>}
+                </li>
+              ))}
+            </ol>
+          )}
+          {!sensitiveHidden && canRegister && !decided && (
+            <p className={styles.guide}>
+              <button type="button" className={styles.secondaryButton} onClick={() => { setNegotiationError(null); setNegotiating(true); }}>
+                Registrar negociación
+              </button>
+            </p>
+          )}
         </section>
 
         {interviews.length > 0 && (
@@ -230,6 +375,11 @@ export function CandidateFileScreen() {
           )}
         </div>
       </div>
+
+      {negotiating && (
+        <NegotiationDialog candidateName={c.fullName} salaryExpectation={c.salaryExpectation} busy={busy}
+          error={negotiationError} onSubmit={(i) => void saveNegotiation(i)} onCancel={() => setNegotiating(false)} />
+      )}
 
       {discarding && (
         <DiscardCandidateDialog candidateName={c.fullName} busy={busy} error={discardError}

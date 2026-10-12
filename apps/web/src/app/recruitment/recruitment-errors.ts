@@ -14,6 +14,14 @@ const DOMAIN_MESSAGES: Record<string, string> = {
     'Completa todo el checklist de incorporación: inducción, dispositivos asignados y responsabilidad firmada.',
   ONBOARDING_NOTARIZED_CONTRACT_REQUIRED: 'Un puesto de mecánico siempre requiere el contrato notariado.',
   ONBOARDING_NOT_FOUND: 'Este colaborador todavía no tiene incorporación registrada.',
+  VACANCY_NOT_PAUSABLE: 'Solo se puede pausar una vacante publicada o en negociación, y reanudar una pausada.',
+  CANDIDATE_CV_INVALID_FILE: 'El CV debe ser PDF, Word (docx), JPG o PNG, de máximo 10 MB.',
+  CANDIDATE_CV_OBJECT_MISMATCH: 'El archivo subido no corresponde a este candidato. Vuelve a subirlo.',
+  CANDIDATE_CV_NOT_UPLOADED: 'No encontramos el archivo en el almacenamiento. Vuelve a subirlo.',
+  CANDIDATE_CV_NOT_FOUND: 'Este candidato todavía no tiene CV cargado.',
+  CV_UPLOAD_FAILED: 'No se pudo subir el archivo. Revisa tu conexión e inténtalo de nuevo.',
+  NEGOTIATION_INVALID: 'Revisa la negociación: el acuerdo requiere sueldo acordado y el cierre sin acuerdo requiere motivo.',
+  ROLE_NOT_ALLOWED: 'Tu rol no puede ver o registrar este dato.',
   PROBATION_ALREADY_EVALUATED: 'El periodo de prueba ya fue evaluado.',
 };
 
