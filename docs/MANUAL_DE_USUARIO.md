@@ -1,6 +1,6 @@
 # Manual de Usuario — KAIROS / VeloxRent ERP
 
-> **Versión del Manual:** 1.5 (Corte al 12 de octubre de 2026)  
+> **Versión del Manual:** 1.3 (Corte al 6 de octubre de 2026)  
 > **Ámbito:** Guía de interacción paso a paso con el sistema web (`erp-portal-web`) y sus servicios integrados (`erp-monolithic-api`).  
 > **Política de Actualización:** Este documento se actualiza al cierre de cada jornada diaria con los nuevos módulos, flujos y pantallas que se integren al sistema.
 
@@ -15,7 +15,7 @@
    - 2.3 [Activación de Cuenta para Nuevos Usuarios](#23-activación-de-cuenta-para-nuevos-usuarios)
    - 2.4 [Selección de Contexto de Trabajo (Empresa y Sede)](#24-selección-de-contexto-de-trabajo-empresa-y-sede)
 3. [Estructura Visual y Navegación (Shell)](#3-estructura-visual-y-navegación-shell)
-   - 3.1 [Barra Superior (Header) y Búsqueda Global (BUS-01)](#31-barra-superior-header-y-búsqueda-global-bus-01)
+   - 3.1 [Barra Superior (Header)](#31-barra-superior-header)
    - 3.2 [Menú Lateral de Navegación (Sidebar)](#32-menú-lateral-de-navegación-sidebar)
    - 3.3 [Centro de Módulos (Hub)](#33-centro-de-módulos-hub)
    - 3.4 [Centro de Notificaciones](#34-centro-de-notificaciones)
@@ -25,75 +25,46 @@
    - 5.2 [Registro de Nuevo Cliente](#52-registro-de-nuevo-cliente)
    - 5.3 [Edición de Datos de Cliente](#53-edición-de-datos-de-cliente)
 6. [Módulo de Flota Vehicular](#6-módulo-de-flota-vehicular)
-   - 6.1 [Catálogo, Filtros y Disponibilidad por Fechas](#61-catálogo-filtros-y-disponibilidad-por-fechas)
+   - 6.1 [Catálogo y Filtros de Flota](#61-catálogo-y-filtros-de-flota)
    - 6.2 [Alta de Vehículo con Fotografía](#62-alta-de-vehículo-con-fotografía)
    - 6.3 [Edición de Especificaciones y Tarifas](#63-edición-de-especificaciones-y-tarifas)
    - 6.4 [Cambio Rápido de Estado y Baja de Vehículo](#64-cambio-rápido-de-estado-y-baja-de-vehículo)
 7. [Módulo de Consultas y Cotizaciones](#7-módulo-de-consultas-y-cotizaciones)
    - 7.1 [Bandeja de Consultas](#71-bandeja-de-consultas)
    - 7.2 [Registro de Nueva Consulta (CON-02)](#72-registro-de-nueva-consulta-con-02)
-   - 7.3 [Exhibición y Cotización con Flota Real y Fechas de Viaje (CON-03)](#73-exhibición-y-cotización-con-flota-real-y-fechas-de-viaje-con-03)
-   - 7.4 [Detalle, Historial y Conversión de Consulta (CON-04)](#74-detalle-historial-y-conversión-de-consulta-con-04)
+   - 7.3 [Exhibición y Cotización con Flota Real (CON-03)](#73-exhibición-y-cotización-con-flota-real-con-03)
+   - 7.4 [Detalle, Historial y Cierre de Consulta (CON-04)](#74-detalle-historial-y-cierre-de-consulta-con-04)
 8. [Módulo de Reservas](#8-módulo-de-reservas)
    - 8.1 [Bandeja General de Reservas (RES-01)](#81-bandeja-general-de-reservas-res-01)
-   - 8.2 [Validación de Requisitos y Confirmación Segura (RES-04 / RES-05)](#82-validación-de-requisitos-y-confirmación-segura-res-04--res-05)
+   - 8.2 [Validación de Requisitos y Confirmación (RES-04 / RES-05)](#82-validación-de-requisitos-y-confirmación-res-04--res-05)
    - 8.3 [Cancelación de Reserva](#83-cancelación-de-reserva)
 9. [Módulo de Administración del Sistema](#9-módulo-de-administración-del-sistema)
    - 9.1 [Gestión de Usuarios y Asignaciones Multi-Sede (ADM-01)](#91-gestión-de-usuarios-y-asignaciones-multi-sede-adm-01)
-   - 9.2 [Matriz de Roles y Permisos Granulares (ADM-02 y ROLES-DIN-01..03)](#92-matriz-de-roles-y-permisos-granulares-adm-02-y-roles-din-0103)
+   - 9.2 [Matriz de Roles y Permisos (ADM-02)](#92-matriz-de-roles-y-permisos-adm-02)
    - 9.3 [Registro de Eventos y Auditoría (ADM-03)](#93-registro-de-eventos-y-auditoría-adm-03)
-   - 9.4 [Políticas de Depósito y Parámetros (ADM-04)](#94-políticas-de-depósito-y-parámetros-adm-04)
-   - 9.5 [Plantillas de Notificaciones y Documentos (ADM-05 / ADM-03)](#95-plantillas-de-notificaciones-y-documentos-adm-05--adm-03)
+   - 9.4 [Políticas de Depósito y Garantía (ADM-04)](#94-políticas-de-depósito-y-garantía-adm-04)
+   - 9.5 [Plantillas de Notificaciones (ADM-05)](#95-plantillas-de-notificaciones-adm-05)
 10. [Módulo de Alquileres (ALQ-01 a ALQ-11)](#10-módulo-de-alquileres-alq-01-a-alq-11)
-    - 10.1 [Ciclo de Vida y Máquina de Estados del Alquiler](#101-ciclo-de-vida-y-máquina-de-estados-del-alquiler)
-    - 10.2 [Creación de Alquiler y Traslado de Reserva a Garantía (P0-03 opción a)](#102-creación-de-alquiler-y-traslado-de-reserva-a-garantía-p0-03-opción-a)
-    - 10.3 [Validación Documental Presencial (BR-CON-004)](#103-validación-documental-presencial-br-con-004)
-    - 10.4 [Protocolo de Alcolímetro de Tolerancia Cero (BR-ALQ-005)](#104-protocolo-de-alcolímetro-de-tolerancia-cero-br-alq-005)
-    - 10.5 [Matriz Notarial Automática y Tercer Camino Gerencial (BR-ALQ-003/004)](#105-matriz-notarial-automática-y-tercer-camino-gerencial-br-alq-003004)
-    - 10.6 [Plantilla de Contrato por Titular y Depósito de Garantía](#106-plantilla-de-contrato-por-titular-y-depósito-de-garantía)
-    - 10.7 [Entrega Física con Evidencia Pericial (BR-INS-003/004)](#107-entrega-física-con-evidencia-pericial-br-ins-003004)
-    - 10.8 [Alquileres Activos, Solicitud de Ampliación y Falta Grave (ALQ-10/11 y BR-ALQ-013)](#108-alquileres-activos-solicitud-de-ampliación-y-falta-grave-alq-1011-y-br-alq-013)
+   - 10.1 [Ciclo de Vida y Máquina de Estados del Alquiler](#101-ciclo-de-vida-y-máquina-de-estados-del-alquiler)
+   - 10.2 [Creación de Alquiler: Directo y desde Reserva Confirmada (RES-05)](#102-creación-de-alquiler-directo-y-desde-reserva-confirmada-res-05)
+   - 10.3 [Validación Documental Presencial (BR-CON-004)](#103-validación-documental-presencial-br-con-004)
+   - 10.4 [Protocolo de Alcolímetro de Tolerancia Cero (BR-ALQ-005)](#104-protocolo-de-alcolímetro-de-tolerancia-cero-br-alq-005)
+   - 10.5 [Matriz Notarial Automática y Tercer Camino / Excepción Gerencial (BR-ALQ-003/004)](#105-matriz-notarial-automática-y-tercer-camino--excepción-gerencial-br-alq-003004)
+   - 10.6 [Formalización de Contrato y Depósito en Garantía (BR-DOC-002/003)](#106-formalización-de-contrato-y-depósito-en-garantía-br-doc-002003)
+   - 10.7 [Entrega Física y Checklist de Inspección con Evidencia Obligatoria (BR-INS-003/004)](#107-entrega-física-y-checklist-de-inspección-con-evidencia-obligatoria-br-ins-003004)
 11. [Módulo de Devoluciones (DEV-01 a DEV-10)](#11-módulo-de-devoluciones-dev-01-a-dev-10)
-    - 11.1 [Ciclo de Vida de la Devolución](#111-ciclo-de-vida-de-la-devolución)
-    - 11.2 [Bandeja de Devoluciones y Alquileres Activos (DEV-01)](#112-bandeja-de-devoluciones-y-alquileres-activos-dev-01)
-    - 11.3 [Recepción Provisional (DEV-02)](#113-recepción-provisional-dev-02)
-    - 11.4 [Prueba de Alcoholímetro (DEV-03)](#114-prueba-de-alcoholímetro-dev-03)
-    - 11.5 [Checklist, Evidencias y Documento de Responsabilidad (DEV-04)](#115-checklist-evidencias-y-documento-de-responsabilidad-dev-04)
-    - 11.6 [Resultado de la Inspección: Hub de la Devolución (DEV-05)](#116-resultado-de-la-inspección-hub-de-la-devolución-dev-05)
-    - 11.7 [Registro de Daños Estéticos y Técnicos (DEV-06, DEV-07, DEV-08)](#117-registro-de-daños-estéticos-y-técnicos-dev-06-dev-07-dev-08)
-    - 11.8 [Garantía, Bloqueo por Incidencias y Cierre (DEV-09 y DEV-10)](#118-garantía-bloqueo-por-incidencias-y-cierre-dev-09-y-dev-10)
-12. [Módulo de Incidencias y Siniestros (INC-01 e INC-02)](#12-módulo-de-incidencias-y-siniestros-inc-01-e-inc-02)
-    - 12.1 [Bandeja General de Incidencias (INC-01)](#121-bandeja-general-de-incidencias-inc-01)
-    - 12.2 [Registro de Nueva Incidencia](#122-registro-de-nueva-incidencia)
-    - 12.3 [Timeline Inmutable y Seguimiento (INC-02)](#123-timeline-inmutable-y-seguimiento-inc-02)
-    - 12.4 [Regla de Bloqueo de Garantías en Devolución (BR-INC-001)](#124-regla-de-bloqueo-de-garantías-en-devolución-br-inc-001)
-13. [Módulo de Reclutamiento y Selección (REC-01 a REC-08)](#13-módulo-de-reclutamiento-y-selección-rec-01-a-rec-08)
-    - 13.1 [Bandeja de Vacantes y Pausado Operativo (REC-01)](#131-bandeja-de-vacantes-y-pausado-operativo-rec-01)
-    - 13.2 [Publicación y Regla de Mecánicos (REC-02 / BR-REC-004)](#132-publicación-y-regla-de-mecánicos-rec-02--br-rec-004)
-    - 13.3 [Tablero Kanban de Candidatos (REC-03)](#133-tablero-kanban-de-candidatos-rec-03)
-    - 13.4 [Ficha de Postulante y Descarga Segura de CV (REC-04)](#134-ficha-de-postulante-y-descarga-segura-de-cv-rec-04)
-    - 13.5 [Agendamiento de Entrevistas con Directorio (REC-05)](#135-agendamiento-de-entrevistas-con-directorio-rec-05)
-    - 13.6 [Evaluación y Dictamen Técnico (REC-06)](#136-evaluación-y-dictamen-técnico-rec-06)
-    - 13.7 [Oferta Laboral, Honorarios de Prueba y Negociación (REC-07)](#137-oferta-laboral-honorarios-de-prueba-y-negociación-rec-07)
-    - 13.8 [Onboarding y Período de Prueba de 30/60/90 Días (REC-08)](#138-onboarding-y-período-de-prueba-de-306090-días-rec-08)
-14. [Módulo de Administración de Personal (ADP-01 a ADP-10)](#14-módulo-de-administración-de-personal-adp-01-a-adp-10)
-    - 14.1 [Bandeja General y Directorio de Colaboradores (ADP-01)](#141-bandeja-general-y-directorio-de-colaboradores-adp-01)
-    - 14.2 [Alta de Personal y Expediente Laboral (ADP-02)](#142-alta-de-personal-y-expediente-laboral-adp-02)
-    - 14.3 [Solicitudes de Permisos y Licencias con Evidencia (ADP-03)](#143-solicitudes-de-permisos-y-licencias-con-evidencia-adp-03)
-    - 14.4 [Cascada Automática de Aprobaciones Multinivel (ADP-04)](#144-cascada-automática-de-aprobaciones-multinivel-adp-04)
-    - 14.5 [Programación y Control de Vacaciones (ADP-05)](#145-programación-y-control-de-vacaciones-adp-05)
-    - 14.6 [Control de Asistencia y Reclasificación de Faltas (ADP-06)](#146-control-de-asistencia-y-reclasificación-de-faltas-adp-06)
-    - 14.7 [Memos Disciplinarios Automáticos por Reincidencia (ADP-07)](#147-memos-disciplinarios-automáticos-por-reincidencia-adp-07)
-    - 14.8 [Autorización de Salidas a Campo y Rechazo Motivado (ADP-08)](#148-autorización-de-salidas-a-campo-y-rechazo-motivado-adp-08)
-    - 14.9 [Confirmación de Retorno de Campo (ADP-09)](#149-confirmación-de-retorno-de-campo-adp-09)
-    - 14.10 [Capacitaciones y Control de Asistencia (ADP-10)](#1410-capacitaciones-y-control-de-asistencia-adp-10)
-15. [Módulos de Pagos, Reportes y Búsqueda Global (Fase 6)](#15-módulos-de-pagos-reportes-y-búsqueda-global-fase-6)
-    - 15.1 [Pagos y Gestión de Garantías (PAG-01 / PAG-02)](#151-pagos-y-gestión-de-garantías-pag-01--pag-02)
-    - 15.2 [Reportes Gerenciales y Operativos (REP-01)](#152-reportes-gerenciales-y-operativos-rep-01)
-    - 15.3 [Búsqueda Global Unificada (BUS-01)](#153-búsqueda-global-unificada-bus-01)
-16. [Sincronización Offline y Modo Desconectado (TR-08)](#16-sincronización-offline-y-modo-desconectado-tr-08)
-17. [Glosario de Términos y Estados](#17-glosario-de-términos-y-estados)
-18. [Bitácora Diaria de Cambios del Manual](#18-bitácora-diaria-de-cambios-del-manual)
+   - 11.1 [Ciclo de Vida de la Devolución](#111-ciclo-de-vida-de-la-devolución)
+   - 11.2 [Bandeja de Devoluciones y Alquileres Activos (DEV-01)](#112-bandeja-de-devoluciones-y-alquileres-activos-dev-01)
+   - 11.3 [Recepción Provisional (DEV-02)](#113-recepción-provisional-dev-02)
+   - 11.4 [Prueba de Alcoholímetro (DEV-03)](#114-prueba-de-alcoholímetro-dev-03)
+   - 11.5 [Checklist, Evidencias y Documento de Responsabilidad (DEV-04)](#115-checklist-evidencias-y-documento-de-responsabilidad-dev-04)
+   - 11.6 [Resultado de la Inspección: Hub de la Devolución (DEV-05)](#116-resultado-de-la-inspección-hub-de-la-devolución-dev-05)
+   - 11.7 [Registro de Daños (DEV-06, DEV-07, DEV-08)](#117-registro-de-daños-dev-06-dev-07-dev-08)
+   - 11.8 [Garantía y Cierre (DEV-09 y DEV-10)](#118-garantía-y-cierre-dev-09-y-dev-10)
+   - 11.9 [Alcance Actual y Pendientes](#119-alcance-actual-y-pendientes)
+12. [Módulos en Construcción (Hoja de Ruta)](#12-módulos-en-construcción-hoja-de-ruta)
+13. [Glosario de Términos y Estados](#13-glosario-de-términos-y-estados)
+14. [Bitácora Diaria de Cambios del Manual](#14-bitácora-diaria-de-cambios-del-manual)
 
 ---
 
@@ -102,8 +73,8 @@
 **KAIROS / VeloxRent ERP** es la plataforma integral de gestión operativa y comercial para empresas de alquiler de vehículos y servicios de movilidad turística.
 
 El sistema organiza sus operaciones sobre un modelo corporativo **multi-empresa y multi-sede**:
-- Cada usuario pertenece a una organización empresarial y puede contar con asignaciones a una o varias empresas y sedes operativas físicas.
-- La información de clientes, flota vehicular, consultas, reservas, alquileres, personal y caja se encuentra estrictamente aislada y protegida según la sede activa en la que el usuario esté trabajando.
+- Cada usuario pertenece a un grupo empresarial y puede tener asignaciones a una o varias empresas y sedes operativas físicas.
+- La información de clientes, flota vehicular, consultas y reservas se encuentra estrictamente aislada y protegida según la sede activa en la que el usuario esté trabajando.
 
 ---
 
@@ -145,7 +116,7 @@ El sistema organiza sus operaciones sobre un modelo corporativo **multi-empresa 
 #### Interacciones paso a paso:
 1. Al ingresar por primera vez con una contraseña asignada por el Administrador, el sistema redirige automáticamente a esta pantalla.
 2. **Definir nueva contraseña:**
-   * Ingrese su nueva clave secreta personal (mínimo 8 caracteres, combinación de mayúsculas, minúsculas y números).
+   * Ingrese su nueva clave secreta personal (debe cumplir los estándares: mínimo 8 caracteres, combinación de mayúsculas, minúsculas y números).
    * Confirme la nueva contraseña en el segundo campo.
 3. **Configurar Segundo Factor (MFA):**
    * Escanee el código QR que se muestra en pantalla con su app autenticadora móvil.
@@ -174,33 +145,35 @@ El sistema organiza sus operaciones sobre un modelo corporativo **multi-empresa 
 
 ## 3. Estructura Visual y Navegación (Shell)
 
-Toda la aplicación autenticada comparte un marco de trabajo uniforme compuesto por la Barra Superior, el Buscador Global y el Menú Desplegable.
+Toda la aplicación autenticada comparte un marco de trabajo uniforme compuesto por la Barra Superior y el Menú Desplegable.
 
-### 3.1 Barra Superior (Header) y Búsqueda Global (BUS-01)
+### 3.1 Barra Superior (Header)
 Visible permanentemente en la parte superior de todas las pantallas de negocio:
 
 * **Ícono de Menú Hamburguesa (☰):** Al hacer clic, abre el panel lateral de módulos (`AppSidebar`).
 * **Logotipo / Marca KAIROS:** Al hacer clic sobre el logo, navega directamente al **Centro de Módulos (`/modulos`)**.
-* **Búsqueda Global Unificada (BUS-01):** Campo de búsqueda centralizado accesible con el atajo de teclado **`Cmd + K`** (macOS) o **`Ctrl + K`** (Windows/Linux). Permite buscar transversalmente por cliente, placa de vehículo, expediente de reserva, contrato de alquiler o colaborador, abriendo directamente la ficha seleccionada.
+* **Título de la Página:** Muestra en qué pantalla se encuentra el usuario (ej. *Clientes*, *Flota Vehicular*, *Reservas*).
 * **Badge de Sede Activa:** Muestra el texto `[Empresa] — [Sede]` (ej. *VeloxRent Perú — Miraflores*).
 * **Botón de Cambio de Sede (ícono de flechas):** Permite cambiar de sede operativa en cualquier momento sin cerrar sesión, retornando a `/seleccion-empresa-sede`.
 * **Campana de Notificaciones:** Muestra un círculo indicador con la cantidad de notificaciones no leídas. Al hacer clic, abre el panel lateral de notificaciones.
-* **Menú de Usuario y Cierre de Sesión:** Muestra el avatar con la inicial del correo corporativo. Incluye diálogo de confirmación de cierre de sesión seguro (`TR-09`) con aviso preventivo si existen borradores o formularios sin guardar en la pantalla activa.
+* **Badge de Perfil de Usuario:** Muestra el avatar con la inicial del correo corporativo y el rol operativo activo (ej. *Front-office*).
+* **Botón Cerrar Sesión (LogOut):** Cierra de manera limpia y segura la sesión en Firebase y limpia los datos en memoria local.
 
 ---
 
 ### 3.2 Menú Lateral de Navegación (Sidebar)
-Se activa mediante el botón de menú hamburguesa (☰) y se puede cerrar haciendo clic en la **"X"** o fuera del panel:
+Se activa mediante el botón de menú hamburguesa (☰) y se puede cerrar haciendo clic en la **"X"** o haciendo clic fuera del menú:
 
-* Muestra los módulos funcionales del sistema organizados por áreas (Comercial, Operaciones, Talento Humano y Gestión Corporativa).
+* Muestra los **12 módulos del sistema**.
 * Los módulos activos están resaltados y permiten navegación instantánea mediante un solo clic.
-* Conserva de forma inmutable el contexto de la empresa y sede activa seleccionada.
+* Los módulos que aún no cuentan con pantalla operativa muestran una etiqueta gris distintiva: **"Próximamente"** (no permiten hacer clic).
+* Al seleccionar cualquier módulo, el menú se cierra automáticamente y carga la pantalla elegida conservando el contexto de la empresa y sede activa.
 
 ---
 
 ### 3.3 Centro de Módulos (Hub)
 * **Ruta:** `/modulos`
-* **Propósito:** Vista panorámica general del ERP con tarjetas visuales grandes para los módulos funcionales:
+* **Propósito:** Vista panorámica general del ERP con tarjetas visuales grandes para los 12 módulos funcionales:
 
 | Módulo | Acceso Directo | Estado Actual |
 |---|---|---|
@@ -209,13 +182,13 @@ Se activa mediante el botón de menú hamburguesa (☰) y se puede cerrar hacien
 | **Reservas** | `/reservas` | ✅ Operativo |
 | **Flota** | `/flota` | ✅ Operativo |
 | **Clientes** | `/clientes` | ✅ Operativo |
+| **Administración** | `/admin/usuarios` | ✅ Operativo (Sólo Administradores) |
 | **Alquileres** | `/alquileres` | ✅ Operativo |
 | **Devoluciones** | `/devoluciones` | ✅ Operativo |
-| **Incidencias** | `/incidencias` | ✅ Operativo |
-| **Personal** | `/hr/employees` | ✅ Operativo (Personal y Reclutamiento) |
-| **Pagos y Garantías** | `/payments` | ✅ Operativo |
-| **Reportes** | `/reporting` | ✅ Operativo |
-| **Administración** | `/admin/usuarios` | ✅ Operativo (Sólo Administradores) |
+| **Pagos y Garantías** | — | ⏳ Próximamente (En desarrollo) |
+| **Incidentes** | — | ⏳ Próximamente (En desarrollo) |
+| **Personal** | — | ⏳ Próximamente (En desarrollo) |
+| **Reportes** | — | ⏳ Próximamente (En desarrollo) |
 
 ---
 
@@ -225,7 +198,6 @@ Se activa mediante el botón de menú hamburguesa (☰) y se puede cerrar hacien
   * Creación y asignación de cotizaciones.
   * Cambios de estado de vehículos y reservas.
   * Notificaciones de bienvenida y registro de usuarios.
-  * Solicitudes de permisos y vacaciones pendientes de revisión.
 * Permite marcar alertas individuales como leídas o revisar el detalle del evento.
 
 ---
@@ -236,14 +208,17 @@ Se activa mediante el botón de menú hamburguesa (☰) y se puede cerrar hacien
 
 ### Vistas según el Rol del Usuario:
 1. **Rol Front-Office (Atención al Público y Mostrador):**
-   * Lista interactiva de tareas pendientes proyectadas en tiempo real (cotizaciones por responder, documentación de reservas, entregas programadas).
-   * Al hacer clic en una tarea, el sistema redirige automáticamente al expediente correspondiente (*Deep Linking*).
-2. **Rol Operaciones / Campo:**
-   * Entregas físicas del día, retornos programados, inspecciones de devolución e incidencias en ruta.
-3. **Rol Administración / Gerencia:**
-   * Métricas rápidas de ocupación de flota, solicitudes de personal pendientes de aprobación, contratos en contratación y resúmenes de cobranza.
-4. **Rol Administrador de Plataforma (`PLATFORM_ADMIN`):**
-   * Acceso rápido a usuarios (`/admin/usuarios`), auditoría (`/admin/auditoria`), políticas (`/admin/parametros`), matriz de permisos (`/admin/permisos`) y plantillas (`/admin/plantillas`).
+   * Muestra la lista interactiva de tareas pendientes proyectadas en tiempo real a partir del ciclo de vida de Reservas y Consultas.
+   * Cada tarea es una tarjeta cliqueable con título y detalle explicativo (ej. *"Completar documentación para Reserva RES-2026-001"*).
+   * Al hacer clic en una tarea, el sistema redirige automáticamente a la pantalla de detalle correspondiente (*Deep Linking*).
+   * Si no hay pendientes en la sede, muestra el mensaje amigable: *"No tienes pendientes por ahora"*.
+2. **Rol Administrador de Plataforma (`PLATFORM_ADMIN`):**
+   * Despliega tarjetas de acceso rápido a los 5 submódulos de gestión corporativa:
+     * *Usuarios y asignaciones* (`/admin/usuarios`).
+     * *Auditoría y trazabilidad* (`/admin/auditoria`).
+     * *Políticas de depósito* (`/admin/parametros`).
+     * *Matriz de permisos* (`/admin/permisos`).
+     * *Plantillas de notificaciones* (`/admin/notificaciones`).
 
 ---
 
@@ -253,418 +228,549 @@ Se activa mediante el botón de menú hamburguesa (☰) y se puede cerrar hacien
 * **Propósito:** Directorio centralizado de personas naturales y jurídicas que solicitan cotizaciones, alquilan unidades o mantienen contratos con la empresa.
 
 ### 5.1 Bandeja y Búsqueda de Clientes
-1. **Contador en vivo:** Total de clientes registrados bajo la empresa actual.
-2. **Buscador en tiempo real:** Filtra al instante por nombre, documento o teléfono.
-3. **Semáforo de Riesgo:** Indicador visual de color por cliente:
-   * **Verde (Normal):** Cliente sin incidencias ni incumplimientos.
-   * **Ámbar:** Cliente con observaciones menores o daño estético registrado.
-   * **Rojo:** Cliente bloqueado por falta grave (`BR-ALQ-013`), daño severo en devolución o deuda contractual.
+1. **Contador en vivo:** Muestra el número total de clientes registrados bajo la empresa actual (ej. *"15 clientes registrados"*).
+2. **Buscador en tiempo real:**
+   * Campo de texto con ícono de lupa: *"Buscar por nombre, documento o teléfono…"*.
+   * La lista se filtra instantáneamente conforme el usuario escribe, sin necesidad de presionar *Enter*.
+3. **Columnas de la tabla de clientes:**
+   * **Nombre / Razón Social:** Nombre completo o denominación legal.
+   * **Documento:** Tipo de documento y número identificador (ej. `DNI: 45892147`, `RUC: 20601234567`).
+   * **Nacionalidad:** Etiqueta distintiva `PERUANO` o `EXTRANJERO`.
+   * **Contacto:** Correo electrónico y teléfono móvil.
+   * **Acciones:** Botón de lápiz (Editar).
+
+---
 
 ### 5.2 Registro de Nuevo Cliente
-1. Presione **"+ Nuevo Cliente"**.
-2. Seleccione el Tipo de documento (`DNI`, `RUC`, `CE`, `Pasaporte`) e ingrese el número. El sistema valida duplicidad en la misma empresa.
-3. Ingrese Nombre completo o razón social, Nacionalidad, Correo, Teléfono y Dirección.
-4. Si es de nacionalidad extranjera, se solicita la fecha legal de ingreso al país.
-5. Presione **"Guardar Cliente"**.
+1. Presione el botón azul **"+ Nuevo Cliente"** en la esquina superior derecha del encabezado.
+2. Se abrirá la ventana modal **"Nuevo Cliente"**.
+3. **Complete los campos del formulario:**
+   * **Tipo de documento (Obligatorio):** Seleccione entre `DNI`, `RUC`, `Carné de Extranjería (CE)` o `Pasaporte`.
+   * **Número de documento (Obligatorio):** Ingrese el número correspondiente. *Nota: El sistema no permite registrar dos clientes con el mismo número de documento en la misma empresa.*
+   * **Nombre completo o razón social (Obligatorio):** Ingrese los nombres completos o la razón social de la empresa.
+   * **Nacionalidad (Obligatorio):** Seleccione `Peruano` o `Extranjero`.
+   * **Fecha de ingreso al país (Condicional):** Si seleccionó `Extranjero`, este campo se habilitará automáticamente para registrar la fecha legal de ingreso al territorio nacional.
+   * **Correo electrónico (Opcional):** Correo para envío de cotizaciones y contratos.
+   * **Teléfono (Opcional):** Teléfono móvil de contacto.
+   * **Dirección (Opcional):** Domicilio registrado.
+4. Presione **"Guardar Cliente"**.
+   * Si faltan campos obligatorios, el modal mostrará un mensaje de alerta específico.
+   * Si los datos son correctos, el cliente se guardará, la lista se actualizará de inmediato y el modal se cerrará.
+
+---
 
 ### 5.3 Edición de Datos de Cliente
-1. En la fila del cliente, presione el ícono de **Lápiz**.
-2. Actualice los datos de contacto o domicilio y presione **"Guardar Cambios"**.
+1. En la fila del cliente deseado, haga clic en el botón con ícono de **Lápiz** (`Pencil`).
+2. Se abrirá la modal con el título **"Editar Cliente"**, precargada con todos los datos existentes.
+3. Modifique la información necesaria (teléfono, correo, dirección, etc.).
+4. Presione **"Guardar Cambios"**.
+5. Los datos se actualizarán de forma inmediata en la base de datos central y en la tabla.
 
 ---
 
 ## 6. Módulo de Flota Vehicular
 
 * **Ruta:** `/flota`
-* **Propósito:** Administrar el inventario vehicular, características técnicas, tarifas y disponibilidad de servicio.
+* **Propósito:** Administrar el inventario de vehículos disponibles para alquiler, sus especificaciones mecánicas, tarifas diarias y estados de servicio.
 
-### 6.1 Catálogo, Filtros y Disponibilidad por Fechas
-1. **Búsqueda por texto:** Ingrese placa, marca o modelo para filtrar en tiempo real.
-2. **Filtro por Estado Operativo:** `Disponible` (Verde), `Alquilado` (Azul), `Mantenimiento` (Amarillo), `Fuera de Servicio` (Gris).
-3. **Consulta de Disponibilidad por Rango de Fechas:**
-   * Permite indicar una ventana `Desde` y `Hasta` (`availableFrom` / `availableTo`).
-   * El sistema calcula en lote la disponibilidad real de cada unidad, considerando tanto reservas confirmadas como alquileres activos y compromisos de flota (`vehicle_commitments`).
-   * Si la unidad presenta cruce de fechas, exhibe el bloque `availability` con el detalle del conflicto (`conflictFrom` / `conflictTo`).
+### 6.1 Catálogo y Filtros de Flota
+1. **Búsqueda por texto:** Ingrese placa, marca o modelo en la barra de búsqueda para filtrar la tabla en tiempo real.
+2. **Filtro por Estado:** Menú desplegable para seleccionar:
+   * *Todos los estados*
+   * *Disponible* (Verde): Unidad lista para cotización o entrega inmediata.
+   * *Alquilado* (Azul): Unidad actualmente en posesión de un cliente bajo contrato.
+   * *Mantenimiento* (Amarillo): Unidad en taller mecánico o inspección preventiva.
+   * *Fuera de Servicio* (Gris/Rojo): Unidad dada de baja o inhabilitada temporalmente.
+3. **Contador de inventario:** Muestra el número total de unidades en la flota de la sede.
+
+---
 
 ### 6.2 Alta de Vehículo con Fotografía
-1. Presione **"+ Nuevo Vehículo"**.
-2. Cargue la fotografía frontal de la unidad (formatos JPEG, PNG, WebP con compresión automática).
-3. Complete Placa (única e inmutable), Marca, Modelo, Año, Color, Categoría (`Sedán`, `SUV`, `Pick-up`, `Hatchback`, `Van`), Tarifa Diaria en Soles y Estado Inicial.
-4. Presione **"Guardar Vehículo"**.
+1. Presione el botón **"+ Nuevo Vehículo"** en la barra superior.
+2. Se abrirá el formulario modal **"Nuevo Vehículo"**.
+3. **Carga de Fotografía del Vehículo:**
+   * Haga clic en el recuadro de cámara o arrastre una imagen (formatos soportados: JPEG, PNG, WebP).
+   * El sistema genera una vista previa instantánea y optimiza la imagen automáticamente para reducir los tiempos de carga en red.
+4. **Datos del Vehículo:**
+   * **Placa (Obligatorio):** Ingrese la placa vehicular (ej. `ABC-123`). La placa es única y no se puede repetir en el sistema.
+   * **Marca y Modelo (Obligatorios):** Ej. *Toyota Yaris*, *Hyundai Tucson*.
+   * **Año de Fabricación:** Ej. `2024`.
+   * **Color:** Ej. `Gris Plata`, `Blanco`.
+   * **Categoría (Obligatorio):** Seleccione entre `Sedán`, `SUV`, `Pick-up`, `Hatchback`, `Van` o `Compacto`.
+   * **Tarifa Diaria en Soles (S/.) (Obligatorio):** Precio base de alquiler por día (ej. `180.00`).
+   * **Estado Inicial:** Seleccione `Disponible` (o `Mantenimiento` si aún requiere alistamiento).
+5. Presione **"Guardar Vehículo"**.
+
+---
 
 ### 6.3 Edición de Especificaciones y Tarifas
-1. Presione **"Editar"** en la fila de la unidad. La placa se muestra protegida en sólo lectura.
-2. Actualice tarifa diaria, categoría o fotografía y presione **"Guardar Cambios"**.
+1. En la tabla de flota, ubique el vehículo y presione el botón **"Editar"** en su fila.
+2. Se desplegará la modal en modo edición:
+   * La **Placa** se muestra protegida en modo sólo lectura (constituye el identificador físico inmutable del vehículo).
+   * Puede actualizar la marca, modelo, año, color, categoría, tarifa diaria por día y sustituir la fotografía.
+3. Presione **"Guardar Cambios"**.
+
+---
 
 ### 6.4 Cambio Rápido de Estado y Baja de Vehículo
-* **Cambio de Estado:** Menú desplegable directo en la columna de acción de la tabla (`Disponible`, `Mantenimiento`, `Fuera de Servicio`).
-* **Baja de Vehículo:** Botón **"Dar de baja"** con doble confirmación de seguridad para pasar la unidad a `OUT_OF_SERVICE`.
+* **Cambio de Estado en 1 Clic:**  
+  En la columna *Acción* de la tabla, cada vehículo cuenta con un menú desplegable directo (`Disponible`, `Alquilado`, `Mantenimiento`, `Fuera de Servicio`). Al cambiar la selección, el estado se actualiza en el servidor en tiempo real sin recargar la página.
+* **Dar de Baja a un Vehículo:**  
+  1. Si un vehículo no está en estado *Fuera de Servicio*, verá el botón **"Dar de baja"**.
+  2. Al presionarlo, el sistema solicitará confirmación mediante un botón de seguridad rojo: **"Confirmar baja"**.
+  3. Al confirmar, el vehículo pasará al estado inactivo `OUT_OF_SERVICE`.
+  4. Si se equivocó, puede presionar **"Volver"** para cancelar la acción.
 
 ---
 
 ## 7. Módulo de Consultas y Cotizaciones
 
 * **Ruta:** `/consultas`
-* **Propósito:** Atender requerimientos de viaje, cotizar unidades de la flota real y convertir prospecciones en reservas o alquileres directos.
+* **Propósito:** Gestionar el ciclo de prospección comercial desde la primera llamada o visita del cliente hasta la cotización formal de un vehículo de la flota real.
 
 ### 7.1 Bandeja de Consultas
-* Lista las atenciones en la sede activa en estados `REGISTRADA`, `COTIZADA`, `CONVERTIDA` o `CERRADA_SIN_CONVERSION`.
-* Presione **"+ Nueva Consulta"** para iniciar una atención.
+* Muestra todas las consultas registradas en la sede activa.
+* **Estados visuales:**
+  * `REGISTRADA`: Consulta recibida con requerimiento de viaje pero aún sin vehículo cotizado.
+  * `COTIZADA`: Se ha asignado un vehículo de la flota y calculado el presupuesto estimado.
+  * `CONVERTIDA`: La cotización fue aceptada y avanzó a reserva.
+  * `CERRADA_SIN_CONVERSION`: Consulta finalizada sin concretar venta (por no cumplir política turística, desistimiento del cliente o falta de disponibilidad).
+* Presione el botón **"+ Nueva Consulta"** para iniciar una atención.
+
+---
 
 ### 7.2 Registro de Nueva Consulta (CON-02)
-* **Ruta:** `/consultas/nueva` (con salvaguarda de autoguardado local).
-1. **Modalidad:** Seleccione `Presencial` o `Virtual` (canal: WhatsApp, llamada, web, redes, correo).
-2. **Cliente:** Vincule un cliente existente o use **"+ Registrar nuevo cliente"**. Si es extranjero, se solicita documento de hospedaje.
-3. **Requerimiento de Viaje:** Destino turístico, fecha de viaje (mínimo el día de hoy), cantidad de personas y días estimados.
-4. **Validación de Uso Turístico Exclusivo:**
-   * **SÍ:** Habilita el botón verde **"Continuar"** para pasar al catálogo.
-   * **NO:** Advierte la política de seguro y convierte el botón en **"Cerrar consulta"** sin cotizar.
+* **Ruta:** `/consultas/nueva`
+* **Mecanismo de Salvaguarda:** Cuenta con indicador de autoguardado en el encabezado (*"Guardado en este dispositivo"*), que evita la pérdida de información si la ventana se cierra accidentalmente.
 
-### 7.3 Exhibición y Cotización con Flota Real y Fechas de Viaje (CON-03)
+#### Paso a paso del flujo de atención:
+1. **Modalidad de Exhibición:**
+   * Seleccione **"Presencial"** si el cliente se encuentra físicamente en el counter/oficina.
+   * Seleccione **"Virtual"** si la atención es por canales digitales. Si elige *Virtual*, se desplegará el selector **"Canal de contacto"** para indicar el origen (`WhatsApp`, `Llamada telefónica`, `Página Web`, `Redes Sociales`, `Correo electrónico`).
+2. **Vinculación Obligatoria del Cliente:**
+   * **Buscar cliente existente:** Escriba en el buscador de clientes por nombre o número de documento. Al aparecer el resultado en la lista desplegable, haga clic sobre él para seleccionarlo.
+   * **Si es un cliente nuevo:** Presione el botón **"+ Registrar nuevo cliente"**. Se abrirá el modal de alta rápida de clientes; al guardarlo, quedará automáticamente vinculado a esta consulta.
+   * Una vez vinculado, verá la tarjeta del cliente con su documento y nacionalidad. Cuenta con un botón *"Desvincular"* por si requiere cambiar de cliente.
+   * **Requisito especial para Extranjeros:** Si el cliente tiene nacionalidad extranjera, el sistema desplegará automáticamente el campo obligatorio: **"Documento de hospedaje"** (reserva de hotel o carta de alojamiento).
+3. **Necesidad de Viaje:**
+   * **Destino (Obligatorio):** Ciudad o circuito turístico (ej. *Cusco - Valle Sagrado*, *Paracas - Ica*).
+   * **Fecha de viaje (Obligatorio):** Selector de fecha. *Validación de seguridad: El sistema no permite elegir fechas en el pasado; la fecha mínima es el día de hoy.*
+   * **Número de personas:** Cantidad de pasajeros (mínimo 1).
+   * **Días estimados:** Duración proyectada del alquiler (mínimo 1 día).
+4. **Validación de Uso Turístico (Regla Crítica de Negocio):**
+   * El sistema pregunta: *¿El uso es turístico?*
+   * **Si selecciona "SÍ":** Se valida la conformidad con la póliza de seguros de la flota y se habilita el botón verde **"Continuar"** para pasar al catálogo de vehículos.
+   * **Si selecciona "NO":** El sistema muestra una advertencia indicando que las unidades cuentan con cobertura de seguro exclusiva para fines turísticos. El botón principal se transforma en **"Cerrar consulta"**, registrando la consulta como cerrada sin cotización comercial.
+
+---
+
+### 7.3 Exhibición y Cotización con Flota Real (CON-03)
 * **Ruta:** `/consultas/:id/vehiculos`
-1. **Evaluación de Disponibilidad Real:** Consulta las unidades de la sede evaluando la ventana real del viaje `[fechaInicio, fechaInicio + dias)`.
-2. **Protección Visual contra Solapes:** Las unidades con reservas o alquileres superpuestos en ese rango aparecen visualmente deshabilitadas con la insignia de conflicto y las fechas en que la unidad se encuentra comprometida.
-3. **Cálculo Automático:** Muestra tarifa por día y presupuesto total estimado (tarifa × días).
-4. **Cotizar:** Al presionar **"Cotizar este vehículo"**, la consulta pasa a estado `COTIZADA`.
+* **Propósito:** Consultar la flota de vehículos disponibles en tiempo real y presentar las opciones al cliente.
 
-### 7.4 Detalle, Historial y Conversión de Consulta (CON-04)
+1. **Conexión Directa con Flota:** La pantalla consulta directamente al módulo de Flota los vehículos en estado `AVAILABLE` que pertenezcan a la misma sede y empresa.
+2. **Filtros Rápidos:**
+   * Buscador por nombre de modelo.
+   * Filtro por rango de precio mínimo y máximo por día.
+3. **Cálculo Automático de Cotización:**  
+   Cada tarjeta de vehículo muestra:
+   * Foto y datos técnicos (Categoría, Año, Color).
+   * Tarifa por día (ej. `S/ 150.00 / día`).
+   * **Total Estimado:** Calculado automáticamente multiplicando la tarifa diaria por el número de días de viaje indicados en el paso anterior.
+4. **Botón "Actualizar disponibilidad":** Re-consulta la base de datos de flota al instante para verificar que ningún otro asesor haya tomado la unidad en los últimos minutos.
+5. **Acción de Cotización:**  
+   Al presionar el botón **"Cotizar este vehículo"** en la tarjeta elegida:
+   * El vehículo se vincula a la consulta.
+   * La consulta pasa oficialmente al estado `COTIZADA`.
+   * El sistema navega a la pantalla de detalle de la consulta.
+
+---
+
+### 7.4 Detalle, Historial y Cierre de Consulta (CON-04)
 * **Ruta:** `/consultas/:id`
-* Muestra el resumen comercial y la línea de tiempo. Con la cotización vigente ofrece:
-  * **"Reservar este vehículo":** Avanza al flujo de Reserva (sección 8).
-  * **"Convertir a Alquiler":** Genera el expediente de alquiler directo en `DRAFT` (sección 10.2).
-  * **"Cerrar consulta sin conversión":** Si el cliente desiste, ingresando motivo obligatorio.
+* **Propósito:** Revisar el resumen de la cotización, la trazabilidad de interacciones y efectuar el cierre.
+
+1. **Resumen Comercial:** Muestra el vehículo cotizado, el cliente, las fechas y el importe presupuestado.
+2. **Línea de Tiempo (Historial):** Muestra cronológicamente cuándo se creó la consulta, qué canales se utilizaron y las cotizaciones emitidas.
+3. **Conversión de la Consulta (siempre se ofrecen ambas acciones):** Con una cotización emitida, la consulta aún abierta y un cliente formal asociado, el detalle muestra dos botones:
+   * **"Reservar este vehículo":** continúa al flujo de Reserva (sección 8).
+   * **"Convertir a Alquiler":** crea el expediente de alquiler directo a partir de la cotización vigente (ver sección 10.2). La consulta pasa a `CONVERTIDA` y el sistema lo lleva al expediente recién creado. Si el cliente aún no está registrado formalmente (prospecto), ambos botones se reemplazan por el aviso para registrarlo primero.
+4. **Cierre sin Conversión:**
+   * Si el cliente desiste o no concreta la compra, presione **"Cerrar consulta sin conversión"**.
+   * Ingrese el **Motivo obligatorio** de cierre (ej. *"Cliente optó por transporte público"*, *"Precios fuera de su presupuesto"*).
+   * Presione **"Confirmar cierre"**.
 
 ---
 
 ## 8. Módulo de Reservas
 
 * **Ruta:** `/reservas`
-* **Propósito:** Asegurar separaciones de vehículos mediante pago de garantía previa.
+* **Propósito:** Administrar los compromisos formales de alquiler asegurados mediante separación previa y depósito en garantía.
 
 ### 8.1 Bandeja General de Reservas (RES-01)
-* Lista de reservas en estados `DRAFT`, `CONFIRMED` o `CANCELLED`.
-* Al hacer clic en cualquier fila se abre el detalle de la reserva.
+* Lista de reservas registradas en la sede activa.
+* **Columnas:**
+  * **Cliente:** Nombre del titular de la reserva.
+  * **Vehículo:** Modelo y placa asignada.
+  * **Fechas:** Rango de fecha de inicio y fecha de devolución pactada.
+  * **Estado:**
+    * `DRAFT` (Borrador / No confirmada): Reserva registrada que aún tiene requisitos pendientes (pago o documentos).
+    * `CONFIRMED` (Confirmada): Reserva con garantía validada y documentación completa, lista para entrega.
+    * `CANCELLED` (Cancelada): Reserva dada de baja con registro de motivo.
+* Al hacer clic en cualquier fila de la tabla se abre el detalle de la reserva.
 
-### 8.2 Validación de Requisitos y Confirmación Segura (RES-04 / RES-05)
+---
+
+### 8.2 Validación de Requisitos y Confirmación (RES-04 / RES-05)
 * **Ruta:** `/reservas/:id`
-1. **Requisito 1: Pago de Depósito:** Presione **"Validar pago"** para registrar la conformidad bancaria.
-2. **Requisito 2: Documentación:** Presione **"Validar documentos"** para verificar licencia y documento de identidad.
+
+Para que una reserva pase de Borrador (`DRAFT`) a Confirmada (`CONFIRMED`), la política del sistema exige validar dos requisitos indispensables:
+
+1. **Requisito 1: Comprobante de Depósito / Garantía:**
+   * En la sección de requisitos, presione el botón **"Validar pago"**.
+   * El sistema registra la fecha y hora de validación bancaria (`paymentValidatedAt`) y muestra el ícono de verificación verde.
+2. **Requisito 2: Documentación del Conductor:**
+   * Presione el botón **"Validar documentos"** (licencia de conducir vigente y documento de identidad del conductor).
+   * El sistema registra la conformidad (`documentsCompletedAt`).
 3. **Confirmación Definitiva:**
-   * Al estar ambos requisitos en verde, se activa el botón **"Confirmar reserva"**.
-   * **Control de Disponibilidad Atómica:** Si en el instante de confirmación la unidad quedó comprometida por otra operación, el sistema muestra una alerta clara (`409 VEHICLE_NOT_AVAILABLE`) indicando las fechas de ocupación, sin confundirlo con un error de sincronización.
-   * **Control de Versiones (`SYNC_CONFLICT`):** Si otro operador modificó la reserva simultáneamente, el banner preventivo solicita recargar la pantalla.
+   * Una vez que ambos requisitos están completados, se activará el botón **"Confirmar reserva"**.
+   * Presione el botón: la reserva pasará inmediatamente al estado `CONFIRMED`.
+4. **Protección contra Conflictos de Edición (`SYNC_CONFLICT`):**  
+   Si otro asesor confirma o modifica la reserva al mismo tiempo en otra computadora, el sistema detecta la colisión y muestra un banner preventivo: *"Esta reserva cambió por otra operación mientras la veías"*, junto con el botón *"Recargar"* para actualizar los datos sin sobrescribirlos erróneamente.
+
+---
 
 ### 8.3 Cancelación de Reserva
-* Presione **"Cancelar reserva"**, ingrese el motivo obligatorio y confirme. El vehículo queda inmediatamente liberado.
+1. En el detalle de la reserva, presione el botón secundario **"Cancelar reserva"**.
+2. Aparecerá un campo de texto obligatorio para ingresar el motivo de cancelación.
+3. Presione **"Confirmar cancelación"**. La unidad reservada regresará inmediatamente a disponibilidad en la flota.
 
 ---
 
 ## 9. Módulo de Administración del Sistema
 
-> **Nota de Seguridad:** Acceso reservado para roles con facultades de administración (`PLATFORM_ADMIN`, `ADMINISTRACION`, o permisos `ADMIN.*`).
+> **Nota de Seguridad:** Estos submódulos sólo son accesibles para usuarios que posean el rol `ADMINISTRACION` o `PLATFORM_ADMIN`.
 
 ### 9.1 Gestión de Usuarios y Asignaciones Multi-Sede (ADM-01)
 * **Ruta:** `/admin/usuarios`
-* Alta de usuarios corporativos con selector de rol dinámico (`roleId`), asignación arbórea de sedes autorizadas y envío automático de correo de activación mediante Resend.
+* **Propósito:** Crear usuarios corporativos, definir sus roles y asignarles acceso a una o múltiples sedes de las empresas del grupo.
 
-### 9.2 Matriz de Roles y Permisos Granulares (ADM-02 y ROLES-DIN-01..03)
-* **Ruta:** `/admin/permisos` (vista desktop)
-* Creación, edición y desactivación de roles dinámicos corporativos.
-* Cuadrícula interactiva de permisos por módulo (`ADMIN`, `CUSTOMER`, `FLEET`, `INQUIRY`, `RESERVATION`, `RENTAL`, `RETURN`, `INCIDENT`, `RECRUITMENT`, `HR_ADMINISTRATION`, `PAYMENT`, `REPORTING`).
-* Validación visual de segregación de funciones que bloquea combinaciones incompatibles (`409 INCOMPATIBLE_PERMISSIONS`).
+#### Pasos para Crear y Asignar un Usuario:
+1. Presione el botón **"+ Agregar usuario"**.
+2. **Correo Electrónico:** Ingrese el correo corporativo del colaborador.
+3. **Rol del Sistema:** Seleccione el rol a otorgar:
+   * `FRONT_OFFICE`: Mostrador, atención de consultas y gestión de reservas.
+   * `OPERACIONES`: Control de flota vehicular, mantenimiento y despachos.
+   * `GERENCIA`: Supervisión, métricas e informes.
+   * `ADMINISTRACION`: Configuración del sistema, usuarios y políticas.
+   * `PLATFORM_ADMIN`: Superadministrador corporativo global.
+4. **Asignación Multi-Empresa y Multi-Sede:**
+   * El sistema despliega un árbol organizado por empresas del grupo.
+   * Puede marcar individualmente las sedes donde el usuario tendrá autorización para trabajar, o hacer clic en el botón de la empresa para marcar todas sus sedes en bloque.
+5. **Contraseña Inicial (Opcional):**
+   * Si ingresa una contraseña, el usuario podrá usarla para su primer inicio de sesión.
+   * Si la deja en blanco, el sistema generará una credencial temporal segura y enviará automáticamente un correo electrónico de bienvenida mediante el servicio **Resend** con el enlace de activación.
+6. Presione **"Guardar Asignación"**.
+
+---
+
+### 9.2 Matriz de Roles y Permisos (ADM-02)
+* **Ruta:** `/admin/permisos`
+* Visualiza la matriz completa de privilegios por módulo (Lectura, Escritura, Edición, Eliminación) cruzada contra cada uno de los roles del sistema, garantizando el principio de menor privilegio.
+
+---
 
 ### 9.3 Registro de Eventos y Auditoría (ADM-03)
 * **Ruta:** `/admin/auditoria`
-* Bitácora inmutable append-only con registro cronológico de usuario, sede, módulo, acción y payload completo de cada operación.
+* Bitácora inmutable de seguridad y cumplimiento legal.
+* Registra de forma automática:
+  * Fecha y hora exacta (UTC y local).
+  * Usuario responsable (correo y rol).
+  * Empresa y Sede donde ocurrió el evento.
+  * Módulo y acción efectuada (ej. `CUSTOMER_CREATED`, `VEHICLE_STATUS_CHANGED`, `RESERVATION_CONFIRMED`).
+  * Carga útil (*payload*) y metadatos del cambio.
 
-### 9.4 Políticas de Depósito y Parámetros (ADM-04)
+---
+
+### 9.4 Políticas de Depósito y Garantía (ADM-04)
 * **Ruta:** `/admin/parametros`
-* Configuración de importes de garantía base por categoría vehicular y tiempos de tolerancia de reserva.
+* Define los importes en moneda nacional (PEN) exigidos como garantía según la categoría del vehículo (ej. S/ 1,500 para Sedán; S/ 2,500 para SUV y Pick-up) y las reglas de tolerancia de tiempo para confirmación de reservas.
 
-### 9.5 Plantillas de Notificaciones y Documentos (ADM-05 / ADM-03)
-* **Rutas:** `/admin/notificaciones` y `/admin/plantillas`
-* Mantenimiento de plantillas de correo y gestión de contratos base (`templates`) con versionado inmutable y activación formal.
+---
+
+### 9.5 Plantillas de Notificaciones (ADM-05)
+* **Ruta:** `/admin/notificaciones`
+* Gestión de los textos y plantillas de correo electrónico y avisos en el sistema (bienvenida, confirmación de reserva, recordatorio de viaje).
 
 ---
 
 ## 10. Módulo de Alquileres (ALQ-01 a ALQ-11)
 
-Governa la formalización contractual, validación documental, pruebas de sobriedad, entrega física y seguimiento en ruta.
+El módulo de **Alquileres** gobierna la fase troncal de la operación de KAIROS ERP: desde la formalización legal, validación documental y pruebas de seguridad hasta la entrega de la unidad física con evidencia fotográfica inmutable y la activación del vehículo en flota.
+
+---
 
 ### 10.1 Ciclo de Vida y Máquina de Estados del Alquiler
-El alquiler avanza secuencialmente por 10 estados:
-`DRAFT` → `VALIDATION` → `NOTARY_EVALUATION` → `CONTRACTING` → `PENDING_DELIVERY` → `ACTIVE` → (`EXTENSION_PENDING`) → `RETURN_IN_PROGRESS` → `CLOSED` (o `CANCELLED`).
 
-### 10.2 Creación de Alquiler y Traslado de Reserva a Garantía (P0-03 opción a)
-* **Origen:** Todo alquiler nace desde una Consulta (`CON-04`) o desde una Reserva Confirmada (`RES-05`).
-* **Traslado de Reserva a Garantía (Regla P0-03 a):**
-  * Cuando el alquiler proviene de una reserva confirmada con depósito previo (ej. S/ 300), dicho importe **se traslada íntegramente a cuenta de la garantía del contrato**.
-  * En la pantalla de contratación, el sistema desglosa claramente: Garantía Total requerida, Monto acreditado por reserva y Saldo restante de garantía a abonar por el cliente.
-  * Si el alquiler nació de consulta directa sin reserva previa, se exige el abono de la garantía completa.
+El expediente de alquiler transita por una máquina de estados estricta y lineal de 10 estados para garantizar cero omisiones de seguridad ni brechas contractuales:
+
+1. **`DRAFT` (Borrador):** Expediente recién creado, vinculado a cliente, vehículo y sede operativa.
+2. **`VALIDATION` (Validación Documental):** Documentos de identidad, licencia de conducir y arraigo validados conforme a la nacionalidad del titular.
+3. **`NOTARY_EVALUATION` (Evaluación Notarial):** Prueba de alcolímetro de tolerancia cero aprobada favorablemente; el sistema somete el perfil a la matriz notarial de riesgo.
+4. **`CONTRACTING` (Contratación y Garantía):** Matriz notarial resuelta (o excepción gerencial aprobada); en espera de firma de contrato y abono del depósito de garantía.
+5. **`PENDING_DELIVERY` (Pendiente de Entrega):** Contrato formalizado y garantía confirmada; el vehículo se prepara para inspección física y entrega.
+6. **`ACTIVE` (Alquiler Activo):** Inspección completada con checklist de 35 fotos y 3 videos; la unidad pasa a estado `RENTED` en Flota y el cliente sale de sede con el vehículo.
+7. **`EXTENSION_PENDING` (Ampliación Pendiente):** El cliente solicitó días adicionales en ruta sujeto a disponibilidad y confirmación de cobro.
+8. **`RETURN_IN_PROGRESS` (Retorno en Curso):** Unidad arribada a sede para chequeo de retorno y liquidación de garantía.
+9. **`CLOSED` (Cerrado):** Vehículo devuelto en conformidad, liquidación de depósito ejecutada y expediente finiquitado.
+10. **`CANCELLED` (Cancelado):** Expediente anulado por resultado desfavorable o rechazo de alcolímetro, o por desistimiento previo a la entrega.
+
+---
+
+### 10.2 Creación de Alquiler: desde Consulta o desde Reserva Confirmada (RES-05)
+
+**Todo alquiler nace de una Consulta.** No existe un botón de alta directa de alquiler en la bandeja (ALQ-01): el expediente se genera por una de estas dos vías.
+
+#### Vía A: Convertir una Consulta a Alquiler (CON-04)
+* **Acceso:** Desde el detalle de la consulta (sección 7.4), botón **"Convertir a Alquiler"**. Se usa cuando el cliente alquila de inmediato (en mostrador) o decide alquilar sin reservar.
+* **Comportamiento del sistema:**
+  * La consulta debe estar `COTIZADA`, con cliente formal asociado y una cotización vigente (no vencida); de lo contrario se muestra el error correspondiente (por ejemplo, cotización vencida: volver a cotizar).
+  * El vehículo y la duración salen de la cotización vigente más reciente, no de un formulario.
+  * Un cliente en semáforo **ROJO** queda bloqueado (`CUSTOMER_BLOCKED`); el estado **ÁMBAR** no bloquea.
+  * El vehículo debe estar disponible, pertenecer a la sede (o ser compartido) y no tener reservas o compromisos que se solapen con el periodo.
+  * En una sola operación, la consulta pasa a `CONVERTIDA` y se crea el expediente en estado `DRAFT` vinculado a ella. El expediente se crea **sin fechas de inicio ni de devolución**: el tiempo del alquiler corre desde que se cierra la entrega (sección 10.7).
+  * Queda registrado en auditoría y se emite el evento `RentalCreatedFromInquiry.v1`.
+* **Cobro:** el alquiler directo **no tiene monto de reserva**; se cobra la **garantía completa** del vehículo (sección 10.6).
+
+#### Vía B: Continuar desde Reserva Confirmada (`RES-05`)
+* **Acceso:** Desde la pantalla de detalle de reserva confirmada (`ReservationDetailScreen`), presionar el botón **"Continuar con alquiler"**.
+* **Comportamiento del sistema:**
+  * Valida que la reserva pertenezca a la empresa y sede del contexto activo.
+  * Valida que la reserva se encuentre en estado `CONFIRMED`.
+  * Hereda automáticamente los datos del cliente, vehículo asignado, plan tarifario (`NORMAL`, `PLUS`, `LIBRE`) y fechas pactadas (`startAt`, `expectedEndAt`).
+  * Genera el expediente de alquiler en estado `DRAFT`, asociando de forma inmutable el ID de la reserva previa.
+  * Emite el evento de auditoría y notificación `RentalCreatedFromReservation.v1`.
+* **Monto de la reserva:** el tratamiento del monto ya pagado en la reserva (S/300) al convertirla en alquiler está **pendiente de confirmación de Finanzas** (opción provisional: trasladarlo íntegro a la garantía). Hasta entonces el sistema no lo aplica automáticamente.
+
+---
 
 ### 10.3 Validación Documental Presencial (BR-CON-004)
-* Cotejo físico de DNI/Pasaporte, Licencia de conducir y acreditación de hospedaje o domicilio. Al marcar la conformidad, transiciona a `VALIDATION`.
+* **Regla de Negocio `BR-CON-004`:**
+  * **Titulares Peruanos:** Requiere DNI vigente, Licencia de Conducir física y recibo de servicios o comprobante de arraigo domiciliario.
+  * **Titulares Extranjeros:** Requiere Pasaporte o Carnet de Extranjería, Licencia de Conducir internacional / de origen, y comprobante de hospedaje o reserva hotelera demostrable.
+* **Operación:**
+  * El agente de Front-Office verifica la consistencia física de los documentos y marca las casillas de verificación.
+  * Al enviar la confirmación con el encabezado de concurrencia `If-Match`, el alquiler transiciona de `DRAFT` a `VALIDATION`.
+
+---
 
 ### 10.4 Protocolo de Alcolímetro de Tolerancia Cero (BR-ALQ-005)
-* **Favorable (0.00 g/l):** Transiciona a `NOTARY_EVALUATION`.
-* **Desfavorable (> 0.00 g/l) o Rechazado:** Cancela de forma irreversible el alquiler (`CANCELLED`), genera evento en auditoría y notifica a Gerencia.
+* **Regla de Negocio `BR-ALQ-005`:**
+  * El sistema KAIROS ERP aplica una estricta política de **tolerancia cero al alcohol y sustancias psicoactivas** previa a la entrega de cualquier unidad móvil.
+* **Opciones de Registro:**
+  * **`FAVORABLE` (0.00 g/l):** El titular aprueba la prueba de aire expirado. El expediente transiciona automáticamente a `NOTARY_EVALUATION`.
+  * **`DESFAVORABLE` (> 0.00 g/l) o `RECHAZADO`:** Si el cliente arroja resultado positivo o se niega a someterse a la prueba:
+    * El sistema bloquea de forma irreversible el alquiler.
+    * El estado del alquiler pasa de inmediato a **`CANCELLED`**.
+    * Se registra un evento crítico en la bitácora de auditoría (`ALCOHOL_TEST_FAILED_RENTAL_CANCELLED`).
+    * Se publica el evento Outbox `AlcoholTestFailed.v1` alertando a Gerencia y Finanzas para la aplicación de penalidades contractuales de la reserva.
 
-### 10.5 Matriz Notarial Automática y Tercer Camino Gerencial (BR-ALQ-003/004)
-* **Vehículos de Alto Riesgo:** Trámite notarial obligatorio (`MANDATORY`).
-* **Tercer Camino (`THIRD_PATH_ELIGIBLE`):** Clientes recurrentes de bajo riesgo pueden exonerar la notaría mediante firma biométrica rápida, previa autorización expresa y motivada del rol `GERENCIA`.
-* Transiciona a `CONTRACTING`.
+---
 
-### 10.6 Plantilla de Contrato por Titular y Depósito de Garantía
-* **Selección de Plantilla según Titular:** El sistema permite seleccionar la plantilla de contrato específica aplicable según la naturaleza del titular: Persona Natural o Persona Jurídica (empresa con representante legal).
-* Registro del comprobante y confirmación de abono de garantía. Transiciona a `PENDING_DELIVERY`.
+### 10.5 Matriz Notarial Automática y Tercer Camino / Excepción Gerencial (BR-ALQ-003/004)
+* **Reglas de Negocio `BR-ALQ-003` y `BR-ALQ-004`:**
+  * **Vehículos Prohibidos de Alto Riesgo:** Los modelos de alta siniestralidad o sustracción de partes (`Toyota Hilux`, `Chevrolet Colorado`, `Hyundai Verna`, `Toyota Yaris`) tienen **trámite notarial obligatorio (`MANDATORY`)** sin excepción posible.
+  * **Clientes Recurrentes ("Tercer Camino"):** Clientes con más de 2 alquileres previos cerrados satisfactoriamente y validación biométrica aprobada califican para **`THIRD_PATH_ELIGIBLE`**.
+    * El Tercer Camino permite sustituir el trámite notarial presencial mediante firma biométrica o contrato digital simplificado, agilizando la entrega a 10 minutos.
+    * **Aprobación Exclusiva de Gerencia:** La excepción notarial no puede ser concedida por operadores de ventanilla; requiere obligatoriamente la autorización formal del rol `GERENCIA` mediante el comando `approveNotaryException` con justificación sustentada (mínimo 10 caracteres).
+  * **Clientes Nuevos:** Aplica depósito duplicado de salvaguarda (`DOUBLE_DEPOSIT`).
+  * Una vez aprobada o resuelta la política notarial, el expediente transiciona a `CONTRACTING`.
 
-### 10.7 Entrega Física con Evidencia Pericial (BR-INS-003/004)
-* Inspección pericial obligatoria: **mínimo 35 fotografías y 3 videos** de la unidad.
-* Al completar la entrega:
-  1. El alquiler transiciona a **`ACTIVE`**.
-  2. El vehículo pasa automáticamente a **`RENTED`** en el módulo de Flota.
-  3. Se inicia el cómputo del alquiler (`startAt`).
+---
 
-### 10.8 Alquileres Activos, Solicitud de Ampliación y Falta Grave (ALQ-10/11 y BR-ALQ-013)
-* **Bandeja de Alquileres Activos (ALQ-10):** Visualización de unidades en ruta, kilometraje inicial, fecha límite de devolución y estado del conductor.
-* **Solicitud de Ampliación de Plazo (ALQ-11):**
-  * Para extender el alquiler, el cliente debe cumplir **4 requisitos indispensables**:
-    1. Solicitud con al menos 24 horas de anticipación a la fecha límite.
-    2. Disponibilidad confirmada del vehículo en flota para los nuevos días solicitados.
-    3. Abono previo de la tarifa correspondiente a los días adicionales.
-    4. Conformidad operativa y de seguro.
-* **Protocolo de Falta Grave (`BR-ALQ-013`):**
-  * Si el cliente no devuelve la unidad a tiempo y no cumple con los 4 requisitos de ampliación, Gerencia activa la pantalla modal de **Confirmación de Falta Grave**.
-  * **Consecuencias Atómicas e Irreversibles:**
-    1. Retención total e inmediata del depósito en garantía.
-    2. Marcación definitiva del cliente en **Semáforo Rojo** (bloqueo corporativo para futuros alquileres).
-    3. Elevación del expediente al área legal para inicio de acciones penales por apropiación ilícita del vehículo.
-    4. Expediente de alquiler marcado en estado `SERIOUS_BREACH`.
+### 10.6 Formalización de Contrato y Depósito en Garantía (BR-DOC-002/003)
+* **Regla de Negocio `BR-DOC-002` y `BR-DOC-003`:**
+  * Se vincula la plantilla contractual inmutable activa de la empresa (`templateVersionId`) y la referencia documental digital o código de escaneo físico (`documentRef`).
+  * Se registra el importe de garantía de depósito (`depositAmount`) y la moneda (`PEN` o `USD`), asociándolo al registro contable del expediente. **Por ahora el monto se digita manualmente**: la garantía es la del vehículo según tarifario (entre S/500 y S/1000 según la unidad) y, cuando se carguen los montos exactos, se leerá de la ficha del vehículo en Flota.
+  * En un alquiler sin notaría "bajo consulta" la garantía se duplica; esa excepción solo la autorizan Fiorella o José.
+  * Al completar este paso, el expediente transiciona a `PENDING_DELIVERY`.
+
+---
+
+### 10.7 Entrega Física y Checklist de Inspección con Evidencia Obligatoria (BR-INS-003/004)
+* **Reglas de Negocio `BR-INS-003` y `BR-INS-004`:**
+  * Para prevenir fraudes, reclamos infundados de carrocería o pérdidas de accesorios, la entrega física exige un **estándar pericial ineludible**:
+    * **Mínimo 35 fotografías:** Cobertura de 360 grados de la carrocería, llantas, aros, techo, salón interior, tablero con odómetro encendido, maletera, llanta de repuesto y kit de emergencia.
+    * **Mínimo 3 videos de inspección:** Video panorámico del exterior, video del encendido de motor y funcionamiento de luces/climatizador, y video de la entrega de llaves al titular.
+  * **Validación de Bloqueo:** Si el formulario no alcanza al menos 35 fotos y 3 videos, el sistema rechaza la solicitud arrojando un error tipado `MissingDeliveryEvidenceError` con detalle exacto del faltante.
+  * **Efectos Atómicos al Completar la Entrega:**
+    1. El estado del alquiler pasa a **`ACTIVE`**.
+    2. El estado del vehículo en el módulo de Flota pasa automáticamente de `AVAILABLE` a **`RENTED`**.
+    3. Se fija el inicio del alquiler (`startAt`) en el momento exacto de cierre de la entrega, porque el plazo contractual se cuenta desde la entrega (cláusula 19). En un alquiler creado desde una consulta, la devolución prevista (`expectedEndAt`) se calcula como ese inicio más los días de la cotización; en un alquiler desde reserva se mantienen las fechas pactadas. Antes de cerrar se vuelve a verificar la disponibilidad del vehículo.
+    4. Se emite el evento Outbox `EntregaCompletada.v1`.
 
 ---
 
 ## 11. Módulo de Devoluciones (DEV-01 a DEV-10)
 
 * **Ruta:** `/devoluciones`
-* **Propósito:** Recepción física del vehículo, checklist de retorno, evaluación de daños y liquidación de garantías.
+* **Propósito:** Recibir el vehículo al final del alquiler, inspeccionarlo, registrar daños y cargos, y liquidar la garantía hasta cerrar el expediente de devolución.
+* **Disponible para:** Front-office y roles con permiso sobre Devoluciones en la sede activa. La decisión ante un alcoholímetro desfavorable corresponde a Gerencia.
+
+---
 
 ### 11.1 Ciclo de Vida de la Devolución
-`PROGRAMADA` → `RECEPCION_PROVISIONAL` → `INSPECCION` → (`SIN_DANOS` / `CON_DANOS`) → `CIERRE_FINANCIERO` → `CERRADA`.
+
+La devolución avanza por estados en orden estricto:
+
+1. **`PROGRAMADA`:** Devolución creada a partir de un alquiler activo.
+2. **`RECEPCION_PROVISIONAL`:** El vehículo llegó a sede y queda en custodia; todavía no se cierra el contrato.
+3. **`INSPECCION`:** Prueba de alcoholímetro, checklist y evidencias en curso.
+4. **`SIN_DANOS` / `CON_DANOS`:** Resultado de la inspección.
+5. **`CIERRE_FINANCIERO`:** Liquidación de garantía y cargos.
+6. **`CERRADA`:** Expediente finiquitado.
+7. **`CANCELADA`:** Devolución anulada antes de cerrarse.
+
+La **custodia del vehículo no equivale al cierre contractual**: recibir la unidad no libera la garantía ni cierra el alquiler.
+
+---
 
 ### 11.2 Bandeja de Devoluciones y Alquileres Activos (DEV-01)
-* Lista devoluciones en curso y muestra panel de alquileres activos listos para iniciar retorno.
+
+1. Ingrese desde el menú **Devoluciones** o desde la bandeja de **Alquileres** con el botón **"Iniciar devolución"** (o **"Continuar devolución"** si ya hay una en curso).
+2. La bandeja lista las devoluciones de la sede activa con su estado, y un panel con los **alquileres activos** que aún no tienen devolución.
+3. Al presionar **"Iniciar devolución"** sobre un alquiler activo, el sistema crea la devolución y lo lleva a la recepción.
+4. Un expediente de otra empresa o sede se muestra como *no encontrado*.
+
+---
 
 ### 11.3 Recepción Provisional (DEV-02)
-* Registro de fecha, hora de arribo, odómetro y combustible. Si entrega un tercero, se registran sus datos en notas.
+
+1. Registre la llegada del vehículo con sus datos de recepción (fecha y hora, kilometraje y nivel de combustible).
+2. Si quien devuelve el vehículo **no es el titular**, registre sus datos en el campo de **notas**; quedan guardados en el expediente.
+3. Presione **"Continuar"** para pasar al alcoholímetro.
+
+---
 
 ### 11.4 Prueba de Alcoholímetro (DEV-03)
-* **Favorable:** Avanza al checklist de inspección.
-* **Desfavorable:** Deriva la decisión a Gerencia (custodia provisional o pase a inspección bajo supervisión).
+
+1. Registre el resultado de la prueba: **Favorable** o **Desfavorable**.
+2. **Favorable:** se continúa al checklist de inspección.
+3. **Desfavorable:** la devolución **no continúa** al checklist. Se deriva a **Gerencia**, que decide:
+   * **Continuar a inspección:** el expediente sigue su curso sin marcar al cliente en rojo.
+   * **Dejar el vehículo en custodia:** exige registrar **notas** y confirmar; la decisión queda visible en el expediente.
+4. Un alcoholímetro desfavorable puede marcar al cliente en **semáforo rojo** (BR-DEV-005).
+
+---
 
 ### 11.5 Checklist, Evidencias y Documento de Responsabilidad (DEV-04)
-* Verificación de 360° con evidencias fotográficas y firma digital del Documento de Responsabilidad en el pad de firma.
+
+1. Complete el **checklist de inspección de retorno**.
+2. Suba las **fotos y videos** exigidos. Las evidencias se cargan de forma real mediante URL firmada; mientras la evidencia esté incompleta, el botón **"Continuar a Resultado"** permanece deshabilitado.
+3. Obtenga la **firma del documento de responsabilidad** en el recuadro de firma. El botón solo se habilita con el documento firmado.
+4. Si **quien firma no es el titular**, el sistema exige indicar su **relación con el titular**.
+
+> **Nota:** el uso de este documento firmado es provisional hasta la validación del área Legal.
+
+---
 
 ### 11.6 Resultado de la Inspección: Hub de la Devolución (DEV-05)
-* Comparador de zonas (entrega vs. retorno). Determina si el retorno es `SIN_DANOS` (liberación directa de garantía) o `CON_DANOS` (registro previo de daños).
 
-### 11.7 Registro de Daños Estéticos y Técnicos (DEV-06, DEV-07, DEV-08)
-* **Daño Estético (DEV-07):** Monto fijado automáticamente por el tarifario del vehículo según la zona afectada.
-* **Daño Técnico (DEV-08):** Requiere informe técnico externo de Motrix e ingreso de cotización pericial.
-
-### 11.8 Garantía, Bloqueo por Incidencias y Cierre (DEV-09 y DEV-10)
-* Descuento de cargos y liquidación de garantía remanente.
-* **Regla `BR-INC-001`:** Bloqueo estricto del cierre financiero si existen incidencias abiertas (`INCIDENT_STILL_OPEN`).
-* Al confirmar el cierre (`DEV-10`), la devolución pasa a **`CERRADA`** y la unidad regresa a **`AVAILABLE`** en Flota.
+1. Muestra el **comparador de zonas** del vehículo (entrega vs. retorno) y el resumen de la inspección.
+2. Desde aquí se decide el siguiente paso:
+   * **Sin daños:** se pasa directo a la garantía (**"Liberar garantía"**).
+   * **Con daños:** se registran los daños antes de continuar. No existe **"Liberar garantía"** mientras haya daños por liquidar.
+3. El **semáforo del cliente** (Normal, Ámbar o Rojo) se muestra en pantalla. **El semáforo nunca retrocede:** una vez en un nivel más grave, no baja automáticamente.
 
 ---
 
-## 12. Módulo de Incidencias y Siniestros (INC-01 e INC-02)
+### 11.7 Registro de Daños (DEV-06, DEV-07, DEV-08)
 
-* **Ruta:** `/incidencias`
-* **Propósito:** Monitoreo y resolución de siniestros viales, pérdida de llaves, fotopapeletas e intervenciones policiales.
-
-### 12.1 Bandeja General de Incidencias (INC-01)
-* Tabla interactiva filtrable por Estado (`ABIERTA`, `CERRADA`, `VIA_LEGAL`), Severidad (`LEVE`, `MODERADA`, `GRAVE`) y Tipo.
-* Botón de **"Resolver"** rápido en bandeja para incidencias leves sin necesidad de ingresar al detalle.
-
-### 12.2 Registro de Nueva Incidencia
-* Vinculación a contrato o vehículo, tipo de contingencia, severidad y descripción pormenorizada de los hechos.
-
-### 12.3 Timeline Inmutable y Seguimiento (INC-02)
-* Bitácora append-only donde cada actuación queda registrada con autor y sello de tiempo.
-* Permite agregar nuevas actuaciones, resolver el incidente con fundamentación o derivar formalmente a `VIA_LEGAL`.
-
-### 12.4 Regla de Bloqueo de Garantías en Devolución (BR-INC-001)
-* Prohíbe la liquidación de garantías o el cierre de devoluciones mientras el expediente mantenga incidencias abiertas.
+1. **Gravedad (DEV-06):** clasifique el daño. Un daño **grave** marca al cliente en **ROJO**.
+2. **Daño estético (DEV-07):**
+   * Elija la **zona dañada**.
+   * El **monto lo fija el sistema** según el tarifario del vehículo; se muestra como *"Monto del tarifario"* y no se escribe a mano.
+   * Marque **"Cliente acepta el costo"** si corresponde.
+   * Presione **"Registrar daño estético"**. El cliente pasa a semáforo **Ámbar**.
+   * Si el vehículo no tiene tarifario definido, el sistema rechaza el registro y avisa.
+3. **Daño técnico (DEV-08):**
+   * Siempre requiere un **informe técnico externo de Motrix**.
+   * El **monto se ingresa manualmente**, porque no existe tarifa exacta.
+4. Al terminar, presione **"Continuar a garantía"**.
 
 ---
 
-## 13. Módulo de Reclutamiento y Selección (REC-01 a REC-08)
+### 11.8 Garantía y Cierre (DEV-09 y DEV-10)
 
-* **Ruta:** `/reclutamiento`
-* **Propósito:** Gestión integral del ciclo de selección de talento humano, desde la vacante hasta el período de prueba.
-
-### 13.1 Bandeja de Vacantes y Pausado Operativo (REC-01)
-* Lista de convocatorias de personal por área y sede.
-* **Pausar / Reactivar Vacante:** Permite congelar temporalmente la postulación de una vacante sin cancelarla, reanudándola cuando se reactive el requerimiento.
-
-### 13.2 Publicación y Regla de Mecánicos (REC-02 / BR-REC-004)
-* Definición de remuneración, turnos y canales de difusión.
-* Para posiciones técnicas de taller (`isMechanic`), se exige obligatoriamente la difusión en convenios con institutos técnicos.
-
-### 13.3 Tablero Kanban de Candidatos (REC-03)
-* Columnas de avance: `Nuevo` → `Contactado` → `Entrevista` → `Decisión`. Avance secuencial por evaluación humana.
-
-### 13.4 Ficha de Postulante y Descarga Segura de CV (REC-04)
-* Enmascaramiento de datos personales para evaluadores generales.
-* **Descarga Segura de CV:** Botón que genera una URL firmada de descarga con expiración de 15 minutos, garantizando la confidencialidad de la hoja de vida.
-
-### 13.5 Agendamiento de Entrevistas con Directorio (REC-05)
-* Selector de evaluadores sincronizado con el directorio corporativo de la sede.
-
-### 13.6 Evaluación y Dictamen Técnico (REC-06)
-* Registro de notas cualitativas y dictamen directo: `Avanza` o `No avanza`.
-
-### 13.7 Oferta Laboral, Honorarios de Prueba y Negociación (REC-07)
-* **Condiciones de Negociación:** Registro documentado de los acuerdos previos (beneficios, bono, jornada).
-* **Honorarios de Período de Prueba:** Posibilidad de registrar una remuneración diferenciada durante el período probatorio previa a la remuneración permanente.
-* Decisión final: `CONTRATADO` o `RECHAZADO` con motivo obligatorio.
-
-### 13.8 Onboarding y Período de Prueba de 30/60/90 Días (REC-08)
-* Checklist de bienvenida, entrega de herramientas y contrato notariado (obligatorio para mecánicos).
-* Evaluación trimestral de aptitud: dictamen `APTO` (pasa a planilla) o `NO_APTO` (término del vínculo).
+1. **Garantía (DEV-09):**
+   * **Sin daños:** use **"Liberar garantía"**. Se pide confirmar el **monto exacto** antes de ejecutar.
+   * **Con daños:** el costo estético se **descuenta de la garantía**. El monto retenido se mantiene hasta definir si el daño supera la garantía.
+   * No se libera la garantía si hay un **incidente abierto**.
+2. **Inmovilización:** si el vehículo queda inmovilizado más de 24 horas, se cargan los días de inmovilización.
+3. **Cierre (DEV-10):** revise el resumen financiero y presione **"Cerrar devolución"**. La pantalla muestra **"Firmado por …"** como dato de solo lectura, tomado del documento de responsabilidad.
+4. Al cerrar, la devolución pasa a **`CERRADA`**.
 
 ---
 
-## 14. Módulo de Administración de Personal (ADP-01 a ADP-10)
+### 11.9 Alcance Actual y Pendientes
 
-* **Ruta principal:** `/hr/employees`
-* **Propósito:** Gestión integral de la plantilla de colaboradores, expedientes laborales, asistencia, permisos, vacaciones, salidas a campo y capacitaciones.
-
-### 14.1 Bandeja General y Directorio de Colaboradores (ADP-01)
-* **Ruta:** `/hr/employees`
-* Directorio completo de colaboradores de la empresa y sede activa.
-* **Filtros:** Por estado (`ACTIVO`, `EN_VACACIONES`, `LICENCIA`, `SUSPENDIDO`, `TERMINADO`), área de trabajo, sede y búsqueda por nombre o documento.
-* **Endpoint `GET /me/employee`:** Reconoce automáticamente el expediente del colaborador en sesión para facilitar el autoservicio de solicitudes.
-
-### 14.2 Alta de Personal y Expediente Laboral (ADP-02)
-* **Ruta:** `/hr/employees/new`
-* **Formulario de Registro:**
-  * Datos personales: Nombres, apellidos, tipo y número de documento de identidad, correo, teléfono y dirección.
-  * Datos laborales: Fecha de ingreso, área/departamento, cargo/posición, sede asignada, tipo de contrato y salario base.
-  * Asignación de rol del sistema para acceso a la plataforma KAIROS.
-* Presione **"Guardar Colaborador"** para crear el legajo digital.
-
-### 14.3 Solicitudes de Permisos y Licencias con Evidencia (ADP-03)
-* **Ruta:** `/hr/permissions`
-* Registro de solicitudes de permisos por motivos de salud, asuntos personales, capacitación o duelo.
-* **Carga de Evidencias Digitales:** Permite adjuntar certificados médicos, comprobantes o citaciones oficiales (formatos PDF, JPEG, PNG).
-* Estado inicial de la solicitud: `PENDIENTE`.
-
-### 14.4 Cascada Automática de Aprobaciones Multinivel (ADP-04)
-* Las solicitudes de vacaciones y permisos avanzan por una **cascada jerárquica de 3 niveles**:
-  * **Nivel 1:** Supervisor Inmediato / Jefe de Área.
-  * **Nivel 2:** Gerente de Operaciones / Recursos Humanos.
-  * **Nivel 3:** Dirección General / Gerencia General.
-* **Scheduler Idempotente:** Si un nivel no emite resolución en un lapso de 5 minutos (configurable según política), el sistema escala automáticamente la solicitud al siguiente nivel jerárquico para prevenir demoras operativas.
-
-### 14.5 Programación y Control de Vacaciones (ADP-05)
-* **Ruta:** `/hr/vacations`
-* Visualización del récord vacacional anual por colaborador (días ganados, gozados y pendientes).
-* **Validación de Cupo por Área:** Al registrar una solicitud de vacaciones, el sistema valida que no exista solapamiento que supere el cupo operativo máximo permitido para el área (`VACATION_CAPACITY_STATUSES`), previniendo desabastecimiento de personal en ventanilla o taller.
-
-### 14.6 Control de Asistencia y Reclasificación de Faltas (ADP-06)
-* **Ruta:** `/hr/attendance`
-* Registro diario de ingresos, salidas y refrigerios.
-* Identificación automática de tardanzas y ausencias.
-* **Reclasificación de Faltas:** Permite a RRHH revisar una inasistencia y reclasificarla de forma sustentada entre `FALTA_INJUSTIFICADA` o `FALTA_JUSTIFICADA` adjuntando el descargo del colaborador.
-
-### 14.7 Memos Disciplinarios Automáticos por Reincidencia (ADP-07)
-* **Ruta:** `/hr/memos`
-* **Regla de Reincidencia Automática:** Cuando un colaborador acumula **3 tardanzas o faltas no justificadas**, el sistema emite de forma automática un Memorándum Disciplinario Digital (`MEMO_AUTOMATICO`).
-* El documento queda registrado en el legajo del colaborador y notifica por correo al colaborador y a su jefatura inmediata.
-
-### 14.8 Autorización de Salidas a Campo y Rechazo Motivado (ADP-08)
-* **Ruta:** `/hr/field-exits`
-* Registro de comisiones de servicio fuera de sede (auxilio mecánico, traslados entre sedes, gestiones notariales).
-* Asignación de vehículo de apoyo y kilometraje de salida.
-* **Rechazo Motivado:** Si la jefatura desaprueba la salida, el sistema exige ingresar de forma obligatoria el motivo formal de rechazo, registrándolo en la bitácora del colaborador.
-
-### 14.9 Confirmación de Retorno de Campo (ADP-09)
-* Al regresar a la sede física, el supervisor o evaluador autorizado consulta el expediente de salida y verifica:
-  * Kilometraje de retorno y combustible de la unidad.
-  * Estado general del vehículo y cumplimiento del objetivo de la comisión.
-  * Firma digital de conformidad y cierre del expediente de salida.
-
-### 14.10 Capacitaciones y Control de Asistencia (ADP-10)
-* **Ruta:** `/hr/trainings`
-* Creación de programas de capacitación técnica y de seguridad en el trabajo.
-* **Control de Asistencia de Participantes (`POST /trainings/:id/attendees`):** Registro de asistencia en tiempo real de los colaboradores convocados y emisión de constancias internas de participación.
+* No incluido todavía: recordatorio automático antes de la devolución, cobro automático de inmovilización, alerta de garantía a las 24 h, registro formal de incidentes (módulo Incidencias) y devolución sin conexión (depende de la sincronización offline).
+* La multa por combustible se definirá por vehículo cuando se conozca la unidad.
+* El rol Subgerencia se incorporará con la administración de roles.
 
 ---
 
-## 15. Módulos de Pagos, Reportes y Búsqueda Global (Fase 6)
+## 12. Módulos en Construcción (Hoja de Ruta)
 
-### 15.1 Pagos y Gestión de Garantías (PAG-01 / PAG-02)
-* **Ruta:** `/payments`
-* **Propósito:** Administración centralizada de transacciones, cobros de tarifas de alquiler y control financiero de depósitos en garantía.
-* **Estados de Transacción:** `PENDIENTE`, `COMPLETADO`, `FALLIDO`, `REEMBOLSADO`.
-* **Liquidación de Garantías:** Conciliación entre depósitos recibidos, descuentos aplicados por daños estéticos/técnicos y reintegros al cliente.
+Los siguientes módulos forman parte del diseño integral del ERP y se incorporarán en las próximas etapas de desarrollo:
 
-### 15.2 Reportes Gerenciales y Operativos (REP-01)
-* **Ruta:** `/reporting`
-* **Propósito:** Analítica de negocio y tableros estadísticos para toma de decisiones gerenciales.
-* **Reportes Disponibles:**
-  * **Ocupación de Flota:** Porcentaje de unidades alquiladas vs. disponibles por categoría y sede.
-  * **Ingresos y Facturación:** Desglose de ingresos por alquileres, ampliaciones y cobros adicionales.
-  * **Siniestralidad y Mantenimiento:** Frecuencia de incidentes e impacto económico en reparaciones.
-  * **Cumplimiento de Asistencia:** Indicadores de puntualidad, vacaciones y ausencias por departamento.
-
-### 15.3 Búsqueda Global Unificada (BUS-01)
-* Accesible con el atajo de teclado **`Cmd + K`** o **`Ctrl + K`** desde cualquier pantalla del sistema.
-* Búsqueda en milisegundos a través de múltiples entidades del sistema con navegación directa mediante teclado (flechas arriba/abajo y tecla Enter).
+1. **Pagos y Garantías (PAG):**
+   * Integración con pasarelas de pago con tarjeta, conciliación de transferencias bancarias y gestión formal de retenciones y devoluciones de garantía.
+2. **Incidentes y Siniestros (INC):**
+   * Registro de siniestros, fallas mecánicas en ruta, gestión de vehículos de reemplazo y partes policiales / aseguradoras.
+3. **Administración de Personal (PER / ADP):**
+   * Turnos de trabajo, control de asistencia en sedes y legajos de colaboradores.
+4. **Reportes Gerenciales (REP):**
+   * Analítica de rentabilidad de flota, tasa de ocupación por categoría vehicular y rendimiento de ventas por sede.
 
 ---
 
-## 16. Sincronización Offline y Modo Desconectado (TR-08)
+## 13. Glosario de Términos y Estados
 
-* Diseñado para la continuidad operativa en sedes o zonas con baja cobertura de red (p. ej. inspecciones en playas de estacionamiento o sótanos):
-  * **Almacenamiento Local Seguro (`IndexedDB` / Dexie):** Los formularios de entrega (`ALQ-09`) y recepción de devoluciones (`DEV-04`) almacenan los datos localmente si se pierde la conexión.
-  * **Cola de Sincronización Automática:** Al recuperar la conectividad con el servidor, el sistema despacha en segundo plano las evidencias y registros pendientes, notificando la sincronización exitosa al usuario.
-
----
-
-## 17. Glosario de Términos y Estados
-
-* **Empresa / Sede:** Estructura corporativa jerárquica. Una Empresa representa una razón social jurídica; una Sede representa una oficina o local operativo físico.
-* **AVAILABLE (Disponible):** Vehículo que se encuentra operativo, limpio y sin compromisos de reserva para las fechas consultadas.
+* **Empresa / Sede:** Estructura jerárquica de dos niveles. Una Empresa representa una razón social jurídica; una Sede representa un local físico u oficina de atención.
+* **AVAILABLE (Disponible):** Vehículo que se encuentra operativo, limpio y sin reserva activa, apto para asignación inmediata.
 * **RENTED (Alquilado):** Vehículo en posesión del cliente bajo un contrato de alquiler activo.
-* **MAINTENANCE (Mantenimiento):** Vehículo en taller mecánico o alistamiento preventivo.
-* **OUT_OF_SERVICE (Fuera de Servicio):** Unidad dada de baja o inhabilitada temporalmente.
-* **DRAFT (Borrador):** Registro inicial de consulta, reserva o alquiler antes de cumplir requisitos.
-* **CONFIRMED (Reserva Confirmada):** Reserva con depósito validado y documentos en regla; la unidad queda bloqueada para el cliente.
-* **VALIDATION / NOTARY_EVALUATION / CONTRACTING / PENDING_DELIVERY / ACTIVE:** Etapas secuenciales del ciclo del alquiler.
-* **SERIOUS_BREACH (`BR-ALQ-013`):** Falta grave en alquiler por incumplimiento de ampliación; retiene el 100% de la garantía y bloquea al cliente de por vida.
-* **Semáforo del Cliente (Verde / Ámbar / Rojo):** Nivel de riesgo corporativo del cliente. No retrocede automáticamente.
-* **Tercer Camino:** Excepción gerencial para clientes recurrentes de bajo riesgo que sustituye la notaría por validación biométrica.
-* **Cascada de Aprobaciones:** Mecanismo automático multinivel de escalamiento de solicitudes de vacaciones y permisos ante inacción del supervisor.
-* **Memo Disciplinario Automático:** Amonestación laboral generada por el sistema al detectarse 3 tardanzas o faltas no justificadas.
-* **availableFrom / availableTo:** Parámetros de consulta en flota para verificar solapamiento con reservas y compromisos de viaje.
-* **vehicle-overlap:** Regla compartida de negocio que evalúa compromisos (`vehicle_commitments`) y reservas no terminales para evitar sobreventa de unidades.
-* **Deep Link:** Enlace interactivo en notificaciones o dashboard que conduce directamente al registro objeto de la tarea.
+* **MAINTENANCE (Mantenimiento):** Vehículo temporalmente no disponible por servicios de mantenimiento preventivo, correctivo o limpieza profunda.
+* **OUT_OF_SERVICE (Fuera de Servicio):** Vehículo dado de baja, con avería grave o inhabilitado legalmente.
+* **DRAFT (Reserva / Alquiler Borrador):** Registro preliminar cuyos requisitos de pago de garantía, validación documental o alcolímetro aún no han sido completados.
+* **CONFIRMED (Reserva Confirmada):** Reserva con pago de garantía validado y documentos en regla; el vehículo queda formalmente bloqueado para el cliente en las fechas pactadas.
+* **VALIDATION (Alquiler en Validación):** Alquiler con documentos del conductor e intervinientes verificados contra estándares de identidad y arraigo.
+* **NOTARY_EVALUATION (Evaluación Notarial):** Alquiler con prueba de alcolímetro aprobada; en evaluación contra matriz de riesgo notarial y tercer camino.
+* **CONTRACTING (Contratación):** Alquiler en formalización de contrato de arrendamiento y registro de garantía.
+* **PENDING_DELIVERY (Pendiente de Entrega):** Alquiler con contrato formalizado y garantía abonada, listo para inspección y entrega de llaves.
+* **ACTIVE (Alquiler Activo):** Vehículo formalmente entregado al cliente con checklist de 35 fotos y 3 videos; unidad en estado `RENTED`.
+* **EXTENSION_PENDING (Ampliación Pendiente):** Alquiler activo con solicitud de extensión de plazo en evaluación o pago de saldo.
+* **RETURN_IN_PROGRESS (Retorno en Curso):** Unidad arribada a sede para chequeo de recepción física y liquidación de garantía.
+* **CLOSED (Alquiler Cerrado):** Expediente finiquitado con devolución de vehículo conforme y depósito de garantía liquidado.
+* **CANCELLED (Alquiler Cancelado):** Alquiler rescindido por alcolímetro positivo/rechazado o desistimiento antes de entrega.
+* **PROGRAMADA / RECEPCION_PROVISIONAL / INSPECCION (Devolución):** Etapas previas al resultado: devolución creada, vehículo recibido en custodia, e inspección en curso.
+* **SIN_DANOS / CON_DANOS:** Resultado de la inspección de retorno.
+* **CIERRE_FINANCIERO / CERRADA (Devolución):** Liquidación de garantía y cargos, y expediente de devolución finiquitado.
+* **Semáforo del cliente (Normal / Ámbar / Rojo):** Nivel de riesgo del cliente según su historial. Una vez que empeora, no retrocede automáticamente.
+* **Tercer Camino (Third Path):** Mecanismo de excepción para clientes de bajo riesgo que permite exonerar el trámite notarial clásico mediante biometría y aprobación expresa de Gerencia.
+* **Uso Turístico Exclusivo:** Política contractual y de cobertura aseguradora que exige que los vehículos sean destinados únicamente a recreación y turismo, restringiendo el uso para transporte público, carga o actividades no autorizadas.
+* **Deep Link:** Enlace directo que conduce al usuario a la tarea u objeto exacto dentro del sistema sin necesidad de navegar manualmente por las listas.
 
 ---
 
-## 18. Bitácora Diaria de Cambios del Manual
+## 14. Bitácora Diaria de Cambios del Manual
 
 | Fecha | Versión | Cambios Realizados | Responsable |
 |---|---|---|---|
-| **2026-09-30** | **v1.0** | **Creación inicial del manual integral.** Cobertura de Login, MFA, Activación, Selección de Sede, Shell, Dashboard, Clientes, Flota, Consultas, Reservas y Administración. | Equipo de Ingeniería KAIROS |
-| **2026-09-30** | **v1.1** | **Integración de Alquileres (ALQ-01 a ALQ-11).** Ciclo de 10 estados, alcolímetro de tolerancia cero, matriz notarial, tercer camino, contrato con garantía y entrega física con 35 fotos + 3 videos. | Equipo de Ingeniería KAIROS |
-| **2026-10-05** | **v1.2** | **Integración de Devoluciones (DEV-01 a DEV-10).** Recepción provisional, alcoholímetro, checklist, documento de responsabilidad, daños estéticos/técnicos y cierre. | Equipo de Ingeniería KAIROS |
-| **2026-10-06** | **v1.3** | **Consulta → Alquiler directo.** Conversión directa de consulta a alquiler en CON-04, retiro de alta directa en bandeja y ajuste de inicio de alquiler al cierre de entrega física. | Equipo de Ingeniería KAIROS |
-| **2026-10-09** | **v1.4** | **Roles Dinámicos (ADM-01/02), Incidencias (INC-01/02) y Reclutamiento (REC-01 a REC-08).** Roles dinámicos por ID, matriz interactiva de permisos, módulo de Incidencias con regla `INCIDENT_STILL_OPEN` y Reclutamiento con Kanban, postulantes, entrevistas y período de prueba. | Equipo de Ingeniería KAIROS |
-| **2026-10-12** | **v1.5** | **Administración de Personal (ADP-01..10), Cierre de Huecos de Alquiler y Reclutamiento, Fase 6 (Pagos, Reportes, Búsqueda Global) y Disponibilidad de Flota.** Incorporación completa del Módulo de Administración de Personal: alta de personal, expediente, permisos con evidencia digital, cascada automática de 3 niveles con scheduler de 5 min, programación de vacaciones con cupo, asistencia y justificación de faltas, memos disciplinarios por 3 reincidencias, salidas a campo con rechazo formal y control de capacitaciones (ADP-10). En Alquiler: traslado de reserva a garantía (P0-03 opción a), selección de plantilla de contrato por titular y protocolo de falta grave `BR-ALQ-013`. En Reclutamiento: pausado de vacantes, descarga segura de CV y honorarios de prueba. En Flota/Consultas: filtro de disponibilidad por rango de fechas `availableFrom`/`availableTo`, regla compartida `vehicle-overlap` y bloqueo visual en cotizaciones. Incorporación de Pagos (PAG-01/02), Reportes (REP-01), Búsqueda Global (BUS-01 `Cmd+K`) e infraestructura offline (TR-08). | Equipo de Ingeniería KAIROS |
+| **2026-09-30** | **v1.0** | **Creación inicial del manual integral.** Cobertura completa de Login, MFA, Activación, Selección de Sede, Header/Sidebar, Dashboard, Clientes (alta/edición/búsqueda), Flota (alta con foto/edición/estados/baja), Consultas (CON-01 a CON-04 con validación turística y clientes vinculados), Reservas (RES-01 a RES-05) y Administración (ADM-01 a ADM-05). | Equipo de Ingeniería KAIROS |
+| **2026-09-30** | **v1.1** | **Integración del Módulo de Alquileres (ALQ-01 a ALQ-11).** Documentación del ciclo de vida completo de 10 estados, creación directa y desde reserva confirmada (RES-05), validación documental (BR-CON-004), prueba de alcolímetro de tolerancia cero (BR-ALQ-005), matriz notarial y tercer camino con aprobación gerencial (BR-ALQ-003/004), formalización de contrato con garantía (BR-DOC-002/003), y protocolo de entrega física con 35 fotos + 3 videos y transición a RENTED (BR-INS-003/004). | Equipo de Ingeniería KAIROS |
+| **2026-10-05** | **v1.2** | **Integración del Módulo de Devoluciones (DEV-01 a DEV-10).** Ciclo de vida, recepción provisional, alcoholímetro con decisión de Gerencia, checklist con evidencias y documento de responsabilidad firmado, hub de resultado, registro de daños estéticos y técnicos, garantía y cierre. Se corrige el estado de Alquileres y Devoluciones en el Centro de Módulos. | Equipo de Ingeniería KAIROS |
+| **2026-10-06** | **v1.3** | **Consulta → Alquiler directo.** El detalle de consulta (CON-04) ofrece siempre "Reservar este vehículo" y "Convertir a Alquiler"; se retira la vía "Nuevo Alquiler" de la bandeja (todo alquiler nace de una consulta). Se documentan las validaciones de conversión, que el alquiler directo no lleva monto de reserva y cobra garantía completa, y que el inicio del alquiler se fija al cerrar la entrega. Se retira del manual la mención de cronómetro de facturación y monitoreo GPS (no documentada). | Equipo de Ingeniería KAIROS |
 
 ---
 *Este manual es un documento vivo del proyecto KAIROS ERP. Se mantendrá actualizado al final de cada jornada de desarrollo.*
