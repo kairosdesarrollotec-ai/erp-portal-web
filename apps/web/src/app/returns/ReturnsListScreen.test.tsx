@@ -6,6 +6,9 @@ import { ReturnsListScreen } from './ReturnsListScreen';
 import { baseContext, makeReturn } from './test-utils';
 import { setPermissions } from '../../test/permissions';
 
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
+
 const RETURN_LIST = [
   'RETURN.READ', 'RETURN.CREATE', 'RETURN.RECEIVE_PROVISIONAL',
 ] as const;

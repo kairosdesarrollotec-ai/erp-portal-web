@@ -3,6 +3,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { InquiryVehiclesScreen } from './InquiryVehiclesScreen';
 
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
+
 const quoteInquiryMock = vi.fn();
 const getInquiryMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();

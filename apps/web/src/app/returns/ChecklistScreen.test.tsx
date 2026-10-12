@@ -18,6 +18,9 @@ import { setPermissions } from '../../test/permissions';
 import { EMPTY_RETURN_CHECKLIST, saveReturnChecklist } from './return-session-draft';
 import type { SyncManagerResult } from '../../offline/synchronization/use-sync-manager';
 
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
+
 // ── Permisos ────────────────────────────────────────────────────────────────
 const RETURN_FULL = [
   'RETURN.CREATE', 'RETURN.READ', 'RETURN.RECEIVE_PROVISIONAL',
@@ -155,6 +158,13 @@ describe('ChecklistScreen — estado OFFLINE (PROTO-DEV-04-CHECKLIST-RECEPCION-S
     expect(await screen.findByText(/Sin conexión/)).toBeInTheDocument();
   });
 
+  it('el banner offline usa el texto del prototipo/PANTALLAS-V3-B-DEVOLUCION', async () => {
+    setOnline(false);
+    renderChecklist();
+    act(() => { window.dispatchEvent(new Event('offline')); });
+    expect(await screen.findByText(/Sin conexión — tu trabajo se guarda en este dispositivo/)).toBeInTheDocument();
+  });
+
   it('el boton Continuar esta deshabilitado cuando esta offline', async () => {
     setOnline(false);
     // Evidence completa en servidor y doc firmado, pero offline
@@ -226,6 +236,20 @@ describe('ChecklistScreen — estado OFFLINE (PROTO-DEV-04-CHECKLIST-RECEPCION-S
     await waitFor(() => {
       expect(screen.getByText(/1 archivo pendiente de sincronizar/)).toBeInTheDocument();
     });
+  });
+});
+
+// ── Suite: fallo de sincronizacion (cola en error) ───────────────────────────
+describe('ChecklistScreen — sincronizacion fallida', () => {
+  it('muestra alerta con Reintentar, bloquea Continuar y reintenta via triggerSync', async () => {
+    const triggerSync = vi.fn();
+    syncManagerMock.mockReturnValue(syncManagerIdle({ pendingCount: 0, failedCount: 2, triggerSync }));
+    renderChecklist();
+    expect(await screen.findByRole('alert')).toHaveTextContent('2 archivos no pudo sincronizarse');
+    expect(screen.getByRole('button', { name: 'Continuar a Resultado' })).toBeDisabled();
+    triggerSync.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar sincronización' }));
+    expect(triggerSync).toHaveBeenCalled();
   });
 });
 

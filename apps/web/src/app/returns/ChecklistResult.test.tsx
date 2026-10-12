@@ -21,6 +21,9 @@ import {
   type ResponsibilityDocumentDraft,
 } from './return-session-draft';
 
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
+
 const SIGNED_DOC: ResponsibilityDocumentDraft = {
   signerName: 'Maria Quispe',
   signerIsHolder: true,

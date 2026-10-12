@@ -210,7 +210,7 @@ export function ChecklistScreen() {
       {/* ── Banners de estado ── */}
       {!online && (
         <p className={`${styles.banner} ${styles.banner_warning}`} role="status">
-          Sin conexión — las fotos y videos se guardan en este dispositivo.
+          Sin conexión — tu trabajo se guarda en este dispositivo
           {localQueueCount > 0 && ` ${localQueueCount} archivo${localQueueCount !== 1 ? 's' : ''} pendiente${localQueueCount !== 1 ? 's' : ''} de sincronizar.`}
         </p>
       )}
@@ -235,12 +235,18 @@ export function ChecklistScreen() {
           para completar la recepción.
         </p>
       )}
-      {online && !syncerSyncing && hasPending && !uploading && (
+      {online && !syncerSyncing && hasPending && !uploading && syncerFailed === 0 && (
         <p className={`${styles.banner} ${styles.banner_info}`} role="status">
-          {syncerFailed > 0
-            ? `${syncerFailed} archivo${syncerFailed !== 1 ? 's' : ''} no pudo sincronizarse. Verifica tu conexión.`
-            : `${totalPending} archivo${totalPending !== 1 ? 's' : ''} pendiente${totalPending !== 1 ? 's' : ''} de sincronizar.`}
+          {totalPending} archivo{totalPending !== 1 ? 's' : ''} pendiente{totalPending !== 1 ? 's' : ''} de sincronizar.
         </p>
+      )}
+      {online && !syncerSyncing && syncerFailed > 0 && !uploading && (
+        <div className={`${styles.banner} ${styles.banner_warning}`} role="alert">
+          {syncerFailed} archivo{syncerFailed !== 1 ? 's' : ''} no pudo sincronizarse. Verifica tu conexión.{' '}
+          <button type="button" className={styles.textLink} onClick={triggerSync}>
+            Reintentar sincronización
+          </button>
+        </div>
       )}
 
       <label className={styles.fieldLabel}>
