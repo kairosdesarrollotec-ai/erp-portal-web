@@ -9,6 +9,7 @@ import {
   registerPayment,
   ReservationCommandError,
   ReservationSummary,
+  VEHICLE_NOT_AVAILABLE_MESSAGE,
 } from './reservations-client';
 import { useWorkContextForReservations } from './useWorkContextForReservations';
 
@@ -22,10 +23,14 @@ export function useReservationDetail() {
   const [reservation, setReservation] = useState<ReservationSummary | null>(null);
   const [savingRequirement, setSavingRequirement] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [vehicleUnavailable, setVehicleUnavailable] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!id || !context) return;
     setState('LOADING');
+    setVehicleUnavailable(null);
+    setActionError(null);
+    setVehicleUnavailable(null);
     try {
       const user = getFirebaseAuth().currentUser;
       if (!user) {
@@ -64,8 +69,14 @@ export function useReservationDetail() {
       const updated = await action(idToken);
       setReservation(updated);
     } catch (error) {
-      if (error instanceof ReservationCommandError && error.status === 409) {
+      if (error instanceof ReservationCommandError && error.isVersionConflict) {
+        // Solo un conflicto de version (412) significa "la reserva cambio": se recarga.
         setState('SYNC_CONFLICT');
+      } else if (error instanceof ReservationCommandError && error.isVehicleUnavailable) {
+        // 409 VEHICLE_NOT_AVAILABLE: no es un conflicto de sincronizacion, es un aviso de negocio.
+        setVehicleUnavailable(error.problem?.detail?.trim() || VEHICLE_NOT_AVAILABLE_MESSAGE);
+      } else if (error instanceof ReservationCommandError) {
+        setActionError(error.problem?.detail?.trim() || 'No se pudo completar la operación. Intenta de nuevo.');
       } else {
         setActionError(error instanceof Error ? error.message : 'No se pudo completar la operacion.');
       }
@@ -108,6 +119,7 @@ export function useReservationDetail() {
     context,
     savingRequirement,
     actionError,
+    vehicleUnavailable,
     uploadPaymentVoucher,
     uploadDocuments,
     confirm,
