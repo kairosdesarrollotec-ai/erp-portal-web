@@ -11,6 +11,12 @@ import { GlobalSearch } from './GlobalSearch';
 
 // ── Mocks ──────────────────────────────────────────────────────────────
 
+// Restore the real useGlobalSearch implementation so tests can exercise
+// the actual hook behavior (debounce, useQuery) with the mocked search client.
+// The global setup.ts mock returns a static idle state for all other test files
+// that don't need to interact with GlobalSearch.
+vi.mock('./useGlobalSearch', async () => vi.importActual('./useGlobalSearch'));
+
 vi.mock('../../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: {

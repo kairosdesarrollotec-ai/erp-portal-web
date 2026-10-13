@@ -163,7 +163,11 @@ test.describe('INC-01 Bandeja de incidencias', () => {
     await page.goto('/modulos');
     await waitForPermissionsReady(page);
     // El nombre visible del rol viene de la API, no de una etiqueta fija.
+    // El roleLabel vive dentro del dropdown (UserMenuDropdown) — hay que abrirlo primero.
+    await page.getByRole('button', { name: 'Menú de perfil y sesión' }).click();
     await expect(page.getByText('Supervisor de incidencias').first()).toBeVisible();
+    // Cerrar el dropdown antes de continuar con la navegación.
+    await page.keyboard.press('Escape');
 
     await page.getByRole('navigation', { name: 'Módulos del sistema' }).getByRole('link', { name: 'Incidencias' }).click();
     await expect(page.getByRole('table').getByText('ALQ-1187')).toBeVisible();

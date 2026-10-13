@@ -80,6 +80,15 @@ describe('ModuleHubScreen', () => {
     expect(items).toHaveLength(13);
   });
 
+  it('muestra 10 módulos a quien no tiene permisos de Admin, Reclutamiento ni Personal pero sí de Pagos y Reportes', () => {
+    setPermissions([...INCIDENT_VIEW_ONLY, 'PAYMENT.READ_LIST', 'REPORT.READ_OPERATIONAL']);
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
+    renderHub();
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(10);
+    expect(screen.queryByText('Admin')).toBeNull();
+  });
+
   it('muestra 8 módulos a quien no tiene permisos de Admin, Reclutamiento, Personal, Pagos ni Reportes', () => {
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
