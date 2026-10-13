@@ -64,10 +64,6 @@ export function NewInquiryScreen() {
 
       <div className={styles.content}>
         {error && <p className={styles.errorText}>{error}</p>}
-        <p className={styles.helperNote}>
-          El cliente vinculado, destino, fecha y personas se envían al registrar la consulta. La fecha de ingreso al
-          país (clientes extranjeros) todavía no tiene un campo propio en este formulario.
-        </p>
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Modalidad</h2>

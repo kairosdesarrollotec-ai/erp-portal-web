@@ -220,7 +220,13 @@ export function useNewInquiry() {
       });
     } catch (err) {
       setState('READY');
-      setError(err instanceof InquiryCommandError ? err.message : 'No se pudo registrar la consulta.');
+      setError(
+        err instanceof InquiryCommandError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'No se pudo registrar la consulta.',
+      );
     }
   }
 
@@ -291,7 +297,13 @@ export function useNewInquiry() {
       navigate('/consultas', { state: context });
     } catch (err) {
       setState('READY');
-      setError(err instanceof InquiryCommandError ? err.message : 'No se pudo cerrar la consulta.');
+      setError(
+        err instanceof InquiryCommandError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'No se pudo cerrar la consulta.',
+      );
     }
   }
 
