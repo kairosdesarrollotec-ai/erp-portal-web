@@ -22,9 +22,9 @@ import styles from './ReservationDetailScreen.module.css';
  * Simplificacion respecto al prototipo original (documentada, no
  * inventada): el backend de este primer corte (HU-27, ver PROP-005 en
  * docs/decision-log.md) modela 2 requisitos consolidados
- * (payment_validated_at, documents_completed_at), no 4 documentos
- * separados con carga de archivo individual - "Subir" aqui marca el
- * requisito como completo (no hay almacenamiento de archivos todavia).
+ * (payment_validated_at, documents_completed_at). Ambos requieren carga
+ * de archivo fisico: pago usa documentType PAYMENT_VOUCHER, contrato usa
+ * OTHER (no existe tipo CONTRACT en la API todavia).
  * "Continuar con alquiler" (RES-05) navega a /alquileres/nuevo (ALQ-02)
  * pasando cliente, vehiculo y periodo heredados de la reserva confirmada
  * via location.state (ver NewRentalScreen.tsx).
@@ -39,6 +39,9 @@ export function ReservationDetailScreen() {
   const [uploadingVoucher, setUploadingVoucher] = useState(false);
   const [voucherUploadError, setVoucherUploadError] = useState<string | null>(null);
   const voucherFileRef = useRef<HTMLInputElement>(null);
+  const [uploadingContract, setUploadingContract] = useState(false);
+  const [contractUploadError, setContractUploadError] = useState<string | null>(null);
+  const contractFileRef = useRef<HTMLInputElement>(null);
 
   async function handleVoucherFile(file: File) {
     if (!reservation || !context) return;
@@ -71,6 +74,40 @@ export function ReservationDetailScreen() {
       setVoucherUploadError('No pudimos subir el comprobante. Intenta de nuevo.');
     } finally {
       setUploadingVoucher(false);
+    }
+  }
+
+  async function handleContractFile(file: File) {
+    if (!reservation || !context) return;
+    setUploadingContract(true);
+    setContractUploadError(null);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible.');
+      const idToken = await user.getIdToken();
+      const session = await requestReservationDocumentUploadSession(
+        idToken,
+        reservation.id,
+        context.companyId,
+        context.branchId,
+        'OTHER',
+        file.type as 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf',
+        file.size,
+      );
+      await uploadReservationFileToGcs(session.uploadUrl, file);
+      await recordReservationDocument(
+        idToken,
+        reservation.id,
+        context.companyId,
+        context.branchId,
+        'OTHER',
+        session.objectUrl,
+      );
+      await uploadDocuments();
+    } catch {
+      setContractUploadError('No pudimos subir el documento. Intenta de nuevo.');
+    } finally {
+      setUploadingContract(false);
     }
   }
 
@@ -163,8 +200,8 @@ export function ReservationDetailScreen() {
                       : undefined
                   }
                   done={documentsDone}
-                  saving={savingRequirement === 'DOCUMENTS_COMPLETE'}
-                  onUpload={() => void uploadDocuments()}
+                  saving={uploadingContract || savingRequirement === 'DOCUMENTS_COMPLETE'}
+                  onUpload={() => contractFileRef.current?.click()}
                 />
               </ul>
               <input
@@ -178,7 +215,19 @@ export function ReservationDetailScreen() {
                   e.target.value = '';
                 }}
               />
+              <input
+                ref={contractFileRef}
+                type="file"
+                accept="image/jpeg,image/webp,image/png,application/pdf"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleContractFile(file);
+                  e.target.value = '';
+                }}
+              />
               {voucherUploadError && <p className={styles.errorText}>{voucherUploadError}</p>}
+              {contractUploadError && <p className={styles.errorText}>{contractUploadError}</p>}
 
               {paymentDone && documentsDone && can('RESERVATION', 'CONFIRM') ? (
                 <button
