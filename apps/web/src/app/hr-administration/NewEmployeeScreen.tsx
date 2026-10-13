@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppHeader } from '../shared/AppHeader';
+import { getFirebaseAuth } from '../providers/firebase';
+import { getCandidate } from '../recruitment/recruitment-client';
 import { HrFrame } from './HrFrame';
 import { createEmployee, listEmployees } from './hr-client';
 import { areaIdFromName, toIsoDate } from './hr-domain';
@@ -37,6 +39,35 @@ function NewEmployee() {
   const [phone, setPhone] = useState('');
   const [baseSalary, setBaseSalary] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [prefillError, setPrefillError] = useState(false);
+  const prefilled = useRef(false);
+
+  // Precarga desde el candidato contratado (nombre, documento y contacto). Se aplica una sola vez
+  // y solo a campos que la persona todavía no editó; si falla, el formulario sigue siendo usable.
+  useEffect(() => {
+    if (!candidateId || !context || prefilled.current) return;
+    prefilled.current = true;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const user = getFirebaseAuth().currentUser;
+        if (!user) throw new Error('Sesión no disponible');
+        const token = await user.getIdToken();
+        const c = await getCandidate(token, candidateId, { companyId: context.companyId, branchId: context.branchId });
+        if (cancelled) return;
+        setFullName((v) => v || c.fullName || '');
+        setDocumentType((v) => (v === 'DNI' && c.documentType ? c.documentType : v));
+        setDocumentNumber((v) => v || c.documentNumber || '');
+        setEmail((v) => v || c.email || '');
+        setPhone((v) => v || c.phone || '');
+      } catch {
+        if (!cancelled) setPrefillError(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [candidateId, context]);
 
   useEffect(() => {
     if (state === 'READY') nameRef.current?.focus();
@@ -84,6 +115,11 @@ function NewEmployee() {
     <HrFrame pageTitle="Nueva persona" back={{ label: 'Volver a Personal', to: '/personal' }} context={context} state={state} hasData={state === 'READY'} subject="el formulario" busy={command.saving}>
       <form onSubmit={(e) => void submit(e)} noValidate className={styles.form} aria-label="Alta de personal">
         {candidateId && <p className={styles.hint}>Esta alta queda enlazada a la persona contratada en Reclutamiento. Su ficha de personal es un registro aparte.</p>}
+        {prefillError && (
+          <p className={styles.hint} role="status">
+            No pudimos precargar los datos del candidato. Puedes completarlos a mano.
+          </p>
+        )}
         {command.error && (
           <p className={styles.errorBanner} role="alert">
             {command.error}

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { OnboardingScreen } from './OnboardingScreen';
 import { defaultStartDate } from './recruitment-domain';
 import { baseContext, makeCandidate, makeOnboarding, setMobile, setupUser } from './flow-test-utils';
@@ -28,11 +28,17 @@ vi.mock('./recruitment-client', async () => {
   };
 });
 
+function LocationProbe() {
+  const loc = useLocation();
+  return <div>personal nuevo {loc.search}</div>;
+}
+
 function renderScreen() {
   return render(
     <MemoryRouter initialEntries={[{ pathname: '/reclutamiento/candidatos/cand-1/incorporacion', state: baseContext }]}>
       <Routes>
         <Route path="/reclutamiento/candidatos/:id/incorporacion" element={<OnboardingScreen />} />
+        <Route path="/personal/nuevo" element={<LocationProbe />} />
         <Route path="/reclutamiento/candidatos/:id/decision" element={<div>pantalla de decision</div>} />
         <Route path="/reclutamiento/candidatos/:id/periodo-de-prueba" element={<div>pantalla de prueba</div>} />
       </Routes>
@@ -58,6 +64,28 @@ describe('OnboardingScreen (REC-07)', () => {
     expect(screen.queryByRole('button', { name: 'Confirmar ingreso' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Ir a la decisión' }));
     expect(await screen.findByText('pantalla de decision')).toBeInTheDocument();
+  });
+
+  it('con candidato contratado y permiso de Personal, "Registrar como persona" lleva a /personal/nuevo?candidateId', async () => {
+    const user = setupUser();
+    setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.MANAGE_ONBOARDING', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES']);
+    getCandidateMock.mockResolvedValue(hired());
+    renderScreen();
+    await user.click(await screen.findByRole('button', { name: 'Registrar como persona' }));
+    expect(await screen.findByText('personal nuevo ?candidateId=cand-1')).toBeInTheDocument();
+  });
+
+  it('no ofrece "Registrar como persona" sin permiso de Personal ni si no está contratado', async () => {
+    getCandidateMock.mockResolvedValue(hired());
+    const first = renderScreen();
+    await screen.findByLabelText('Fecha de ingreso');
+    expect(screen.queryByRole('button', { name: 'Registrar como persona' })).toBeNull();
+    first.unmount();
+    setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES']);
+    getCandidateMock.mockResolvedValue(makeCandidate());
+    renderScreen();
+    await screen.findByText(/Solo se puede incorporar a quien ya fue contratado/);
+    expect(screen.queryByRole('button', { name: 'Registrar como persona' })).toBeNull();
   });
 
   it('propone el ingreso para mañana y deja el foco en la fecha', async () => {

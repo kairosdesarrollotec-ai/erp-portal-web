@@ -9,6 +9,7 @@ import { setPermissions } from '../../test/permissions';
 
 const listEmployeesMock = vi.fn();
 const createMock = vi.fn();
+const getCandidateMock = vi.fn();
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
@@ -17,6 +18,10 @@ vi.mock('../providers/firebase', () => ({
 vi.mock('../notifications/useNotifications', () => ({
   useNotifications: () => ({ unreadCount: 0, notifications: [], markRead: vi.fn(), reload: vi.fn() }),
 }));
+vi.mock('../recruitment/recruitment-client', async () => {
+  const actual = await vi.importActual<typeof import('../recruitment/recruitment-client')>('../recruitment/recruitment-client');
+  return { ...actual, getCandidate: (...a: unknown[]) => getCandidateMock(...a) };
+});
 vi.mock('./hr-client', async () => {
   const actual = await vi.importActual<typeof import('./hr-client')>('./hr-client');
   return {
@@ -50,6 +55,7 @@ describe('NewEmployeeScreen (alta de personal)', () => {
   beforeEach(() => {
     listEmployeesMock.mockReset().mockResolvedValue({ items: [makeEmployee()], total: 1 });
     createMock.mockReset();
+    getCandidateMock.mockReset().mockResolvedValue({ fullName: 'Ana Torres', documentType: 'CE', documentNumber: '70123456', email: 'ana@correo.pe', phone: '999111222' });
     setPermissions(['HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.VIEW_EMPLOYEES']);
   });
 
@@ -93,9 +99,27 @@ describe('NewEmployeeScreen (alta de personal)', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalledWith('tok', expect.objectContaining({ candidateId: CANDIDATE })));
   });
 
+  it('precarga nombre, documento y contacto desde el candidato', async () => {
+    renderScreen(`?candidateId=${CANDIDATE}`);
+    await waitFor(() => expect(screen.getByLabelText('Nombre completo')).toHaveValue('Ana Torres'));
+    expect(getCandidateMock).toHaveBeenCalledWith('tok', CANDIDATE, { companyId: 'c1', branchId: 'b1' });
+    expect(screen.getByLabelText('Tipo de documento')).toHaveValue('CE');
+    expect(screen.getByLabelText('Número de documento')).toHaveValue('70123456');
+    expect(screen.getByLabelText('Correo (opcional)')).toHaveValue('ana@correo.pe');
+    expect(screen.getByLabelText('Teléfono (opcional)')).toHaveValue('999111222');
+  });
+
+  it('si falla la precarga avisa y deja el formulario usable', async () => {
+    getCandidateMock.mockRejectedValue(new Error('boom'));
+    renderScreen(`?candidateId=${CANDIDATE}`);
+    expect(await screen.findByText(/No pudimos precargar los datos del candidato/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Nombre completo')).toHaveValue('');
+  });
+
   it('ignora un candidateId que no es un UUID', async () => {
     renderScreen('?candidateId=abc');
     await screen.findByLabelText('Nombre completo');
+    expect(getCandidateMock).not.toHaveBeenCalled();
     expect(screen.queryByText(/enlazada a la persona contratada/)).not.toBeInTheDocument();
   });
 
