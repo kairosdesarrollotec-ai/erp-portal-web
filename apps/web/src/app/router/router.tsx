@@ -69,6 +69,7 @@ import { NewEmployeeScreen } from '../hr-administration/NewEmployeeScreen';
 import { ReportsDashboardScreen } from '../reporting/ReportsDashboardScreen';
 import { DepositsListScreen } from '../payments/DepositsListScreen';
 import { DepositDetailScreen } from '../payments/DepositDetailScreen';
+import { UserProfileScreen } from '../profile/UserProfileScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -99,6 +100,8 @@ export const router = createBrowserRouter([
             element: <AuthenticatedLayout />,
             children: [
               { path: '/tablero', element: <DashboardScreen /> },
+              { path: '/perfil', element: <UserProfileScreen /> },
+              { path: '/profile', element: <UserProfileScreen /> },
               { path: '/reservas', element: <ReservationsListScreen /> },
               { path: '/reservas/:id', element: <ReservationDetailScreen /> },
               { path: '/consultas', element: <InquiriesListScreen /> },

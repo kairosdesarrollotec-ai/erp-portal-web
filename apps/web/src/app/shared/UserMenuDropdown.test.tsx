@@ -136,6 +136,16 @@ describe('UserMenuDropdown', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
+  it('muestra el enlace a "Mi Perfil" y navega a /perfil cerrando el dropdown al hacer clic', () => {
+    renderDropdown({}, { companyName: 'VeloxRent', branchName: 'Lima Norte' });
+    fireEvent.click(screen.getByRole('button', { name: /Menú de perfil y sesión/i }));
+    const profileItem = screen.getByRole('menuitem', { name: /Mi Perfil/i });
+    expect(profileItem).toBeInTheDocument();
+    fireEvent.click(profileItem);
+    expect(mockNavigate).toHaveBeenCalledWith('/perfil', expect.objectContaining({ state: expect.anything() }));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
   // ── Modal de confirmación de cierre de sesión (TR-09) ────────────────
 
   it('cuando no hay borradores (count=0), "Cerrar sesión" ejecuta signOut directamente sin mostrar modal', async () => {
