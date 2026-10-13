@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage1DocumentsScreen } from './Stage1DocumentsScreen';
 
 const getRentalMock = vi.fn();
 const validateDocumentsMock = vi.fn();
+const requestUploadSessionMock = vi.fn();
+const uploadFileToGcsMock = vi.fn();
+const recordRentalDocumentMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -18,6 +21,9 @@ vi.mock('./rentals-client', async () => {
     ...actual,
     getRental: (...args: unknown[]) => getRentalMock(...args),
     validateDocuments: (...args: unknown[]) => validateDocumentsMock(...args),
+    requestRentalDocumentUploadSession: (...args: unknown[]) => requestUploadSessionMock(...args),
+    uploadFileToGcs: (...args: unknown[]) => uploadFileToGcsMock(...args),
+    recordRentalDocument: (...args: unknown[]) => recordRentalDocumentMock(...args),
   };
 });
 
@@ -51,22 +57,46 @@ describe('Stage1DocumentsScreen (ENTREGA-01)', () => {
   beforeEach(() => {
     getRentalMock.mockReset();
     validateDocumentsMock.mockReset();
+    requestUploadSessionMock.mockReset();
+    uploadFileToGcsMock.mockReset();
+    recordRentalDocumentMock.mockReset();
+
+    requestUploadSessionMock.mockResolvedValue({ uploadUrl: 'https://gcs.example/upload', objectUrl: 'https://gcs.example/obj' });
+    uploadFileToGcsMock.mockResolvedValue(undefined);
+    recordRentalDocumentMock.mockResolvedValue({});
   });
 
-  it('muestra cliente y vehiculo heredados y habilita continuar al marcar documentos', async () => {
+  it('muestra cliente y vehiculo heredados y habilita continuar solo tras subir licencia e identificacion', async () => {
     getRentalMock.mockResolvedValue(baseRental);
     validateDocumentsMock.mockResolvedValue({ ...baseRental, status: 'VALIDATION', version: 2 });
 
-    renderScreen();
+    const { container } = renderScreen();
 
     expect(await screen.findByText(/Maria Quispe/)).toBeInTheDocument();
     const continueButton = screen.getByRole('button', { name: 'Continuar' });
     expect(continueButton).toBeDisabled();
 
-    fireEvent.click(screen.getByLabelText(/Licencia de conducir/));
-    fireEvent.click(screen.getByLabelText(/^DNI válido$/));
+    // Simular upload de licencia: encontrar el input[type=file] correspondiente
+    const fileInputs = container.querySelectorAll('input[type="file"]');
+    const licenseInput = fileInputs[0];
+    const idDocInput = fileInputs[1];
 
-    expect(continueButton).not.toBeDisabled();
+    const fakeFile = new File(['content'], 'doc.pdf', { type: 'application/pdf' });
+
+    // Upload licencia
+    fireEvent.change(licenseInput, { target: { files: [fakeFile] } });
+    await waitFor(() => expect(requestUploadSessionMock).toHaveBeenCalledWith(
+      'fake-id-token', 'rent-1', 'c1', 'b1', 'LICENSE', 'application/pdf', expect.any(Number),
+    ));
+    await waitFor(() => expect(continueButton).toBeDisabled()); // aun falta ID
+
+    // Upload identificacion
+    fireEvent.change(idDocInput, { target: { files: [fakeFile] } });
+    await waitFor(() => expect(requestUploadSessionMock).toHaveBeenCalledWith(
+      'fake-id-token', 'rent-1', 'c1', 'b1', 'ID_DOCUMENT', 'application/pdf', expect.any(Number),
+    ));
+    await waitFor(() => expect(continueButton).not.toBeDisabled());
+
     fireEvent.click(continueButton);
 
     expect(await screen.findByText('etapa 2')).toBeInTheDocument();
