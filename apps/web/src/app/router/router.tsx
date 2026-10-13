@@ -9,6 +9,9 @@ import { RequireCompletedActivation } from './RequireCompletedActivation';
 import { AuthenticatedLayout } from './AuthenticatedLayout';
 import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
 import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
+import { ReservationConflictScreen } from '../reservations/ReservationConflictScreen';
+import { ReservationSaleScreen } from '../reservations/ReservationSaleScreen';
+import { ReservationNoShowScreen } from '../reservations/ReservationNoShowScreen';
 import { InquiriesListScreen } from '../inquiries/InquiriesListScreen';
 import { NewInquiryScreen } from '../inquiries/NewInquiryScreen';
 import { InquiryVehiclesScreen } from '../inquiries/InquiryVehiclesScreen';
@@ -104,6 +107,9 @@ export const router = createBrowserRouter([
               { path: '/profile', element: <UserProfileScreen /> },
               { path: '/reservas', element: <ReservationsListScreen /> },
               { path: '/reservas/:id', element: <ReservationDetailScreen /> },
+              { path: '/reservas/:id/conflicto', element: <ReservationConflictScreen /> },
+              { path: '/reservas/:id/venta', element: <ReservationSaleScreen /> },
+              { path: '/reservas/:id/no-show', element: <ReservationNoShowScreen /> },
               { path: '/consultas', element: <InquiriesListScreen /> },
               { path: '/consultas/nueva', element: <NewInquiryScreen /> },
               { path: '/consultas/:id/vehiculos', element: <InquiryVehiclesScreen /> },

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { useReservationDetail } from './useReservationDetail';
 import { RESERVATION_STATUS_LABELS } from './reservation-status';
@@ -33,6 +33,8 @@ export function ReservationDetailScreen() {
   const { state, reservation, context, savingRequirement, actionError, vehicleUnavailable, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
     useReservationDetail();
   const navigate = useNavigate();
+  const location = useLocation();
+  const alternativeVehicle = (location.state as { alternativeVehicle?: { id: string; label: string } } | null)?.alternativeVehicle;
   const { can } = useRolePermissions();
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelNote, setCancelNote] = useState('');
@@ -146,7 +148,47 @@ export function ReservationDetailScreen() {
           {actionError && <p className={styles.errorText}>{actionError}</p>}
           {vehicleUnavailable && (
             <p id="vehicle-unavailable-alert" role="alert" className={styles.unavailableAlert}>
-              {vehicleUnavailable}
+              {vehicleUnavailable}{' '}
+              <button
+                type="button"
+                className={styles.linkButton}
+                onClick={() =>
+                  navigate(`/reservas/${reservation.id}/conflicto`, {
+                    state: { ...context, conflictDetail: vehicleUnavailable },
+                  })
+                }
+              >
+                Ver alternativas
+              </button>
+            </p>
+          )}
+          {alternativeVehicle && reservation.status === 'DRAFT' && (
+            <p className={styles.helperText} role="status">
+              Alternativa seleccionada en RES-06: {alternativeVehicle.label}. El cambio de vehículo de un borrador aún no
+              está disponible en el sistema; coordínalo con Gerencia.
+            </p>
+          )}
+
+          {reservation.status === 'PENDING_SALE_RESOLUTION' && (
+            <>
+              <p className={styles.helperText}>
+                El vehículo fue vendido y la reserva está pendiente de resolver con el cliente.
+              </p>
+              {can('RESERVATION', 'RESOLVE_SALE') && (
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  onClick={() => navigate(`/reservas/${reservation.id}/venta`, { state: context })}
+                >
+                  Resolver venta
+                </button>
+              )}
+            </>
+          )}
+
+          {reservation.status === 'CANCELLED' && reservation.saleResolution?.refundStatus === 'PENDING_TRANSFER' && (
+            <p className={styles.helperText}>
+              Reembolso pendiente de transferencia: Gerencia debe devolver S/ {reservation.requiredPayment.amount} al cliente.
             </p>
           )}
 
@@ -230,6 +272,25 @@ export function ReservationDetailScreen() {
               >
                 Continuar con alquiler
               </button>
+
+              {reservation.startDatePassed && (
+                <button
+                  type="button"
+                  className={styles.linkButton}
+                  onClick={() => navigate(`/reservas/${reservation.id}/no-show`, { state: context })}
+                >
+                  Protocolo de no-show
+                </button>
+              )}
+              {can('RESERVATION', 'FLAG_SALE') && (
+                <button
+                  type="button"
+                  className={styles.linkButton}
+                  onClick={() => navigate(`/reservas/${reservation.id}/venta`, { state: context })}
+                >
+                  Registrar venta del vehículo
+                </button>
+              )}
 
               {!showCancelForm && can('RESERVATION', 'CANCEL_CUSTOMER_REQUESTED_CHANGE') ? (
                 <button type="button" className={styles.dangerLink} onClick={() => setShowCancelForm(true)}>
