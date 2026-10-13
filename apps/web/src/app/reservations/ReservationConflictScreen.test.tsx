@@ -4,14 +4,17 @@ import { ReservationConflictScreen } from './ReservationConflictScreen';
 import { buildReservation, buildVehicle, renderAt } from './resolution-test-utils';
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
-vi.mock('../shared/useRolePermissions', () => ({ useRolePermissions: () => ({ can: () => true }) }));
+let canChange = true;
+vi.mock('../shared/useRolePermissions', () => ({ useRolePermissions: () => ({ can: () => canChange }) }));
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({ currentUser: { getIdToken: vi.fn().mockResolvedValue('tok') } }),
 }));
 const getReservationMock = vi.fn();
+const changeVehicleMock = vi.fn();
 vi.mock('./reservations-client', async () => ({
   ...(await vi.importActual<typeof import('./reservations-client')>('./reservations-client')),
   getReservation: (...a: unknown[]) => getReservationMock(...a),
+  changeReservationVehicle: (...a: unknown[]) => changeVehicleMock(...a),
 }));
 const listVehiclesMock = vi.fn();
 vi.mock('../fleet/fleet-client', () => ({ listVehicles: (...a: unknown[]) => listVehiclesMock(...a) }));
@@ -22,6 +25,8 @@ describe('ReservationConflictScreen (RES-06)', () => {
   beforeEach(() => {
     getReservationMock.mockReset().mockResolvedValue(buildReservation({ status: 'DRAFT' }));
     listVehiclesMock.mockReset();
+    changeVehicleMock.mockReset();
+    canChange = true;
   });
 
   it('lista alternativas libres excluyendo el vehículo original y consulta la ventana de la reserva', async () => {
@@ -44,13 +49,50 @@ describe('ReservationConflictScreen (RES-06)', () => {
     expect(screen.getByRole('button', { name: 'Continuar con la alternativa' })).toBeDisabled();
   });
 
-  it('Continuar vuelve a RES-04 con la alternativa elegida', async () => {
+  it('Continuar llama a change-vehicle con la versión y navega a RES-04 sin sugerencias en el estado', async () => {
     listVehiclesMock.mockResolvedValue({ items: [buildVehicle('v-2', 'ABC-111')], total: 1 });
+    changeVehicleMock.mockResolvedValue(buildReservation({ status: 'DRAFT', vehicle: { id: 'v-2', plate: 'ABC-111', label: 'Kia Rio' } }));
     render();
     fireEvent.click(await screen.findByLabelText(/ABC-111/));
     fireEvent.click(screen.getByRole('button', { name: 'Continuar con la alternativa' }));
     expect(await screen.findByText('RES-04')).toBeInTheDocument();
-    expect(screen.getByTestId('state').textContent).toContain('"id":"v-2"');
+    expect(changeVehicleMock).toHaveBeenCalledWith('tok', 'res-1', 'c1', 'b1', 3, 'v-2');
+    expect(screen.getByTestId('state').textContent).not.toContain('alternativeVehicle');
+  });
+
+  it.each([
+    [409, 'RESERVATION_STATE_CONFLICT', /ya no está en un estado/],
+    [409, 'VEHICLE_NOT_AVAILABLE', /ya está ocupado/],
+    [422, 'ALTERNATIVE_VEHICLE_INVALID', /alternativo no es válido/],
+  ])('error %i %s se muestra y no navega', async (status, code, text) => {
+    const { ReservationCommandError } = await import('./reservations-client');
+    listVehiclesMock.mockResolvedValue({ items: [buildVehicle('v-2', 'ABC-111')], total: 1 });
+    changeVehicleMock.mockRejectedValue(new ReservationCommandError(status, { code }));
+    render();
+    fireEvent.click(await screen.findByLabelText(/ABC-111/));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar con la alternativa' }));
+    await vi.waitFor(() => expect(screen.getAllByRole('alert').map((n) => n.textContent).join(' ')).toMatch(text));
+    expect(screen.queryByText('RES-04')).not.toBeInTheDocument();
+  });
+
+  it('412 muestra el aviso de conflicto de sincronización', async () => {
+    const { ReservationCommandError } = await import('./reservations-client');
+    listVehiclesMock.mockResolvedValue({ items: [buildVehicle('v-2', 'ABC-111')], total: 1 });
+    changeVehicleMock.mockRejectedValue(new ReservationCommandError(412, { code: 'RESERVATION_VERSION_CONFLICT' }));
+    render();
+    fireEvent.click(await screen.findByLabelText(/ABC-111/));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar con la alternativa' }));
+    await vi.waitFor(() => expect(changeVehicleMock).toHaveBeenCalled());
+    expect(screen.queryByText('RES-04')).not.toBeInTheDocument();
+  });
+
+  it('sin permiso CHANGE_VEHICLE el botón queda deshabilitado con aviso', async () => {
+    canChange = false;
+    listVehiclesMock.mockResolvedValue({ items: [buildVehicle('v-2', 'ABC-111')], total: 1 });
+    render();
+    fireEvent.click(await screen.findByLabelText(/ABC-111/));
+    expect(screen.getByRole('button', { name: 'Continuar con la alternativa' })).toBeDisabled();
+    expect(screen.getByText(/Tu rol no puede cambiar el vehículo/)).toBeInTheDocument();
   });
 
   it('Cancelar sale a la bandeja', async () => {

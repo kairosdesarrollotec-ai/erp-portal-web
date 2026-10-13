@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { useReservationDetail } from './useReservationDetail';
 import { RESERVATION_STATUS_LABELS } from './reservation-status';
@@ -33,8 +33,6 @@ export function ReservationDetailScreen() {
   const { state, reservation, context, savingRequirement, actionError, vehicleUnavailable, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
     useReservationDetail();
   const navigate = useNavigate();
-  const location = useLocation();
-  const alternativeVehicle = (location.state as { alternativeVehicle?: { id: string; label: string } } | null)?.alternativeVehicle;
   const { can } = useRolePermissions();
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelNote, setCancelNote] = useState('');
@@ -160,12 +158,6 @@ export function ReservationDetailScreen() {
               >
                 Ver alternativas
               </button>
-            </p>
-          )}
-          {alternativeVehicle && reservation.status === 'DRAFT' && (
-            <p className={styles.helperText} role="status">
-              Alternativa seleccionada en RES-06: {alternativeVehicle.label}. El cambio de vehículo de un borrador aún no
-              está disponible en el sistema; coordínalo con Gerencia.
             </p>
           )}
 

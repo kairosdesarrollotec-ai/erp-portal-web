@@ -17,6 +17,7 @@ type ReservationAction =
   | 'CONFIRM'
   | 'CANCEL_CUSTOMER_REQUESTED_CHANGE'
   | 'CANCEL_NO_SHOW'
+  | 'CHANGE_VEHICLE'
   | 'FLAG_SALE'
   | 'RESOLVE_SALE';
 type FleetAction = 'READ' | 'WRITE' | 'CROSS_BRANCH';

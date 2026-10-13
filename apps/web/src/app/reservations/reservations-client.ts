@@ -268,6 +268,7 @@ export const RESERVATION_ERROR_MESSAGES: Record<string, string> = {
   SALE_RESOLUTION_ALREADY_OPEN: 'Esta reserva ya tiene una venta pendiente de resolver.',
   ALTERNATIVE_VEHICLE_INVALID: 'El vehículo alternativo no es válido (mismo vehículo, otra sede o no está disponible). Elige otro.',
   ALTERNATIVE_VEHICLE_REQUIRED: 'Elige un vehículo alternativo para aceptar la oferta.',
+  RESERVATION_VERSION_CONFLICT: 'La reserva cambió mientras trabajabas. Recarga para ver la versión actual.',
   IF_MATCH_REQUIRED: 'No se pudo verificar la versión de la reserva. Recarga e intenta de nuevo.',
 };
 
@@ -280,13 +281,13 @@ export function describeReservationError(error: ReservationCommandError): string
 }
 
 async function postVersionedCommand(
-  path: 'flag-sale' | 'resolve-sale',
+  path: 'flag-sale' | 'resolve-sale' | 'change-vehicle',
   idToken: string,
   id: string,
   version: number,
   body: Record<string, unknown>,
 ): Promise<ReservationSummary> {
-  // Los endpoints flag-sale/resolve-sale (reservations.yaml 0.6.0) aún no están en reservations.generated.ts.
+  // Los endpoints flag-sale/resolve-sale/change-vehicle aún no están en reservations.generated.ts.
   const client = reservationsApiClient as unknown as {
     POST: (
       url: string,
@@ -319,6 +320,22 @@ export function flagVehicleSale(
     ...(opts.alternativeVehicleId ? { alternativeVehicleId: opts.alternativeVehicleId } : {}),
     ...(opts.note ? { note: opts.note } : {}),
   });
+}
+
+/**
+ * RES-06 - cambia el vehículo de una reserva en borrador (POST .../commands/change-vehicle).
+ * Limpia documentsCompletedAt y conserva el pago. Errores: 409 RESERVATION_STATE_CONFLICT / VEHICLE_NOT_AVAILABLE,
+ * 412 RESERVATION_VERSION_CONFLICT, 422 ALTERNATIVE_VEHICLE_INVALID, 428 IF_MATCH_REQUIRED, 403 ROLE_NOT_ALLOWED.
+ */
+export function changeReservationVehicle(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  vehicleId: string,
+): Promise<ReservationSummary> {
+  return postVersionedCommand('change-vehicle', idToken, id, version, { companyId, branchId, vehicleId });
 }
 
 /** RES-07 - resolución de la venta: ACCEPT_ALTERNATIVE (vuelve a DRAFT) o REJECT (CANCELLED + reembolso pendiente). */

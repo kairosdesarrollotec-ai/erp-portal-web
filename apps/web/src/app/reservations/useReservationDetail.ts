@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import {
   cancelReservation,
+  changeReservationVehicle,
   confirmReservation,
   describeReservationError,
   flagVehicleSale,
@@ -145,8 +146,20 @@ export function useReservationDetail() {
         )
       : Promise.resolve(null);
 
+  /** RES-06: cambia el vehículo del borrador y refresca el detalle (la respuesta no trae todos los campos). */
+  const changeVehicle = (vehicleId: string) =>
+    reservation && context
+      ? runCommand(
+          'CHANGE_VEHICLE',
+          (idToken) =>
+            changeReservationVehicle(idToken, reservation.id, context.companyId, context.branchId, reservation.version, vehicleId),
+          true,
+        )
+      : Promise.resolve(null);
+
   return {
     state,
+    changeVehicle,
     flagSale,
     resolveSale,
     reservation,
