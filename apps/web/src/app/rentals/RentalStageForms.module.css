@@ -416,3 +416,26 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+.documentItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.documentLabel {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.checkDone {
+  color: var(--color-success, #1e7d4b);
+  flex-shrink: 0;
+}
+
+.checkPending {
+  color: var(--color-text-secondary, #6b7280);
+  flex-shrink: 0;
+}
