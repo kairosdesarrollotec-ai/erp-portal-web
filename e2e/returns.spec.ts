@@ -82,7 +82,7 @@ test.describe('DEV-02 / DEV-03 Recepción y alcoholímetro', () => {
 
     await expect(page).toHaveURL(/\/devoluciones\/ret-e2e-001\/alcoholimetro/);
     await page.getByRole('radio', { name: /^Favorable/i }).check();
-    await page.getByRole('button', { name: 'Registrar y continuar' }).click();
+    await page.getByRole('button', { name: 'Continuar al checklist' }).click();
 
     await expect(page).toHaveURL(/\/checklist/);
     const alcohol = intercepted.commands.find((c) => c.path === 'register-alcohol-test');

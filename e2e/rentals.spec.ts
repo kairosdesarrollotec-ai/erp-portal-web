@@ -39,6 +39,7 @@ test.describe('ENTREGA-01 Cliente y documentos', () => {
   test('muestra resumen del cliente y los checkboxes de documentos', async ({ page }) => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-01`);
+    await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Carlos López')).toBeVisible();
     await expect(page.getByText('ABC-123')).toBeVisible();
@@ -49,6 +50,7 @@ test.describe('ENTREGA-01 Cliente y documentos', () => {
   test('Continuar se habilita al marcar licencia e identificación', async ({ page }) => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-01`);
+    await page.waitForLoadState('networkidle');
 
     // Espera que el formulario cargue
     await expect(page.getByLabel(/Licencia de conducir válida/i)).toBeVisible();
@@ -201,6 +203,7 @@ test.describe('Flujo completo asistente de entrega', () => {
 
     await setupTest(page, { evidence: makeEvidenceFixture() });
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-01`);
+    await page.waitForLoadState('networkidle');
 
     // — Stage 1 —
     await expect(page.getByText('Carlos López')).toBeVisible();
