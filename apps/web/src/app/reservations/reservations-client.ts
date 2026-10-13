@@ -23,6 +23,23 @@ export interface ReservationSummary {
   missingRequirements: string[];
   confirmedAt: string | null;
   createdAt: string;
+  /** RES-08: ya llegó la fecha pactada (now >= startAt). Solo en GET /reservations/{id}. */
+  startDatePassed?: boolean;
+  /** RES-07: última resolución por venta del vehículo. Solo en GET /reservations/{id}; los comandos NO la traen. */
+  saleResolution?: SaleResolution | null;
+}
+
+export interface SaleResolution {
+  id: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  reason: string;
+  offeredVehicle: { id: string; plate: string; label: string } | null;
+  offerNote: string | null;
+  flaggedAt: string;
+  alternativeVehicleId: string | null;
+  refundStatus: 'PENDING_TRANSFER' | null;
+  resolutionNote: string | null;
+  resolvedAt: string | null;
 }
 
 /** Cuerpo `problem+json` que el backend devuelve en 409/422 (TDD-RES-001.md 11.4). */
@@ -241,4 +258,84 @@ export async function recordReservationDocument(
     throw new ReservationCommandError(response.status, problem);
   }
   return data as unknown as ReservationDocumentRecord;
+}
+
+/** Mensajes en español por código de error de negocio de RES-06/07/08 (se usa el `detail` del back si viene). */
+export const RESERVATION_ERROR_MESSAGES: Record<string, string> = {
+  ROLE_NOT_ALLOWED: 'Tu rol no tiene permiso para realizar esta acción.',
+  RESERVATION_STATE_CONFLICT: 'La reserva ya no está en un estado que permita esta acción. Recarga para ver su estado actual.',
+  VEHICLE_NOT_AVAILABLE: VEHICLE_NOT_AVAILABLE_MESSAGE,
+  SALE_RESOLUTION_ALREADY_OPEN: 'Esta reserva ya tiene una venta pendiente de resolver.',
+  ALTERNATIVE_VEHICLE_INVALID: 'El vehículo alternativo no es válido (mismo vehículo, otra sede o no está disponible). Elige otro.',
+  ALTERNATIVE_VEHICLE_REQUIRED: 'Elige un vehículo alternativo para aceptar la oferta.',
+  IF_MATCH_REQUIRED: 'No se pudo verificar la versión de la reserva. Recarga e intenta de nuevo.',
+};
+
+export function describeReservationError(error: ReservationCommandError): string {
+  return (
+    error.problem?.detail?.trim() ||
+    (error.problem?.code ? RESERVATION_ERROR_MESSAGES[error.problem.code] : undefined) ||
+    'No se pudo completar la operación. Intenta de nuevo.'
+  );
+}
+
+async function postVersionedCommand(
+  path: 'flag-sale' | 'resolve-sale',
+  idToken: string,
+  id: string,
+  version: number,
+  body: Record<string, unknown>,
+): Promise<ReservationSummary> {
+  // Los endpoints flag-sale/resolve-sale (reservations.yaml 0.6.0) aún no están en reservations.generated.ts.
+  const client = reservationsApiClient as unknown as {
+    POST: (
+      url: string,
+      init: unknown,
+    ) => Promise<{ data?: unknown; error?: unknown; response: { status: number } }>;
+  };
+  const { data, error, response } = await client.POST(`/reservations/{id}/commands/${path}`, {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body,
+  });
+  if (error || !data) {
+    throw new ReservationCommandError(response.status, (error as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as ReservationSummary;
+}
+
+/** RES-07 - Gerencia/Administración registra la venta del vehículo reservado (CONFIRMED -> PENDING_SALE_RESOLUTION). */
+export function flagVehicleSale(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  opts: { alternativeVehicleId?: string; note?: string } = {},
+): Promise<ReservationSummary> {
+  return postVersionedCommand('flag-sale', idToken, id, version, {
+    companyId,
+    branchId,
+    ...(opts.alternativeVehicleId ? { alternativeVehicleId: opts.alternativeVehicleId } : {}),
+    ...(opts.note ? { note: opts.note } : {}),
+  });
+}
+
+/** RES-07 - resolución de la venta: ACCEPT_ALTERNATIVE (vuelve a DRAFT) o REJECT (CANCELLED + reembolso pendiente). */
+export function resolveVehicleSale(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  decision: 'ACCEPT_ALTERNATIVE' | 'REJECT',
+  opts: { alternativeVehicleId?: string; note?: string } = {},
+): Promise<ReservationSummary> {
+  return postVersionedCommand('resolve-sale', idToken, id, version, {
+    companyId,
+    branchId,
+    decision,
+    ...(opts.alternativeVehicleId ? { alternativeVehicleId: opts.alternativeVehicleId } : {}),
+    ...(opts.note ? { note: opts.note } : {}),
+  });
 }

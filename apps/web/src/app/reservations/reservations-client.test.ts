@@ -90,3 +90,38 @@ describe('reservations-client', () => {
     expect(error.problem?.code).toBe('VEHICLE_NOT_AVAILABLE');
   });
 });
+
+describe('reservations-client RES-07 (flag-sale / resolve-sale)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('flagVehicleSale manda If-Match, Idempotency-Key y solo los campos presentes', async () => {
+    const { flagVehicleSale } = await import('./reservations-client');
+    const fetchMock = mockFetchOnce(200, { id: 'r1' });
+    vi.stubGlobal('fetch', fetchMock);
+    await flagVehicleSale('tok', 'r1', 'c1', 'b1', 4, { alternativeVehicleId: 'v2' });
+    const req = fetchMock.mock.calls[0][0] as Request;
+    expect(new URL(req.url).pathname).toBe('/reservations/r1/commands/flag-sale');
+    expect(req.headers.get('If-Match')).toBe('"4"');
+    expect(req.headers.get('Idempotency-Key')).toBeTruthy();
+    expect(await req.json()).toEqual({ companyId: 'c1', branchId: 'b1', alternativeVehicleId: 'v2' });
+  });
+
+  it('resolveVehicleSale manda decision y traduce 422 a ReservationCommandError', async () => {
+    const { resolveVehicleSale } = await import('./reservations-client');
+    const fetchMock = mockFetchOnce(422, { code: 'ALTERNATIVE_VEHICLE_REQUIRED' });
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(resolveVehicleSale('tok', 'r1', 'c1', 'b1', 4, 'ACCEPT_ALTERNATIVE')).rejects.toMatchObject({
+      status: 422,
+      problem: { code: 'ALTERNATIVE_VEHICLE_REQUIRED' },
+    });
+    const req = fetchMock.mock.calls[0][0] as Request;
+    expect(new URL(req.url).pathname).toBe('/reservations/r1/commands/resolve-sale');
+    expect(await req.json()).toMatchObject({ decision: 'ACCEPT_ALTERNATIVE' });
+  });
+
+  it('describeReservationError prefiere el detail del back y cae al mensaje por código', async () => {
+    const { describeReservationError } = await import('./reservations-client');
+    expect(describeReservationError(new ReservationCommandError(409, { code: 'SALE_RESOLUTION_ALREADY_OPEN', detail: 'Detalle back' }))).toBe('Detalle back');
+    expect(describeReservationError(new ReservationCommandError(409, { code: 'SALE_RESOLUTION_ALREADY_OPEN' }))).toMatch(/pendiente de resolver/);
+  });
+});

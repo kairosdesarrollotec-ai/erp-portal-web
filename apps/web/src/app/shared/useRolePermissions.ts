@@ -16,7 +16,9 @@ type ReservationAction =
   | 'REGISTER_DOCUMENTS'
   | 'CONFIRM'
   | 'CANCEL_CUSTOMER_REQUESTED_CHANGE'
-  | 'CANCEL_NO_SHOW';
+  | 'CANCEL_NO_SHOW'
+  | 'FLAG_SALE'
+  | 'RESOLVE_SALE';
 type FleetAction = 'READ' | 'WRITE' | 'CROSS_BRANCH';
 type CustomerAction = 'READ' | 'WRITE';
 

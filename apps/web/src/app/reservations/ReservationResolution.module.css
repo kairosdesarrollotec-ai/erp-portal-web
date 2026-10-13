@@ -1,0 +1,101 @@
+.altList {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.altItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid #E5E2DC;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  min-height: 56px;
+}
+
+.altItemSelected {
+  border-color: var(--color-accent);
+  background: #FBF3EA;
+}
+
+.altLabel {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-ink);
+}
+
+.sectionTitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 0 0 0.75rem;
+}
+
+.noteBox {
+  background: #F6F4EF;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  color: #4E4A45;
+  margin: 0 0 1rem;
+}
+
+.warningBox {
+  background: #FBF0DE;
+  color: #8A5505;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  margin: 0 0 1rem;
+}
+
+.successBox {
+  background: #E7F5EC;
+  color: var(--color-success);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  margin: 0 0 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0 0 1rem;
+  font-size: 13px;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 72px;
+  border: 1px solid #C9C5BC;
+  border-radius: 6px;
+  padding: 0.5rem;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.disabledNote {
+  font-size: 12px;
+  color: #4E4A45;
+  margin: 0.5rem 0 0;
+}
+
+@media (max-width: 720px) {
+  .actions > button {
+    width: 100%;
+    min-height: 48px;
+  }
+}
