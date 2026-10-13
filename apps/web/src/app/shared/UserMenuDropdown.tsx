@@ -5,7 +5,7 @@ import { getFirebaseAuth } from '../providers/firebase';
 import { useWorkSession } from './useWorkSession';
 import { useSignOut } from './useSignOut';
 import type { RoleRef } from './role-ref';
-import { getLocalDraftCount } from './local-drafts';
+import { getLocalDraftCount, refreshLocalDraftCount } from './local-drafts';
 import { LogoutConfirmModal } from './LogoutConfirmModal';
 import { SESSION_DURATION_MS, formatRemaining } from './session-time';
 import styles from './UserMenuDropdown.module.css';
@@ -55,6 +55,19 @@ export function UserMenuDropdown({ role }: UserMenuDropdownProps) {
     const id = setInterval(tick, 60_000);
     return () => clearInterval(id);
   }, [user]);
+
+  // Mantiene fresco el conteo cacheado de borradores locales (Dexie): al montar, al abrir el menú
+  // y al recuperar conexión (momento en que la cola offline cambia). Es auxiliar: si falla, no bloquea nada.
+  useEffect(() => {
+    const refresh = () => void Promise.resolve(refreshLocalDraftCount()).catch(() => undefined);
+    refresh();
+    window.addEventListener('online', refresh);
+    return () => window.removeEventListener('online', refresh);
+  }, []);
+
+  useEffect(() => {
+    if (open) void Promise.resolve(refreshLocalDraftCount()).catch(() => undefined);
+  }, [open]);
 
   // Cierra el dropdown al hacer click fuera
   useEffect(() => {
@@ -168,8 +181,10 @@ export function UserMenuDropdown({ role }: UserMenuDropdownProps) {
               type="button"
               role="menuitem"
               className={styles.signOutButton}
-              onClick={() => {
+              onClick={async () => {
                 setOpen(false);
+                // Conteo fresco justo antes de decidir; si Dexie falla se usa el último conocido.
+                await Promise.resolve(refreshLocalDraftCount()).catch(() => undefined);
                 const count = getLocalDraftCount();
                 if (count > 0) {
                   setPendingDraftCount(count);
