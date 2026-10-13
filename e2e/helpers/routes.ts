@@ -189,6 +189,21 @@ export async function interceptRentals(
     }),
   );
 
+  // Query: contract-template selection (holderType/withDriver)
+  await page.route(/\/rentals\/[^/]+\/contract-template/, (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        variant: { holderType: 'NATURAL', withDriver: false },
+        requestedType: 'RENTAL_CONTRACT',
+        fallbackUsed: false,
+        template: { id: 'tpl-e2e-001', type: 'RENTAL_CONTRACT', name: 'Plantilla Estándar E2E', versionNumber: 1 },
+      }),
+    });
+  });
+
   // Command: evaluate-notary
   await page.route(/\/rentals\/[^/]+\/commands\/evaluate-notary/, (route) =>
     route.fulfill({

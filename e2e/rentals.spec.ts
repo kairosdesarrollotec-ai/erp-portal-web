@@ -109,7 +109,7 @@ test.describe('ENTREGA-03 Garantía y contrato', () => {
     // Espera que evaluate-notary complete (resultado MANDATORY aparece)
     await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
 
-    await page.getByLabel(/Monto/i).fill('500');
+    await page.getByLabel(/Garantía total/i).fill('500');
 
     // SignaturePad usa canvas — simular trazo con eventos de ratón
     const canvas = page.locator('canvas').first();
@@ -218,7 +218,7 @@ test.describe('Flujo completo asistente de entrega', () => {
     // — Stage 3 —
     await expect(page).toHaveURL(/entrega-03/);
     await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
-    await page.getByLabel(/Monto/i).fill('500');
+    await page.getByLabel(/Garantía total/i).fill('500');
 
     // SignaturePad usa canvas — simular trazo con eventos de ratón
     const canvas3 = page.locator('canvas').first();
