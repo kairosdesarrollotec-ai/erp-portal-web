@@ -26,6 +26,7 @@ import { NegotiationDialog } from './NegotiationDialog';
 import { describeRecruitmentError, isStaleRecruitmentError } from './recruitment-errors';
 import { DiscardCandidateDialog } from './DiscardCandidateDialog';
 import styles from './CandidateFileScreen.module.css';
+import { formatLimaDate, formatLimaDateTime } from '../shared/lima-time';
 
 const RESTRICTED_TEXT = 'Este dato requiere permiso adicional';
 
@@ -272,7 +273,7 @@ export function CandidateFileScreen() {
                     {c.cv.fileName}
                     <span className={styles.cvMeta}>
                       {' '}· {(c.cv.sizeBytes / 1024 / 1024).toFixed(2)} MB · subido{' '}
-                      {new Date(c.cv.uploadedAt).toLocaleDateString('es-PE', { dateStyle: 'medium' })}
+                      {formatLimaDate(c.cv.uploadedAt)}
                     </span>
                   </span>
                   <button type="button" className={styles.linkButton} disabled={cvBusy} onClick={() => void viewCv()}>
@@ -313,7 +314,7 @@ export function CandidateFileScreen() {
                   <div className={styles.historyHead}>
                     <span>{NEGOTIATION_OUTCOME_LABEL[n.outcome]}</span>
                     <span className={styles.historyMeta}>
-                      {new Date(n.createdAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })}
+                      {formatLimaDateTime(n.createdAt)}
                     </span>
                   </div>
                   <p className={styles.historyLine}>
@@ -354,7 +355,7 @@ export function CandidateFileScreen() {
             <ul className={styles.list}>
               {interviews.map((i) => (
                 <li key={i.id}>
-                  {new Date(i.scheduledAt).toLocaleString('es-PE', { dateStyle: 'medium', timeStyle: 'short' })}
+                  {formatLimaDateTime(i.scheduledAt)}
                   {' · '}{i.isVirtual ? 'Virtual' : 'Presencial'}{' · '}{INTERVIEW_RESULT_LABEL[i.result]}
                 </li>
               ))}

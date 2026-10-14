@@ -6,6 +6,7 @@ import { NewCustomerModal } from './NewCustomerModal';
 import { useRolePermissions } from '../shared/useRolePermissions';
 import type { CustomerFormData } from './useCustomersList';
 import styles from './CustomerDetailScreen.module.css';
+import { formatLimaDate, toLimaDateOnly } from '../shared/lima-time';
 
 /**
  * CLI-02 — Ficha 360 del cliente.
@@ -155,7 +156,7 @@ export function CustomerDetailScreen() {
                     <span>
                       <span className={styles.metaLabel}>Ingresó al país:</span>{' '}
                       <strong className={styles.metaValue}>
-                        {new Date(customer.countryEntryDate).toLocaleDateString('es-PE')}
+                        {formatLimaDate(customer.countryEntryDate)}
                       </strong>
                     </span>
                   </>
@@ -170,12 +171,12 @@ export function CustomerDetailScreen() {
           <div className={styles.headerFooter}>
             <span className={styles.footerMeta}>
               Registrado el{' '}
-              <strong>{new Date(customer.createdAt).toLocaleDateString('es-PE')}</strong>
+              <strong>{formatLimaDate(customer.createdAt)}</strong>
             </span>
             {customer.updatedAt !== customer.createdAt && (
               <span className={styles.footerMeta}>
                 Última actualización:{' '}
-                <strong>{new Date(customer.updatedAt).toLocaleDateString('es-PE')}</strong>
+                <strong>{formatLimaDate(customer.updatedAt)}</strong>
               </span>
             )}
           </div>
@@ -220,7 +221,7 @@ export function CustomerDetailScreen() {
                 documentNumber: customer.documentNumber,
                 nationality: customer.nationality ?? undefined,
                 countryEntryDate: customer.countryEntryDate
-                  ? new Date(customer.countryEntryDate).toISOString().split('T')[0]
+                  ? toLimaDateOnly(customer.countryEntryDate)
                   : undefined,
                 email: customer.email ?? undefined,
                 phone: customer.phone ?? undefined,

@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Plus, AlertTriangle, FileText, CheckCircle, RefreshCw } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { AppHeader } from '../shared/AppHeader';
 import { useWorkContextForAdmin } from './useWorkContextForAdmin';
 import { useDocumentTemplates } from './useDocumentTemplates';
@@ -9,6 +7,7 @@ import { useDocumentTemplateWizard } from './useDocumentTemplateWizard';
 import { DocumentTemplateWizard } from './DocumentTemplateWizard';
 import type { TemplateType, TemplateResponse } from './document-templates-client';
 import styles from './DocumentTemplatesScreen.module.css';
+import { formatLimaDate } from '../shared/lima-time';
 
 /**
  * ADM-03 — Gestión de plantillas de documentos (VeloxRent ERP).
@@ -28,11 +27,7 @@ const TABS: { type: TemplateType; label: string }[] = [
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
-  try {
-    return format(parseISO(iso), 'dd/MM/yyyy', { locale: es });
-  } catch {
-    return iso;
-  }
+  return formatLimaDate(iso);
 }
 
 function TemplateBadge({ status }: { status: string }) {

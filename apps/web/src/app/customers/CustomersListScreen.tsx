@@ -6,6 +6,7 @@ import { NewCustomerModal } from './NewCustomerModal';
 import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './CustomersListScreen.module.css';
+import { formatLimaDate } from '../shared/lima-time';
 
 export function CustomersListScreen() {
   const navigate = useNavigate();
@@ -138,7 +139,7 @@ export function CustomersListScreen() {
                         <span>Peruano</span>
                       )}
                     </td>
-                    <td>{new Date(c.createdAt).toLocaleDateString()}</td>
+                    <td>{formatLimaDate(c.createdAt)}</td>
                     <td>
                       <div className={styles.rowActions}>
                         <button

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useReservationDepositPolicy } from './useReservationDepositPolicy';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './ReservationDepositPolicyScreen.module.css';
+import { formatLimaDateTime } from '../shared/lima-time';
 
 function formatAmount(amount: string, currency: string): string {
   return `${currency === 'PEN' ? 'S/' : currency} ${amount}`;
@@ -51,7 +52,7 @@ export function ReservationDepositPolicyScreen() {
                 <p className={styles.helperNote}>
                   Versión {policy.current.version}
                   {policy.current.effectiveFrom
-                    ? ` — vigente desde ${new Date(policy.current.effectiveFrom).toLocaleString('es-PE')}`
+                    ? ` — vigente desde ${formatLimaDateTime(policy.current.effectiveFrom)}`
                     : ' — valor por defecto (nunca se cambió desde Administración)'}
                   .
                 </p>
@@ -134,7 +135,7 @@ export function ReservationDepositPolicyScreen() {
                   <tr key={item.version}>
                     <td>{item.version}</td>
                     <td>{formatAmount(item.amount, item.currency)}</td>
-                    <td>{item.effectiveFrom ? new Date(item.effectiveFrom).toLocaleString('es-PE') : '—'}</td>
+                    <td>{item.effectiveFrom ? formatLimaDateTime(item.effectiveFrom) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

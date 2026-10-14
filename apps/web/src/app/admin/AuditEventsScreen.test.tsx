@@ -59,6 +59,8 @@ describe('AuditEventsScreen (ADM-04)', () => {
     expect(await screen.findByText('admin@veloxrent.pe')).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: 'Usuarios y asignaciones' })).toBeInTheDocument();
     expect(screen.getByText('USER_ASSIGNMENT_CREATED_OR_REACTIVATED')).toBeInTheDocument();
+    // 2026-09-23T12:00Z = 07:00 en Lima, sin depender de la zona del navegador.
+    expect(screen.getByText('23/9/2026 07:00')).toBeInTheDocument();
   });
 
   it('no tiene ninguna columna ni boton de accion de escritura', async () => {
@@ -109,6 +111,26 @@ describe('AuditEventsScreen (ADM-04)', () => {
         entityType: 'reservation',
         dateFrom: undefined,
         dateTo: undefined,
+      });
+    });
+  });
+
+  it('envia el rango de fechas como dias completos de Lima (00:00 a 23:59:59.999 hora de Lima)', async () => {
+    listAuditEventsMock.mockResolvedValue([]);
+    const { container } = renderScreen();
+
+    await screen.findByText('No hay eventos que coincidan con este filtro.');
+
+    const [from, to] = Array.from(container.querySelectorAll('input[type="date"]'));
+    fireEvent.change(from, { target: { value: '2026-10-14' } });
+    fireEvent.change(to, { target: { value: '2026-10-14' } });
+    fireEvent.click(screen.getByText('Filtrar'));
+
+    await waitFor(() => {
+      expect(listAuditEventsMock).toHaveBeenLastCalledWith('fake-id-token', 'c1', 'b1', {
+        entityType: undefined,
+        dateFrom: '2026-10-14T05:00:00.000Z',
+        dateTo: '2026-10-15T04:59:59.999Z',
       });
     });
   });

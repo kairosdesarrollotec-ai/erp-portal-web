@@ -8,6 +8,7 @@ import {
   TemplateCommandError,
 } from './document-templates-client';
 import type { TemplateType, TemplateDocumentFormat } from './document-templates-client';
+import { limaDateToInstant } from '../shared/lima-time';
 
 export type WizardStep = 1 | 2 | 3 | 4 | null;
 
@@ -90,7 +91,7 @@ export function useDocumentTemplateWizard(companyId: string, branchId: string) {
           branchId,
           type: data.type,
           name: data.name,
-          effectiveFrom: data.effectiveFrom ?? null,
+          effectiveFrom: data.effectiveFrom ? (limaDateToInstant(data.effectiveFrom) ?? data.effectiveFrom) : null,
         },
         idempotencyKey,
       );
