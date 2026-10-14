@@ -547,6 +547,35 @@ export interface components {
             /** @description Opcional; si no se envía lo calcula el sistema */
             deductionAmount?: number;
             notes?: string | null;
+            /** @description DEC-ADP-ATT-EVIDENCE-001. Foto con reloj + hora + rostro enviada al grupo de WhatsApp que corrobora la marcación. Opcional (no bloquea el registro); sin ella la respuesta trae evidenceMissing = true. */
+            evidence?: components["schemas"]["AttendanceEvidenceRequest"] | null;
+        };
+        /** @description Requiere al menos uno de storageRef o url. */
+        AttendanceEvidenceRequest: {
+            /** @enum {string} */
+            kind: "WHATSAPP_PHOTO";
+            /** @description Referencia interna al objeto almacenado */
+            storageRef?: string | null;
+            url?: string | null;
+            /**
+             * @description Fecha y hora de la foto. Sin offset (YYYY-MM-DDTHH:mm[:ss]) se interpreta en America/Lima; no puede estar en el futuro.
+             * @example 2026-10-14T08:05:00
+             */
+            capturedAtLocal: string;
+            note?: string | null;
+        };
+        AttendanceEvidenceResponse: {
+            /** @enum {string} */
+            kind: "WHATSAPP_PHOTO";
+            storageRef?: string | null;
+            url?: string | null;
+            /** @description Hora de la foto en America/Lima sin offset (YYYY-MM-DDTHH:mm:ss) */
+            capturedAtLocal: string;
+            note?: string | null;
+            /** @description Usuario (Firebase UID) que corroboró la foto y registró la marcación */
+            corroboratedBy?: string | null;
+            /** Format: date-time */
+            corroboratedAt?: string | null;
         };
         AttendanceRecordResponse: {
             /** Format: uuid */
@@ -571,6 +600,9 @@ export interface components {
             justification?: string | null;
             /** Format: date-time */
             reclassifiedAt?: string | null;
+            evidence?: components["schemas"]["AttendanceEvidenceResponse"] | null;
+            /** @description true si el registro no tiene evidencia fotográfica (incluye registros previos a 0.3.0) */
+            evidenceMissing?: boolean;
             /** @description Memo generado automáticamente por reiteración de faltas injustificadas del mes */
             memo?: components["schemas"]["HrMemoResponse"] | null;
             /** Format: date-time */

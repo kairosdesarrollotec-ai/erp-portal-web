@@ -5,6 +5,7 @@ import { RESERVATION_STATUS_LABELS } from './reservation-status';
 import type { ReservationDetailState } from './useReservationDetail';
 import type { ReservationSummary } from './reservations-client';
 import styles from './ReservationDetailScreen.module.css';
+import { formatLimaDate } from '../shared/lima-time';
 
 /** Marco común de RES-06/07/08: estados LOADING/ERROR, banner 412, resumen de solo lectura. */
 export function ResolutionShell({
@@ -67,8 +68,8 @@ export function ResolutionShell({
             <div>
               <dt>Fechas</dt>
               <dd>
-                {new Date(reservation.startAt).toLocaleDateString('es-PE')} –{' '}
-                {new Date(reservation.endAt).toLocaleDateString('es-PE')}
+                {formatLimaDate(reservation.startAt)} –{' '}
+                {formatLimaDate(reservation.endAt)}
               </dd>
             </div>
             <div>

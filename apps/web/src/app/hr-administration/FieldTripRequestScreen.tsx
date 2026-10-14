@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { WifiOff } from 'lucide-react';
 import { AppHeader } from '../shared/AppHeader';
 import { getEmployee, getMyEmployee, requestFieldTrip } from './hr-client';
-import { localToIso, toIsoDate } from './hr-domain';
+import { localToIso, limaToday } from './hr-domain';
 import { describeHrError } from './hr-errors';
 import { useHrPermissions } from './hr-permissions';
 import { useHrResource } from './useHrResource';
@@ -71,7 +71,7 @@ function FieldTripRequest() {
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesión no disponible');
       const idToken = await user.getIdToken();
-      const today = toIsoDate(new Date());
+      const today = limaToday();
       const trip = await requestFieldTrip(idToken, targetId, {
         destination: destination.trim(),
         objective: objective.trim(),

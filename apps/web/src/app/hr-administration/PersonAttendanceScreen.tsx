@@ -4,7 +4,7 @@ import { AttendanceCalendar } from './AttendanceCalendar';
 import { HrFrame } from './HrFrame';
 import { RegisterAttendanceDialog } from './RegisterAttendanceDialog';
 import { getEmployee, getEmployeeAttendance, type AttendanceRecord, type EmployeeDetail } from './hr-client';
-import { monthKey, monthLabel, shiftMonth } from './hr-domain';
+import { monthLabel, shiftMonth, limaToday } from './hr-domain';
 import { useHrPermissions } from './hr-permissions';
 import { useHrResource } from './useHrResource';
 import styles from './HrFlow.module.css';
@@ -27,7 +27,7 @@ export function PersonAttendanceScreen() {
   const [params, setParams] = useSearchParams();
   const { can } = useHrPermissions();
   const requested = params.get('mes');
-  const month = requested && MONTH_RE.test(requested) ? requested : monthKey(new Date());
+  const month = requested && MONTH_RE.test(requested) ? requested : limaToday().slice(0, 7);
   const [registering, setRegistering] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 

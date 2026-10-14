@@ -227,20 +227,21 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
       availability: {
         available: false,
         conflictFrom: '2026-09-21T15:00:00Z',
-        conflictTo: '2026-09-24T15:00:00Z',
+        // 22:00 de Lima del 24/09 = 03:00Z del 25/09: se muestra el dia de Lima.
+        conflictTo: '2026-09-25T03:00:00Z',
         conflictSource: 'RESERVATION',
       },
     };
     const FREE = { ...FLEET_VEHICLE_2, availability: { available: true } };
 
-    it('pide la ventana de viaje (fecha 00:00 UTC + dias estimados) a Fleet', async () => {
+    it('pide la ventana de viaje (fecha 00:00 de Lima + dias estimados) a Fleet', async () => {
       renderScreen();
       await screen.findByText('Toyota Hilux 4x4');
       expect(listVehiclesMock).toHaveBeenCalledWith(
         'fake-id-token',
         expect.objectContaining({
-          availableFrom: '2026-09-20T00:00:00.000Z',
-          availableTo: '2026-09-23T00:00:00.000Z',
+          availableFrom: '2026-09-20T05:00:00.000Z',
+          availableTo: '2026-09-23T05:00:00.000Z',
         }),
       );
     });
@@ -270,7 +271,7 @@ describe('InquiryVehiclesScreen (CON-03)', () => {
       await screen.findByText('Toyota Hilux 4x4');
       expect(listVehiclesMock).toHaveBeenCalledWith(
         'fake-id-token',
-        expect.objectContaining({ availableFrom: '2026-10-01T00:00:00.000Z', availableTo: '2026-10-03T00:00:00.000Z' }),
+        expect.objectContaining({ availableFrom: '2026-10-01T05:00:00.000Z', availableTo: '2026-10-03T05:00:00.000Z' }),
       );
     });
 

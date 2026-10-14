@@ -13,6 +13,7 @@ import { describeReturnError, isStaleReturnError } from './return-errors';
 import { ALCOHOL_RESULT_LABELS } from './return-status';
 import { useReturnPermissions } from './return-permissions';
 import styles from './ReturnForms.module.css';
+import { formatLimaDateTime } from '../shared/lima-time';
 
 const OPTIONS: ReturnAlcoholTestResult[] = ['FAVORABLE', 'DESFAVORABLE', 'RECHAZADO'];
 
@@ -172,7 +173,7 @@ export function AlcoholTestScreen() {
           {previous && (
             <p className={styles.summaryLine}>
               Decisión previa: {DECISION_LABELS[previous.decision]} · cliente {previous.markCustomerRed ? 'marcado en rojo' : 'sin marcar en rojo'}{' '}
-              · {new Date(previous.decidedAt).toLocaleString('es-PE')}. Motivo: {previous.notes}
+              · {formatLimaDateTime(previous.decidedAt)}. Motivo: {previous.notes}
             </p>
           )}
           {!canDecide && (

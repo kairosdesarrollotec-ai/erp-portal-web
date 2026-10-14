@@ -1,4 +1,5 @@
 import type { NewInquiryFormData } from './useNewInquiry';
+import { limaToday } from '../shared/lima-time';
 
 /**
  * Hallazgo de revision PR#11 ("Sin validacion funcional" y "Tamaño/
@@ -26,7 +27,7 @@ export interface InquiryFormErrors {
 }
 
 function todayISODate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return limaToday();
 }
 
 export function validateNewInquiryForm(form: NewInquiryFormData): InquiryFormErrors {

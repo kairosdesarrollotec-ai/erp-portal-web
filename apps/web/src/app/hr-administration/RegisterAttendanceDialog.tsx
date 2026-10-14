@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { HrDialog } from './HrDialog';
 import { logAttendance, type AttendanceRecord } from './hr-client';
 import { describeHrError } from './hr-errors';
-import { ATTENDANCE_STATUS_LABEL, MANUAL_ATTENDANCE_OPTIONS, localToIso, toIsoDate, type AttendanceStatus } from './hr-domain';
+import { ATTENDANCE_STATUS_LABEL, MANUAL_ATTENDANCE_OPTIONS, localToIso, type AttendanceStatus, limaToday } from './hr-domain';
 import { getFirebaseAuth } from '../providers/firebase';
 import styles from './HrDialog.module.css';
 
@@ -23,7 +23,7 @@ interface Props {
  * Una falta se resuelve en ADP-03 (justificar o no); aqui solo se elige y se continua.
  */
 export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate, onSaved, onAbsence, onCancel }: Props) {
-  const [date, setDate] = useState(initialDate ?? toIsoDate(new Date()));
+  const [date, setDate] = useState(initialDate ?? limaToday());
   const [choice, setChoice] = useState<Choice>('PRESENTE');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
@@ -76,7 +76,7 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
       <form onSubmit={(e) => void submit(e)} noValidate>
         <div className={styles.field}>
           <label htmlFor="att-date">Fecha</label>
-          <input id="att-date" type="date" className={styles.inputLine} value={date} max={toIsoDate(new Date())} onChange={(e) => setDate(e.target.value)} aria-invalid={submitted && !date} required />
+          <input id="att-date" type="date" className={styles.inputLine} value={date} max={limaToday()} onChange={(e) => setDate(e.target.value)} aria-invalid={submitted && !date} required />
           {submitted && !date && (
             <span className={styles.error} role="alert">
               Indica la fecha.

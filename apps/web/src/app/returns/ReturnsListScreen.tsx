@@ -5,6 +5,7 @@ import { ActiveRentalsPanel } from './ActiveRentalsPanel';
 import { useReturnPermissions } from './return-permissions';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './ReturnsListScreen.module.css';
+import { formatLimaDateTime } from '../shared/lima-time';
 
 const FILTER_OPTIONS: { value: ReturnStatus | ''; label: string }[] = [
   { value: '', label: 'Todos los estados' },
@@ -91,7 +92,7 @@ export function ReturnsListScreen() {
                           {RETURN_STATUS_LABELS[item.status]}
                         </span>
                       </td>
-                      <td data-label="Fecha programada">{new Date(item.scheduledAt).toLocaleString('es-PE')}</td>
+                      <td data-label="Fecha programada">{formatLimaDateTime(item.scheduledAt)}</td>
                       <td>
                         <button
                           type="button"

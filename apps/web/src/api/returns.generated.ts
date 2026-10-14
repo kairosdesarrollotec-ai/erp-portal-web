@@ -42,6 +42,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/returns/reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Bandeja de recordatorios de devolución pendientes de envío o fallidos (DEV-01 / BR-DEV-004)
+         * @description Un scheduler genera, para cada devolución PROGRAMADA cuya hora pactada cae dentro de las próximas 3 h, un recordatorio en estado PENDING con el texto ya redactado (hora en America/Lima). El envío por WhatsApp es MANUAL-ASISTIDO: el operador copia `reminder.text`, lo envía y registra el resultado con register-reminder. Sin `status` devuelve PENDING + FAILED, ordenados por `dueAt` ascendente (el más urgente primero). Solo lectura; no requiere If-Match.
+         */
+        get: operations["listReturnReminders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/returns/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Alertas operativas de devolución - garantía por liberar (24 h) e inmovilización > 24 h (DEV-07 / DEV-08)
+         * @description Calculadas con el reloj en cada consulta (sin estado propio). WARRANTY_RELEASE: devolución SIN_DANOS sin cierre financiero a la que le faltan 4 h o menos (DUE_SOON) o ya venció (OVERDUE) el plazo MÁXIMO de 24 h naturales desde la recepción (BR-DEV-001); un daño suspende ese plazo. IMMOBILIZATION: más de 24 h naturales desde la recepción con daño TÉCNICO y días de paralización aún sin cobrar (BR-DEV-011). SOLO ALERTAN: el reembolso y el cobro siguen siendo manuales (close-financial / charge-immobilization). Sin `type` devuelve ambos tipos. Solo lectura; no requiere If-Match.
+         */
+        get: operations["listReturnAlerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/returns/cosmetic-tariff": {
         parameters: {
             query?: never;
@@ -198,6 +238,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/returns/{id}/commands/register-reminder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar el resultado del envío manual del recordatorio de devolución (DEV-01 / BR-DEV-004 / DAT-DEV-001)
+         * @description El sistema NO envía el WhatsApp (la integración no existe): el operador lo envía a mano y aquí registra la hora y el resultado (SENT | FAILED + nota; la nota es obligatoria si FAILED). `If-Match` lleva la versión del RECORDATORIO (`reminder.version` / `reminder.etag`), no la del expediente, y el comando no modifica la versión del expediente. Un recordatorio FAILED admite un nuevo registro (reintento); uno SENT es definitivo (409 RETURN_REMINDER_ALREADY_SENT). Acción de matriz: RETURN.CREATE.
+         */
+        post: operations["registerReturnReminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/returns/{id}/commands/close-financial": {
         parameters: {
             query?: never;
@@ -227,7 +287,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Firma final de acta y cierre formal de la devolución (DEV-09 / DEV-10 / DR-DEV-001) */
+        /**
+         * Firma final de acta y cierre formal de la devolución (DEV-09 / DEV-10 / DR-DEV-001)
+         * @description Además de cerrar el expediente, pasar el alquiler a CLOSED y actualizar la flota, libera el compromiso RENTAL del vehículo (`vehicle_commitments` -> RELEASED) en la misma transacción, también en devolución anticipada (DEC-DEV-COMMITMENT-001).
+         */
         post: operations["closeReturn"];
         delete?: never;
         options?: never;
@@ -274,6 +337,116 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description PENDING = generado por el sistema, pendiente de envío manual; SENT / FAILED = resultado registrado por el operador
+         * @enum {string}
+         */
+        ReturnReminderStatus: "PENDING" | "SENT" | "FAILED";
+        /** @enum {string} */
+        ReturnReminderResult: "SENT" | "FAILED";
+        /** @enum {string} */
+        ReturnAlertType: "WARRANTY_RELEASE" | "IMMOBILIZATION";
+        RegisterReturnReminderRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            result: components["schemas"]["ReturnReminderResult"];
+            /**
+             * Format: date-time
+             * @description Hora real del envío; si se omite, el servidor usa la hora actual. No puede estar en el futuro (tolerancia 5 min).
+             */
+            sentAt?: string;
+            /** @description Obligatoria cuando result = FAILED (motivo). */
+            note?: string;
+        };
+        ReturnReminderResponse: {
+            /** Format: uuid */
+            id: string;
+            status: components["schemas"]["ReturnReminderStatus"];
+            /**
+             * Format: date-time
+             * @description Hora pactada menos 3 h
+             */
+            dueAt: string;
+            /** @description Mensaje redactado por el sistema (hora en America/Lima) */
+            text: string;
+            /** Format: date-time */
+            generatedAt: string;
+            /** Format: date-time */
+            sentAt: string | null;
+            /** @description Firebase UID del operador que registró el resultado */
+            sentBy: string | null;
+            note: string | null;
+            /** @description Cantidad de resultados registrados */
+            attempts: number;
+            /** @description Valor para If-Match de register-reminder */
+            version: number;
+            etag: string;
+        };
+        ReturnReminderInboxItem: {
+            /** Format: uuid */
+            returnId: string;
+            /** Format: uuid */
+            rentalId: string;
+            returnStatus: components["schemas"]["ReturnStatus"];
+            /** Format: date-time */
+            scheduledAt: string;
+            vehiclePlate: string | null;
+            customerName: string | null;
+            /** @description Teléfono del cliente para el envío manual */
+            customerPhone: string | null;
+            reminder: components["schemas"]["ReturnReminderResponse"];
+        };
+        WarrantyReleaseAlert: {
+            /**
+             * @description DUE_SOON faltan 4 h o menos para el límite de 24 h; OVERDUE ya venció
+             * @enum {string}
+             */
+            level: "DUE_SOON" | "OVERDUE";
+            /**
+             * Format: date-time
+             * @description Recepción + 24 h naturales
+             */
+            deadlineAt: string;
+            /** @description Horas restantes (negativo si venció) */
+            hoursRemaining: number;
+        };
+        ImmobilizationAlert: {
+            /**
+             * Format: date-time
+             * @description Recepción del vehículo (inicio del reloj)
+             */
+            since: string;
+            hoursElapsed: number;
+            /** @description Días de paralización que el reloj justifica y aún no se cobraron */
+            pendingDays: number;
+            /** @description dailyRate vigente del vehículo */
+            dailyRate: number | null;
+            /** @description pendingDays x dailyRate (sugerencia; el cobro es manual) */
+            suggestedAmount: number | null;
+        };
+        ReturnAlerts: {
+            warrantyRelease: components["schemas"]["WarrantyReleaseAlert"] | null;
+            immobilization: components["schemas"]["ImmobilizationAlert"] | null;
+        };
+        ReturnAlertItem: {
+            type: components["schemas"]["ReturnAlertType"];
+            /** Format: uuid */
+            returnId: string;
+            /** Format: uuid */
+            rentalId: string;
+            returnStatus: components["schemas"]["ReturnStatus"];
+            returnVersion: number;
+            vehiclePlate: string | null;
+            customerName: string | null;
+            /** Format: date-time */
+            receivedAt: string;
+            /** @description Presente cuando type = WARRANTY_RELEASE */
+            warrantyRelease: components["schemas"]["WarrantyReleaseAlert"] | null;
+            /** @description Presente cuando type = IMMOBILIZATION */
+            immobilization: components["schemas"]["ImmobilizationAlert"] | null;
+        };
         ResponsibilityTemplateResponse: {
             /**
              * @description Tipo de plantilla (e.g. RETURN_RESPONSIBILITY)
@@ -554,6 +727,10 @@ export interface components {
             alcoholEscalation: components["schemas"]["AlcoholEscalationResponse"] | null;
             /** @description Documento de responsabilidad firmado en la inspección (null antes de completarla); sin signatureData */
             responsibilityDocument: components["schemas"]["ResponsibilityDocumentResponse"] | null;
+            /** @description Recordatorio previo 3 h antes de la hora pactada (null mientras no se haya generado; BR-DEV-004) */
+            reminder: components["schemas"]["ReturnReminderResponse"] | null;
+            /** @description Alertas operativas calculadas con el reloj. Solo en GET /returns/{id} y GET /returns; las respuestas de comandos la omiten. warrantyRelease = garantía por liberar a las 24 h; immobilization = más de 24 h sin cobrar (solo alertan). */
+            alerts?: components["schemas"]["ReturnAlerts"];
             /** Format: date-time */
             scheduledAt: string;
             /** Format: date-time */
@@ -578,7 +755,11 @@ export interface components {
         };
     };
     responses: never;
-    parameters: never;
+    parameters: {
+        returnId: string;
+        companyId: string;
+        branchId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -772,6 +953,112 @@ export interface operations {
             };
         };
     };
+    listReturnReminders: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+                status?: components["schemas"]["ReturnReminderStatus"];
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recordatorios de la sede */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnReminderInboxItem"][];
+                };
+            };
+            /** @description Parámetros inválidos o limit fuera de rango */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno del servidor */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listReturnAlerts: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+                type?: components["schemas"]["ReturnAlertType"];
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Alertas vigentes de la sede */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnAlertItem"][];
+                };
+            };
+            /** @description Parámetros inválidos o limit fuera de rango */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno del servidor */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getCosmeticTariff: {
         parameters: {
             query: {
@@ -879,12 +1166,12 @@ export interface operations {
     getResponsibilityTemplate: {
         parameters: {
             query: {
-                companyId: string;
-                branchId: string;
+                companyId: components["parameters"]["companyId"];
+                branchId: components["parameters"]["branchId"];
             };
             header?: never;
             path: {
-                id: string;
+                id: components["parameters"]["returnId"];
             };
             cookie?: never;
         };
@@ -1321,6 +1608,97 @@ export interface operations {
                 content?: never;
             };
             /** @description No han transcurrido 24 horas naturales desde la recepción (IMMOBILIZATION_PERIOD_NOT_ELAPSED), no hay daño técnico, el vehículo no tiene dailyRate o los días exceden los pendientes de cobro (INVALID_IMMOBILIZATION_CHARGE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno del servidor */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    registerReturnReminder: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterReturnReminderRequest"];
+            };
+        };
+        responses: {
+            /** @description Recordatorio actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnReminderResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución no encontrada (RETURN_NOT_FOUND) o aún sin recordatorio generado (RETURN_REMINDER_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El recordatorio ya fue registrado como enviado (RETURN_REMINDER_ALREADY_SENT) o la devolución está CANCELADA (RETURN_STATE_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Versión del recordatorio no coincide (If-Match, RETURN_REMINDER_VERSION_CONFLICT) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description FAILED sin nota o hora de envío en el futuro (INVALID_RETURN_REMINDER_RESULT) */
             422: {
                 headers: {
                     [name: string]: unknown;

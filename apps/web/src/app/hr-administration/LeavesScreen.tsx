@@ -14,7 +14,7 @@ import {
   type LeaveEvidence,
   type LeaveRequest,
 } from './hr-client';
-import { LEAVE_STATUS_LABEL, LEAVE_TYPE_LABEL, localToIso, toIsoDate, type LeaveStatus, type LeaveType } from './hr-domain';
+import { LEAVE_STATUS_LABEL, LEAVE_TYPE_LABEL, localToIso, type LeaveStatus, type LeaveType, limaToday } from './hr-domain';
 import { formatDate, formatTime } from './hr-format';
 import { useHrPermissions } from './hr-permissions';
 import { useHrCommand, useUnsavedWarning } from './useHrCommand';
@@ -58,7 +58,7 @@ export function LeavesScreen() {
   );
   const command = useHrCommand({ context, reload });
 
-  const [date, setDate] = useState(toIsoDate(new Date()));
+  const [date, setDate] = useState(limaToday());
   const [type, setType] = useState<LeaveType>('PERMISO_HORAS');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');

@@ -3,6 +3,7 @@ import { useReservationsList } from './useReservationsList';
 import { RESERVATION_STATUS_LABELS } from './reservation-status';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './ReservationsListScreen.module.css';
+import { formatLimaDate } from '../shared/lima-time';
 
 /**
  * RES-01 - Bandeja de Reservas. Fuente: PANTALLAS-V3-B-RESERVA.md,
@@ -53,8 +54,8 @@ export function ReservationsListScreen() {
                   <td>{reservation.customer.name}</td>
                   <td>{reservation.vehicle.label}</td>
                   <td>
-                    {new Date(reservation.startAt).toLocaleDateString('es-PE')} –{' '}
-                    {new Date(reservation.endAt).toLocaleDateString('es-PE')}
+                    {formatLimaDate(reservation.startAt)} –{' '}
+                    {formatLimaDate(reservation.endAt)}
                   </td>
                   <td>
                     <span className={`${styles.badge} ${styles[`badge_${reservation.status}`]}`}>

@@ -4,6 +4,7 @@ import { INQUIRY_CHANNEL_LABELS } from './inquiry-status';
 import { AppHeader } from '../shared/AppHeader';
 import { NewCustomerModal } from '../customers/NewCustomerModal';
 import styles from './NewInquiryScreen.module.css';
+import { limaToday } from '../shared/lima-time';
 
 /**
  * CON-02 - Nueva Consulta. Fuente: PANTALLAS-V3-B-CONSULTA.md. Registra
@@ -47,7 +48,7 @@ export function NewInquiryScreen() {
   // Fecha minima del selector nativo = hoy, para no dejar elegir una fecha
   // pasada. No reemplaza la validacion de submit (inquiries-validation.ts):
   // el valor se puede pegar/editar a mano y saltarse el `min` del input.
-  const todayISODate = new Date().toISOString().slice(0, 10);
+  const todayISODate = limaToday();
 
   return (
     <main className={styles.wrapper}>

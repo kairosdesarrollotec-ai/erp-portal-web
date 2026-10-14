@@ -9,6 +9,7 @@ import { describeReturnError } from './return-errors';
 import { FUEL_LEVEL_LABELS } from './return-status';
 import { useReturnPermissions } from './return-permissions';
 import styles from './ReturnForms.module.css';
+import { formatLimaDateTime } from '../shared/lima-time';
 
 type Returner = 'TITULAR' | 'OTRA_PERSONA';
 const FUEL_OPTIONS = Object.keys(FUEL_LEVEL_LABELS) as ReturnFuelLevel[];
@@ -129,7 +130,7 @@ export function ReceptionScreen() {
           Vehículo: {rental.vehicleBrand} {rental.vehicleModel} - {rental.vehiclePlate}
         </p>
         <p className={styles.summaryLine}>
-          Fin pactado: {rental.expectedEndAt ? new Date(rental.expectedEndAt).toLocaleString('es-PE') : '—'}
+          Fin pactado: {rental.expectedEndAt ? formatLimaDateTime(rental.expectedEndAt) : '—'}
         </p>
       </div>
 

@@ -1,7 +1,7 @@
 import { Check, Clock, X, CalendarCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { AttendanceRecord } from './hr-client';
-import { ATTENDANCE_STATUS_LABEL, daysInMonth, formatSoles, monthLabel, toIsoDate, type AttendanceStatus } from './hr-domain';
+import { ATTENDANCE_STATUS_LABEL, daysInMonth, formatSoles, monthLabel, type AttendanceStatus, limaToday } from './hr-domain';
 import styles from './HrFlow.module.css';
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -43,7 +43,7 @@ export function AttendanceCalendar({ month, records, canRegister, onRegister, on
   const [y, m] = month.split('-').map(Number);
   const offset = (new Date(y, m - 1, 1).getDay() + 6) % 7; // lunes = 0
   const total = daysInMonth(month);
-  const today = toIsoDate(new Date());
+  const today = limaToday();
   const byDate = new Map(records.map((r) => [r.date.slice(0, 10), r]));
 
   const cells: (number | null)[] = [...Array(offset).fill(null), ...Array.from({ length: total }, (_, i) => i + 1)];
