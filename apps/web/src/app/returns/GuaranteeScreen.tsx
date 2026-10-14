@@ -126,6 +126,7 @@ export function GuaranteeScreen() {
       continueDisabled={!canConfirm}
       continueBusy={busy}
       errorMessage={error}
+      alerts={ret.alerts}
     >
       <h1 className={styles.pageHeading}>Resolución de garantía — {ret.vehiclePlate ?? 'Vehículo'}</h1>
 

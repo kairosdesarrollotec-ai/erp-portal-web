@@ -34,6 +34,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   INVALID_TERMINATION_NOTICE: 'El aviso no es válido: una renuncia sin previo aviso es 0 días y un despido por reincidencia es de 15 días.',
   TERMINATION_NOTES_REQUIRED: 'Indica el motivo del despido (al menos unas palabras).',
   FINAL_SETTLEMENT_REQUIRED: 'Para registrar una renuncia debe estar pagada la quincena pendiente.',
+  INVALID_ATTENDANCE_EVIDENCE:
+    'La evidencia no es válida: indica el enlace o la referencia de la foto y la fecha y hora en que se tomó (no puede ser futura).',
   INVALID_ATTENDANCE_RECORD: 'El registro de asistencia no es válido: una tardanza necesita los minutos de tardanza.',
   DEDUCTIONS_BEFORE_MONTH_END: 'Los descuentos se aplican al cerrar el mes: todavía no se puede aplicar.',
   // 400

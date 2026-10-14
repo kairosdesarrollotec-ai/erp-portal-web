@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { AppHeader } from '../shared/AppHeader';
+import { ReturnAlertBanners } from './ReturnAlertBanners';
+import type { ReturnAlerts } from './returns-types';
 import styles from './ReturnFlowShell.module.css';
 
 export type ReturnFlowStep = 1 | 2 | 3 | 4 | 5 | 6;
@@ -15,6 +17,8 @@ export interface ReturnFlowShellProps {
   continueDisabled?: boolean;
   continueBusy?: boolean;
   errorMessage?: string | null;
+  /** Alertas operativas del expediente (garantia por liberar / inmovilizacion > 24 h): solo informan. */
+  alerts?: ReturnAlerts | null;
 }
 
 /**
@@ -32,6 +36,7 @@ export function ReturnFlowShell({
   continueDisabled,
   continueBusy,
   errorMessage,
+  alerts,
 }: ReturnFlowShellProps) {
   return (
     <main className={styles.wrapper}>
@@ -54,7 +59,10 @@ export function ReturnFlowShell({
         })}
       </ol>
 
-      <div className={styles.content}>{children}</div>
+      <div className={styles.content}>
+        <ReturnAlertBanners alerts={alerts} />
+        {children}
+      </div>
 
       {errorMessage && (
         <p className={styles.errorBar} role="alert">

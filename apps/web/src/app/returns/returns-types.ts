@@ -76,6 +76,80 @@ export interface ImmobilizationChargeResponse {
   returnEtag?: string;
 }
 
+/** DEV-01 / BR-DEV-004 - recordatorio previo (3 h antes) de envio manual-asistido por WhatsApp. */
+export type ReturnReminderStatus = 'PENDING' | 'SENT' | 'FAILED';
+export type ReturnReminderResult = 'SENT' | 'FAILED';
+
+export interface ReturnReminder {
+  id: string;
+  status: ReturnReminderStatus;
+  dueAt: string;
+  /** Mensaje redactado por el sistema (hora en America/Lima), listo para copiar y enviar. */
+  text: string;
+  generatedAt: string;
+  sentAt: string | null;
+  sentBy: string | null;
+  note: string | null;
+  attempts: number;
+  /** Valor para If-Match de register-reminder (version del RECORDATORIO, no del expediente). */
+  version: number;
+  etag: string;
+}
+
+export interface ReturnReminderInboxItem {
+  returnId: string;
+  rentalId: string;
+  returnStatus: ReturnStatus;
+  scheduledAt: string;
+  vehiclePlate: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  reminder: ReturnReminder;
+}
+
+export interface RegisterReminderInput {
+  result: ReturnReminderResult;
+  sentAt?: string;
+  /** Obligatoria cuando result = FAILED. */
+  note?: string;
+}
+
+/** DEV-07/DEV-08 - alertas operativas (solo alertan; reembolso y cobro siguen siendo manuales). */
+export type ReturnAlertType = 'WARRANTY_RELEASE' | 'IMMOBILIZATION';
+
+export interface WarrantyReleaseAlert {
+  level: 'DUE_SOON' | 'OVERDUE';
+  deadlineAt: string;
+  /** Negativo si ya vencio. */
+  hoursRemaining: number;
+}
+
+export interface ImmobilizationAlert {
+  since: string;
+  hoursElapsed: number;
+  pendingDays: number;
+  dailyRate: number | null;
+  suggestedAmount: number | null;
+}
+
+export interface ReturnAlerts {
+  warrantyRelease: WarrantyReleaseAlert | null;
+  immobilization: ImmobilizationAlert | null;
+}
+
+export interface ReturnAlertItem {
+  type: ReturnAlertType;
+  returnId: string;
+  rentalId: string;
+  returnStatus: ReturnStatus;
+  returnVersion: number;
+  vehiclePlate: string | null;
+  customerName: string | null;
+  receivedAt: string;
+  warrantyRelease: WarrantyReleaseAlert | null;
+  immobilization: ImmobilizationAlert | null;
+}
+
 export interface ReturnResponse {
   id: string;
   organizationId: string;
@@ -109,6 +183,10 @@ export interface ReturnResponse {
   updatedBy: string;
   version: number;
   etag: string;
+  /** Recordatorio previo (null mientras no se haya generado). */
+  reminder?: ReturnReminder | null;
+  /** Alertas operativas calculadas con el reloj; solo en GET /returns/{id} y GET /returns (los comandos la omiten). */
+  alerts?: ReturnAlerts;
   /** Fuente de verdad de danos y cargos de paralizacion del expediente. */
   damages: ReturnDamageResponse[];
   immobilizationCharges: ImmobilizationChargeResponse[];

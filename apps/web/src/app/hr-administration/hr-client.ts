@@ -15,6 +15,7 @@ export type HrMemo = components['schemas']['HrMemoResponse'];
 export type Training = components['schemas']['TrainingResponse'];
 export type LeaveEvidence = components['schemas']['LeaveEvidenceResponse'];
 export type MyEmployee = components['schemas']['MyEmployeeResponse'];
+export type AttendanceEvidence = components['schemas']['AttendanceEvidenceResponse'];
 export type CreateEmployeeInput = components['schemas']['CreateEmployeeRequest'];
 
 /** Error HTTP de lectura (GET) - mismo patron que RecruitmentApiError. */
@@ -94,6 +95,16 @@ export async function getEmployee(idToken: string, id: string): Promise<Employee
 
 // --- ADP-02 / ADP-03: asistencia --------------------------------------------------
 
+/** DEC-ADP-ATT-EVIDENCE-001 - foto de WhatsApp (reloj + hora + rostro) que corrobora la marcacion. Requiere storageRef o url. */
+export interface AttendanceEvidenceInput {
+  kind: 'WHATSAPP_PHOTO';
+  storageRef?: string;
+  url?: string;
+  /** Hora de Lima sin offset: `YYYY-MM-DDTHH:mm[:ss]`. */
+  capturedAtLocal: string;
+  note?: string;
+}
+
 export interface LogAttendanceInput {
   date: string;
   status: AttendanceStatus;
@@ -102,6 +113,8 @@ export interface LogAttendanceInput {
   checkInTime?: string;
   checkOutTime?: string;
   notes?: string;
+  /** Opcional: no bloquea el registro, pero sin ella la respuesta trae `evidenceMissing = true`. */
+  evidence?: AttendanceEvidenceInput;
 }
 
 /**
@@ -118,6 +131,7 @@ export async function logAttendance(idToken: string, employeeId: string, input: 
     ...(input.checkInTime ? { checkInTime: input.checkInTime } : {}),
     ...(input.checkOutTime ? { checkOutTime: input.checkOutTime } : {}),
     ...(input.notes ? { notes: input.notes } : {}),
+    ...(input.evidence ? { evidence: input.evidence } : {}),
   } as unknown as components['schemas']['LogAttendanceRequest'];
   const { data, error, response } = await hrAdministrationApiClient.POST('/employees/{id}/attendance', {
     params: { path: { id: employeeId } },

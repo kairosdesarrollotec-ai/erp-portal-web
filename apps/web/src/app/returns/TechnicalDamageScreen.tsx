@@ -122,6 +122,7 @@ export function TechnicalDamageScreen() {
       continueLabel="Continuar a garantía"
       continueDisabled={technicalDamages.length === 0}
       errorMessage={error}
+      alerts={ret.alerts}
     >
       <h1 className={styles.pageHeading}>Daño técnico — {ret.vehiclePlate ?? 'Vehículo'}</h1>
       <p className={`${styles.banner} ${styles.banner_warning}`}>

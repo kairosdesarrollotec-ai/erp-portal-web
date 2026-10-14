@@ -133,4 +133,87 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
     renderScreen();
     expect(await screen.findByRole('alert')).toHaveTextContent(/No pudimos cargar la asistencia/);
   });
+
+  describe('evidencia de la marcacion (WhatsApp)', () => {
+    async function openDialog() {
+      renderScreen();
+      await screen.findByRole('table');
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar marcación del 4' }));
+      return screen.findByRole('dialog');
+    }
+
+    it('sin evidencia el registro no la envia y avisa que quedo sin evidencia', async () => {
+      logAttendanceMock.mockResolvedValue(makeRecord({ date: '2026-09-04', evidence: null, evidenceMissing: true }));
+      const dialog = await openDialog();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
+      expect(logAttendanceMock.mock.calls[0][2].evidence).toBeUndefined();
+      expect(await screen.findByText(/sin evidencia fotográfica/)).toBeInTheDocument();
+    });
+
+    it('envia la evidencia con url, fecha-hora de Lima y nota', async () => {
+      logAttendanceMock.mockResolvedValue(makeRecord({ date: '2026-09-04', evidenceMissing: false }));
+      const dialog = await openDialog();
+      fireEvent.change(within(dialog).getByLabelText('Enlace o referencia de la foto'), { target: { value: 'https://chat.example/foto.jpg' } });
+      fireEvent.change(within(dialog).getByLabelText(/Fecha y hora de captura/), { target: { value: '2020-09-04T08:05' } });
+      fireEvent.change(within(dialog).getByLabelText('Nota de la evidencia (opcional)'), { target: { value: 'Foto en el grupo' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
+      expect(logAttendanceMock.mock.calls[0][2].evidence).toEqual({
+        kind: 'WHATSAPP_PHOTO',
+        url: 'https://chat.example/foto.jpg',
+        capturedAtLocal: '2020-09-04T08:05:00',
+        note: 'Foto en el grupo',
+      });
+      expect(await screen.findByText('Marcación registrada.')).toBeInTheDocument();
+    });
+
+    it('una referencia que no es enlace viaja como storageRef', async () => {
+      logAttendanceMock.mockResolvedValue(makeRecord({ date: '2026-09-04' }));
+      const dialog = await openDialog();
+      fireEvent.change(within(dialog).getByLabelText('Enlace o referencia de la foto'), { target: { value: 'gs://bucket/asistencia/1.jpg' } });
+      fireEvent.change(within(dialog).getByLabelText(/Fecha y hora de captura/), { target: { value: '2020-09-04T08:05' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
+      expect(logAttendanceMock.mock.calls[0][2].evidence).toMatchObject({ storageRef: 'gs://bucket/asistencia/1.jpg' });
+      expect(logAttendanceMock.mock.calls[0][2].evidence).not.toHaveProperty('url');
+    });
+
+    it('si se llena a medias exige la foto y la fecha-hora, y rechaza una captura futura', async () => {
+      const dialog = await openDialog();
+      fireEvent.change(within(dialog).getByLabelText('Nota de la evidencia (opcional)'), { target: { value: 'solo nota' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      expect(await within(dialog).findByText('Indica el enlace o la referencia de la foto.')).toBeInTheDocument();
+      expect(within(dialog).getByText('Indica cuándo se tomó la foto.')).toBeInTheDocument();
+
+      fireEvent.change(within(dialog).getByLabelText('Enlace o referencia de la foto'), { target: { value: 'https://x.pe/f.jpg' } });
+      fireEvent.change(within(dialog).getByLabelText(/Fecha y hora de captura/), { target: { value: '2999-01-01T08:00' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      expect(await within(dialog).findByText('La fecha y hora de la foto no puede ser futura.')).toBeInTheDocument();
+      expect(logAttendanceMock).not.toHaveBeenCalled();
+    });
+
+    it('traduce INVALID_ATTENDANCE_EVIDENCE (422) del servidor', async () => {
+      const { HrCommandError } = await import('./hr-client');
+      logAttendanceMock.mockRejectedValue(new HrCommandError(422, { code: 'INVALID_ATTENDANCE_EVIDENCE' }));
+      const dialog = await openDialog();
+      fireEvent.change(within(dialog).getByLabelText('Enlace o referencia de la foto'), { target: { value: 'https://x.pe/f.jpg' } });
+      fireEvent.change(within(dialog).getByLabelText(/Fecha y hora de captura/), { target: { value: '2020-09-04T08:05' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      expect(await within(dialog).findByText(/La evidencia no es válida/)).toBeInTheDocument();
+    });
+
+    it('elegir Falta no muestra campos de evidencia', async () => {
+      const dialog = await openDialog();
+      fireEvent.click(within(dialog).getByLabelText(/^Falta/));
+      expect(within(dialog).queryByLabelText('Enlace o referencia de la foto')).not.toBeInTheDocument();
+    });
+
+    it('el calendario marca los dias sin evidencia', async () => {
+      getAttendanceMock.mockResolvedValue([makeRecord({ id: 'a9', date: '2026-09-05', status: 'PRESENTE', evidenceMissing: true })]);
+      renderScreen();
+      const table = await screen.findByRole('table');
+      expect(within(table).getByText('Sin evidencia')).toBeInTheDocument();
+    });
+  });
 });

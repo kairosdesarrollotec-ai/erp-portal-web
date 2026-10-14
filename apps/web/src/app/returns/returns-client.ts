@@ -24,6 +24,14 @@ import type {
   ReturnResponse,
   ReturnStatus,
   CustomerRiskStatus,
+  RegisterReminderInput,
+  ReturnAlertItem,
+  ReturnAlertType,
+  ReturnAlerts,
+  ReturnReminder,
+  ReturnReminderInboxItem,
+  ReturnReminderResult,
+  ReturnReminderStatus,
 } from './returns-types';
 
 export type {
@@ -51,6 +59,14 @@ export type {
   ReturnFuelLevel,
   ReturnResponse,
   ReturnStatus,
+  RegisterReminderInput,
+  ReturnAlertItem,
+  ReturnAlertType,
+  ReturnAlerts,
+  ReturnReminder,
+  ReturnReminderInboxItem,
+  ReturnReminderResult,
+  ReturnReminderStatus,
 };
 
 /** Error HTTP de lectura (GET) - mismo patron que RentalApiError. */
@@ -367,6 +383,90 @@ export async function getResponsibilityTemplate(
   });
   if (error || !data) throw new ReturnApiError(response.status);
   return data as unknown as ResponsibilityTemplateResult;
+}
+
+// --- DEV-01 / BR-DEV-004 - recordatorios (envio manual-asistido por WhatsApp) -----------------
+
+/** DEV-01 - bandeja de recordatorios. Sin `status` el backend devuelve PENDING + FAILED, el mas urgente primero. */
+export async function listReturnReminders(
+  idToken: string,
+  companyId: string,
+  branchId: string,
+  options: { status?: ReturnReminderStatus; limit?: number } = {},
+): Promise<ReturnReminderInboxItem[]> {
+  const { data, error, response } = await returnsApiClient.GET('/returns/reminders', {
+    params: {
+      query: {
+        companyId,
+        branchId,
+        ...(options.status ? { status: options.status } : {}),
+        ...(options.limit !== undefined ? { limit: options.limit } : {}),
+      },
+    },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new ReturnApiError(response.status);
+  return data as unknown as ReturnReminderInboxItem[];
+}
+
+/** El If-Match del recordatorio lleva su `etag` tal cual (ya viene entrecomillado); si llegara sin comillas se agregan. */
+function reminderIfMatch(etag: string): string {
+  return etag.startsWith('"') || etag.startsWith('W/') ? etag : `"${etag}"`;
+}
+
+/**
+ * DEV-01 - registra el resultado del envio manual del recordatorio. If-Match = `reminder.etag`
+ * (version del recordatorio; el comando NO cambia la version del expediente).
+ */
+export async function registerReturnReminder(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  reminderEtag: string,
+  input: RegisterReminderInput,
+): Promise<ReturnReminder> {
+  const headers = commandHeaders(idToken);
+  headers['If-Match'] = reminderIfMatch(reminderEtag);
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/register-reminder', {
+    params: { path: { id } } as unknown as never,
+    headers,
+    body: {
+      companyId,
+      branchId,
+      result: input.result,
+      ...(input.sentAt ? { sentAt: input.sentAt } : {}),
+      ...(input.note ? { note: input.note } : {}),
+    } as unknown as never,
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnReminder;
+}
+
+// --- DEV-07 / DEV-08 - alertas operativas ----------------------------------------------------
+
+/** Garantia por liberar (24 h) e inmovilizacion > 24 h sin cobrar. Solo lectura; sin `type` trae ambos tipos. */
+export async function listReturnAlerts(
+  idToken: string,
+  companyId: string,
+  branchId: string,
+  options: { type?: ReturnAlertType; limit?: number } = {},
+): Promise<ReturnAlertItem[]> {
+  const { data, error, response } = await returnsApiClient.GET('/returns/alerts', {
+    params: {
+      query: {
+        companyId,
+        branchId,
+        ...(options.type ? { type: options.type } : {}),
+        ...(options.limit !== undefined ? { limit: options.limit } : {}),
+      },
+    },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new ReturnApiError(response.status);
+  return data as unknown as ReturnAlertItem[];
 }
 
 // --- DEV-04 / TR-08 - evidencia real (foto/video) de retorno ---

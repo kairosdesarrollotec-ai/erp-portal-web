@@ -74,6 +74,7 @@ export function AttendanceCalendar({ month, records, canRegister, onRegister, on
                 <td key={di} className={`${styles.cell} ${rec ? CELL_CLASS[rec.status] : ''}`} data-date={date}>
                   <span className={styles.cellDay}>{day}</span>
                   {rec && <StatusMark status={rec.status} />}
+                  {rec && !isAbsence && rec.evidenceMissing && <span title="Sin foto de evidencia">Sin evidencia</span>}
                   {rec && rec.deductionAmount > 0 && <span>{formatSoles(rec.deductionAmount)}</span>}
                   {isAbsence && (
                     <button type="button" className={styles.smallButton} aria-label={`Ver falta del ${day}`} onClick={() => onOpenAbsence(date)}>

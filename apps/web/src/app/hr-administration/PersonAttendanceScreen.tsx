@@ -18,8 +18,8 @@ interface Loaded {
 
 /**
  * ADP-02 - Asistencia de una persona. Calendario del mes con icono y texto por dia (presente,
- * tardanza, falta). "Registrar marcación" manual (registro AS-IS, sin biometria). La importacion de
- * marcaciones no existe en el contrato, por eso no se ofrece.
+ * tardanza, falta). "Registrar marcación" manual (registro AS-IS, sin biometria).
+ * La asistencia no es biometrica: se corrobora con la foto del grupo de WhatsApp (evidencia opcional).
  */
 export function PersonAttendanceScreen() {
   const { id } = useParams();
@@ -109,9 +109,13 @@ export function PersonAttendanceScreen() {
           employeeName={employee.fullName}
           initialDate={registering || undefined}
           onCancel={() => setRegistering(null)}
-          onSaved={() => {
+          onSaved={(record) => {
             setRegistering(null);
-            setNotice('Marcación registrada.');
+            setNotice(
+              record.evidenceMissing
+                ? 'Marcación registrada sin evidencia fotográfica. Pide la foto del grupo de WhatsApp y adjúntala cuando la tengas.'
+                : 'Marcación registrada.',
+            );
             void reload();
           }}
           onAbsence={(date) => {
