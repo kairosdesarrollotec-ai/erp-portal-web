@@ -36,29 +36,30 @@ test.describe('ALQ-01 Bandeja de alquileres', () => {
 // ── ENTREGA-01 Stage 1 ─────────────────────────────────────────────────────
 
 test.describe('ENTREGA-01 Cliente y documentos', () => {
-  test('muestra resumen del cliente y los checkboxes de documentos', async ({ page }) => {
+  test('muestra resumen del cliente y los items de documentos', async ({ page }) => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-01`);
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByText('Carlos López')).toBeVisible();
     await expect(page.getByText('ABC-123')).toBeVisible();
-    await expect(page.getByTestId('license-checkbox')).toBeVisible();
+    await expect(page.getByText('Licencia de conducir')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();
   });
 
-  test('Continuar se habilita al marcar licencia e identificación', async ({ page }) => {
+  test('Continuar se habilita al subir licencia e identificación', async ({ page }) => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-01`);
     await page.waitForLoadState('networkidle');
 
-    // Espera que el formulario cargue
-    await expect(page.getByTestId('license-checkbox')).toBeVisible();
+    await expect(page.getByText('Licencia de conducir')).toBeVisible();
 
-    await page.getByTestId('license-checkbox').check();
-    await page.getByLabel(/DNI válido/i).check();
+    // Simular subida de archivos en los inputs ocultos (license = índice 0, id-doc = índice 1)
+    const fakeFile = { name: 'doc.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') };
+    await page.locator('input[type="file"]').nth(0).setInputFiles(fakeFile);
+    await page.locator('input[type="file"]').nth(1).setInputFiles(fakeFile);
 
-    await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled({ timeout: 10_000 });
   });
 });
 
@@ -207,8 +208,10 @@ test.describe('Flujo completo asistente de entrega', () => {
 
     // — Stage 1 —
     await expect(page.getByText('Carlos López')).toBeVisible();
-    await page.getByTestId('license-checkbox').check();
-    await page.getByLabel(/DNI válido/i).check();
+    const fakeFile = { name: 'doc.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') };
+    await page.locator('input[type="file"]').nth(0).setInputFiles(fakeFile);
+    await page.locator('input[type="file"]').nth(1).setInputFiles(fakeFile);
+    await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled({ timeout: 10_000 });
     await page.getByRole('button', { name: 'Continuar' }).click();
 
     // — Stage 2 —

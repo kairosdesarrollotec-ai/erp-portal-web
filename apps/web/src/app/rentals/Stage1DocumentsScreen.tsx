@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Circle } from 'lucide-react';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
 import {
@@ -19,6 +20,11 @@ type IdDocType = 'DNI' | 'PASAPORTE_CE';
  * ENTREGA-01 / ALQ-03 - Cliente y documentos (mapea a POST .../commands/validate-documents).
  * Cliente y vehiculo ya vienen heredados de Consulta/Reserva - no se vuelven
  * a pedir aqui, solo se muestran de forma informativa.
+ *
+ * Correccion (oct 2026): los items de documentos requeridos (licencia e
+ * identificacion) se marcan solo cuando el archivo se sube realmente, no
+ * mediante checkbox manual. Los booleanos que recibe validateDocuments se
+ * derivan de los uploads realizados en esta sesion.
  */
 export function Stage1DocumentsScreen() {
   const { id, state, rental, context, getIdToken, setRental } = useRentalWizard();
@@ -26,38 +32,43 @@ export function Stage1DocumentsScreen() {
 
   const [driverType, setDriverType] = useState<DriverType>('TITULAR');
   const [idDocType, setIdDocType] = useState<IdDocType>('DNI');
-  const [licenseValid, setLicenseValid] = useState(false);
-  const [idDocValid, setIdDocValid] = useState(false);
-  const [addressValid, setAddressValid] = useState(false);
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [uploadDocError, setUploadDocError] = useState<string | null>(null);
-  const [uploadedDocs, setUploadedDocs] = useState<{ name: string; type: RentalDocumentType }[]>([]);
-  const [selectedDocType, setSelectedDocType] = useState<RentalDocumentType>('LICENSE');
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canContinue = useMemo(() => licenseValid && idDocValid, [licenseValid, idDocValid]);
+  // Tracks which document types have been successfully uploaded this session.
+  const [uploadedTypes, setUploadedTypes] = useState<Set<RentalDocumentType>>(new Set());
+  // Per-type upload state: which type is currently uploading.
+  const [uploadingType, setUploadingType] = useState<RentalDocumentType | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  async function handleFileUpload(file: File) {
+  const licenseFileRef = useRef<HTMLInputElement>(null);
+  const idDocFileRef = useRef<HTMLInputElement>(null);
+  const addressFileRef = useRef<HTMLInputElement>(null);
+
+  const licenseUploaded = uploadedTypes.has('LICENSE');
+  const idDocUploaded = uploadedTypes.has('ID_DOCUMENT');
+  const addressUploaded = uploadedTypes.has('PROOF_OF_ADDRESS');
+  const canContinue = licenseUploaded && idDocUploaded;
+
+  async function handleFileUpload(file: File, docType: RentalDocumentType) {
     if (!rental || !context) return;
     const contentType = file.type as 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf';
-    setUploadingDoc(true);
-    setUploadDocError(null);
+    setUploadingType(docType);
+    setUploadError(null);
     try {
       const idToken = await getIdToken();
       const session = await requestRentalDocumentUploadSession(
         idToken, id, context.companyId, context.branchId,
-        selectedDocType, contentType, file.size,
+        docType, contentType, file.size,
       );
       await uploadFileToGcs(session.uploadUrl, file);
-      await recordRentalDocument(idToken, id, context.companyId, context.branchId, selectedDocType, session.objectUrl);
-      setUploadedDocs((prev) => [...prev, { name: file.name, type: selectedDocType }]);
+      await recordRentalDocument(idToken, id, context.companyId, context.branchId, docType, session.objectUrl);
+      setUploadedTypes((prev) => new Set([...prev, docType]));
     } catch {
-      setUploadDocError('No pudimos subir el documento. Intenta de nuevo.');
+      setUploadError('No pudimos subir el documento. Intenta de nuevo.');
     } finally {
-      setUploadingDoc(false);
+      setUploadingType(null);
     }
   }
 
@@ -68,9 +79,9 @@ export function Stage1DocumentsScreen() {
     try {
       const idToken = await getIdToken();
       const updated = await validateDocuments(idToken, id, context.companyId, context.branchId, rental.version, {
-        identityDocumentValid: idDocValid,
-        driverLicenseValid: licenseValid,
-        addressOrStayProofValid: addressValid,
+        identityDocumentValid: idDocUploaded,
+        driverLicenseValid: licenseUploaded,
+        addressOrStayProofValid: addressUploaded,
         notes: notes || undefined,
       });
       setRental(updated);
@@ -124,11 +135,27 @@ export function Stage1DocumentsScreen() {
       </fieldset>
 
       <fieldset className={styles.fieldset}>
-        <legend>Documentos</legend>
-        <label className={styles.checkboxRow}>
-          <input type="checkbox" data-testid="license-checkbox" checked={licenseValid} onChange={(e) => setLicenseValid(e.target.checked)} />
-          Licencia de conducir válida (obligatoria)
-        </label>
+        <legend>Documentos requeridos</legend>
+
+        {uploadError && <p className={styles.evidenceError}>{uploadError}</p>}
+
+        <DocumentUploadItem
+          label="Licencia de conducir"
+          done={licenseUploaded}
+          saving={uploadingType === 'LICENSE'}
+          onUpload={() => licenseFileRef.current?.click()}
+        />
+        <input
+          ref={licenseFileRef}
+          type="file"
+          accept="image/jpeg,image/webp,image/png,application/pdf"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void handleFileUpload(file, 'LICENSE');
+            e.target.value = '';
+          }}
+        />
 
         <div className={styles.chipRow}>
           <button
@@ -146,60 +173,41 @@ export function Stage1DocumentsScreen() {
             Pasaporte / CE
           </button>
         </div>
-        <label className={styles.checkboxRow}>
-          <input type="checkbox" checked={idDocValid} onChange={(e) => setIdDocValid(e.target.checked)} />
-          {idDocType === 'DNI' ? 'DNI válido' : 'Pasaporte/CE válido'}
-        </label>
-
-        <label className={styles.checkboxRow}>
-          <input type="checkbox" checked={addressValid} onChange={(e) => setAddressValid(e.target.checked)} />
-          Comprobante de domicilio / estadía válido
-        </label>
-      </fieldset>
-
-      <fieldset className={styles.fieldset}>
-        <legend>Documentos adjuntos (opcional)</legend>
-        <label className={styles.fieldLabel}>
-          Tipo de documento
-          <select
-            className={styles.select}
-            value={selectedDocType}
-            onChange={(e) => setSelectedDocType(e.target.value as RentalDocumentType)}
-          >
-            <option value="LICENSE">Licencia de conducir</option>
-            <option value="ID_DOCUMENT">Documento de identidad</option>
-            <option value="PROOF_OF_ADDRESS">Comprobante de domicilio</option>
-            <option value="BANK_STATEMENT">Estado de cuenta</option>
-            <option value="OTHER">Otro</option>
-          </select>
-        </label>
+        <DocumentUploadItem
+          label={idDocType === 'DNI' ? 'DNI' : 'Pasaporte / Carné de extranjería'}
+          done={idDocUploaded}
+          saving={uploadingType === 'ID_DOCUMENT'}
+          onUpload={() => idDocFileRef.current?.click()}
+        />
         <input
-          ref={fileInputRef}
+          ref={idDocFileRef}
           type="file"
           accept="image/jpeg,image/webp,image/png,application/pdf"
           style={{ display: 'none' }}
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) void handleFileUpload(file);
+            if (file) void handleFileUpload(file, 'ID_DOCUMENT');
             e.target.value = '';
           }}
         />
-        <button
-          type="button"
-          className={styles.retryButton}
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploadingDoc}
-        >
-          {uploadingDoc ? 'Subiendo…' : 'Adjuntar documento'}
-        </button>
-        {uploadDocError && <p className={styles.evidenceError}>{uploadDocError}</p>}
-        {uploadedDocs.length > 0 && (
-          <ul className={styles.uploadedList}>
-            {uploadedDocs.map((d, i) => (
-              <li key={i} className={styles.uploadedItem}>✓ {d.name}</li>
-            ))}
-          </ul>
-        )}
+
+        <DocumentUploadItem
+          label="Comprobante de domicilio / estadía (opcional)"
+          done={addressUploaded}
+          saving={uploadingType === 'PROOF_OF_ADDRESS'}
+          onUpload={() => addressFileRef.current?.click()}
+        />
+        <input
+          ref={addressFileRef}
+          type="file"
+          accept="image/jpeg,image/webp,image/png,application/pdf"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void handleFileUpload(file, 'PROOF_OF_ADDRESS');
+            e.target.value = '';
+          }}
+        />
       </fieldset>
 
       <label className={styles.fieldLabel}>
@@ -207,5 +215,38 @@ export function Stage1DocumentsScreen() {
         <textarea className={styles.textarea} value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
       </label>
     </RentalWizardShell>
+  );
+}
+
+function DocumentUploadItem({
+  label,
+  done,
+  saving,
+  onUpload,
+}: {
+  label: string;
+  done: boolean;
+  saving: boolean;
+  onUpload: () => void;
+}) {
+  return (
+    <div className={styles.documentItem}>
+      {done ? (
+        <CheckCircle2 size={18} className={styles.checkDone} />
+      ) : (
+        <Circle size={18} className={styles.checkPending} />
+      )}
+      <span className={styles.documentLabel}>{label}</span>
+      {!done && (
+        <button
+          type="button"
+          className={styles.retryButton}
+          disabled={saving}
+          onClick={onUpload}
+        >
+          {saving ? 'Subiendo…' : 'Subir'}
+        </button>
+      )}
+    </div>
   );
 }
