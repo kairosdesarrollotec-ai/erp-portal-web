@@ -21,6 +21,7 @@ import {
 import { DepositStatusBadge } from './DepositBadges';
 import { RegisterAdjustmentDialog } from './RegisterAdjustmentDialog';
 import styles from './DepositDetailScreen.module.css';
+import { formatLimaDate, formatLimaDateTime } from '../shared/lima-time';
 
 /**
  * PAG-02 — Detalle de Garantía de Alquiler.
@@ -32,21 +33,11 @@ import styles from './DepositDetailScreen.module.css';
 type DetailState = 'LOADING' | 'READY' | 'NOT_FOUND' | 'RECOVERABLE_ERROR' | 'SAVING';
 
 function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('es-PE', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatLimaDateTime(iso);
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-PE', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatLimaDate(iso);
 }
 
 function describeCommandError(err: unknown, fallback: string): string {

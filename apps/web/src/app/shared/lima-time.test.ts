@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   addDaysToDateOnly,
+  limaEndOfDayInstant,
   formatLimaDate,
   formatLimaDateTime,
   formatLimaDayMonth,
@@ -111,5 +112,13 @@ describe('lima-time - mostrar', () => {
     expect(formatLimaDateTime(undefined)).toBe('—');
     expect(formatLimaTime('nope')).toBe('—');
     expect(formatLimaDayMonth('nope')).toBe('');
+  });
+});
+
+describe('limaEndOfDayInstant', () => {
+  it('devuelve el ultimo milisegundo del dia de Lima', () => {
+    expect(limaEndOfDayInstant('2026-10-14')).toBe('2026-10-15T04:59:59.999Z');
+    expect(limaEndOfDayInstant('2026-12-31')).toBe('2027-01-01T04:59:59.999Z');
+    expect(limaEndOfDayInstant('nope')).toBeNull();
   });
 });

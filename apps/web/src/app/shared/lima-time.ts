@@ -157,3 +157,10 @@ export function formatLimaDateTime(value: string | null | undefined): string {
   const p = limaParts(date);
   return `${dmy(p)} ${pad(p.hour)}:${pad(p.minute)}`;
 }
+
+/** Ultimo milisegundo del dia de Lima `YYYY-MM-DD` (para filtros "hasta" inclusivos) -> instante UTC ISO. */
+export function limaEndOfDayInstant(date: string): string | null {
+  const next = addDaysToDateOnly(date, 1);
+  const start = next ? limaDateToInstant(next) : null;
+  return start ? new Date(new Date(start).getTime() - 1).toISOString() : null;
+}

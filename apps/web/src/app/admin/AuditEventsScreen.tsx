@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuditEvents } from './useAuditEvents';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './AuditEventsScreen.module.css';
+import { formatLimaDateTime, limaDateToInstant, limaEndOfDayInstant, toLimaDateOnly } from '../shared/lima-time';
 
 const ENTITY_TYPE_LABELS: Record<string, string> = {
   admin_user_assignment: 'Usuarios y asignaciones',
@@ -35,14 +36,14 @@ function formatChanges(changes: Record<string, unknown> | null): string {
 export function AuditEventsScreen() {
   const { state, events, filter, applyFilter } = useAuditEvents();
   const [entityType, setEntityType] = useState(filter.entityType ?? '');
-  const [dateFrom, setDateFrom] = useState(filter.dateFrom?.slice(0, 10) ?? '');
-  const [dateTo, setDateTo] = useState(filter.dateTo?.slice(0, 10) ?? '');
+  const [dateFrom, setDateFrom] = useState(toLimaDateOnly(filter.dateFrom));
+  const [dateTo, setDateTo] = useState(toLimaDateOnly(filter.dateTo));
 
   function handleApplyFilter() {
     applyFilter({
       entityType: entityType || undefined,
-      dateFrom: dateFrom ? `${dateFrom}T00:00:00.000Z` : undefined,
-      dateTo: dateTo ? `${dateTo}T23:59:59.999Z` : undefined,
+      dateFrom: dateFrom ? (limaDateToInstant(dateFrom) ?? undefined) : undefined,
+      dateTo: dateTo ? (limaEndOfDayInstant(dateTo) ?? undefined) : undefined,
     });
   }
 
@@ -117,7 +118,7 @@ export function AuditEventsScreen() {
                 {events.map((event) => (
                   <tr key={event.id} className={styles.row}>
                     <td>{event.actorEmail ?? event.actorFirebaseUid ?? 'Sistema'}</td>
-                    <td>{new Date(event.createdAt).toLocaleString('es-PE')}</td>
+                    <td>{formatLimaDateTime(event.createdAt)}</td>
                     <td>{ENTITY_TYPE_LABELS[event.entityType] ?? event.entityType}</td>
                     <td>{event.action}</td>
                     <td className={styles.detailCell}>{formatChanges(event.changes)}</td>

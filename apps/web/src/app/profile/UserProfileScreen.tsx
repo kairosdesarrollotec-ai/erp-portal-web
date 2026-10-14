@@ -19,22 +19,12 @@ import { useSignOut } from '../shared/useSignOut';
 import { useWorkSession } from '../shared/useWorkSession';
 import { useUserProfile } from './useUserProfile';
 import styles from './UserProfileScreen.module.css';
+import { formatLimaDateTime } from '../shared/lima-time';
 
 function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return '—';
-  try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
-    return new Intl.DateTimeFormat('es-PE', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d);
-  } catch {
-    return dateStr;
-  }
+  const formatted = formatLimaDateTime(dateStr);
+  return formatted === '—' ? dateStr : formatted;
 }
 
 interface NavState {
