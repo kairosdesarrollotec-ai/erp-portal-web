@@ -53,13 +53,51 @@ export interface RentalContractResponse {
   documentRef: string;
   status: string;
   signedAt: string | null;
+  contractVariant?: string | null;
   createdAt: string;
+}
+
+export type ContractHolderType = 'NATURAL' | 'LEGAL';
+
+export interface ContractTemplateSelectionResponse {
+  variant: { holderType: ContractHolderType; withDriver: boolean } | null;
+  requestedType: string;
+  fallbackUsed: boolean;
+  template: { id: string; type: string; name: string; versionNumber?: number } | null;
+  [k: string]: unknown;
+}
+
+export interface ReservationCreditResponse {
+  reservationId: string;
+  applied: boolean;
+  reason: 'APPLIED' | 'NO_RESERVATION' | 'RESERVATION_NOT_ACTIVE' | 'PAYMENT_NOT_VALIDATED' | string;
+  creditAmount: string;
+  currency: string;
+  [k: string]: unknown;
+}
+
+export interface ExtensionRequirementsResponse {
+  noticeGiven: boolean | null;
+  authorized: boolean;
+  paid: boolean;
+  addendumSigned: boolean;
+}
+
+export interface RentalExtensionResponse {
+  id: string;
+  status: string;
+  requestedEndAt?: string | null;
+  requestedAt?: string | null;
+  requirements: ExtensionRequirementsResponse;
+  [k: string]: unknown;
 }
 
 export interface RentalDepositResponse {
   id: string;
   originalAmount: string;
   currency: string;
+  reservationCreditAmount?: string;
+  amountCollected?: string;
   status: string;
   createdAt: string;
 }
@@ -94,6 +132,8 @@ export interface RentalResponse {
   notaryEvaluation?: NotaryEvaluationResponse | null;
   contract?: RentalContractResponse | null;
   deposit?: RentalDepositResponse | null;
+  reservationCredit?: ReservationCreditResponse | null;
+  extensions?: RentalExtensionResponse[];
 }
 
 /** ALQ-01 - bandeja de alquileres (GET /rentals). */
@@ -261,6 +301,25 @@ export async function approveNotaryException(
   return data as unknown as RentalResponse;
 }
 
+/** ENTREGA-03 - plantilla que se usara segun titular y conductor (BR-DOC-003). */
+export async function getContractTemplate(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  variant: { holderType: ContractHolderType; withDriver: boolean },
+): Promise<ContractTemplateSelectionResponse> {
+  const { data, error, response } = await rentalsApiClient.GET('/rentals/{id}/contract-template', {
+    params: {
+      path: { id },
+      query: { companyId, branchId, holderType: variant.holderType, withDriver: variant.withDriver ? 'true' : 'false' },
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+  } as never);
+  if (error || !data) throw new RentalApiError(response.status);
+  return data as unknown as ContractTemplateSelectionResponse;
+}
+
 /**
  * ENTREGA-03 - formaliza el contrato (accion irreversible).
  * `templateVersionId` es opcional: si se omite, el backend resuelve
@@ -277,6 +336,7 @@ export async function formalizeContract(
   depositCurrency: 'PEN' | 'USD',
   templateVersionId?: string,
   signatureData?: string,
+  variant?: { holderType: ContractHolderType; withDriver: boolean },
 ): Promise<RentalResponse> {
   const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/formalize-contract', {
     params: { path: { id }, header: { 'If-Match': `"${version}"` } },
@@ -289,6 +349,7 @@ export async function formalizeContract(
       depositAmount,
       depositCurrency,
       ...(signatureData ? { signatureData } : {}),
+      ...(variant ? { holderType: variant.holderType, withDriver: variant.withDriver } : {}),
     } as unknown as FormalizeContractBody,
   });
   if (error || !data) {

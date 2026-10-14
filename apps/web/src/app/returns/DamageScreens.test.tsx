@@ -12,6 +12,9 @@ import { clearCosmeticTariffCache } from './useCosmeticTariff';
 import { useWorkSession } from '../shared/useWorkSession';
 import { roleRef, setPermissions } from '../../test/permissions';
 
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
+
 const RETURN_DAMAGE = [
   'RETURN.READ', 'RETURN.ASSESS_DAMAGE', 'RETURN.CHARGE_IMMOBILIZATION',
 ] as const;

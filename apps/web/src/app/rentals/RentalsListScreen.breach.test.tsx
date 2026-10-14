@@ -4,6 +4,8 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { RentalsListScreen } from './RentalsListScreen';
 import { setPermissions, clearPermissions } from '../../test/permissions';
 
+vi.mock('../shared/AppHeader', () => ({ AppHeader: () => <header>cabecera</header> }));
+
 const listRentalsMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({

@@ -17,7 +17,11 @@ import styles from './DocumentTemplatesScreen.module.css';
  */
 
 const TABS: { type: TemplateType; label: string }[] = [
-  { type: 'RENTAL_CONTRACT', label: 'Contrato de alquiler' },
+  { type: 'RENTAL_CONTRACT', label: 'Contrato de alquiler (genérico)' },
+  { type: 'RENTAL_CONTRACT_NATURAL', label: 'Alquiler: persona natural, sin conductor' },
+  { type: 'RENTAL_CONTRACT_NATURAL_DRIVER', label: 'Alquiler: persona natural, con conductor' },
+  { type: 'RENTAL_CONTRACT_LEGAL', label: 'Alquiler: persona jurídica, sin conductor' },
+  { type: 'RENTAL_CONTRACT_LEGAL_DRIVER', label: 'Alquiler: persona jurídica, con conductor' },
   { type: 'RESERVATION_CONTRACT', label: 'Contrato de reserva' },
   { type: 'RETURN_RESPONSIBILITY', label: 'Responsabilidad por devolución' },
 ];

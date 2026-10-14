@@ -11,6 +11,11 @@ export type LeaveRequest = components['schemas']['LeaveRequestResponse'];
 export type VacationRequest = components['schemas']['VacationRequestResponse'];
 export type FieldTrip = components['schemas']['FieldTripResponse'];
 export type TerminationResult = components['schemas']['EmploymentTerminationResponse'];
+export type HrMemo = components['schemas']['HrMemoResponse'];
+export type Training = components['schemas']['TrainingResponse'];
+export type LeaveEvidence = components['schemas']['LeaveEvidenceResponse'];
+export type MyEmployee = components['schemas']['MyEmployeeResponse'];
+export type CreateEmployeeInput = components['schemas']['CreateEmployeeRequest'];
 
 /** Error HTTP de lectura (GET) - mismo patron que RecruitmentApiError. */
 export class HrApiError extends Error {
@@ -123,6 +128,22 @@ export async function logAttendance(idToken: string, employeeId: string, input: 
   return data;
 }
 
+/** ADP-03: reclasifica una falta como justificada o injustificada. El descuento lo recalcula el servidor. */
+export async function reclassifyAttendance(
+  idToken: string,
+  attendanceId: string,
+  status: 'FALTA_JUSTIFICADA' | 'FALTA_INJUSTIFICADA',
+  justification: string,
+): Promise<AttendanceRecord> {
+  const { data, error, response } = await hrAdministrationApiClient.PATCH('/attendance/{id}/reclassify', {
+    params: { path: { id: attendanceId } },
+    headers: authHeaders(idToken),
+    body: { status, justification },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
 export async function getEmployeeAttendance(idToken: string, employeeId: string, month: string): Promise<AttendanceRecord[]> {
   const { data, error, response } = await hrAdministrationApiClient.GET('/employees/{id}/attendance', {
     params: { path: { id: employeeId }, query: { month } },
@@ -204,6 +225,51 @@ export async function resolveLeave(
   });
   if (error || !data) throw toCommandError(error, response.status);
   return data;
+}
+
+// --- ADP-04: evidencia de permisos --------------------------------------------------
+
+export const LEAVE_EVIDENCE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const;
+export type LeaveEvidenceType = (typeof LEAVE_EVIDENCE_TYPES)[number];
+export const LEAVE_EVIDENCE_MAX_BYTES = 10 * 1024 * 1024;
+
+export async function listLeaveEvidence(idToken: string, leaveId: string): Promise<LeaveEvidence[]> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/leaves/{id}/evidence', {
+    params: { path: { id: leaveId } },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data;
+}
+
+/**
+ * Sube el sustento en 3 pasos (mismo patron que Devoluciones): URL firmada -> subida directa del archivo ->
+ * registro del objeto en el permiso. Devuelve la evidencia ya adjunta.
+ */
+export async function attachLeaveEvidence(idToken: string, leaveId: string, file: File): Promise<LeaveEvidence> {
+  const contentType = file.type as LeaveEvidenceType;
+  const session = await hrAdministrationApiClient.POST('/leaves/{id}/evidence/upload-url', {
+    params: { path: { id: leaveId } },
+    headers: authHeaders(idToken),
+    body: { contentType, contentLength: file.size },
+  });
+  if (session.error || !session.data) throw toCommandError(session.error, session.response.status);
+
+  let uploaded: Response;
+  try {
+    uploaded = await fetch(session.data.uploadUrl, { method: 'PUT', headers: { 'Content-Type': contentType }, body: file });
+  } catch {
+    throw new HrCommandError(0, null);
+  }
+  if (!uploaded.ok) throw new HrCommandError(uploaded.status, null);
+
+  const recorded = await hrAdministrationApiClient.POST('/leaves/{id}/evidence', {
+    params: { path: { id: leaveId } },
+    headers: authHeaders(idToken),
+    body: { objectUrl: session.data.objectUrl, contentType },
+  });
+  if (recorded.error || !recorded.data) throw toCommandError(recorded.error, recorded.response.status);
+  return recorded.data;
 }
 
 // --- ADP-05: vacaciones -----------------------------------------------------------
@@ -288,6 +354,27 @@ export async function requestFieldTrip(idToken: string, employeeId: string, inpu
   return data;
 }
 
+/** ADP-06: la ficha del propio usuario (no exige permisos de Personal). 404 EMPLOYEE_NOT_LINKED si aun no esta vinculada. */
+export async function getMyEmployee(idToken: string, scope: HrScope): Promise<MyEmployee> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/me/employee', {
+    params: { query: scope },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** ADP-07: rechaza la salida con un motivo (queda sin autorizacion; no abre mas niveles). */
+export async function rejectFieldTrip(idToken: string, id: string, reason: string): Promise<FieldTrip> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/field-trips/{id}/reject', {
+    params: { path: { id } },
+    headers: authHeaders(idToken),
+    body: { reason },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
 export async function getFieldTrip(idToken: string, id: string): Promise<FieldTrip> {
   const { data, error, response } = await hrAdministrationApiClient.GET('/field-trips/{id}', {
     params: { path: { id } },
@@ -354,6 +441,64 @@ export async function terminateEmployment(idToken: string, employeeId: string, i
       settlementAmount: input.settlementAmount ?? 0,
       ...(input.notes ? { notes: input.notes } : {}),
     },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+// --- ADP-01 / ADP-08: memos por reincidencia -------------------------------------
+
+export async function getEmployeeMemos(idToken: string, employeeId: string): Promise<HrMemo[]> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/employees/{id}/memos', {
+    params: { path: { id: employeeId } },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data;
+}
+
+// --- ADP-10: capacitacion interna -------------------------------------------------
+
+export interface RegisterTrainingInput {
+  topic: string;
+  heldOn: string;
+  attendeeIds: string[];
+  durationMinutes?: number;
+  comprehensionNotes?: string;
+}
+
+export async function registerTraining(idToken: string, scope: HrScope, input: RegisterTrainingInput): Promise<Training> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/trainings', {
+    headers: { ...authHeaders(idToken), 'Idempotency-Key': crypto.randomUUID() },
+    body: {
+      ...scope,
+      topic: input.topic,
+      heldOn: input.heldOn,
+      attendeeIds: input.attendeeIds,
+      ...(input.durationMinutes ? { durationMinutes: input.durationMinutes } : {}),
+      ...(input.comprehensionNotes ? { comprehensionNotes: input.comprehensionNotes } : {}),
+    },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+export async function listTrainings(idToken: string, scope: HrScope, limit?: number, signal?: AbortSignal): Promise<Training[]> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/trainings', {
+    params: { query: { ...scope, ...(limit ? { limit } : {}) } },
+    headers: authHeaders(idToken),
+    signal,
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data;
+}
+
+// --- Alta de personal (ADP-01) ----------------------------------------------------
+
+export async function createEmployee(idToken: string, input: CreateEmployeeInput): Promise<EmployeeResponse> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/employees', {
+    headers: { ...authHeaders(idToken), 'Idempotency-Key': crypto.randomUUID() },
+    body: input,
   });
   if (error || !data) throw toCommandError(error, response.status);
   return data;

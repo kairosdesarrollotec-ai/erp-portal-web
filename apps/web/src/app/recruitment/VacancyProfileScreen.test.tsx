@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { VacancyProfileScreen } from './VacancyProfileScreen';
 import { RecruitmentCommandError } from './recruitment-client';
@@ -7,12 +7,16 @@ import { setPermissions } from '../../test/permissions';
 
 const getVacancyMock = vi.fn();
 const publishVacancyMock = vi.fn();
+const pauseVacancyMock = vi.fn();
+const resumeVacancyMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
   }),
 }));
+// AppHeader incluye la busqueda global (React Query); aqui no se prueba.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../notifications/useNotifications', () => ({
   useNotifications: () => ({ unreadCount: 0, notifications: [], markRead: vi.fn(), reload: vi.fn() }),
 }));
@@ -22,6 +26,8 @@ vi.mock('./recruitment-client', async () => {
     ...actual,
     getVacancy: (...args: unknown[]) => getVacancyMock(...args),
     publishVacancy: (...args: unknown[]) => publishVacancyMock(...args),
+    pauseVacancy: (...args: unknown[]) => pauseVacancyMock(...args),
+    resumeVacancy: (...args: unknown[]) => resumeVacancyMock(...args),
   };
 });
 
@@ -56,6 +62,8 @@ describe('VacancyProfileScreen (REC-02)', () => {
   beforeEach(() => {
     getVacancyMock.mockReset();
     publishVacancyMock.mockReset();
+    pauseVacancyMock.mockReset();
+    resumeVacancyMock.mockReset();
     setPermissions(['RECRUITMENT.VIEW_VACANCY', 'RECRUITMENT.PUBLISH_VACANCY']);
   });
 
@@ -142,5 +150,33 @@ describe('VacancyProfileScreen (REC-02)', () => {
     getVacancyMock.mockRejectedValueOnce(new Error('x'));
     renderScreen();
     expect(await screen.findByRole('alert')).toHaveTextContent(/No pudimos cargar la vacante/);
+  });
+
+  it('pausa y reanuda una vacante publicada con confirmación y avisa el resultado', async () => {
+    getVacancyMock.mockResolvedValue(makeDetail({ status: 'PUBLICADA', baseSalary: 1500 }));
+    pauseVacancyMock.mockResolvedValue(makeDetail({ status: 'PAUSADA', version: 5 }));
+    resumeVacancyMock.mockResolvedValue(makeDetail({ status: 'PUBLICADA', version: 6 }));
+    renderScreen();
+    await screen.findByText('VAC-001');
+    fireEvent.click(screen.getByRole('button', { name: 'Pausar Asesor' }));
+    let dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Pausar vacante' }));
+    expect(await screen.findByText('La vacante quedó pausada.')).toBeInTheDocument();
+    expect(pauseVacancyMock).toHaveBeenCalledWith('fake-id-token', 'v1', 4, { companyId: 'c1', branchId: 'b1' }, undefined);
+    expect(screen.getByText('Pausada')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reanudar Asesor' }));
+    dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reanudar vacante' }));
+    expect(await screen.findByText(/se reanudó/)).toBeInTheDocument();
+    expect(resumeVacancyMock).toHaveBeenCalledWith('fake-id-token', 'v1', 5, { companyId: 'c1', branchId: 'b1' });
+  });
+
+  it('sin PUBLISH_VACANCY no se ofrece pausar', async () => {
+    setPermissions(['RECRUITMENT.VIEW_VACANCY']);
+    getVacancyMock.mockResolvedValue(makeDetail({ status: 'PUBLICADA' }));
+    renderScreen();
+    await screen.findByText('VAC-001');
+    expect(screen.queryByRole('button', { name: /Pausar|Reanudar/ })).toBeNull();
   });
 });

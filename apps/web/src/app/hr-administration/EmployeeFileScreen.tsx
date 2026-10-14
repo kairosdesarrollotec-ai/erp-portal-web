@@ -194,6 +194,40 @@ export function EmployeeFileScreen() {
             </section>
           )}
 
+          {(employee.recentMemos?.length ?? 0) > 0 && (
+            <section className={styles.card} aria-labelledby="emp-memos">
+              <h2 id="emp-memos" className={styles.sectionTitle}>
+                Memos de advertencia
+              </h2>
+              <ul className={styles.plainList}>
+                {employee.recentMemos?.map((memo) => (
+                  <li key={memo.id} className={styles.listItem}>
+                    <span className={styles.entryMeta}>
+                      {formatDate(memo.issuedOn)}
+                      {memo.generatedBy === 'SISTEMA' ? ' · generado automáticamente' : ''}
+                    </span>
+                    <span className={styles.entryText}>{memo.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {(employee.recentTrainings?.length ?? 0) > 0 && (
+            <section className={styles.card} aria-labelledby="emp-capacitaciones">
+              <h2 id="emp-capacitaciones" className={styles.sectionTitle}>
+                Capacitaciones
+              </h2>
+              <ul className={styles.plainList}>
+                {employee.recentTrainings?.map((training) => (
+                  <li key={training.id} className={styles.listItem}>
+                    {training.topic} · {formatDate(training.heldOn)}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {(employee.recentFieldTrips?.length ?? 0) > 0 && (
             <section className={styles.card} aria-labelledby="emp-campo">
               <h2 id="emp-campo" className={styles.sectionTitle}>

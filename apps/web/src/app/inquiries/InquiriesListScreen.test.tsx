@@ -4,6 +4,9 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { InquiriesListScreen } from './InquiriesListScreen';
 import { InquiryApiError } from './inquiries-client';
 
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
+
 const listInquiriesMock = vi.fn();
 const getCustomerMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();

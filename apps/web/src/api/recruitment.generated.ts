@@ -56,6 +56,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vacancies/{id}/commands/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pausar una vacante publicada (REC-02, PROTO-REC-02)
+         * @description PUBLICADA -> PAUSADA. Detiene temporalmente la convocatoria sin perder el perfil ni los canales ya definidos. Usa el mismo permiso que publicar (RECRUITMENT.PUBLISH_VACANCY). Deja rastro de auditoría (VACANCY_PAUSED).
+         */
+        post: operations["pauseVacancy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vacancies/{id}/commands/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reanudar una vacante pausada (REC-02, PROTO-REC-02)
+         * @description PAUSADA -> PUBLICADA. Conserva el perfil, el sueldo base y los canales. Auditoría VACANCY_RESUMED.
+         */
+        post: operations["resumeVacancy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vacancies/{id}/candidates": {
         parameters: {
             query?: never;
@@ -85,6 +125,106 @@ export interface paths {
         get: operations["getCandidate"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{id}/cv/upload-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pedir URL firmada para subir el CV del candidato (REC-03/REC-04, DAT-REC-004)
+         * @description Valida tipo (PDF, Word .docx, JPG o PNG) y tamaño (máximo 10 MB) ANTES de firmar. El cliente sube el archivo con PUT a `uploadUrl` enviando EXACTAMENTE las cabeceras de `uploadHeaders` y luego confirma con `record-cv`. Exige RECRUITMENT.REGISTER_CANDIDATE.
+         */
+        post: operations["requestCandidateCvUploadSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{id}/commands/record-cv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirmar el CV ya subido (REC-03/REC-04, DAT-REC-004)
+         * @description Verifica contra el almacenamiento que el objeto existe, pertenece a este candidato/empresa y que su tipo y tamaño reales son válidos. Reemplaza el CV anterior si lo había. Auditoría CANDIDATE_CV_UPLOADED.
+         */
+        post: operations["recordCandidateCv"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{id}/cv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Visor del CV - URL firmada de lectura (REC-04, DAT-REC-004)
+         * @description Devuelve una URL firmada de vida corta (5 minutos) para mostrar el CV en línea. Exige RECRUITMENT.VIEW_CANDIDATE_SENSITIVE_DATA y deja rastro de cada consulta (CANDIDATE_CV_VIEWED). La respuesta no debe almacenarse en caché (Cache-Control: no-store).
+         */
+        get: operations["getCandidateCv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{id}/negotiations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar una ronda de negociación de condiciones (REC-04, REC-P06/P07)
+         * @description Agrega una ronda al historial append-only (condiciones ofrecidas vs. condiciones del candidato). Resultado EN_CURSO guarda la anotación; ACORDADA exige `agreedSalary` y avanza al candidato a ENTREVISTA si aún no la alcanzó ("Acordar y continuar"); NO_ACORDADA exige `reason` (el descarte formal sigue siendo la decisión RECHAZADO). Dato sensible: exige RECRUITMENT.REGISTER_CANDIDATE y RECRUITMENT.VIEW_CANDIDATE_SENSITIVE_DATA. El sistema no calcula ni sugiere montos (la documentación no define una regla de cálculo).
+         */
+        post: operations["recordNegotiation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/candidates/{id}/commands/set-probation-fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar los honorarios del periodo de prueba (REC-08, BR-REC-005, DAT-REC-007)
+         * @description Captura (sin cálculo) de los honorarios mensuales pactados durante la prueba, el sueldo posterior si hay cláusula de ajuste y observaciones. Solo antes de evaluar la prueba. Dato financiero: exige RECRUITMENT.EVALUATE_PROBATION y RECRUITMENT.VIEW_CANDIDATE_SENSITIVE_DATA. If-Match usa `onboarding.version`.
+         */
+        post: operations["setProbationFees"];
         delete?: never;
         options?: never;
         head?: never;
@@ -220,13 +360,137 @@ export interface components {
         /** @enum {string} */
         VacancySource: "RENUNCIA" | "CRECIMIENTO" | "NUEVA_AREA";
         /** @enum {string} */
-        VacancyStatus: "NECESIDAD_REGISTRADA" | "PUBLICADA" | "EN_NEGOCIACION" | "DECIDIDA" | "CANCELADA";
+        VacancyStatus: "NECESIDAD_REGISTRADA" | "PUBLICADA" | "EN_NEGOCIACION" | "DECIDIDA" | "CANCELADA" | "PAUSADA";
         /** @enum {string} */
         CandidateStage: "NUEVO" | "CONTACTADO" | "ENTREVISTA" | "DECISION";
         /** @enum {string} */
         CandidateDecision: "CONTRATADO" | "RECHAZADO";
         /** @enum {string} */
         InterviewResult: "PENDIENTE" | "AVANZA" | "NO_AVANZA";
+        /** @enum {string} */
+        NegotiationOutcome: "EN_CURSO" | "ACORDADA" | "NO_ACORDADA";
+        PauseVacancyRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @description Motivo opcional de la pausa (queda en la auditoría) */
+            reason?: string;
+        };
+        ResumeVacancyRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+        };
+        RequestCandidateCvUploadSessionRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @enum {string} */
+            contentType: "application/pdf" | "application/vnd.openxmlformats-officedocument.wordprocessingml.document" | "image/jpeg" | "image/png";
+            /** @description Tamaño del archivo en bytes (máximo 10 MB) */
+            contentLength: number;
+        };
+        CandidateCvUploadSessionResponse: {
+            /** Format: uri */
+            uploadUrl: string;
+            /**
+             * Format: uri
+             * @description Se envía tal cual a record-cv
+             */
+            objectUrl: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Cabeceras que el PUT debe enviar sin cambios (Content-Type y tope de tamaño firmado). */
+            uploadHeaders: {
+                [key: string]: string;
+            };
+        };
+        RecordCandidateCvRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            objectUrl: string;
+            fileName: string;
+        };
+        CandidateCvResponse: {
+            fileName: string;
+            contentType: string;
+            sizeBytes: number;
+            /** Format: date-time */
+            uploadedAt: string;
+        };
+        CandidateCvViewResponse: components["schemas"]["CandidateCvResponse"] & {
+            /**
+             * Format: uri
+             * @description URL firmada de lectura (credencial temporal; no almacenar)
+             */
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        RecordNegotiationRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            outcome: components["schemas"]["NegotiationOutcome"];
+            /** @description Sueldo base mensual ofrecido (PEN) */
+            offeredSalary: number;
+            offeredSchedule?: string;
+            /** @description Alimentación */
+            offeredOtherConditions?: string;
+            /** @description Pretensión salarial planteada por el candidato en esta ronda */
+            candidateSalary?: number;
+            candidateSchedule?: string;
+            candidateOtherConditions?: string;
+            /**
+             * Format: date
+             * @description Fecha de incorporación solicitada por el candidato
+             */
+            candidateStartDate?: string;
+            /** @description Obligatorio si outcome = ACORDADA; prohibido en otro caso */
+            agreedSalary?: number;
+            agreedConditions?: string;
+            /** @description Obligatorio si outcome = NO_ACORDADA */
+            reason?: string;
+        };
+        NegotiationResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            candidateId: string;
+            outcome: components["schemas"]["NegotiationOutcome"];
+            offeredSalary: number;
+            offeredSchedule?: string | null;
+            offeredOtherConditions?: string | null;
+            candidateSalary?: number | null;
+            candidateSchedule?: string | null;
+            candidateOtherConditions?: string | null;
+            /** Format: date */
+            candidateStartDate?: string | null;
+            agreedSalary?: number | null;
+            agreedConditions?: string | null;
+            reason?: string | null;
+            recordedBy: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        SetProbationFeesRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @description Honorarios mensuales brutos pactados durante la prueba (PEN) */
+            probationMonthlyFee: number;
+            /** @description Sueldo posterior si hay cláusula de ajuste al pasar a planilla */
+            postProbationMonthlySalary?: number;
+            /** @description Jornada */
+            probationFeeNotes?: string;
+        };
         RegisterVacancyRequest: {
             /** Format: uuid */
             companyId: string;
@@ -260,8 +524,12 @@ export interface components {
             /** Format: email */
             email?: string | null;
             phone?: string | null;
-            /** Format: uuid */
-            cvDocumentId: string;
+            /**
+             * Format: uuid
+             * @deprecated
+             * @description Obsoleto. El CV se sube después con POST /candidates/{id}/cv/upload-session y record-cv; si se omite, el servidor asigna un código interno.
+             */
+            cvDocumentId?: string;
             salaryExpectation?: number | null;
         };
         ChangeCandidateStageRequest: {
@@ -369,6 +637,12 @@ export interface components {
             phone?: string | null;
             /** Format: uuid */
             cvDocumentId?: string | null;
+            /** @description Hay un CV cargado (se informa también en vista restringida para mostrar el candado). */
+            hasCv: boolean;
+            /** @description Metadatos del CV; null si no hay CV o la vista es restringida. El archivo se lee con GET /candidates/{id}/cv. */
+            cv?: components["schemas"]["CandidateCvResponse"] | null;
+            /** @description Historial de negociación, más reciente primero; vacío en vista restringida. */
+            negotiations: components["schemas"]["NegotiationResponse"][];
             salaryExpectation?: number | null;
             decisionNotes?: string | null;
             /** Format: date-time */
@@ -422,6 +696,16 @@ export interface components {
             probationEvaluation?: string | null;
             /** Format: date-time */
             probationEvaluatedAt?: string | null;
+            /** @description Honorarios mensuales de la prueba (financiero); null si no se registraron o feesRestricted */
+            probationMonthlyFee?: number | null;
+            postProbationMonthlySalary?: number | null;
+            probationFeeNotes?: string | null;
+            /** Format: date-time */
+            probationFeesRecordedAt?: string | null;
+            /** @description true si el solicitante no tiene RECRUITMENT.VIEW_CANDIDATE_SENSITIVE_DATA (los honorarios no se exponen). */
+            feesRestricted: boolean;
+            /** @description Versión para If-Match en set-probation-fees */
+            version: number;
             /** Format: date-time */
             createdAt: string;
         };
@@ -675,6 +959,174 @@ export interface operations {
             };
         };
     };
+    pauseVacancy: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PauseVacancyRequest"];
+            };
+        };
+        responses: {
+            /** @description Vacante transicionada a PAUSADA */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacancyDetailResponse"];
+                };
+            };
+            /** @description Datos inválidos o If-Match mal formado */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso RECRUITMENT.PUBLISH_VACANCY o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Vacante no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflicto de versión (VERSION_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La vacante no está publicada (VACANCY_NOT_PAUSABLE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resumeVacancy: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResumeVacancyRequest"];
+            };
+        };
+        responses: {
+            /** @description Vacante transicionada a PUBLICADA */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacancyDetailResponse"];
+                };
+            };
+            /** @description Datos inválidos o If-Match mal formado */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso RECRUITMENT.PUBLISH_VACANCY o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Vacante no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflicto de versión (VERSION_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La vacante no está pausada (VACANCY_NOT_PAUSABLE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listCandidates: {
         parameters: {
             query: {
@@ -840,6 +1292,387 @@ export interface operations {
             };
             /** @description Candidato no encontrado */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestCandidateCvUploadSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestCandidateCvUploadSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Sesión de subida creada (vigencia 15 minutos) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateCvUploadSessionResponse"];
+                };
+            };
+            /** @description Datos inválidos (tipo no permitido o tamaño fuera de rango) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso RECRUITMENT.REGISTER_CANDIDATE o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Candidato no encontrado en esta empresa/sede */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Archivo no válido para CV (CANDIDATE_CV_INVALID_FILE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Almacenamiento no configurado */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordCandidateCv: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordCandidateCvRequest"];
+            };
+        };
+        responses: {
+            /** @description CV registrado; devuelve la ficha del candidato */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateDetailResponse"];
+                };
+            };
+            /** @description Datos inválidos o If-Match mal formado */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso RECRUITMENT.REGISTER_CANDIDATE o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Candidato no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflicto de versión (VERSION_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Archivo inexistente */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getCandidateCv: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description URL firmada y metadatos del CV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateCvViewResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso RECRUITMENT.VIEW_CANDIDATE_SENSITIVE_DATA o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Candidato no encontrado o sin CV (CANDIDATE_CV_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordNegotiation: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordNegotiationRequest"];
+            };
+        };
+        responses: {
+            /** @description Ronda registrada; devuelve la ficha con el historial actualizado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CandidateDetailResponse"];
+                };
+            };
+            /** @description Datos inválidos o If-Match mal formado */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso para registrar candidatos o ver datos sensibles */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Candidato no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflicto de versión (VERSION_CONFLICT) o candidato ya decidido (CANDIDATE_ALREADY_DECIDED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reglas de negociación incumplidas (NEGOTIATION_INVALID) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setProbationFees: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetProbationFeesRequest"];
+            };
+        };
+        responses: {
+            /** @description Honorarios registrados */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OnboardingResponse"];
+                };
+            };
+            /** @description Datos inválidos o If-Match mal formado */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso para evaluar la prueba o ver datos sensibles */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Candidato u onboarding no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflicto de versión (VERSION_CONFLICT) o prueba ya evaluada (PROBATION_ALREADY_EVALUATED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Montos inválidos (NEGOTIATION_INVALID) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta If-Match */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };

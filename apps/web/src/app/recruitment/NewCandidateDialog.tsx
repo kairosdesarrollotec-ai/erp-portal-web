@@ -1,16 +1,20 @@
 import { useState, type FormEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { RegisterCandidateInput } from './recruitment-client';
+import { validateCvFile } from './recruitment-domain';
 import styles from './RecruitmentDialog.module.css';
+
+/** Alta de candidato + CV opcional (se sube justo despues de crear). */
+export type NewCandidateSubmit = RegisterCandidateInput & { cvFile?: File };
 
 interface Props {
   busy: boolean;
   error: string | null;
-  onSubmit: (input: RegisterCandidateInput) => void;
+  onSubmit: (input: NewCandidateSubmit) => void;
   onCancel: () => void;
 }
 
-/** REC-03 "Crear candidato". El CV se referencia por el codigo de un documento ya cargado. */
+/** REC-03 "Crear candidato". El CV (PDF, Word, JPG o PNG, max. 10 MB) es opcional y se sube al crear. */
 export function NewCandidateDialog({ busy, error, onSubmit, onCancel }: Props) {
   const [fullName, setFullName] = useState('');
   const [documentType, setDocumentType] = useState('DNI');
@@ -18,12 +22,13 @@ export function NewCandidateDialog({ busy, error, onSubmit, onCancel }: Props) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [salary, setSalary] = useState('');
-  const [cvDocumentId, setCvDocumentId] = useState('');
+  const [cvFile, setCvFile] = useState<File | undefined>(undefined);
   const [touched, setTouched] = useState(false);
 
   const salaryNumber = salary.trim() === '' ? undefined : Number(salary);
   const salaryInvalid = salaryNumber !== undefined && (!Number.isFinite(salaryNumber) || salaryNumber < 0);
-  const missing = !fullName.trim() || !documentNumber.trim() || !cvDocumentId.trim() || salaryInvalid;
+  const cvProblem = cvFile ? validateCvFile(cvFile) : null;
+  const missing = !fullName.trim() || !documentNumber.trim() || salaryInvalid || cvProblem !== null;
 
   function submit(event: FormEvent) {
     event.preventDefault();
@@ -33,7 +38,7 @@ export function NewCandidateDialog({ busy, error, onSubmit, onCancel }: Props) {
       fullName: fullName.trim(),
       documentType,
       documentNumber: documentNumber.trim(),
-      cvDocumentId: cvDocumentId.trim(),
+      ...(cvFile ? { cvFile } : {}),
       ...(email.trim() ? { email: email.trim() } : {}),
       ...(phone.trim() ? { phone: phone.trim() } : {}),
       ...(salaryNumber !== undefined ? { salaryExpectation: salaryNumber } : {}),
@@ -86,11 +91,13 @@ export function NewCandidateDialog({ busy, error, onSubmit, onCancel }: Props) {
               {touched && salaryInvalid && <span className={styles.error}>Indica un monto válido.</span>}
             </div>
             <div className={styles.field}>
-              <label htmlFor="nc-cv">Código del documento del CV</label>
-              <input id="nc-cv" className={styles.input} value={cvDocumentId} onChange={(e) => setCvDocumentId(e.target.value)}
-                aria-required="true" aria-invalid={req(cvDocumentId)} aria-describedby="nc-cv-hint" />
-              <span id="nc-cv-hint" className={styles.hint}>Pega el código del documento cargado.</span>
-              {req(cvDocumentId) && <span className={styles.error}>Indica el código del documento del CV.</span>}
+              <label htmlFor="nc-cv">CV (opcional)</label>
+              <input id="nc-cv" type="file" className={styles.input}
+                accept=".pdf,.docx,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
+                onChange={(e) => setCvFile(e.target.files?.[0])}
+                aria-invalid={cvProblem !== null} aria-describedby="nc-cv-hint" />
+              <span id="nc-cv-hint" className={styles.hint}>PDF, Word (docx), JPG o PNG de hasta 10 MB.</span>
+              {cvProblem && <span className={styles.error} role="alert">{cvProblem}</span>}
             </div>
             {error && <p className={styles.error} role="alert">{error}</p>}
             <div className={styles.actions}>

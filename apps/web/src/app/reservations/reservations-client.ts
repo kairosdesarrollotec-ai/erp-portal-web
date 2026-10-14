@@ -33,7 +33,20 @@ export class ReservationCommandError extends Error {
   ) {
     super(problem?.detail ?? `La operacion no se pudo completar (${status})`);
   }
+
+  /** 412 / RESERVATION_VERSION_CONFLICT: la reserva cambió (If-Match) y hay que recargarla. */
+  get isVersionConflict(): boolean {
+    return this.status === 412 || this.problem?.code === 'RESERVATION_VERSION_CONFLICT';
+  }
+
+  /** 409 / VEHICLE_NOT_AVAILABLE: el vehículo ya está ocupado para las fechas de la reserva. */
+  get isVehicleUnavailable(): boolean {
+    return this.problem?.code === 'VEHICLE_NOT_AVAILABLE';
+  }
 }
+
+export const VEHICLE_NOT_AVAILABLE_MESSAGE =
+  'Este vehículo ya está ocupado para estas fechas. Elige otro vehículo u otras fechas.';
 
 /** RES-01 - bandeja de reservas (TDD-RES-001.md 11, GET /reservations). */
 export async function listReservations(

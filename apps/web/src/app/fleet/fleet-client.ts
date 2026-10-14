@@ -6,6 +6,7 @@ export type FleetVehicle = components['schemas']['VehicleResponse'];
 export type CreateVehiclePayload = components['schemas']['CreateVehicleRequest'];
 export type UpdateVehiclePayload = components['schemas']['UpdateVehicleRequest'];
 export type UpdateVehicleStatusPayload = components['schemas']['UpdateVehicleStatusRequest'];
+export type VehicleAvailability = components['schemas']['VehicleAvailability'];
 export type ListVehiclesResponse = components['schemas']['ListVehiclesResponse'];
 export type KairosErrorResponse = components['schemas']['KairosErrorResponse'];
 export type PhotoUploadSessionRequest = components['schemas']['PhotoUploadSessionRequest'];
@@ -19,6 +20,9 @@ export interface ListVehiclesParams {
   search?: string;
   limit?: number;
   offset?: number;
+  /** ISO date-time. Ambos o ninguno: con ellos cada vehiculo trae `availability`. */
+  availableFrom?: string;
+  availableTo?: string;
 }
 
 export class FleetApiError extends Error {
@@ -66,6 +70,9 @@ export async function listVehicles(
         ...(params.search ? { search: params.search } : {}),
         ...(params.limit !== undefined ? { limit: params.limit } : {}),
         ...(params.offset !== undefined ? { offset: params.offset } : {}),
+        ...(params.availableFrom && params.availableTo
+          ? { availableFrom: params.availableFrom, availableTo: params.availableTo }
+          : {}),
       },
     },
     headers: { Authorization: `Bearer ${idToken}` },

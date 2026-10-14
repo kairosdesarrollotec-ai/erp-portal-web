@@ -17,6 +17,8 @@ vi.mock('../providers/firebase', () => ({
     currentUser: { uid: 'me-uid', email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('fake-id-token') },
   }),
 }));
+// AppHeader incluye la busqueda global (React Query); aqui no se prueba.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../notifications/useNotifications', () => ({
   useNotifications: () => ({ unreadCount: 0, notifications: [], markRead: vi.fn(), reload: vi.fn() }),
 }));

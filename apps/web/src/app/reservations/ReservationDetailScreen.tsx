@@ -30,7 +30,7 @@ import styles from './ReservationDetailScreen.module.css';
  * via location.state (ver NewRentalScreen.tsx).
  */
 export function ReservationDetailScreen() {
-  const { state, reservation, context, savingRequirement, actionError, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
+  const { state, reservation, context, savingRequirement, actionError, vehicleUnavailable, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
     useReservationDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
@@ -181,6 +181,11 @@ export function ReservationDetailScreen() {
           </span>
 
           {actionError && <p className={styles.errorText}>{actionError}</p>}
+          {vehicleUnavailable && (
+            <p id="vehicle-unavailable-alert" role="alert" className={styles.unavailableAlert}>
+              {vehicleUnavailable}
+            </p>
+          )}
 
           {!isConfirmed && reservation.status === 'DRAFT' && (
             <>
@@ -233,7 +238,8 @@ export function ReservationDetailScreen() {
                 <button
                   type="button"
                   className={styles.confirmButton}
-                  disabled={savingRequirement === 'CONFIRM'}
+                  disabled={savingRequirement === 'CONFIRM' || Boolean(vehicleUnavailable)}
+                  aria-describedby={vehicleUnavailable ? 'vehicle-unavailable-alert' : undefined}
                   onClick={() => void confirm()}
                 >
                   {savingRequirement === 'CONFIRM' ? 'Confirmando…' : 'Confirmar reserva'}

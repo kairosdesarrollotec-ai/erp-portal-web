@@ -14,28 +14,47 @@ export interface SeriousBreachModalProps {
   onClose: () => void;
 }
 
-const EXTENSION_REQUIREMENTS = [
+type RequirementKey = 'noticeGiven' | 'authorized' | 'paid' | 'addendumSigned';
+
+const EXTENSION_REQUIREMENTS: { id: RequirementKey; label: string; unmet: string; met: string }[] = [
   {
-    id: 'notice',
+    id: 'noticeGiven',
     label: '1. Aviso con al menos 12 horas de anticipación',
-    detail: 'Solicitud recibida sin anticipación suficiente (vencimiento ya superado)',
+    unmet: 'Solicitud recibida sin anticipación suficiente (vencimiento ya superado)',
+    met: 'Aviso registrado con la anticipación requerida',
   },
   {
-    id: 'authorization',
+    id: 'authorized',
     label: '2. Autorización formal de Gerencia',
-    detail: 'Sin registro de autorización en el expediente',
+    unmet: 'Sin registro de autorización en el expediente',
+    met: 'Autorización registrada en el expediente',
   },
   {
-    id: 'payment',
+    id: 'paid',
     label: '3. Pago del periodo adicional',
-    detail: 'Sin pago registrado para el periodo extendido',
+    unmet: 'Sin pago registrado para el periodo extendido',
+    met: 'Pago del periodo extendido registrado',
   },
   {
-    id: 'addendum',
+    id: 'addendumSigned',
     label: '4. Adenda de ampliación firmada',
-    detail: 'Sin adenda generada ni firmada (DAT-ALQ-009)',
+    unmet: 'Sin adenda generada ni firmada (DAT-ALQ-009)',
+    met: 'Adenda firmada registrada',
   },
 ];
+
+/** Ultima solicitud de ampliacion del expediente (la que se evalua como falta grave). */
+function latestExtensionRequirements(rental: RentalResponse): Record<RequirementKey, boolean> {
+  const list = rental.extensions ?? [];
+  const last = list.length > 0 ? list[list.length - 1] : null;
+  const r = last?.requirements;
+  return {
+    noticeGiven: r?.noticeGiven === true,
+    authorized: r?.authorized === true,
+    paid: r?.paid === true,
+    addendumSigned: r?.addendumSigned === true,
+  };
+}
 
 /**
  * UC-ALQ-006b / BR-ALQ-013 — Confirmar falta grave de ampliación.
@@ -59,6 +78,8 @@ export function SeriousBreachModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const requirements = latestExtensionRequirements(rental);
+  const metCount = EXTENSION_REQUIREMENTS.filter((req) => requirements[req.id]).length;
   const canSubmit = confirmed && notes.trim().length > 0 && !busy;
 
   const depositLabel = rental.deposit
@@ -128,7 +149,7 @@ export function SeriousBreachModal({
                 <span className={styles.brTag}>BR-ALQ-013</span>
               </div>
               <Dialog.Description id="breach-description" className={styles.description}>
-                El cliente no cumplió los 4 requisitos obligatorios de ampliación. Esta acción es{' '}
+                El cliente no cumplió los requisitos obligatorios de ampliación (BR-ALQ-012). Esta acción es{' '}
                 <strong>irreversible</strong> y activa consecuencias normativas inmediatas.
               </Dialog.Description>
             </div>
@@ -165,15 +186,15 @@ export function SeriousBreachModal({
             <div>
               <div className={styles.requirementsHeader}>
                 <h3 className={styles.sectionTitle}>Requisitos de ampliación — Estado</h3>
-                <span className={styles.zeroBadge}>0 de 4 cumplidos</span>
+                <span className={styles.zeroBadge}>{metCount} de 4 cumplidos</span>
               </div>
               <ul className={styles.requirementsList}>
                 {EXTENSION_REQUIREMENTS.map((req) => (
                   <li key={req.id} className={styles.requirementItem}>
-                    <span className={styles.xCircle} aria-hidden="true">✕</span>
+                    <span className={styles.xCircle} aria-hidden="true">{requirements[req.id] ? '✓' : '✕'}</span>
                     <div>
                       <span className={styles.requirementLabel}>{req.label}</span>
-                      <p className={styles.requirementDetail}>{req.detail}</p>
+                      <p className={styles.requirementDetail}>{requirements[req.id] ? req.met : req.unmet}</p>
                     </div>
                   </li>
                 ))}
@@ -233,7 +254,7 @@ export function SeriousBreachModal({
                   aria-describedby="breach-confirm-hint"
                 />
                 <span id="breach-confirm-hint" className={styles.confirmText}>
-                  Confirmo que he verificado personalmente que ninguno de los 4 requisitos de ampliación fue cumplido por el cliente, y entiendo que esta acción activará la retención total de garantía, la inhabilitación del cliente y la evaluación de proceso penal de forma{' '}
+                  Confirmo que he verificado personalmente el estado de los requisitos de ampliación y que el cliente incumplió los obligatorios, y entiendo que esta acción activará la retención total de garantía, la inhabilitación del cliente y la evaluación de proceso penal de forma{' '}
                   <strong>inmediata e irreversible</strong>.
                 </span>
               </label>

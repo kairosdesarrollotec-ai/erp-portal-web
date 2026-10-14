@@ -78,10 +78,10 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * @description Tipo de plantilla de documento (TDD-TPL §4.2)
+         * @description Tipo de plantilla de documento (TDD-TPL §4.2). BR-DOC-003: el contrato de alquiler tiene una plantilla por combinación persona natural/jurídica × con/sin conductor (RENTAL_CONTRACT_NATURAL, _NATURAL_DRIVER, _LEGAL, _LEGAL_DRIVER); RENTAL_CONTRACT es la plantilla genérica anterior, que se usa cuando la empresa no cargó la de la combinación.
          * @enum {string}
          */
-        TemplateType: "RENTAL_CONTRACT" | "RESERVATION_CONTRACT" | "RETURN_RESPONSIBILITY";
+        TemplateType: "RENTAL_CONTRACT" | "RENTAL_CONTRACT_NATURAL" | "RENTAL_CONTRACT_NATURAL_DRIVER" | "RENTAL_CONTRACT_LEGAL" | "RENTAL_CONTRACT_LEGAL_DRIVER" | "RESERVATION_CONTRACT" | "RETURN_RESPONSIBILITY";
         /** @enum {string} */
         TemplateStatus: "DRAFT" | "ACTIVE" | "RETIRED";
         /** @enum {string} */

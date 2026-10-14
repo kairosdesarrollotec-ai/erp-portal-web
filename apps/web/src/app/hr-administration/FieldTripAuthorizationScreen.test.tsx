@@ -9,7 +9,9 @@ import { setPermissions } from '../../test/permissions';
 const getTripMock = vi.fn();
 const authorizeMock = vi.fn();
 const advanceMock = vi.fn();
+const rejectMock = vi.fn();
 
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({ currentUser: { email: 'u@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') } }),
 }));
@@ -23,6 +25,7 @@ vi.mock('./hr-client', async () => {
     getFieldTrip: (...a: unknown[]) => getTripMock(...a),
     authorizeFieldTrip: (...a: unknown[]) => authorizeMock(...a),
     advanceFieldTripTimeout: (...a: unknown[]) => advanceMock(...a),
+    rejectFieldTrip: (...a: unknown[]) => rejectMock(...a),
   };
 });
 
@@ -43,14 +46,15 @@ describe('FieldTripAuthorizationScreen (ADP-07)', () => {
     getTripMock.mockReset();
     authorizeMock.mockReset();
     advanceMock.mockReset();
+    rejectMock.mockReset();
     setPermissions(['HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP']);
   });
 
-  it('muestra motivo, nivel actual "Nivel 1 de 3 · Fiorella" y el contador de 5 minutos', async () => {
+  it('muestra motivo, nivel actual "Nivel 1 de 3" y el contador de 5 minutos', async () => {
     getTripMock.mockResolvedValue(makeTrip({ level1TimeoutAt: inMinutes(4) }));
     renderScreen();
     expect(await screen.findByText('Inspección técnica')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Nivel 1 de 3 · Fiorella' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Nivel 1 de 3' })).toBeInTheDocument();
     expect(screen.getByRole('timer')).toHaveTextContent(/0[34]:\d\d/);
     expect(screen.getByText(/Cada nivel tiene 5 minutos/)).toBeInTheDocument();
     expect(advanceMock).not.toHaveBeenCalled();
@@ -58,30 +62,57 @@ describe('FieldTripAuthorizationScreen (ADP-07)', () => {
 
   it('el foco inicial esta en el boton Aprobar y autoriza con el nivel pendiente', async () => {
     getTripMock.mockResolvedValue(makeTrip({ status: 'PENDIENTE_NIVEL_2', level2TimeoutAt: inMinutes(3) }));
-    authorizeMock.mockResolvedValue(makeTrip({ status: 'AUTORIZADA', authorizationLevel: 2, authorizedByName: 'José' }));
+    authorizeMock.mockResolvedValue(makeTrip({ status: 'AUTORIZADA', authorizationLevel: 2, authorizedByName: 'Autorizador de prueba' }));
     renderScreen();
     const approve = await screen.findByRole('button', { name: 'Aprobar' });
     await waitFor(() => expect(approve).toHaveFocus());
-    expect(screen.getByRole('heading', { name: 'Nivel 2 de 3 · José' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Nivel 2 de 3' })).toBeInTheDocument();
     fireEvent.click(approve);
     await waitFor(() => expect(authorizeMock).toHaveBeenCalledWith('tok', 'trip-1', 2));
-    expect(await screen.findByText(/Salida autorizada en el nivel 2 de 3 por José/)).toBeInTheDocument();
+    expect(await screen.findByText(/Salida autorizada en el nivel 2 de 3 por Autorizador de prueba/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
   });
 
-  it('nunca ofrece un cuarto nivel ni aprobacion automatica ni "Rechazar" que el contrato no tiene', async () => {
+  it('nunca ofrece un cuarto nivel ni aprobacion automatica; los textos de la cascada no nombran personas', async () => {
     getTripMock.mockResolvedValue(makeTrip({ status: 'PENDIENTE_NIVEL_3', level3TimeoutAt: inMinutes(2) }));
     renderScreen();
-    await screen.findByRole('heading', { name: 'Nivel 3 de 3 · Cecilia' });
+    await screen.findByRole('heading', { name: 'Nivel 3 de 3' });
     expect(screen.queryByText(/nivel 4|4º|cuarto/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Rechazar/ })).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/Fiorella|José|Cecilia/);
+  });
+
+  it('Rechazar exige un motivo, lo envia al servidor y deja la salida sin autorizacion', async () => {
+    getTripMock.mockResolvedValue(makeTrip({ level1TimeoutAt: inMinutes(4) }));
+    rejectMock.mockResolvedValue(
+      makeTrip({ status: 'NO_AUTORIZADA', rejectedAtLevel: 1, rejectionReason: 'Sin unidad disponible', rejectedByName: 'Autorizador de prueba' }),
+    );
+    renderScreen();
+    fireEvent.click(await screen.findByRole('button', { name: 'Rechazar' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar rechazo' }));
+    expect(await screen.findByText(/Indica el motivo del rechazo/)).toBeInTheDocument();
+    expect(rejectMock).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Motivo del rechazo'), { target: { value: 'Sin unidad disponible' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar rechazo' }));
+    await waitFor(() => expect(rejectMock).toHaveBeenCalledWith('tok', 'trip-1', 'Sin unidad disponible'));
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+    expect(await screen.findByText(/Motivo: Sin unidad disponible/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
+  });
+
+  it('sin AUTHORIZE_FIELD_TRIP no se ofrece Rechazar', async () => {
+    setPermissions(['HR_ADMINISTRATION.REQUEST_FIELD_TRIP']);
+    getTripMock.mockResolvedValue(makeTrip({ level1TimeoutAt: inMinutes(4) }));
+    renderScreen();
+    await screen.findByRole('heading', { name: 'Nivel 1 de 3' });
+    expect(screen.queryByRole('button', { name: 'Rechazar' })).not.toBeInTheDocument();
   });
 
   it('sin AUTHORIZE_FIELD_TRIP solo se ve el estado (sin boton)', async () => {
     setPermissions(['HR_ADMINISTRATION.REQUEST_FIELD_TRIP']);
     getTripMock.mockResolvedValue(makeTrip({ level1TimeoutAt: inMinutes(4) }));
     renderScreen();
-    await screen.findByRole('heading', { name: 'Nivel 1 de 3 · Fiorella' });
+    await screen.findByRole('heading', { name: 'Nivel 1 de 3' });
     expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
   });
 
@@ -90,7 +121,7 @@ describe('FieldTripAuthorizationScreen (ADP-07)', () => {
     advanceMock.mockResolvedValue(makeTrip({ status: 'PENDIENTE_NIVEL_2', level2TimeoutAt: inMinutes(5) }));
     renderScreen();
     await waitFor(() => expect(advanceMock).toHaveBeenCalledWith('tok', 'trip-1'));
-    expect(await screen.findByRole('heading', { name: 'Nivel 2 de 3 · José' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Nivel 2 de 3' })).toBeInTheDocument();
     expect(advanceMock).toHaveBeenCalledTimes(1);
   });
 
@@ -98,7 +129,7 @@ describe('FieldTripAuthorizationScreen (ADP-07)', () => {
     setPermissions(['HR_ADMINISTRATION.REQUEST_FIELD_TRIP']);
     getTripMock.mockResolvedValue(makeTrip({ level1TimeoutAt: new Date(Date.now() - 1000).toISOString() }));
     renderScreen();
-    await screen.findByRole('heading', { name: 'Nivel 1 de 3 · Fiorella' });
+    await screen.findByRole('heading', { name: 'Nivel 1 de 3' });
     await new Promise((r) => setTimeout(r, 50));
     expect(advanceMock).not.toHaveBeenCalled();
   });

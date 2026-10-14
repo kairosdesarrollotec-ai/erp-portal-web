@@ -5,6 +5,9 @@ import { InquiryDetailScreen } from './InquiryDetailScreen';
 import { useLocation } from 'react-router-dom';
 import { InquiryCommandError } from './inquiries-client';
 
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
+
 // Hallazgo Russbel (ronda 2): "Cambiar vehiculo" reenviaba el navState
 // original con una `version` congelada, que ya no coincidia con
 // `inquiry.version` tras cotizar - CON-03 quedaba bloqueada con el aviso
@@ -248,6 +251,8 @@ describe('InquiryDetailScreen (CON-04)', () => {
     await screen.findByText('Maria Quispe');
     fireEvent.click(screen.getByText('Cerrar sin conversión'));
 
+    const dialog = screen.getByRole('dialog', { name: '¿Por qué cierras esta consulta sin conversión?' });
+    expect(dialog).toBeInTheDocument();
     const confirmButton = screen.getByText('Confirmar cierre');
     expect(confirmButton).toBeDisabled();
 
@@ -269,5 +274,29 @@ describe('InquiryDetailScreen (CON-04)', () => {
       'CIERRE_MANUAL',
       'El cliente ya no requiere el vehículo.',
     );
+  });
+
+  it('el modal de cierre enfoca el motivo, cierra con Esc/Cancelar y atrapa el foco', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry());
+    renderScreen();
+    await screen.findByText('Maria Quispe');
+
+    fireEvent.click(screen.getByText('Cerrar sin conversión'));
+    const reason = screen.getByLabelText('Motivo de cierre');
+    expect(reason).toHaveFocus();
+
+    // Tab desde el ultimo control (Confirmar deshabilitado -> Cancelar) vuelve al primero.
+    const cancel = screen.getByRole('button', { name: 'Cancelar' });
+    cancel.focus();
+    fireEvent.keyDown(cancel, { key: 'Tab' });
+    expect(screen.getByRole('button', { name: 'Cerrar ventana' })).toHaveFocus();
+
+    fireEvent.keyDown(reason, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Cerrar sin conversión'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(closeInquiryMock).not.toHaveBeenCalled();
   });
 });

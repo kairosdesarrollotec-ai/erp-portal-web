@@ -5,13 +5,17 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { EmployeesListScreen } from './EmployeesListScreen';
 import { FieldTripAuthorizationScreen } from './FieldTripAuthorizationScreen';
 import { TerminationScreen } from './TerminationScreen';
+import { TrainingScreen } from './TrainingScreen';
+import { NewEmployeeScreen } from './NewEmployeeScreen';
 import { baseContext, makeDetail, makeEmployee, makeTrip } from './hr-test-utils';
 import { setPermissions } from '../../test/permissions';
 
 const listEmployeesMock = vi.fn();
 const getTripMock = vi.fn();
 const getEmployeeMock = vi.fn();
+const listTrainingsMock = vi.fn();
 
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({ currentUser: { email: 'u@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') } }),
 }));
@@ -25,6 +29,7 @@ vi.mock('./hr-client', async () => {
     listEmployees: (...a: unknown[]) => listEmployeesMock(...a),
     getFieldTrip: (...a: unknown[]) => getTripMock(...a),
     getEmployee: (...a: unknown[]) => getEmployeeMock(...a),
+    listTrainings: (...a: unknown[]) => listTrainingsMock(...a),
   };
 });
 
@@ -40,7 +45,7 @@ function renderAt(path: string, element: React.ReactElement, route: string) {
 
 describe('Administración de Personal - accesibilidad (axe)', () => {
   beforeEach(() => {
-    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP', 'HR_ADMINISTRATION.TERMINATE_EMPLOYMENT']);
+    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.AUTHORIZE_FIELD_TRIP', 'HR_ADMINISTRATION.TERMINATE_EMPLOYMENT', 'HR_ADMINISTRATION.REGISTER_TRAINING', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES']);
   });
 
   it('ADP-01 bandeja sin violaciones', async () => {
@@ -67,5 +72,28 @@ describe('Administración de Personal - accesibilidad (axe)', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('button', { name: 'Confirmar' })).toBeInTheDocument();
     expect(await axe(dialog)).toHaveNoViolations();
+  });
+
+  it('ADP-07 dialogo de rechazo sin violaciones', async () => {
+    getTripMock.mockResolvedValue(makeTrip({ level1TimeoutAt: new Date(Date.now() + 240_000).toISOString() }));
+    renderAt('/personal/campo/trip-1/autorizacion', <FieldTripAuthorizationScreen />, '/personal/campo/:tripId/autorizacion');
+    fireEvent.click(await screen.findByRole('button', { name: 'Rechazar' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(await axe(dialog)).toHaveNoViolations();
+  });
+
+  it('ADP-10 capacitacion sin violaciones', async () => {
+    listEmployeesMock.mockResolvedValue({ items: [makeEmployee()], total: 1 });
+    listTrainingsMock.mockResolvedValue([]);
+    const { container } = renderAt('/personal/capacitacion', <TrainingScreen />, '/personal/capacitacion');
+    await screen.findByLabelText('Tema');
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('alta de personal sin violaciones', async () => {
+    listEmployeesMock.mockResolvedValue({ items: [makeEmployee()], total: 1 });
+    const { container } = renderAt('/personal/nuevo', <NewEmployeeScreen />, '/personal/nuevo');
+    await screen.findByLabelText('Nombre completo');
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

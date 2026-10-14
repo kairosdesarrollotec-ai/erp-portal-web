@@ -5,6 +5,22 @@ export type VacancyStatus = components['schemas']['VacancyStatus'];
 export type CandidateStage = components['schemas']['CandidateStage'];
 export type CandidateDecision = components['schemas']['CandidateDecision'];
 export type InterviewResult = components['schemas']['InterviewResult'];
+export type NegotiationOutcome = components['schemas']['NegotiationOutcome'];
+
+export const NEGOTIATION_OUTCOME_LABEL: Record<NegotiationOutcome, string> = {
+  EN_CURSO: 'En curso',
+  ACORDADA: 'Acordada',
+  NO_ACORDADA: 'No acordada',
+};
+
+/** Tipos y tope del CV (espejo de la validacion del backend; alli se vuelve a validar). */
+export const CV_MAX_BYTES = 10 * 1024 * 1024;
+export const CV_ACCEPTED_TYPES: readonly string[] = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/png',
+];
 
 export const VACANCY_SOURCE_LABEL: Record<VacancySource, string> = {
   RENUNCIA: 'Renuncia',
@@ -18,6 +34,7 @@ export const VACANCY_STATUS_LABEL: Record<VacancyStatus, string> = {
   EN_NEGOCIACION: 'En negociación',
   DECIDIDA: 'Decidida',
   CANCELADA: 'Cancelada',
+  PAUSADA: 'Pausada',
 };
 
 /** Columnas del tablero REC-03, en orden. Las etapas avanzan, nunca retroceden. */
@@ -65,4 +82,12 @@ export function probationDaysRemaining(startDate: string, now: Date = new Date()
   const end = new Date(start.getFullYear(), start.getMonth() + 3, start.getDate());
   const diff = Math.ceil((end.getTime() - now.getTime()) / 86_400_000);
   return Math.max(0, diff);
+}
+
+/** Valida el archivo del CV antes de pedir la subida; null = valido. */
+export function validateCvFile(file: { type: string; size: number }): string | null {
+  if (!CV_ACCEPTED_TYPES.includes(file.type)) return 'El CV debe ser PDF, Word (docx), JPG o PNG.';
+  if (file.size <= 0) return 'El archivo está vacío.';
+  if (file.size > CV_MAX_BYTES) return 'El CV supera el máximo de 10 MB.';
+  return null;
 }

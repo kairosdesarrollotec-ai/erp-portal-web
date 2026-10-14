@@ -10,7 +10,7 @@
 | UX-ID | CON-04 — Detalle, cierre o conversión (`especificacion-ux-ui-v3.1` §5.1.4) | Vigente |
 | PROTO-ID | `PROTO-CON-04-DETALLE-CON-0842` (aprobado 2026-09-14) | APROBADO — Desviación registrada en `DEV-CON-04-CONVERT-BUTTON-2026-10-06` |
 | OpenAPI | `inquiries.yaml` — `POST /inquiries/{id}/commands/convert-to-rental`; respuesta `ConvertToRentalResponse` | Vigente |
-| Código | `apps/web/src/app/inquiries/InquiryDetailScreen.tsx` — botón "Convertir a Alquiler" con guard `can('INQUIRY', 'CONVERT')` | Implementado |
+| Código | `apps/web/src/app/inquiries/InquiryDetailScreen.tsx` — botón "Convertir a Alquiler" con guard `can('INQUIRY', 'CONVERT_TO_RENTAL')` | Implementado |
 | Código | `apps/web/src/app/inquiries/inquiries-client.ts` — `convertInquiryToRental()`, interfaz `ConvertToRentalResult` | Implementado |
 | Código | `apps/web/src/app/inquiries/useInquiryDetail.ts` — `convertToRental()` | Implementado |
 | Pruebas unitarias | `apps/web/src/app/inquiries/InquiryDetailScreen.test.tsx` — cobertura de "Convertir a Alquiler" | Ver evidencia |
@@ -24,7 +24,7 @@
 
 ## Notas
 
-- El guard `can('INQUIRY', 'CONVERT')` controla la visibilidad del botón (hallazgo P1-01, PR #66).
+- El guard `can('INQUIRY', 'CONVERT_TO_RENTAL')` controla la visibilidad del botón (hallazgo P1-01, PR #66).
 - El atributo `aria-busy={saving}` informa al lector de pantalla el estado de procesamiento (hallazgo P2-05, PR #66).
 - El tipo `ConvertToRentalResult` define mínimamente `rental: { id, status?, version? }` para evitar castear el `Record<string, never>` del generado (hallazgo P2-01, PR #66).
 - El mock Playwright usa `status: 200` consistente con el contrato OpenAPI (hallazgo P2-02, PR #66).

@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ReservationDetailScreen } from './ReservationDetailScreen';
+import { ReservationCommandError } from './reservations-client';
 
 const getReservationMock = vi.fn();
 const registerPaymentMock = vi.fn();
@@ -131,5 +135,83 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
       screen.getByText(/La disponibilidad se revalidará antes de confirmar el alquiler o la entrega/),
     ).toBeInTheDocument();
     expect(screen.queryByText(/bloqueado exclusivamente/)).not.toBeInTheDocument();
+  });
+
+  describe('errores de comandos (409 vs 412)', () => {
+    const readyToConfirm = () =>
+      buildReservation({
+        requirements: { paymentValidatedAt: '2026-09-16T00:00:00Z', documentsCompletedAt: '2026-09-16T00:00:00Z' },
+        missingRequirements: [],
+      });
+
+    it('409 VEHICLE_NOT_AVAILABLE muestra aviso (role alert) con el detail del back y NO es conflicto de sincronizacion', async () => {
+      getReservationMock.mockResolvedValue(readyToConfirm());
+      confirmReservationMock.mockRejectedValue(
+        new ReservationCommandError(409, { code: 'VEHICLE_NOT_AVAILABLE', detail: 'Vehiculo ocupado del 20/09 al 22/09.' }),
+      );
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirmar reserva' }));
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent('Vehiculo ocupado del 20/09 al 22/09.');
+      expect(screen.queryByText(/cambió por otra operación/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Recargar' })).not.toBeInTheDocument();
+      const confirmBtn = screen.getByRole('button', { name: 'Confirmar reserva' });
+      expect(confirmBtn).toBeDisabled();
+      expect(confirmBtn).toHaveAttribute('aria-describedby', alert.id);
+    });
+
+    it('409 VEHICLE_NOT_AVAILABLE sin detail usa el mensaje por defecto', async () => {
+      getReservationMock.mockResolvedValue(readyToConfirm());
+      confirmReservationMock.mockRejectedValue(new ReservationCommandError(409, { code: 'VEHICLE_NOT_AVAILABLE' }));
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirmar reserva' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Este vehículo ya está ocupado para estas fechas. Elige otro vehículo u otras fechas.',
+      );
+    });
+
+    it('412 RESERVATION_VERSION_CONFLICT muestra el banner de sincronizacion con Recargar', async () => {
+      getReservationMock.mockResolvedValue(readyToConfirm());
+      confirmReservationMock.mockRejectedValue(
+        new ReservationCommandError(412, { code: 'RESERVATION_VERSION_CONFLICT', detail: 'version' }),
+      );
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirmar reserva' }));
+
+      expect(await screen.findByText(/Esta reserva cambió por otra operación/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Recargar' })).toBeInTheDocument();
+    });
+
+    it('otro 409 con otro code muestra el mensaje del back sin pasar a SYNC_CONFLICT', async () => {
+      getReservationMock.mockResolvedValue(readyToConfirm());
+      confirmReservationMock.mockRejectedValue(
+        new ReservationCommandError(409, { code: 'RESERVATION_NOT_CONFIRMABLE', detail: 'Faltan requisitos.' }),
+      );
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirmar reserva' }));
+
+      expect(await screen.findByText('Faltan requisitos.')).toBeInTheDocument();
+      expect(screen.queryByText(/cambió por otra operación/)).not.toBeInTheDocument();
+    });
+
+    it('cancelar con un 409 de otro code tampoco es conflicto de sincronizacion', async () => {
+      getReservationMock.mockResolvedValue(
+        buildReservation({ status: 'CONFIRMED', version: 2, confirmedAt: '2026-09-16T00:00:00Z' }),
+      );
+      cancelReservationMock.mockRejectedValue(new ReservationCommandError(409, { code: 'OTHER' }));
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancelar por cambio solicitado' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Confirmar cancelación' }));
+
+      expect(await screen.findByText('No se pudo completar la operación. Intenta de nuevo.')).toBeInTheDocument();
+      expect(screen.queryByText(/cambió por otra operación/)).not.toBeInTheDocument();
+    });
   });
 });
