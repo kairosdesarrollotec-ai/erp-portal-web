@@ -37,4 +37,25 @@ describe('ReturnFlowShell - alertas del expediente', () => {
     expect(screen.queryByTestId('alert-warranty')).not.toBeInTheDocument();
     expect(screen.queryByTestId('alert-immobilization')).not.toBeInTheDocument();
   });
+
+  it('muestra el retraso informativo solo si isLate', () => {
+    const late = { lateToleranceMinutes: 30, lateMinutes: 45, isLate: true, basis: 'RECEIVED' as const };
+    const { unmount } = render(
+      <MemoryRouter>
+        <ReturnFlowShell step={4} title="Resultado" lateness={late}>
+          <p>contenido</p>
+        </ReturnFlowShell>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('lateness-banner')).toHaveTextContent('Retraso: 45 min (tolerancia 30 min)');
+    unmount();
+    render(
+      <MemoryRouter>
+        <ReturnFlowShell step={4} title="Resultado" lateness={{ ...late, isLate: false, lateMinutes: 10 }}>
+          <p>contenido</p>
+        </ReturnFlowShell>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByTestId('lateness-banner')).not.toBeInTheDocument();
+  });
 });

@@ -93,6 +93,13 @@ describe('GuaranteeScreen (DEV-09)', () => {
     expect(await screen.findByText('pantalla cierre')).toBeInTheDocument();
   });
 
+  it('muestra el saldo a favor de la reserva cuando reservationCreditExcess > 0', async () => {
+    getRentalMock.mockResolvedValue({ id: 'rent-1', branchId: 'b1', deposit: { originalAmount: '200', currency: 'PEN', reservationCreditExcess: '100.00' } });
+    flowMock.mockReturnValue(makeFlow({ ret: sinDanos() }));
+    mount();
+    expect(await screen.findByTestId('reservation-credit-excess')).toHaveTextContent('Saldo a favor de la reserva (sin reembolso automático): S/ 100.00');
+  });
+
   it('con daños: descuenta los daños registrados de la garantia', async () => {
     flowMock.mockReturnValue(
       makeFlow({

@@ -150,6 +150,15 @@ export interface ReturnAlertItem {
   immobilization: ImmobilizationAlert | null;
 }
 
+/** BR-DEV-003 - retraso informativo (tolerancia 30 min sobre scheduledAt). No genera cobro. */
+export interface ReturnLateness {
+  lateToleranceMinutes: number;
+  lateMinutes: number;
+  isLate: boolean;
+  /** RECEIVED: medido contra receivedAt; NOW: contra el reloj (aun sin recepcion). */
+  basis: 'RECEIVED' | 'NOW';
+}
+
 export interface ReturnResponse {
   id: string;
   organizationId: string;
@@ -187,6 +196,8 @@ export interface ReturnResponse {
   reminder?: ReturnReminder | null;
   /** Alertas operativas calculadas con el reloj; solo en GET /returns/{id} y GET /returns (los comandos la omiten). */
   alerts?: ReturnAlerts;
+  /** Retraso informativo; solo en GET /returns y GET /returns/{id}. null si no aplica. */
+  lateness?: ReturnLateness | null;
   /** Fuente de verdad de danos y cargos de paralizacion del expediente. */
   damages: ReturnDamageResponse[];
   immobilizationCharges: ImmobilizationChargeResponse[];

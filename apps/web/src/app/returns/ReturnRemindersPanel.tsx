@@ -16,7 +16,7 @@ const NOTE_MAX = 500;
 
 /**
  * DEV-01 / BR-DEV-004 - tarjeta de un recordatorio. El envio por WhatsApp es MANUAL-ASISTIDO: el operador copia el
- * texto (o abre wa.me), lo envia por su cuenta y aqui registra el resultado. Un SENT es definitivo; un FAILED admite reintento.
+ * texto (o abre wa.me), lo envia por su cuenta y aqui registra el resultado. Un SENT es definitivo. Un FAILED solo se registra (BR-DEV-004): no hay escalamiento ni reintento automatico.
  *
  * Prototipo(s) aprobado(s): PROTO-DEV-01-BANDEJA y PROTO-DEV-02-RECORDATORIO-Y-RECEPCION (sin variante propia de la
  * tarjeta: se reutilizan los estilos de banner/tarjeta del modulo).
