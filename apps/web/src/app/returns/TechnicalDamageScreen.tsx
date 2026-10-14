@@ -123,6 +123,7 @@ export function TechnicalDamageScreen() {
       continueDisabled={technicalDamages.length === 0}
       errorMessage={error}
       alerts={ret.alerts}
+      lateness={ret.lateness}
     >
       <h1 className={styles.pageHeading}>Daño técnico — {ret.vehiclePlate ?? 'Vehículo'}</h1>
       <p className={`${styles.banner} ${styles.banner_warning}`}>

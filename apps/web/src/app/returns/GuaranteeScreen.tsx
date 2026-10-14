@@ -127,6 +127,7 @@ export function GuaranteeScreen() {
       continueBusy={busy}
       errorMessage={error}
       alerts={ret.alerts}
+      lateness={ret.lateness}
     >
       <h1 className={styles.pageHeading}>Resolución de garantía — {ret.vehiclePlate ?? 'Vehículo'}</h1>
 
@@ -164,6 +165,12 @@ export function GuaranteeScreen() {
 
       {actionable && depositAmount === null && !rentalError && rental && (
         <p className={`${styles.banner} ${styles.banner_warning}`}>El alquiler de origen no tiene garantía registrada.</p>
+      )}
+
+      {depositAmount !== null && Number(rental?.deposit?.reservationCreditExcess ?? 0) > 0 && (
+        <p className={`${styles.banner} ${styles.banner_warning}`} role="status" data-testid="reservation-credit-excess">
+          Saldo a favor de la reserva (sin reembolso automático): {money(Number(rental!.deposit!.reservationCreditExcess))}
+        </p>
       )}
 
       {depositAmount !== null && (

@@ -375,5 +375,14 @@ describe('ReturnsListScreen (DEV-01) - recordatorios y alertas', () => {
     renderScreen();
     expect(await screen.findByText('Garantía por liberar')).toBeInTheDocument();
   });
-});
 
+  it('muestra etiqueta de retraso solo si isLate (informativa)', async () => {
+    listReturnsMock.mockResolvedValue([
+      makeReturn({ id: 'late', lateness: { lateToleranceMinutes: 30, lateMinutes: 50, isLate: true, basis: 'NOW' } }),
+      makeReturn({ id: 'ok', lateness: { lateToleranceMinutes: 30, lateMinutes: 5, isLate: false, basis: 'NOW' } }),
+    ]);
+    renderScreen();
+    expect(await screen.findByText('Retraso: 50 min (tolerancia 30 min)')).toBeInTheDocument();
+    expect(screen.getAllByTestId('lateness-badge')).toHaveLength(1);
+  });
+});

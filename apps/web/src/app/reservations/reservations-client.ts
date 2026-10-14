@@ -269,10 +269,13 @@ export const RESERVATION_ERROR_MESSAGES: Record<string, string> = {
   ALTERNATIVE_VEHICLE_INVALID: 'El vehículo alternativo no es válido (mismo vehículo, otra sede o no está disponible). Elige otro.',
   ALTERNATIVE_VEHICLE_REQUIRED: 'Elige un vehículo alternativo para aceptar la oferta.',
   RESERVATION_VERSION_CONFLICT: 'La reserva cambió mientras trabajabas. Recarga para ver la versión actual.',
+  INVALID_CANCEL_REASON:
+    'Motivo de cancelación no válido: solo se permite cambio solicitado por el cliente o no presentación. La venta del vehículo se resuelve desde "Registrar venta".',
   IF_MATCH_REQUIRED: 'No se pudo verificar la versión de la reserva. Recarga e intenta de nuevo.',
 };
 
 export function describeReservationError(error: ReservationCommandError): string {
+  if (error.problem?.code === 'INVALID_CANCEL_REASON') return RESERVATION_ERROR_MESSAGES.INVALID_CANCEL_REASON;
   return (
     error.problem?.detail?.trim() ||
     (error.problem?.code ? RESERVATION_ERROR_MESSAGES[error.problem.code] : undefined) ||

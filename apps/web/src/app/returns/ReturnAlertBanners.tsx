@@ -1,10 +1,11 @@
-import type { ReturnAlertItem, ReturnAlerts } from './returns-types';
+import type { ReturnAlertItem, ReturnAlerts, ReturnLateness } from './returns-types';
 import {
   immobilizationAlertText,
   immobilizationAlertTitle,
   warrantyAlertText,
   warrantyAlertTitle,
 } from './return-alerts';
+import { latenessLabel } from './return-lateness';
 import styles from './ReturnAlerts.module.css';
 
 /**
@@ -12,11 +13,26 @@ import styles from './ReturnAlerts.module.css';
  * Solo alertan: la liberacion de garantia y el cobro por paralizacion siguen siendo acciones manuales
  * del flujo (close-financial / charge-immobilization).
  */
-export function ReturnAlertBanners({ alerts }: { alerts: ReturnAlerts | null | undefined }) {
-  if (!alerts || (!alerts.warrantyRelease && !alerts.immobilization)) return null;
+export function ReturnAlertBanners({
+  alerts,
+  lateness,
+}: {
+  alerts: ReturnAlerts | null | undefined;
+  lateness?: ReturnLateness | null;
+}) {
+  const lateText = latenessLabel(lateness);
+  if (!lateText && (!alerts || (!alerts.warrantyRelease && !alerts.immobilization))) return null;
   return (
     <div aria-label="Alertas del expediente">
-      {alerts.warrantyRelease && (
+      {lateText && (
+        <div role="status" data-testid="lateness-banner" className={`${styles.banner} ${styles.banner_warning}`}>
+          <span>
+            <span className={styles.bannerTitle}>{lateText}</span>
+            <span className={styles.bannerMeta}>Informativo: no genera cobro.</span>
+          </span>
+        </div>
+      )}
+      {alerts?.warrantyRelease && (
         <div
           role="alert"
           data-testid="alert-warranty"
@@ -28,7 +44,7 @@ export function ReturnAlertBanners({ alerts }: { alerts: ReturnAlerts | null | u
           </span>
         </div>
       )}
-      {alerts.immobilization && (
+      {alerts?.immobilization && (
         <div role="alert" data-testid="alert-immobilization" className={`${styles.banner} ${styles.banner_warning}`}>
           <span>
             <span className={styles.bannerTitle}>{immobilizationAlertTitle()}</span>

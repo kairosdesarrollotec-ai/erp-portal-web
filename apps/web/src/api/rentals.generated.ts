@@ -31,7 +31,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Crear alquiler a partir de reserva confirmada (RES-05 / ALQ-01) */
+        /**
+         * Crear alquiler a partir de reserva confirmada (RES-05 / RES-08 "se presento" / ALQ-01)
+         * @description Desde 1.3.0 (UC-RES-005, BR-RES-002): en la MISMA transaccion la reserva pasa CONFIRMED -> CONVERTED (updateMany atomico por scope + estado), se crea el alquiler y el `vehicle_commitment` de la reserva se traslada al alquiler (sigue bloqueando el vehiculo; no hay doble conflicto de solape). Se audita y se publica el evento `ReservationConverted`. Idempotente: si la reserva ya esta CONVERTED se devuelve el alquiler existente (201) en vez de fallar. El monto pagado de la reserva sigue trasladandose a la garantia (P0-03 opcion a, ver formalize-contract). Es el camino "se presento" del protocolo de no-show (RES-08); "no se presento" es `cancel` con reason NO_SHOW en reservations.yaml (solo Gerencia).
+         */
         post: operations["createRentalFromReservation"];
         delete?: never;
         options?: never;
@@ -155,7 +158,7 @@ export interface paths {
         put?: never;
         /**
          * Formalizar contrato firmado y registrar garantía (BR-DOC-002/003)
-         * @description `depositAmount` es la garantía TOTAL del vehículo (se digita a mano hasta que Flota la provea). En alquileres de origen Reserva el monto pagado por la reserva se traslada íntegro a esa garantía (P0-03 opción a) y solo se cobra la diferencia: la respuesta trae `deposit.reservationCreditAmount` y `deposit.amountCollected`. En alquiler directo no hay traslado. El traslado solo aplica si la reserva sigue CONFIRMED/CONVERTED con el pago validado; una reserva cancelada (incluye no-show) no traslada nada. La plantilla se elige por `holderType` + `withDriver` (BR-DOC-003).
+         * @description `depositAmount` es la garantía TOTAL del vehículo (se digita a mano hasta que Flota la provea). En alquileres de origen Reserva el monto pagado por la reserva se traslada íntegro a esa garantía (P0-03 opción a) y solo se cobra la diferencia: la respuesta trae `deposit.reservationCreditAmount` y `deposit.amountCollected`. En alquiler directo no hay traslado. El traslado solo aplica si la reserva sigue CONFIRMED/CONVERTED con el pago validado; una reserva cancelada (incluye no-show) no traslada nada. La plantilla se elige por `holderType` + `withCompanyDriver` (BR-DOC-003). Si el monto de la reserva supera la garantía, se aplica hasta cubrirla y el sobrante se informa en `deposit.reservationCreditExcess`.
          */
         post: operations["formalizeContract"];
         delete?: never;
@@ -417,7 +420,12 @@ export interface components {
             /** @enum {string} */
             depositCurrency: "PEN" | "USD";
             holderType?: components["schemas"]["ContractHolderType"];
-            /** @description BR-DOC-003. El vehículo lo maneja un conductor distinto del titular (conductor de la empresa o conductor propio autorizado). Obligatorio si se envía holderType. */
+            /** @description BR-DOC-003. El cliente pide que la empresa le OFREZCA un conductor (servicio). No es el conductor distinto del titular de BR-ALQ-015. Obligatorio si se envía holderType. */
+            withCompanyDriver?: boolean;
+            /**
+             * @deprecated
+             * @description DEPRECADO (DEC-ALQ-DRIVER-001). Alias de withCompanyDriver; si ambos difieren, 400 CONTRACT_VARIANT_DRIVER_CONFLICT.
+             */
             withDriver?: boolean;
             /** @description Firma digital del cliente capturada en canvas como PNG base64 (data URI sin el prefijo "data:image/png;base64,"). Opcional - se almacena junto al contrato cuando se proporciona. */
             signatureData?: string | null;
@@ -566,6 +574,12 @@ export interface components {
             rentalId: string;
             variant?: {
                 holderType: components["schemas"]["ContractHolderType"];
+                /** @description La empresa ofrece conductor al cliente (BR-DOC-003). */
+                withCompanyDriver: boolean;
+                /**
+                 * @deprecated
+                 * @description Alias deprecado de withCompanyDriver (mismo valor).
+                 */
                 withDriver: boolean;
             } | null;
             /** @description Tipo de plantilla buscado primero (RENTAL_CONTRACT_NATURAL, ..._NATURAL_DRIVER, ..._LEGAL, ..._LEGAL_DRIVER o RENTAL_CONTRACT). */
@@ -591,6 +605,8 @@ export interface components {
             status: string;
             /** @description P0-03 (a) - parte de la garantía ya pagada como reserva. "0.00" en alquiler directo. */
             reservationCreditAmount: string;
+            /** @description DEC-ALQ-RESCREDIT-002 - excedente del monto de la reserva sobre la garantía ("0.00" si no hay). Saldo a favor solo informativo: sin reembolso ni cálculo automático (pregunta abierta a Finanzas). */
+            reservationCreditExcess: string;
             /** @description Diferencia cobrada al formalizar = originalAmount - reservationCreditAmount. */
             amountCollected: string;
             /** Format: date-time */
@@ -919,7 +935,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description La reserva no está en estado CONFIRMED o ya tiene un alquiler asociado */
+            /** @description RESERVATION_NOT_CONFIRMED - la reserva no esta CONFIRMED (DRAFT, PENDING_SALE_RESOLUTION, CANCELLED...) o cambio de estado mientras se procesaba; RENTAL_ALREADY_EXISTS_FOR_RESERVATION */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1269,7 +1285,12 @@ export interface operations {
                 companyId: string;
                 branchId: string;
                 holderType?: components["schemas"]["ContractHolderType"];
-                /** @description Obligatorio si se envía holderType. */
+                /** @description true si el cliente pide que la empresa le ofrezca un conductor (BR-DOC-003). Obligatorio si se envía holderType (o su alias deprecado withDriver). */
+                withCompanyDriver?: "true" | "false";
+                /**
+                 * @deprecated
+                 * @description DEPRECADO: alias de withCompanyDriver.
+                 */
                 withDriver?: "true" | "false";
             };
             header?: never;
@@ -1380,7 +1401,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description RESERVATION_CREDIT_EXCEEDS_DEPOSIT (el monto de la reserva supera la garantía) o RESERVATION_CREDIT_CURRENCY_MISMATCH (moneda distinta) */
+            /** @description RESERVATION_CREDIT_CURRENCY_MISMATCH (moneda distinta). Un monto de reserva mayor que la garantía ya NO es error (queda en deposit.reservationCreditExcess). */
             422: {
                 headers: {
                     [name: string]: unknown;

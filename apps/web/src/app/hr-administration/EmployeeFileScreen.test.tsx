@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { EmployeeFileScreen } from './EmployeeFileScreen';
 import { HrApiError } from './hr-client';
@@ -7,6 +7,7 @@ import { baseContext, makeDetail } from './hr-test-utils';
 import { setPermissions } from '../../test/permissions';
 
 const getEmployeeMock = vi.fn();
+const linkMock = vi.fn();
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
@@ -17,7 +18,7 @@ vi.mock('../notifications/useNotifications', () => ({
 }));
 vi.mock('./hr-client', async () => {
   const actual = await vi.importActual<typeof import('./hr-client')>('./hr-client');
-  return { ...actual, getEmployee: (...a: unknown[]) => getEmployeeMock(...a) };
+  return { ...actual, getEmployee: (...a: unknown[]) => getEmployeeMock(...a), linkEmployeeAccount: (...a: unknown[]) => linkMock(...a) };
 });
 
 function renderScreen() {
@@ -103,5 +104,43 @@ describe('EmployeeFileScreen (ADP-01 ficha)', () => {
     expect(screen.getByText(/generado automáticamente/)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Capacitaciones' })).toBeInTheDocument();
     expect(screen.getByText(/Manejo defensivo/)).toBeInTheDocument();
+  });
+
+  describe('vinculo usuario-ficha por correo', () => {
+    it('sin vincular con correo y MANAGE_EMPLOYEES: boton Vincular cuenta; al vincular recarga', async () => {
+      setPermissions([...ALL, 'HR_ADMINISTRATION.MANAGE_EMPLOYEES']);
+      getEmployeeMock.mockResolvedValueOnce(makeDetail({ accountLinked: false })).mockResolvedValue(makeDetail({ accountLinked: true }));
+      linkMock.mockResolvedValue({});
+      renderScreen();
+      expect(await screen.findByTestId('account-link-status')).toHaveTextContent('Sin vincular (por correo)');
+      fireEvent.click(screen.getByRole('button', { name: 'Vincular cuenta' }));
+      await waitFor(() => expect(linkMock).toHaveBeenCalledWith('tok', 'emp-1'));
+      await waitFor(() => expect(screen.getByTestId('account-link-status')).toHaveTextContent('Cuenta vinculada (por correo)'));
+      expect(screen.queryByRole('button', { name: 'Vincular cuenta' })).not.toBeInTheDocument();
+    });
+
+    it('sin permiso MANAGE_EMPLOYEES o sin correo no hay boton', async () => {
+      getEmployeeMock.mockResolvedValue(makeDetail({ accountLinked: false }));
+      const { unmount } = renderScreen();
+      await screen.findByTestId('account-link-status');
+      expect(screen.queryByRole('button', { name: 'Vincular cuenta' })).not.toBeInTheDocument();
+      unmount();
+      setPermissions([...ALL, 'HR_ADMINISTRATION.MANAGE_EMPLOYEES']);
+      getEmployeeMock.mockResolvedValue(makeDetail({ accountLinked: false, email: undefined }));
+      renderScreen();
+      await screen.findByTestId('account-link-status');
+      expect(screen.queryByRole('button', { name: 'Vincular cuenta' })).not.toBeInTheDocument();
+      expect(screen.getByText(/Registra un correo en la ficha/)).toBeInTheDocument();
+    });
+
+    it('traduce 404 USER_ACCOUNT_NOT_FOUND', async () => {
+      const { HrCommandError } = await import('./hr-client');
+      setPermissions([...ALL, 'HR_ADMINISTRATION.MANAGE_EMPLOYEES']);
+      getEmployeeMock.mockResolvedValue(makeDetail({ accountLinked: false }));
+      linkMock.mockRejectedValue(new HrCommandError(404, { code: 'USER_ACCOUNT_NOT_FOUND' }));
+      renderScreen();
+      fireEvent.click(await screen.findByRole('button', { name: 'Vincular cuenta' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(/No existe una cuenta de usuario/);
+    });
   });
 });

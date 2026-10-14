@@ -48,7 +48,7 @@ export function Stage3ContractScreen() {
   const [error, setError] = useState<string | null>(null);
   const [evaluating, setEvaluating] = useState(false);
   const [holderType, setHolderType] = useState<ContractHolderType>('NATURAL');
-  const [withDriver, setWithDriver] = useState(false);
+  const [withCompanyDriver, setWithCompanyDriver] = useState(false);
   const [templateSel, setTemplateSel] = useState<ContractTemplateSelectionResponse | null>(null);
   const [templateState, setTemplateState] = useState<'LOADING' | 'READY' | 'ERROR'>('LOADING');
 
@@ -80,7 +80,7 @@ export function Stage3ContractScreen() {
         const idToken = await getIdToken();
         const sel = await getContractTemplate(idToken, id, context.companyId, context.branchId, {
           holderType,
-          withDriver,
+          withCompanyDriver,
         });
         if (cancelled) return;
         setTemplateSel(sel);
@@ -96,7 +96,7 @@ export function Stage3ContractScreen() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rental?.id, holderType, withDriver]);
+  }, [rental?.id, holderType, withCompanyDriver]);
 
   const needsException = evaluation && (evaluation.result === 'MANUAL_REVIEW' || evaluation.result === 'THIRD_PATH_ELIGIBLE');
   const exceptionResolved = !needsException || !!evaluation?.approvedBy;
@@ -111,8 +111,7 @@ export function Stage3ContractScreen() {
     !!paymentAmount &&
     !depositBelowMinimum &&
     !rental?.contract &&
-    hasTemplate &&
-    !breakdown.exceedsTotal;
+    hasTemplate;
 
   async function handleApproveException() {
     if (!rental || !context || justification.trim().length < 10) return;
@@ -157,14 +156,19 @@ export function Stage3ContractScreen() {
         'PEN',
         undefined,
         signatureData ?? undefined,
-        { holderType, withDriver },
+        { holderType, withCompanyDriver },
       );
       setRental(updated);
       setConfirmOpen(false);
       navigate(`/alquileres/${id}/entrega-04`, { state: context });
     } catch (err) {
-      if (err instanceof RentalCommandError) setError(err.message);
-      else setError('No pudimos formalizar el contrato.');
+      if (err instanceof RentalCommandError) {
+        setError(
+          err.problem?.code === 'CONTRACT_VARIANT_DRIVER_CONFLICT'
+            ? 'La variante del contrato es inconsistente: la opción de conductor de la empresa no coincide. Recarga la pantalla e inténtalo de nuevo.'
+            : err.message,
+        );
+      } else setError('No pudimos formalizar el contrato.');
       setConfirmOpen(false);
     } finally {
       setBusy(false);
@@ -240,8 +244,8 @@ export function Stage3ContractScreen() {
           </button>
         </div>
         <label className={styles.fieldLabel}>
-          <input type="checkbox" checked={withDriver} onChange={(e) => setWithDriver(e.target.checked)} />
-          {' '}Con conductor distinto del titular
+          <input type="checkbox" checked={withCompanyDriver} onChange={(e) => setWithCompanyDriver(e.target.checked)} />
+          {' '}Con conductor de la empresa
         </label>
         {templateState === 'LOADING' && <p className={styles.statusText}>Buscando plantilla…</p>}
         {templateState === 'ERROR' && (
@@ -319,10 +323,10 @@ export function Stage3ContractScreen() {
             <div><dt>Diferencia a cobrar</dt><dd>{formatPen(breakdown.toCollect)}</dd></div>
           </dl>
         )}
-        {breakdown.exceedsTotal && (
-          <span className={styles.evidenceError} role="alert">
-            La reserva aplicada ({formatPen(breakdown.credit)}) supera la garantía indicada.
-          </span>
+        {breakdown.creditExcess > 0 && (
+          <p className={styles.fieldHint} role="status" data-testid="reservation-credit-excess">
+            Saldo a favor de la reserva (sin reembolso automático): {formatPen(breakdown.creditExcess)}
+          </p>
         )}
         <div className={styles.chipRow}>
           <button
