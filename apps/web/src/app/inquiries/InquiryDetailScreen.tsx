@@ -76,7 +76,7 @@ export function InquiryDetailScreen() {
     if (!startAt || canComeToOffice === null) return;
     const channelMode = canComeToOffice ? 'PRESENCIAL' : 'VIRTUAL';
     const reservationId = await convertToReservation(channelMode, limaDateTimeToInstant(startAt) ?? startAt);
-    if (reservationId) navigate(`/reservas/${reservationId}`);
+    if (reservationId) navigate(`/reservas/${reservationId}`, { state: context ?? undefined });
   }
 
   async function handleConvertToRental() {

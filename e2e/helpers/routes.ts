@@ -166,6 +166,30 @@ export async function interceptRentals(
     deposit: { originalAmount: '500.00', currency: 'PEN' },
   };
 
+  // Document upload session (LICENSE, ID_DOCUMENT, PROOF_OF_ADDRESS)
+  await page.route(/\/rentals\/[^/]+\/documents\/upload-url/, (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return route.fulfill({
+      status: 201,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        uploadUrl: 'http://localhost:9999/fake-gcs-upload',
+        objectUrl: 'gs://fake-bucket/fake-doc.jpg',
+      }),
+    });
+  });
+
+  // Fake GCS upload endpoint
+  await page.route('**/fake-gcs-upload', (route) =>
+    route.fulfill({ status: 200 }),
+  );
+
+  // Record document after upload
+  await page.route(/\/rentals\/[^/]+\/documents$/, (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    return route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
+  });
+
   // Command: validate-documents
   await page.route(/\/rentals\/[^/]+\/commands\/validate-documents/, (route) =>
     route.fulfill({
@@ -188,6 +212,21 @@ export async function interceptRentals(
       }),
     }),
   );
+
+  // Query: contract-template selection (holderType/withDriver)
+  await page.route(/\/rentals\/[^/]+\/contract-template/, (route) => {
+    if (route.request().method() !== 'GET') return route.continue();
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        variant: { holderType: 'NATURAL', withDriver: false },
+        requestedType: 'RENTAL_CONTRACT',
+        fallbackUsed: false,
+        template: { id: 'tpl-e2e-001', type: 'RENTAL_CONTRACT', name: 'Plantilla Estándar E2E', versionNumber: 1 },
+      }),
+    });
+  });
 
   // Command: evaluate-notary
   await page.route(/\/rentals\/[^/]+\/commands\/evaluate-notary/, (route) =>

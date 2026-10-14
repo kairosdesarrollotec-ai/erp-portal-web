@@ -81,8 +81,8 @@ test.describe('DEV-02 / DEV-03 Recepción y alcoholímetro', () => {
     await page.getByRole('button', { name: 'Recibir vehículo' }).click();
 
     await expect(page).toHaveURL(/\/devoluciones\/ret-e2e-001\/alcoholimetro/);
-    await page.getByRole('radio', { name: 'Favorable', exact: true }).check();
-    await page.getByRole('button', { name: 'Registrar y continuar' }).click();
+    await page.getByRole('radio', { name: /^Favorable/i }).check();
+    await page.getByRole('button', { name: 'Continuar al checklist' }).click();
 
     await expect(page).toHaveURL(/\/checklist/);
     const alcohol = intercepted.commands.find((c) => c.path === 'register-alcohol-test');
@@ -94,7 +94,7 @@ test.describe('DEV-02 / DEV-03 Recepción y alcoholímetro', () => {
     const intercepted = await setup(page);
     await page.goto('/devoluciones/ret-e2e-001/alcoholimetro');
 
-    await page.getByRole('radio', { name: 'Desfavorable', exact: true }).check();
+    await page.getByRole('radio', { name: /^Desfavorable/i }).check();
     await expect(page.getByRole('alert').filter({ hasText: 'custodia' })).toBeVisible();
     await page.getByRole('button', { name: 'Derivar a Gerencia' }).click();
 
