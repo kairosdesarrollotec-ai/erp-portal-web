@@ -126,7 +126,7 @@ export function Stage1DocumentsScreen() {
       <fieldset className={styles.fieldset}>
         <legend>Documentos</legend>
         <label className={styles.checkboxRow}>
-          <input type="checkbox" checked={licenseValid} onChange={(e) => setLicenseValid(e.target.checked)} />
+          <input type="checkbox" data-testid="license-checkbox" checked={licenseValid} onChange={(e) => setLicenseValid(e.target.checked)} />
           Licencia de conducir válida (obligatoria)
         </label>
 

@@ -43,7 +43,7 @@ test.describe('ENTREGA-01 Cliente y documentos', () => {
 
     await expect(page.getByText('Carlos López')).toBeVisible();
     await expect(page.getByText('ABC-123')).toBeVisible();
-    await expect(page.getByLabel(/Licencia de conducir válida/i)).toBeVisible();
+    await expect(page.getByTestId('license-checkbox')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeDisabled();
   });
 
@@ -53,9 +53,9 @@ test.describe('ENTREGA-01 Cliente y documentos', () => {
     await page.waitForLoadState('networkidle');
 
     // Espera que el formulario cargue
-    await expect(page.getByLabel(/Licencia de conducir válida/i)).toBeVisible();
+    await expect(page.getByTestId('license-checkbox')).toBeVisible();
 
-    await page.getByRole('checkbox', { name: /Licencia de conducir válida/i }).check();
+    await page.getByTestId('license-checkbox').check();
     await page.getByLabel(/DNI válido/i).check();
 
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
@@ -207,7 +207,7 @@ test.describe('Flujo completo asistente de entrega', () => {
 
     // — Stage 1 —
     await expect(page.getByText('Carlos López')).toBeVisible();
-    await page.getByRole('checkbox', { name: /Licencia de conducir válida/i }).check();
+    await page.getByTestId('license-checkbox').check();
     await page.getByLabel(/DNI válido/i).check();
     await page.getByRole('button', { name: 'Continuar' }).click();
 
