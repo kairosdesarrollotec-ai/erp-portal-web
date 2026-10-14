@@ -249,7 +249,7 @@ export interface paths {
         put?: never;
         /**
          * Registrar el resultado del envío manual del recordatorio de devolución (DEV-01 / BR-DEV-004 / DAT-DEV-001)
-         * @description El sistema NO envía el WhatsApp (la integración no existe): el operador lo envía a mano y aquí registra la hora y el resultado (SENT | FAILED + nota; la nota es obligatoria si FAILED). `If-Match` lleva la versión del RECORDATORIO (`reminder.version` / `reminder.etag`), no la del expediente, y el comando no modifica la versión del expediente. Un recordatorio FAILED admite un nuevo registro (reintento); uno SENT es definitivo (409 RETURN_REMINDER_ALREADY_SENT). Acción de matriz: RETURN.CREATE.
+         * @description El sistema NO envía el WhatsApp (la integración no existe): el operador lo envía a mano y aquí registra la hora y el resultado (SENT | FAILED + nota; la nota es obligatoria si FAILED). `If-Match` lleva la versión del RECORDATORIO (`reminder.version` / `reminder.etag`), no la del expediente, y el comando no modifica la versión del expediente. Un recordatorio FAILED admite un nuevo registro MANUAL del operador; uno SENT es definitivo (409 RETURN_REMINDER_ALREADY_SENT). Acción de matriz: RETURN.CREATE. Regla CONFIRMADA: si el cliente no contesta, SOLO se registra (FAILED + nota con el motivo): el sistema no escala, no notifica a terceros ni reintenta el envío automáticamente. La tolerancia de 30 min (BR-DEV-003/004) solo se informa en el texto del recordatorio.
          */
         post: operations["registerReturnReminder"];
         delete?: never;
@@ -425,6 +425,19 @@ export interface components {
             dailyRate: number | null;
             /** @description pendingDays x dailyRate (sugerencia; el cobro es manual) */
             suggestedAmount: number | null;
+        };
+        ReturnLateness: {
+            /** @example 30 */
+            lateToleranceMinutes: number;
+            /** @description Minutos enteros pasados de la hora pactada (0 si no hay retraso bruto) */
+            lateMinutes: number;
+            /** @description true solo si el retraso supera estrictamente la tolerancia */
+            isLate: boolean;
+            /**
+             * @description RECEIVED = contra la recepción real (definitivo); NOW = aún no recibido (parcial, crece con el reloj)
+             * @enum {string}
+             */
+            basis: "RECEIVED" | "NOW";
         };
         ReturnAlerts: {
             warrantyRelease: components["schemas"]["WarrantyReleaseAlert"] | null;
@@ -731,6 +744,8 @@ export interface components {
             reminder: components["schemas"]["ReturnReminderResponse"] | null;
             /** @description Alertas operativas calculadas con el reloj. Solo en GET /returns/{id} y GET /returns; las respuestas de comandos la omiten. warrantyRelease = garantía por liberar a las 24 h; immobilization = más de 24 h sin cobrar (solo alertan). */
             alerts?: components["schemas"]["ReturnAlerts"];
+            /** @description BR-DEV-003 (CONFIRMADO): tolerancia de devolución sin sanción de 30 min sobre scheduledAt. Solo en GET /returns/{id} y GET /returns; las respuestas de comandos la omiten. null si no aplica (CANCELADA sin recepción). Informativo: no dispara cargos (los documentos no definen cargo por retraso). */
+            lateness?: components["schemas"]["ReturnLateness"] | null;
             /** Format: date-time */
             scheduledAt: string;
             /** Format: date-time */

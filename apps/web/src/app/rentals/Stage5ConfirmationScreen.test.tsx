@@ -266,4 +266,10 @@ describe('Stage5ConfirmationScreen (ENTREGA-05 / ALQ-09)', () => {
 
     expect(await screen.findByText(/No pudimos confirmar la entrega/)).toBeInTheDocument();
   });
+
+  it('muestra el saldo a favor de la reserva solo si reservationCreditExcess > 0', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard({ rental: { ...baseRental, deposit: { ...baseRental.deposit, originalAmount: '0.00', reservationCreditExcess: '100.00' } } }));
+    renderScreen();
+    expect(await screen.findByTestId('reservation-credit-excess')).toHaveTextContent('Saldo a favor de la reserva (sin reembolso automático): 100.00 PEN');
+  });
 });

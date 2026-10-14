@@ -109,7 +109,7 @@ function renderScreen() {
 
 function templateSelection(overrides?: Record<string, unknown>) {
   return {
-    variant: { holderType: 'NATURAL', withDriver: false },
+    variant: { holderType: 'NATURAL', withCompanyDriver: false },
     requestedType: 'RENTAL_CONTRACT_NATURAL',
     fallbackUsed: false,
     template: { id: 't1', type: 'RENTAL_CONTRACT_NATURAL', name: 'Contrato persona natural' },
@@ -357,14 +357,27 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     expect(screen.getByTestId('guarantee-breakdown')).toHaveTextContent('S/ 550.00');
   });
 
-  it('reserva mayor que la garantia bloquea formalizar', async () => {
+  it('reserva mayor que la garantia no bloquea: cobro 0 y saldo a favor', async () => {
     useRentalWizardMock.mockReturnValue(makeWizard({ rental: reservationRental }));
     renderScreen();
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '200' } });
     await screen.findByText(/Contrato persona natural/);
-    expect(screen.getByRole('alert')).toHaveTextContent(/supera la garantía/);
-    expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeDisabled();
+    expect(screen.getByTestId('reservation-credit-excess')).toHaveTextContent(/Saldo a favor de la reserva \(sin reembolso automático\): S\/ 100\.00/);
+    expect(screen.getByTestId('guarantee-breakdown')).toHaveTextContent('S/ 0.00');
+    expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled();
+  });
+
+  it('traduce 400 CONTRACT_VARIANT_DRIVER_CONFLICT', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    formalizeContractMock.mockRejectedValue(new (await import('./rentals-client')).RentalCommandError(400, { code: 'CONTRACT_VARIANT_DRIVER_CONFLICT', detail: 'x' }));
+    renderScreen();
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
+    await screen.findByText(/Contrato persona natural/);
+    fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
+    expect(await screen.findByText(/variante del contrato es inconsistente/)).toBeInTheDocument();
   });
 
   it('el modal de confirmacion incluye el desglose', async () => {
@@ -375,7 +388,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     expect(screen.getByRole('dialog')).toHaveTextContent(/reserva aplicada S\/ 300\.00; a cobrar ahora S\/ 700\.00/);
   });
 
-  it('envia holderType y withDriver elegidos a formalize-contract', async () => {
+  it('envia holderType y withCompanyDriver elegidos a formalize-contract', async () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     getContractTemplateMock.mockResolvedValue(
       templateSelection({ template: { id: 't2', type: 'RENTAL_CONTRACT_LEGAL_DRIVER', name: 'Contrato persona jurídica con conductor' } }),
@@ -383,17 +396,17 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     formalizeContractMock.mockResolvedValue({ ...baseRental, status: 'PENDING_DELIVERY', version: 4 });
     renderScreen();
     fireEvent.click(screen.getByRole('button', { name: 'Persona jurídica' }));
-    fireEvent.click(screen.getByLabelText(/Con conductor distinto del titular/));
+    fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     await screen.findByText(/Contrato persona jurídica con conductor/);
     await waitFor(() =>
-      expect(getContractTemplateMock).toHaveBeenLastCalledWith('tok', 'rent-1', 'c1', 'b1', { holderType: 'LEGAL', withDriver: true }),
+      expect(getContractTemplateMock).toHaveBeenLastCalledWith('tok', 'rent-1', 'c1', 'b1', { holderType: 'LEGAL', withCompanyDriver: true }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
     await screen.findByText('etapa 4');
-    expect(formalizeContractMock.mock.calls[0][10]).toEqual({ holderType: 'LEGAL', withDriver: true });
+    expect(formalizeContractMock.mock.calls[0][10]).toEqual({ holderType: 'LEGAL', withCompanyDriver: true });
   });
 
   it('avisa cuando se usa la plantilla general por falta de la especifica', async () => {

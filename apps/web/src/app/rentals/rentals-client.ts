@@ -60,7 +60,7 @@ export interface RentalContractResponse {
 export type ContractHolderType = 'NATURAL' | 'LEGAL';
 
 export interface ContractTemplateSelectionResponse {
-  variant: { holderType: ContractHolderType; withDriver: boolean } | null;
+  variant: { holderType: ContractHolderType; withCompanyDriver: boolean } | null;
   requestedType: string;
   fallbackUsed: boolean;
   template: { id: string; type: string; name: string; versionNumber?: number } | null;
@@ -97,6 +97,8 @@ export interface RentalDepositResponse {
   originalAmount: string;
   currency: string;
   reservationCreditAmount?: string;
+  /** Saldo a favor de la reserva cuando supera la garantia (decimal; "0.00" si no hay). Sin reembolso automatico. */
+  reservationCreditExcess?: string;
   amountCollected?: string;
   status: string;
   createdAt: string;
@@ -307,12 +309,12 @@ export async function getContractTemplate(
   id: string,
   companyId: string,
   branchId: string,
-  variant: { holderType: ContractHolderType; withDriver: boolean },
+  variant: { holderType: ContractHolderType; withCompanyDriver: boolean },
 ): Promise<ContractTemplateSelectionResponse> {
   const { data, error, response } = await rentalsApiClient.GET('/rentals/{id}/contract-template', {
     params: {
       path: { id },
-      query: { companyId, branchId, holderType: variant.holderType, withDriver: variant.withDriver ? 'true' : 'false' },
+      query: { companyId, branchId, holderType: variant.holderType, withCompanyDriver: variant.withCompanyDriver ? 'true' : 'false' },
     },
     headers: { Authorization: `Bearer ${idToken}` },
   } as never);
@@ -336,7 +338,7 @@ export async function formalizeContract(
   depositCurrency: 'PEN' | 'USD',
   templateVersionId?: string,
   signatureData?: string,
-  variant?: { holderType: ContractHolderType; withDriver: boolean },
+  variant?: { holderType: ContractHolderType; withCompanyDriver: boolean },
 ): Promise<RentalResponse> {
   const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/formalize-contract', {
     params: { path: { id }, header: { 'If-Match': `"${version}"` } },
@@ -349,7 +351,7 @@ export async function formalizeContract(
       depositAmount,
       depositCurrency,
       ...(signatureData ? { signatureData } : {}),
-      ...(variant ? { holderType: variant.holderType, withDriver: variant.withDriver } : {}),
+      ...(variant ? { holderType: variant.holderType, withCompanyDriver: variant.withCompanyDriver } : {}),
     } as unknown as FormalizeContractBody,
   });
   if (error || !data) {
