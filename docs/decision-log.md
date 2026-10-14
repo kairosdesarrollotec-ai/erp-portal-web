@@ -75,16 +75,14 @@ Cada entrada: `ID | Fecha | Fuentes en conflicto | Decision | Aprobado por | Alc
 
 ### DEV-PORTAL-RES-SALE-CLIENT-001 — Workaround cliente para flag-sale/resolve-sale/change-vehicle
 **Fecha:** 2026-10-13
-**Estado:** PENDING_APPROVAL (UNAPPROVED_DEVIATION)
+**Estado:** APROBADO — Russbel/usuario, sesión 2026-10-13
 **Descripción:** Los endpoints POST /reservations/{id}/flag-sale, /resolve-sale y /change-vehicle existen en reservations.yaml v0.7.0 pero no están en reservations.generated.ts porque el cliente no fue regenerado. Se usa un type cast `as unknown as { POST: ... }` en reservations-client.ts para consumirlos sin seguridad de tipos.
 **Impacto:** Sin error de compilación si el contrato cambia. Riesgo bajo mientras backend y frontend estén en el mismo ciclo de release.
 **Remediación:** Ejecutar `generate:api` una vez que reservations.yaml v0.7.0 esté publicado en el contrato disponible para generación, y eliminar el workaround.
-**Aprobación requerida:** Confirmar que el desvío es aceptable hasta la próxima regeneración del cliente.
 
 ### DEV-PORTAL-TR09-PROFILE-CLIENT-001 — Fetch manual para GET /users/me/profile
 **Fecha:** 2026-10-13
-**Estado:** PENDING_APPROVAL (UNAPPROVED_DEVIATION)
+**Estado:** APROBADO — Russbel/usuario, sesión 2026-10-13
 **Descripción:** profile-client.ts usa `globalThis.fetch` manual para GET /users/me/profile porque el endpoint no figura en transversal.generated.ts. El endpoint sí existe en transversal.yaml y en el backend (users.controller.ts @Get('profile')), pero el cliente generado no fue actualizado.
 **Impacto:** Sin seguridad de tipos en la respuesta del perfil de usuario.
 **Remediación:** Regenerar transversal.generated.ts con `generate:api` y reemplazar el fetch manual por el cliente generado.
-**Aprobación requerida:** Confirmar que el desvío es aceptable hasta la próxima regeneración.
