@@ -186,6 +186,8 @@ export function ChecklistScreen() {
       onContinue={() => navigate(`/devoluciones/${id}/resultado`, { state: context })}
       continueLabel="Continuar a Resultado"
       continueDisabled={continueDisabled}
+      lateness={ret.lateness}
+      latenessCharge={ret.latenessCharge}
     >
       <h1 className={styles.pageHeading}>
         Recepción — {ret.vehiclePlate ?? 'Vehículo'}

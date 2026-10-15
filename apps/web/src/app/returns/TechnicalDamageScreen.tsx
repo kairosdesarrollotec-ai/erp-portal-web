@@ -124,6 +124,7 @@ export function TechnicalDamageScreen() {
       errorMessage={error}
       alerts={ret.alerts}
       lateness={ret.lateness}
+      latenessCharge={ret.latenessCharge}
     >
       <h1 className={styles.pageHeading}>Daño técnico — {ret.vehiclePlate ?? 'Vehículo'}</h1>
       <p className={`${styles.banner} ${styles.banner_warning}`}>
