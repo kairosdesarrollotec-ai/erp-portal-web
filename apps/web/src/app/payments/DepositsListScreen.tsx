@@ -13,6 +13,7 @@ import {
 import { getDepositsSummary, listDeposits, type DepositsSummary, type DepositSummary } from './payments-client';
 import { DepositStatusBadge } from './DepositBadges';
 import styles from './DepositsListScreen.module.css';
+import { formatLimaDate } from '../shared/lima-time';
 
 /**
  * PAG-01 — Bandeja de Garantías de Alquiler.
@@ -50,11 +51,7 @@ function saveFilters(f: Filters): void {
 }
 
 function formatDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString('es-PE', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatLimaDate(isoDate);
 }
 
 export function DepositsListScreen() {

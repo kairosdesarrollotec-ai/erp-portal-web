@@ -1,4 +1,5 @@
 import type { components } from '../../api/hr-administration.generated';
+import { limaDateAndTimeToInstant, limaToday } from '../shared/lima-time';
 
 export type EmployeeStatus = components['schemas']['EmployeeStatus'];
 export type TerminationReason = components['schemas']['TerminationReason'];
@@ -108,9 +109,7 @@ export function shiftMonth(month: string, delta: number): string {
 }
 
 /** Fecha de hoy (YYYY-MM-DD) en hora de Lima, la misma que usa el servidor para cerrar el mes. */
-export function limaToday(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
-}
+export { limaToday };
 
 /** BR-ADP-001: los descuentos se aplican al cerrar el mes, no antes. Se puede aplicar desde el ultimo dia del mes (hora de Lima). */
 export function isMonthClosing(month: string, now: Date = new Date()): boolean {
@@ -124,9 +123,9 @@ export function monthEndLabel(month: string): string {
   return `${pad(daysInMonth(month))}/${pad(m)}/${y}`;
 }
 
-/** Combina fecha local YYYY-MM-DD y hora HH:mm en un instante ISO. */
+/** Combina fecha YYYY-MM-DD y hora HH:mm (ambas de Lima, DEC-TZ-LIMA-001) en un instante ISO. */
 export function localToIso(date: string, time: string): string {
-  return new Date(`${date}T${time}:00`).toISOString();
+  return limaDateAndTimeToInstant(date, time) ?? new Date(`${date}T${time}:00`).toISOString();
 }
 
 // --- Asistencia -------------------------------------------------------------------

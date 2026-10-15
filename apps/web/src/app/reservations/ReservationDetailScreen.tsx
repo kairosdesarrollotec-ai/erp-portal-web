@@ -12,6 +12,7 @@ import {
 } from './reservations-client';
 import { getFirebaseAuth } from '../providers/firebase';
 import styles from './ReservationDetailScreen.module.css';
+import { formatLimaDate } from '../shared/lima-time';
 
 /**
  * RES-04/RES-05 consolidadas en una sola pantalla (misma URL, el
@@ -164,8 +165,8 @@ export function ReservationDetailScreen() {
             <div>
               <dt>Fechas</dt>
               <dd>
-                {new Date(reservation.startAt).toLocaleDateString('es-PE')} –{' '}
-                {new Date(reservation.endAt).toLocaleDateString('es-PE')}
+                {formatLimaDate(reservation.startAt)} –{' '}
+                {formatLimaDate(reservation.endAt)}
               </dd>
             </div>
             <div>

@@ -17,13 +17,13 @@ describe('recruitment-domain', () => {
   });
 
   it('propone el ingreso para mañana', () => {
-    expect(defaultStartDate(new Date(2026, 8, 7, 15, 30))).toBe('2026-09-08');
-    expect(defaultStartDate(new Date(2026, 11, 31, 23, 0))).toBe('2027-01-01');
+    expect(defaultStartDate(new Date('2026-09-07T20:30:00Z'))).toBe('2026-09-08');
+    expect(defaultStartDate(new Date('2027-01-01T04:00:00Z'))).toBe('2027-01-01');
   });
 
   it('calcula los dias que faltan para la evaluacion de 3 meses', () => {
-    expect(probationDaysRemaining('2026-07-01', new Date(2026, 8, 17))).toBe(14);
-    expect(probationDaysRemaining('2026-01-01', new Date(2026, 8, 17))).toBe(0);
+    expect(probationDaysRemaining('2026-07-01', new Date('2026-09-17T05:00:00Z'))).toBe(14);
+    expect(probationDaysRemaining('2026-01-01', new Date('2026-09-17T05:00:00Z'))).toBe(0);
   });
 });
 

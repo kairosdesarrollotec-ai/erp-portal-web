@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { useNotifications } from './useNotifications';
 import styles from './NotificationsPanel.module.css';
+import { formatLimaDateTime } from '../shared/lima-time';
 
 interface NotificationsPanelProps {
   companyId: string | null;
@@ -10,7 +11,7 @@ interface NotificationsPanelProps {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+  return formatLimaDateTime(iso);
 }
 
 /**

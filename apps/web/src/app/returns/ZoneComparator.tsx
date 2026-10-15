@@ -2,6 +2,7 @@ import type { RentalEvidenceResponse } from '../rentals/rentals-client';
 import type { ReturnEvidenceResponse } from './returns-client';
 import { zoneLabel } from './return-evidence';
 import styles from './ReturnForms.module.css';
+import { formatLimaDayMonth } from '../shared/lima-time';
 
 interface Props {
   zone: string;
@@ -11,9 +12,7 @@ interface Props {
 
 function shortDate(iso: string | undefined): string {
   if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' });
+  return formatLimaDayMonth(iso);
 }
 
 /**

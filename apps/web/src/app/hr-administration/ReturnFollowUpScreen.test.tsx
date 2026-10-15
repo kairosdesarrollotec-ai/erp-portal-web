@@ -36,7 +36,7 @@ function renderScreen() {
   );
 }
 
-const ESTIMATED = '2026-10-09T17:00:00';
+const ESTIMATED = '2026-10-09T17:00:00-05:00'; // hora de Lima
 const trip = (o = {}) => makeTrip({ status: 'AUTORIZADA', estimatedReturn: new Date(ESTIMATED).toISOString(), ...o });
 const setActual = (value: string) => fireEvent.change(screen.getByLabelText('Hora real de regreso'), { target: { value } });
 
@@ -79,7 +79,7 @@ describe('ReturnFollowUpScreen (ADP-08)', () => {
     await screen.findByLabelText('Hora real de regreso');
     setActual('2026-10-09T17:10');
     fireEvent.click(screen.getByRole('button', { name: 'Registrar tardanza (4ª) y marcar como observado' }));
-    await waitFor(() => expect(evaluateMock).toHaveBeenCalledWith('tok', 'trip-1', new Date('2026-10-09T17:10').toISOString(), undefined));
+    await waitFor(() => expect(evaluateMock).toHaveBeenCalledWith('tok', 'trip-1', new Date('2026-10-09T17:10:00-05:00').toISOString(), undefined));
     expect(await screen.findByText(/La persona queda observada/)).toBeInTheDocument();
   });
 

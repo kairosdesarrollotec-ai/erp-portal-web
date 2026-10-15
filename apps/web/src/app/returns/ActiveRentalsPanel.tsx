@@ -7,6 +7,7 @@ import { describeReturnError } from './return-errors';
 import { getFirebaseAuth } from '../providers/firebase';
 import { useIncidentPermissions } from '../incidents/incident-permissions';
 import styles from './ReturnsListScreen.module.css';
+import { formatLimaDateTime, limaDateTimeToInstant } from '../shared/lima-time';
 
 interface Props {
   rentals: RentalResponse[];
@@ -42,7 +43,7 @@ export function ActiveRentalsPanel({ rentals, context, canCreate, canReceive, re
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesión no disponible');
       const idToken = await user.getIdToken();
-      await scheduleReturn(idToken, context.companyId, context.branchId, scheduling.id, new Date(scheduledAt).toISOString());
+      await scheduleReturn(idToken, context.companyId, context.branchId, scheduling.id, limaDateTimeToInstant(scheduledAt) ?? scheduledAt);
       setScheduling(null);
       setScheduledAt('');
       onScheduled();
@@ -76,7 +77,7 @@ export function ActiveRentalsPanel({ rentals, context, canCreate, canReceive, re
                   {rental.vehicleBrand} {rental.vehicleModel} - {rental.vehiclePlate}
                 </td>
                 <td data-label="Fin pactado">
-                  {rental.expectedEndAt ? new Date(rental.expectedEndAt).toLocaleString('es-PE') : '—'}
+                  {rental.expectedEndAt ? formatLimaDateTime(rental.expectedEndAt) : '—'}
                 </td>
                 <td>
                   {canReceive && (

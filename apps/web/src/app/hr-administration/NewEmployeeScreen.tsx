@@ -5,7 +5,7 @@ import { getFirebaseAuth } from '../providers/firebase';
 import { getCandidate } from '../recruitment/recruitment-client';
 import { HrFrame } from './HrFrame';
 import { createEmployee, listEmployees } from './hr-client';
-import { areaIdFromName, toIsoDate } from './hr-domain';
+import { areaIdFromName, limaToday } from './hr-domain';
 import { useHrPermissions } from './hr-permissions';
 import { useHrCommand } from './useHrCommand';
 import { useHrResource } from './useHrResource';
@@ -34,7 +34,7 @@ function NewEmployee() {
   const [documentNumber, setDocumentNumber] = useState('');
   const [areaName, setAreaName] = useState('');
   const [jobTitle, setJobTitle] = useState('');
-  const [hireDate, setHireDate] = useState(toIsoDate(new Date()));
+  const [hireDate, setHireDate] = useState(limaToday());
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [baseSalary, setBaseSalary] = useState('');

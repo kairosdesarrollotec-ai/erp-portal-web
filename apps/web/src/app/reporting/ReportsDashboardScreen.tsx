@@ -11,7 +11,6 @@
  * Requiere aprobación visual de PRODUCTO antes de release.
  */
 import { useState } from 'react';
-import { format, subDays } from 'date-fns';
 import { Download } from 'lucide-react';
 import { AppHeader } from '../shared/AppHeader';
 import { usePermissions } from '../shared/usePermissions';
@@ -20,17 +19,18 @@ import { useOperationalKpis, useFinancialKpis, useExportReport } from './hooks/u
 import { OperationalTabPanel } from './OperationalTabPanel';
 import { FinancialTabPanel } from './FinancialTabPanel';
 import styles from './ReportsDashboardScreen.module.css';
+import { addDaysToDateOnly, limaToday } from '../shared/lima-time';
 
 type Tab = 'operativo' | 'financiero';
 
 const MAX_RANGE_DAYS = 90;
 
 function todayStr(): string {
-  return format(new Date(), 'yyyy-MM-dd');
+  return limaToday();
 }
 
 function defaultDateFrom(): string {
-  return format(subDays(new Date(), 30), 'yyyy-MM-dd');
+  return addDaysToDateOnly(limaToday(), -30) ?? limaToday();
 }
 
 function validateRange(from: string, to: string): string | null {

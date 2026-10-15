@@ -16,6 +16,7 @@ import { createIncident, type IncidentResponse } from './incidents-client';
 import { describeIncidentError } from './incident-errors';
 import type { IncidentsWorkContext } from './useWorkContextForIncidents';
 import styles from './IncidentDialog.module.css';
+import { formatLimaDate } from '../shared/lima-time';
 
 interface Props {
   context: IncidentsWorkContext;
@@ -141,7 +142,7 @@ export function RegisterIncidentDialog({ context, initialRentalId, initialReturn
             <option value="">Sin devolución asociada</option>
             {rentalReturns.map((ret) => (
               <option key={ret.id} value={ret.id}>
-                Devolución del {new Date(ret.scheduledAt).toLocaleDateString('es-PE')} — {ret.vehiclePlate ?? ret.id.slice(0, 8)}
+                Devolución del {formatLimaDate(ret.scheduledAt)} — {ret.vehiclePlate ?? ret.id.slice(0, 8)}
               </option>
             ))}
             {returnId && !rentalReturns.some((r) => r.id === returnId) && (

@@ -15,9 +15,10 @@ import {
 import { IncidentStatusBadge, SeverityBadge } from './IncidentBadges';
 import { ReasonDialog } from './ReasonDialog';
 import styles from './IncidentDetailScreen.module.css';
+import { formatLimaDateTime } from '../shared/lima-time';
 
 function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('es-PE');
+  return formatLimaDateTime(value);
 }
 
 /**

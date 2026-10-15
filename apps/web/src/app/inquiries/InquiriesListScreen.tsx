@@ -4,6 +4,7 @@ import { INQUIRY_CHANNEL_LABELS, INQUIRY_STATUS_GROUP, INQUIRY_STATUS_GROUP_LABE
 import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './InquiriesListScreen.module.css';
+import { formatLimaDate } from '../shared/lima-time';
 
 /**
  * CON-01 - Bandeja de Consultas. Fuente: PANTALLAS-V3-B-CONSULTA.md.
@@ -124,7 +125,7 @@ export function InquiriesListScreen() {
                         {INQUIRY_STATUS_GROUP_LABELS[group]}
                       </span>
                     </td>
-                    <td>{new Date(inquiry.createdAt).toLocaleDateString('es-PE')}</td>
+                    <td>{formatLimaDate(inquiry.createdAt)}</td>
                     <td>{context?.companyName ?? '—'}</td>
                   </tr>
                 );

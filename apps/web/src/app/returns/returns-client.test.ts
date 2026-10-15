@@ -18,6 +18,9 @@ import {
   uploadReturnEvidenceToGcs,
   recordReturnEvidence,
   listReturnEvidence,
+  listReturnReminders,
+  listReturnAlerts,
+  registerReturnReminder,
   ReturnApiError,
   ReturnCommandError,
   ReturnEvidenceUploadError,
@@ -330,3 +333,110 @@ describe('returns-client - evidencia (URL firmada)', () => {
     expect(capturedBody).toMatchObject({ type: 'VIDEO', zone: 'INTERIOR', objectUrl: 'https://gcs/o' });
   });
 });
+
+describe('returns-client - recordatorios y alertas', () => {
+  it('listReturnReminders hace GET /returns/reminders con sede, status y limit', async () => {
+    let captured: Request | undefined;
+    server.use(
+      http.get(`${BASE_URL}/returns/reminders`, ({ request }) => {
+        captured = request;
+        return HttpResponse.json([{ returnId: 'r1' }]);
+      }),
+    );
+    const items = await listReturnReminders('token', 'c1', 'b1', { status: 'FAILED', limit: 10 });
+    const url = new URL(captured!.url);
+    expect(url.searchParams.get('companyId')).toBe('c1');
+    expect(url.searchParams.get('branchId')).toBe('b1');
+    expect(url.searchParams.get('status')).toBe('FAILED');
+    expect(url.searchParams.get('limit')).toBe('10');
+    expect(captured!.headers.get('Authorization')).toBe('Bearer token');
+    expect(items).toHaveLength(1);
+  });
+
+  it('listReturnReminders sin status no lo envia y lanza ReturnApiError ante 403', async () => {
+    let captured: Request | undefined;
+    server.use(
+      http.get(`${BASE_URL}/returns/reminders`, ({ request }) => {
+        captured = request;
+        return HttpResponse.json({ code: 'ROLE_NOT_ALLOWED' }, { status: 403 });
+      }),
+    );
+    const error = await listReturnReminders('t', 'c1', 'b1').catch((e) => e);
+    expect(new URL(captured!.url).searchParams.has('status')).toBe(false);
+    expect(error).toBeInstanceOf(ReturnApiError);
+    expect(error.status).toBe(403);
+  });
+
+  it('registerReturnReminder envia If-Match = etag del recordatorio, Idempotency-Key y el cuerpo', async () => {
+    let captured: Request | undefined;
+    let body: unknown;
+    server.use(
+      http.post(`${BASE_URL}/returns/r1/commands/register-reminder`, async ({ request }) => {
+        captured = request.clone();
+        body = await request.json();
+        return HttpResponse.json({ id: 'rem-1', status: 'FAILED' });
+      }),
+    );
+    const result = await registerReturnReminder('t', 'r1', 'c1', 'b1', '"4"', { result: 'FAILED', note: 'No contesta' });
+    expect(captured!.headers.get('If-Match')).toBe('"4"');
+    expect(captured!.headers.get('Idempotency-Key')).toBe('fixed-uuid');
+    expect(body).toEqual({ companyId: 'c1', branchId: 'b1', result: 'FAILED', note: 'No contesta' });
+    expect(result.status).toBe('FAILED');
+  });
+
+  it('registerReturnReminder entrecomilla un etag sin comillas y envia sentAt', async () => {
+    let captured: Request | undefined;
+    let body: unknown;
+    server.use(
+      http.post(`${BASE_URL}/returns/r1/commands/register-reminder`, async ({ request }) => {
+        captured = request.clone();
+        body = await request.json();
+        return HttpResponse.json({ id: 'rem-1', status: 'SENT' });
+      }),
+    );
+    await registerReturnReminder('t', 'r1', 'c1', 'b1', '2', { result: 'SENT', sentAt: '2026-10-14T15:00:00.000Z' });
+    expect(captured!.headers.get('If-Match')).toBe('"2"');
+    expect(body).toEqual({ companyId: 'c1', branchId: 'b1', result: 'SENT', sentAt: '2026-10-14T15:00:00.000Z' });
+  });
+
+  it.each([
+    [404, 'RETURN_REMINDER_NOT_FOUND'],
+    [409, 'RETURN_REMINDER_ALREADY_SENT'],
+    [412, 'RETURN_REMINDER_VERSION_CONFLICT'],
+    [422, 'INVALID_RETURN_REMINDER_RESULT'],
+  ])('registerReturnReminder traduce %s %s a ReturnCommandError', async (status, code) => {
+    server.use(
+      http.post(`${BASE_URL}/returns/r1/commands/register-reminder`, () =>
+        HttpResponse.json({ statusCode: status, code, detail: 'detalle' }, { status }),
+      ),
+    );
+    const error = await registerReturnReminder('t', 'r1', 'c1', 'b1', '"1"', { result: 'SENT' }).catch((e) => e);
+    expect(error).toBeInstanceOf(ReturnCommandError);
+    expect(error.status).toBe(status);
+    expect(error.problem.code).toBe(code);
+  });
+
+  it('listReturnAlerts hace GET /returns/alerts con type opcional', async () => {
+    let captured: Request | undefined;
+    server.use(
+      http.get(`${BASE_URL}/returns/alerts`, ({ request }) => {
+        captured = request;
+        return HttpResponse.json([]);
+      }),
+    );
+    await listReturnAlerts('token', 'c1', 'b1', { type: 'IMMOBILIZATION' });
+    const url = new URL(captured!.url);
+    expect(url.searchParams.get('companyId')).toBe('c1');
+    expect(url.searchParams.get('branchId')).toBe('b1');
+    expect(url.searchParams.get('type')).toBe('IMMOBILIZATION');
+
+    await listReturnAlerts('token', 'c1', 'b1');
+    expect(new URL(captured!.url).searchParams.has('type')).toBe(false);
+  });
+
+  it('listReturnAlerts lanza ReturnApiError ante 500', async () => {
+    server.use(http.get(`${BASE_URL}/returns/alerts`, () => HttpResponse.json({}, { status: 500 })));
+    await expect(listReturnAlerts('t', 'c1', 'b1')).rejects.toBeInstanceOf(ReturnApiError);
+  });
+});
+

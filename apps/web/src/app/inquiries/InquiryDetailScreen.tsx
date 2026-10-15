@@ -6,6 +6,7 @@ import { rentalWizardPathForStatus } from '../rentals/rental-status';
 import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './InquiryDetailScreen.module.css';
+import { formatLimaDate, formatLimaDateTime, limaDateTimeToInstant } from '../shared/lima-time';
 
 /**
  * CON-04 - Detalle, cierre o conversión. Fuente: PANTALLAS-V3-B-CONSULTA.md.
@@ -74,7 +75,7 @@ export function InquiryDetailScreen() {
   async function handleReserve() {
     if (!startAt || canComeToOffice === null) return;
     const channelMode = canComeToOffice ? 'PRESENCIAL' : 'VIRTUAL';
-    const reservationId = await convertToReservation(channelMode, new Date(startAt).toISOString());
+    const reservationId = await convertToReservation(channelMode, limaDateTimeToInstant(startAt) ?? startAt);
     if (reservationId) navigate(`/reservas/${reservationId}`, { state: context ?? undefined });
   }
 
@@ -189,7 +190,7 @@ export function InquiryDetailScreen() {
             </div>
             <div>
               <dt>Fecha de registro</dt>
-              <dd>{new Date(inquiry.createdAt).toLocaleDateString('es-PE')}</dd>
+              <dd>{formatLimaDate(inquiry.createdAt)}</dd>
             </div>
             <div>
               <dt>Canal</dt>
@@ -346,7 +347,7 @@ function Timeline({ events }: { events: Array<{ id: string; label: string; detai
     <ol className={styles.timeline}>
       {events.map((event) => (
         <li key={event.id} className={styles.timelineItem}>
-          <span className={styles.timelineDate}>{new Date(event.at).toLocaleString('es-PE')}</span>
+          <span className={styles.timelineDate}>{formatLimaDateTime(event.at)}</span>
           <span className={styles.timelineLabel}>{event.label}</span>
           {event.detail && <span className={styles.timelineDetail}>{event.detail}</span>}
         </li>

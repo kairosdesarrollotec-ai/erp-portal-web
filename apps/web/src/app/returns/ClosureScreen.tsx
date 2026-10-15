@@ -12,6 +12,7 @@ import { clearReturnDrafts } from './return-session-draft';
 import { ALCOHOL_RESULT_LABELS, FUEL_LEVEL_LABELS, RETURN_STATUS_LABELS } from './return-status';
 import { useReturnPermissions } from './return-permissions';
 import styles from './ReturnForms.module.css';
+import { formatLimaDateTime } from '../shared/lima-time';
 
 /**
  * DEV-10 - Cierre y expediente. Resumen final del expediente de origen
@@ -92,7 +93,7 @@ export function ClosureScreen() {
       {closed && (
         <p className={`${styles.banner} ${styles.banner_success}`} role="status">
           Expediente cerrado
-          {ret.closedAt ? ` el ${new Date(ret.closedAt).toLocaleString('es-PE')}` : ''}. El alquiler pasó a cerrado y la flota
+          {ret.closedAt ? ` el ${formatLimaDateTime(ret.closedAt)}` : ''}. El alquiler pasó a cerrado y la flota
           se actualizó.
         </p>
       )}
@@ -126,7 +127,7 @@ export function ClosureScreen() {
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>Recepción</p>
         <p className={styles.summaryLine}>
-          Recibido: {ret.receivedAt ? new Date(ret.receivedAt).toLocaleString('es-PE') : '—'} · Kilometraje:{' '}
+          Recibido: {ret.receivedAt ? formatLimaDateTime(ret.receivedAt) : '—'} · Kilometraje:{' '}
           {ret.mileageAtReturn ?? '—'} · Combustible: {ret.fuelLevelAtReturn ? FUEL_LEVEL_LABELS[ret.fuelLevelAtReturn] : '—'}
         </p>
         <p className={styles.summaryLine}>

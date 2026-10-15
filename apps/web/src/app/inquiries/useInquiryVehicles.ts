@@ -5,6 +5,7 @@ import { getInquiry, quoteInquiry, InquiryApiError, InquiryCommandError } from '
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
 import { listVehicles, FleetApiError, type FleetVehicle } from '../fleet/fleet-client';
 import type { InquiryNavState } from './inquiries-nav-state';
+import { addDaysToDateOnly, limaDateToInstant } from '../shared/lima-time';
 
 /** CON-03 - estados READY/LOADING/EMPTY/STALE_VERSION/RECOVERABLE_ERROR (contrato punto 9). */
 export type InquiryVehiclesState = 'LOADING' | 'READY' | 'EMPTY' | 'STALE_VERSION' | 'RECOVERABLE_ERROR';
@@ -29,27 +30,23 @@ export interface InquiryVehicle {
   conflictTo?: string;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 /**
- * Ventana de disponibilidad del viaje: desde la fecha de viaje a las 00:00 (UTC)
- * hasta esa fecha + dias estimados. Sin fecha valida o sin dias, no hay ventana
- * y el catalogo se pide sin filtro de disponibilidad.
+ * Ventana de disponibilidad del viaje: desde la fecha de viaje a las 00:00 de Lima
+ * (DEC-TZ-LIMA-001) hasta esa fecha + dias estimados (tambien 00:00 de Lima). Sin fecha
+ * valida o sin dias, no hay ventana y el catalogo se pide sin filtro de disponibilidad.
  */
 export function buildAvailabilityWindow(
   travelDate: string | null | undefined,
   travelDays: number | null | undefined,
 ): { availableFrom: string; availableTo: string } | null {
   const day = travelDate?.slice(0, 10) ?? '';
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
-  const start = new Date(`${day}T00:00:00.000Z`);
-  if (Number.isNaN(start.getTime())) return null;
+  const availableFrom = limaDateToInstant(day);
+  if (!availableFrom) return null;
   if (!travelDays || travelDays < 1) return null;
-  const days = Math.floor(travelDays);
-  return {
-    availableFrom: start.toISOString(),
-    availableTo: new Date(start.getTime() + days * DAY_MS).toISOString(),
-  };
+  const endDay = addDaysToDateOnly(day, Math.floor(travelDays));
+  const availableTo = endDay ? limaDateToInstant(endDay) : null;
+  if (!availableTo) return null;
+  return { availableFrom, availableTo };
 }
 
 function toInquiryVehicle(vehicle: FleetVehicle): InquiryVehicle | null {

@@ -1,4 +1,5 @@
 import type { components } from '../../api/recruitment.generated';
+import { addDaysToDateOnly, limaDateToInstant, limaToday } from '../shared/lima-time';
 
 export type VacancySource = components['schemas']['VacancySource'];
 export type VacancyStatus = components['schemas']['VacancyStatus'];
@@ -68,19 +69,21 @@ export function nextStages(current: CandidateStage): CandidateStage[] {
   return CANDIDATE_STAGES.slice(index + 1);
 }
 
-/** REC-07: el ingreso se propone para "manana" (YYYY-MM-DD, hora local). */
+/** REC-07: el ingreso se propone para "manana" (YYYY-MM-DD, dia de Lima). */
 export function defaultStartDate(now: Date = new Date()): string {
-  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const dd = String(tomorrow.getDate()).padStart(2, '0');
-  return `${tomorrow.getFullYear()}-${mm}-${dd}`;
+  return addDaysToDateOnly(limaToday(now), 1) ?? limaToday(now);
 }
 
 /** REC-08: dias que faltan para cumplir los 3 meses del periodo de prueba (0 si ya se cumplieron). */
 export function probationDaysRemaining(startDate: string, now: Date = new Date()): number {
-  const start = new Date(`${startDate}T00:00:00`);
-  const end = new Date(start.getFullYear(), start.getMonth() + 3, start.getDate());
-  const diff = Math.ceil((end.getTime() - now.getTime()) / 86_400_000);
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(startDate);
+  if (!match) return 0;
+  // Fin del periodo de prueba: 3 meses calendario despues, a las 00:00 de Lima.
+  const endDay = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1 + 3, Number(match[3])));
+  const endDate = `${endDay.getUTCFullYear()}-${String(endDay.getUTCMonth() + 1).padStart(2, '0')}-${String(endDay.getUTCDate()).padStart(2, '0')}`;
+  const end = limaDateToInstant(endDate);
+  if (!end) return 0;
+  const diff = Math.ceil((new Date(end).getTime() - now.getTime()) / 86_400_000);
   return Math.max(0, diff);
 }
 

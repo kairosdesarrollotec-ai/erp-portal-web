@@ -1,7 +1,10 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EmployeeStatusBadge } from './EmployeeBadge';
 import { HrFrame } from './HrFrame';
-import { getEmployee, type EmployeeDetail } from './hr-client';
+import { useState } from 'react';
+import { getFirebaseAuth } from '../providers/firebase';
+import { describeHrError } from './hr-errors';
+import { getEmployee, linkEmployeeAccount, type EmployeeDetail } from './hr-client';
 import {
   FIELD_TRIP_STATUS_LABEL,
   LEAVE_STATUS_LABEL,
@@ -25,7 +28,27 @@ export function EmployeeFileScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { can } = useHrPermissions();
-  const { state, data: employee, context } = useHrResource<EmployeeDetail>(id ? (token) => getEmployee(token, id) : null, id ?? '');
+  const { state, data: employee, context, reload } = useHrResource<EmployeeDetail>(id ? (token) => getEmployee(token, id) : null, id ?? '');
+
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  async function handleLink() {
+    if (!employee) return;
+    setLinking(true);
+    setLinkError(null);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible');
+      const idToken = await user.getIdToken();
+      await linkEmployeeAccount(idToken, employee.id);
+      await reload();
+    } catch (err) {
+      setLinkError(describeHrError(err, 'No pudimos vincular la cuenta. Intenta de nuevo.'));
+    } finally {
+      setLinking(false);
+    }
+  }
 
   const terminated = employee?.status === 'TERMINADO';
   const state0 = context ?? undefined;
@@ -75,6 +98,26 @@ export function EmployeeFileScreen() {
               <div>
                 <dt>Contacto</dt>
                 <dd>{[employee.email, employee.phone].filter(Boolean).join(' · ') || '—'}</dd>
+              </div>
+              <div>
+                <dt>Cuenta de acceso</dt>
+                <dd data-testid="account-link-status">
+                  {employee.accountLinked ? 'Cuenta vinculada (por correo)' : 'Sin vincular (por correo)'}
+                  {!employee.accountLinked && employee.email && can('MANAGE_EMPLOYEES') && !terminated && (
+                    <>
+                      {' '}
+                      <button type="button" className={styles.secondaryButton} onClick={() => void handleLink()} disabled={linking}>
+                        {linking ? 'Vinculando…' : 'Vincular cuenta'}
+                      </button>
+                    </>
+                  )}
+                  {!employee.accountLinked && !employee.email && <span className={styles.hint}> Registra un correo en la ficha para poder vincularla.</span>}
+                </dd>
+                {linkError && (
+                  <p className={styles.errorBanner} role="alert">
+                    {linkError}
+                  </p>
+                )}
               </div>
               <div>
                 <dt>Tardanzas en salidas a campo</dt>

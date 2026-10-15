@@ -5,6 +5,7 @@ import { useInquiryVehicles } from './useInquiryVehicles';
 import { estimateQuoteTotal } from './vehicle-catalog';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './InquiryVehiclesScreen.module.css';
+import { formatLimaDayMonth } from '../shared/lima-time';
 
 /**
  * CON-03 - Exhibición y cotización. Fuente: PANTALLAS-V3-B-CONSULTA.md.
@@ -26,11 +27,9 @@ import styles from './InquiryVehiclesScreen.module.css';
  * transicion REGISTRADA/pendiente -> COTIZADA) y navega a CON-04, donde
  * el estado real de la consulta se refleja sin inventar una reserva.
  */
-/** dd/mm en hora local a partir de un ISO date-time. */
+/** dd/mm en hora de Lima a partir de un ISO date-time. */
 function formatDayMonth(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return formatLimaDayMonth(iso);
 }
 
 export function InquiryVehiclesScreen() {

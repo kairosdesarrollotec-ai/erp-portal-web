@@ -4,6 +4,7 @@ import { getFirebaseAuth } from '../providers/firebase';
 import { requestExtension, RentalCommandError } from './rentals-extensions-client';
 import type { RentalResponse } from './rentals-client';
 import styles from './ActiveRentalScreen.module.css';
+import { limaDateTimeToInstant } from '../shared/lima-time';
 
 export interface RequestExtensionModalProps {
   open: boolean;
@@ -24,7 +25,8 @@ export function RequestExtensionModal({ open, rental, companyId, branchId, onSuc
   const [error, setError] = useState<string | null>(null);
 
   const currentEnd = rental.expectedEndAt ? new Date(rental.expectedEndAt) : null;
-  const parsed = newEnd ? new Date(newEnd) : null;
+  const parsedIso = newEnd ? limaDateTimeToInstant(newEnd) : null;
+  const parsed = newEnd ? new Date(parsedIso ?? NaN) : null;
   const invalid = parsed != null && (Number.isNaN(parsed.getTime()) || (currentEnd != null && parsed <= currentEnd));
   const canSubmit = !!parsed && !invalid && !busy;
 

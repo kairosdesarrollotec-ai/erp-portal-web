@@ -1,15 +1,16 @@
-/** Formatos de fecha para las pantallas ADP (es-PE). */
+import { formatLimaDate, formatLimaDateTime, formatLimaTime } from '../shared/lima-time';
+
+/** Formatos de fecha para las pantallas ADP (es-PE, siempre en hora de Lima: DEC-TZ-LIMA-001). */
 export function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+  return formatLimaDateTime(value);
 }
 
-/** Acepta `YYYY-MM-DD` (fecha sin hora, se interpreta local) o un instante ISO. */
+/** Acepta `YYYY-MM-DD` (fecha sin hora: dia calendario, no se desplaza) o un instante ISO (se muestra en Lima). */
 export function formatDate(value: string): string {
-  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00`) : new Date(value);
-  return date.toLocaleDateString('es-PE');
+  return formatLimaDate(value);
 }
 
-/** Solo la hora (HH:mm) de un instante ISO. */
+/** Solo la hora (HH:mm) de un instante ISO, en hora de Lima. */
 export function formatTime(value: string): string {
-  return new Date(value).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return formatLimaTime(value);
 }

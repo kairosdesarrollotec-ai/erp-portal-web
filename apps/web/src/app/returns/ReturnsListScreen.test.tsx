@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReturnsListScreen } from './ReturnsListScreen';
 import { baseContext, makeReturn } from './test-utils';
 import { setPermissions } from '../../test/permissions';
 
-// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+// AppHeader monta GlobalSearch (react-query); se mockea para evitar dependencias adicionales de red.
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 
 const RETURN_LIST = [
@@ -16,6 +17,9 @@ const RETURN_LIST = [
 const listReturnsMock = vi.fn();
 const listRentalsMock = vi.fn();
 const scheduleReturnMock = vi.fn();
+const listRemindersMock = vi.fn();
+const listAlertsMock = vi.fn();
+const registerReminderMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -31,6 +35,9 @@ vi.mock('./returns-client', async () => {
     ...actual,
     listReturns: (...args: unknown[]) => listReturnsMock(...args),
     scheduleReturn: (...args: unknown[]) => scheduleReturnMock(...args),
+    listReturnReminders: (...args: unknown[]) => listRemindersMock(...args),
+    listReturnAlerts: (...args: unknown[]) => listAlertsMock(...args),
+    registerReturnReminder: (...args: unknown[]) => registerReminderMock(...args),
   };
 });
 vi.mock('../rentals/rentals-client', async () => {
@@ -50,16 +57,19 @@ const activeRental = {
 };
 
 function renderScreen() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/devoluciones', state: baseContext }]}>
-      <Routes>
-        <Route path="/devoluciones" element={<ReturnsListScreen />} />
-        <Route path="/devoluciones/recepcion/:rentalId" element={<div>pantalla recepcion</div>} />
-        <Route path="/devoluciones/:id/alcoholimetro" element={<div>pantalla alcoholimetro</div>} />
-        <Route path="/devoluciones/:id/resultado" element={<div>pantalla resultado</div>} />
-        <Route path="/devoluciones/:id/cierre" element={<div>pantalla cierre</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[{ pathname: '/devoluciones', state: baseContext }]}>
+        <Routes>
+          <Route path="/devoluciones" element={<ReturnsListScreen />} />
+          <Route path="/devoluciones/recepcion/:rentalId" element={<div>pantalla recepcion</div>} />
+          <Route path="/devoluciones/:id/alcoholimetro" element={<div>pantalla alcoholimetro</div>} />
+          <Route path="/devoluciones/:id/resultado" element={<div>pantalla resultado</div>} />
+          <Route path="/devoluciones/:id/cierre" element={<div>pantalla cierre</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -68,6 +78,11 @@ describe('ReturnsListScreen (DEV-01)', () => {
     listReturnsMock.mockReset();
     listRentalsMock.mockReset();
     scheduleReturnMock.mockReset();
+    listRemindersMock.mockReset();
+    listAlertsMock.mockReset();
+    registerReminderMock.mockReset();
+    listRemindersMock.mockResolvedValue([]);
+    listAlertsMock.mockResolvedValue([]);
     listRentalsMock.mockResolvedValue([]);
     sessionStorage.clear();
     setPermissions(RETURN_LIST);
@@ -171,5 +186,207 @@ describe('ReturnsListScreen (DEV-01)', () => {
     const { container } = renderScreen();
     await screen.findByText('Maria Quispe');
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+const REMINDER = {
+  id: 'rem-1',
+  status: 'PENDING' as const,
+  dueAt: '2026-10-14T20:00:00Z',
+  text: 'Hola Maria, te recordamos que tu devolucion es hoy a las 11:00 a. m.',
+  generatedAt: '2026-10-14T15:00:00Z',
+  sentAt: null,
+  sentBy: null,
+  note: null,
+  attempts: 0,
+  version: 1,
+  etag: '"1"',
+};
+const INBOX_ITEM = {
+  returnId: 'ret-1',
+  rentalId: 'rent-1',
+  returnStatus: 'PROGRAMADA' as const,
+  scheduledAt: '2026-10-14T16:00:00Z',
+  vehiclePlate: 'D0Y-704',
+  customerName: 'Maria Quispe',
+  customerPhone: '987654321',
+  reminder: REMINDER,
+};
+
+describe('ReturnsListScreen (DEV-01) - recordatorios y alertas', () => {
+  beforeEach(() => {
+    listReturnsMock.mockReset();
+    listRentalsMock.mockReset();
+    listRemindersMock.mockReset();
+    listAlertsMock.mockReset();
+    registerReminderMock.mockReset();
+    listRentalsMock.mockResolvedValue([]);
+    listReturnsMock.mockResolvedValue([makeReturn()]);
+    listAlertsMock.mockResolvedValue([]);
+    listRemindersMock.mockResolvedValue([]);
+    sessionStorage.clear();
+    setPermissions(RETURN_LIST);
+  });
+
+  it('muestra el recordatorio con el texto de WhatsApp, enlace wa.me y la hora en Lima', async () => {
+    listRemindersMock.mockResolvedValue([INBOX_ITEM]);
+    renderScreen();
+    expect(await screen.findByTestId('reminder-text')).toHaveTextContent(REMINDER.text);
+    expect(listRemindersMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1');
+    const link = screen.getByRole('link', { name: 'Abrir en WhatsApp' });
+    expect(link).toHaveAttribute('href', `https://wa.me/51987654321?text=${encodeURIComponent(REMINDER.text)}`);
+    expect(screen.getByText('Pendiente de envío')).toBeInTheDocument();
+    // 16:00Z = 11:00 en Lima
+    expect(screen.getByText(/Devolución pactada: 14\/10\/2026 11:00/)).toBeInTheDocument();
+  });
+
+  it('sin telefono no hay enlace de WhatsApp pero si boton de copiar', async () => {
+    listRemindersMock.mockResolvedValue([{ ...INBOX_ITEM, customerPhone: null }]);
+    renderScreen();
+    await screen.findByTestId('reminder-text');
+    expect(screen.queryByRole('link', { name: 'Abrir en WhatsApp' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copiar mensaje' })).toBeInTheDocument();
+  });
+
+  it('copia el mensaje al portapapeles', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    listRemindersMock.mockResolvedValue([INBOX_ITEM]);
+    renderScreen();
+    fireEvent.click(await screen.findByRole('button', { name: 'Copiar mensaje' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith(REMINDER.text));
+    expect(await screen.findByText('Mensaje copiado.')).toBeInTheDocument();
+  });
+
+  it('"Marcar enviado" registra SENT con el etag del recordatorio y recarga la bandeja', async () => {
+    listRemindersMock.mockResolvedValueOnce([INBOX_ITEM]).mockResolvedValue([]);
+    registerReminderMock.mockResolvedValue({ ...REMINDER, status: 'SENT' });
+    renderScreen();
+    fireEvent.click(await screen.findByRole('button', { name: 'Marcar enviado' }));
+    await waitFor(() =>
+      expect(registerReminderMock).toHaveBeenCalledWith('fake-id-token', 'ret-1', 'c1', 'b1', '"1"', { result: 'SENT' }),
+    );
+    await waitFor(() => expect(screen.queryByTestId('reminder-text')).not.toBeInTheDocument());
+  });
+
+  it('"Marcar fallido" exige una nota y la envia', async () => {
+    listRemindersMock.mockResolvedValue([INBOX_ITEM]);
+    registerReminderMock.mockResolvedValue({ ...REMINDER, status: 'FAILED' });
+    renderScreen();
+    fireEvent.click(await screen.findByRole('button', { name: 'Marcar fallido' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar fallo' }));
+    expect(await screen.findByText('Indica el motivo del fallo.')).toBeInTheDocument();
+    expect(registerReminderMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText('Motivo del fallo (obligatorio)'), { target: { value: 'No contesta' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar fallo' }));
+    await waitFor(() =>
+      expect(registerReminderMock).toHaveBeenCalledWith('fake-id-token', 'ret-1', 'c1', 'b1', '"1"', {
+        result: 'FAILED',
+        note: 'No contesta',
+      }),
+    );
+  });
+
+  it('un recordatorio FAILED admite reintento y muestra el motivo anterior; uno SENT es definitivo', async () => {
+    listRemindersMock.mockResolvedValue([
+      { ...INBOX_ITEM, reminder: { ...REMINDER, status: 'FAILED', note: 'Numero apagado', attempts: 1 } },
+      {
+        ...INBOX_ITEM,
+        returnId: 'ret-2',
+        customerName: 'Luis Rojas',
+        reminder: { ...REMINDER, id: 'rem-2', status: 'SENT', sentAt: '2026-10-14T15:30:00Z' },
+      },
+    ]);
+    renderScreen();
+    expect(await screen.findByText(/Último intento fallido: Numero apagado/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Marcar enviado' })).toHaveLength(1);
+    expect(screen.getByText(/Enviado el 14\/10\/2026 10:30/)).toBeInTheDocument();
+  });
+
+  it('si el recordatorio ya fue enviado (409) muestra el aviso de negocio y recarga', async () => {
+    const { ReturnCommandError } = await import('./returns-client');
+    listRemindersMock.mockResolvedValue([INBOX_ITEM]);
+    registerReminderMock.mockRejectedValue(new ReturnCommandError(409, { code: 'RETURN_REMINDER_ALREADY_SENT' }));
+    renderScreen();
+    fireEvent.click(await screen.findByRole('button', { name: 'Marcar enviado' }));
+    expect(await screen.findByText(/ya fue registrado como enviado/)).toBeInTheDocument();
+    expect(listRemindersMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('sin permiso RETURN.CREATE no ofrece registrar el resultado', async () => {
+    setPermissions(['RETURN.READ']);
+    listRemindersMock.mockResolvedValue([INBOX_ITEM]);
+    renderScreen();
+    await screen.findByTestId('reminder-text');
+    expect(screen.queryByRole('button', { name: 'Marcar enviado' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Marcar fallido' })).not.toBeInTheDocument();
+  });
+
+  it('un fallo al cargar recordatorios no bloquea la bandeja', async () => {
+    listRemindersMock.mockRejectedValue(new Error('boom'));
+    renderScreen();
+    expect(await screen.findByText('Maria Quispe')).toBeInTheDocument();
+    expect(await screen.findByText(/No pudimos cargar los recordatorios/)).toBeInTheDocument();
+  });
+
+  it('muestra banners de garantia por liberar e inmovilizacion y abre el expediente correspondiente', async () => {
+    listAlertsMock.mockResolvedValue([
+      {
+        type: 'WARRANTY_RELEASE',
+        returnId: 'ret-w',
+        rentalId: 'rent-w',
+        returnStatus: 'SIN_DANOS',
+        returnVersion: 3,
+        vehiclePlate: 'AAA-111',
+        customerName: 'Ana Perez',
+        receivedAt: '2026-10-13T16:00:00Z',
+        warrantyRelease: { level: 'OVERDUE', deadlineAt: '2026-10-14T16:00:00Z', hoursRemaining: -2.5 },
+        immobilization: null,
+      },
+      {
+        type: 'IMMOBILIZATION',
+        returnId: 'ret-i',
+        rentalId: 'rent-i',
+        returnStatus: 'CON_DANOS',
+        returnVersion: 4,
+        vehiclePlate: 'BBB-222',
+        customerName: 'Pedro Diaz',
+        receivedAt: '2026-10-12T16:00:00Z',
+        warrantyRelease: null,
+        immobilization: { since: '2026-10-12T16:00:00Z', hoursElapsed: 52, pendingDays: 2, dailyRate: 120, suggestedAmount: 240 },
+      },
+    ]);
+    renderScreen();
+    expect(await screen.findByText(/Garantía vencida: liberar ya — AAA-111 · Ana Perez/)).toBeInTheDocument();
+    expect(screen.getByText(/venció el 14\/10\/2026 11:00 \(hace 2,5 h\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Inmovilización por más de 24 h sin cobrar — BBB-222/)).toBeInTheDocument();
+    expect(screen.getByText(/2 días de paralización pendientes de cobro/)).toBeInTheDocument();
+    expect(screen.getByText(/Monto sugerido: S\/ 240\.00 \(el cobro es manual\)/)).toBeInTheDocument();
+    expect(listAlertsMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1');
+  });
+
+  it('las filas con alertas muestran una etiqueta', async () => {
+    listReturnsMock.mockResolvedValue([
+      makeReturn({
+        status: 'SIN_DANOS',
+        alerts: {
+          warrantyRelease: { level: 'DUE_SOON', deadlineAt: '2026-10-14T16:00:00Z', hoursRemaining: 3 },
+          immobilization: null,
+        },
+      }),
+    ]);
+    renderScreen();
+    expect(await screen.findByText('Garantía por liberar')).toBeInTheDocument();
+  });
+
+  it('muestra etiqueta de retraso solo si isLate (informativa)', async () => {
+    listReturnsMock.mockResolvedValue([
+      makeReturn({ id: 'late', lateness: { lateToleranceMinutes: 30, lateMinutes: 50, isLate: true, basis: 'NOW' } }),
+      makeReturn({ id: 'ok', lateness: { lateToleranceMinutes: 30, lateMinutes: 5, isLate: false, basis: 'NOW' } }),
+    ]);
+    renderScreen();
+    expect(await screen.findByText('Retraso: 50 min (tolerancia 30 min)')).toBeInTheDocument();
+    expect(screen.getAllByTestId('lateness-badge')).toHaveLength(1);
   });
 });

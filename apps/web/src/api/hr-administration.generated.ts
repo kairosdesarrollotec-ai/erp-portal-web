@@ -58,6 +58,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/employees/{id}/attendance/evidence/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pedir URL firmada para subir la foto de asistencia (reloj + hora + rostro) — DEC-ADP-ATT-EVIDENCE-002
+         * @description Paso 1 de la evidencia obligatoria. Lo puede pedir el propio colaborador (ficha vinculada a su cuenta por correo, con asignación vigente en la sede) o quien tenga HR_ADMINISTRATION.LOG_ATTENDANCE. Paso 2: subir con PUT (Content-Type = contentType) a `uploadUrl` y registrar la asistencia con evidence.storageRef = `storageRef`.
+         */
+        post: operations["requestAttendanceEvidenceUploadUrl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/attendance/summary": {
         parameters: {
             query?: never;
@@ -258,6 +278,26 @@ export interface paths {
         put?: never;
         /** Registrar retorno de campo y evaluar tardanza (1-3 advertencia, 4ta colaborador observado, BR-ADP-005) */
         post: operations["evaluateFieldTripReturn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{id}/link-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Vincular la ficha del colaborador con la cuenta de usuario de su mismo correo — DEC-ADP-LINK-EMAIL-001
+         * @description El correo de la cuenta de acceso debe coincidir (sin distinguir mayúsculas) con el correo de la ficha. Idempotente si ya está vinculada a esa cuenta.
+         */
+        post: operations["linkEmployeeAccount"];
         delete?: never;
         options?: never;
         head?: never;
@@ -514,6 +554,8 @@ export interface components {
             fieldTripLateCount: number;
             isFieldTripObserved: boolean;
             baseSalary?: number | null;
+            /** @description La ficha está vinculada a una cuenta de usuario por correo (DEC-ADP-LINK-EMAIL-001) */
+            accountLinked: boolean;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -547,6 +589,49 @@ export interface components {
             /** @description Opcional; si no se envía lo calcula el sistema */
             deductionAmount?: number;
             notes?: string | null;
+            /** @description DEC-ADP-ATT-EVIDENCE-001/002. Foto con reloj + hora + rostro que corrobora la marcación. OBLIGATORIA en PRESENTE/TARDANZA (422 ATTENDANCE_EVIDENCE_REQUIRED); opcional en faltas y permisos. Se sube con POST /employees/{id}/attendance/evidence/upload-url y su `storageRef` va aquí. */
+            evidence?: components["schemas"]["AttendanceEvidenceRequest"] | null;
+        };
+        /** @description Requiere al menos uno de storageRef o url. Si viene storageRef debe empezar por companies/{companyId}/employees/{employeeId}/attendance/ (el que devuelve la URL de subida). */
+        AttendanceEvidenceRequest: {
+            /** @enum {string} */
+            kind: "WHATSAPP_PHOTO";
+            /** @description Referencia interna al objeto almacenado */
+            storageRef?: string | null;
+            url?: string | null;
+            /**
+             * @description Fecha y hora de la foto. Sin offset (YYYY-MM-DDTHH:mm[:ss]) se interpreta en America/Lima; no puede estar en el futuro.
+             * @example 2026-10-14T08:05:00
+             */
+            capturedAtLocal: string;
+            note?: string | null;
+        };
+        RequestAttendanceEvidenceUploadRequest: {
+            /** @enum {string} */
+            contentType: "image/jpeg" | "image/png" | "image/webp";
+            contentLength: number;
+        };
+        AttendanceEvidenceUploadSessionResponse: {
+            /** @description URL firmada PUT (15 min) */
+            uploadUrl: string;
+            objectUrl: string;
+            /** @description Valor para evidence.storageRef de logAttendance */
+            storageRef: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        AttendanceEvidenceResponse: {
+            /** @enum {string} */
+            kind: "WHATSAPP_PHOTO";
+            storageRef?: string | null;
+            url?: string | null;
+            /** @description Hora de la foto en America/Lima sin offset (YYYY-MM-DDTHH:mm:ss) */
+            capturedAtLocal: string;
+            note?: string | null;
+            /** @description Usuario (Firebase UID) que corroboró la foto y registró la marcación */
+            corroboratedBy?: string | null;
+            /** Format: date-time */
+            corroboratedAt?: string | null;
         };
         AttendanceRecordResponse: {
             /** Format: uuid */
@@ -571,6 +656,9 @@ export interface components {
             justification?: string | null;
             /** Format: date-time */
             reclassifiedAt?: string | null;
+            evidence?: components["schemas"]["AttendanceEvidenceResponse"] | null;
+            /** @description true si el registro no tiene evidencia fotográfica (incluye registros previos a 0.3.0) */
+            evidenceMissing?: boolean;
             /** @description Memo generado automáticamente por reiteración de faltas injustificadas del mes */
             memo?: components["schemas"]["HrMemoResponse"] | null;
             /** Format: date-time */
@@ -1233,6 +1321,81 @@ export interface operations {
             };
             /** @description Registro inválido */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestAttendanceEvidenceUploadUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestAttendanceEvidenceUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description URL firmada de subida directa y referencia del objeto */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceEvidenceUploadSessionResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No es el propio colaborador y no tiene HR_ADMINISTRATION.LOG_ATTENDANCE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Colaborador no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El colaborador está terminado (EMPLOYEE_TERMINATED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tipo de archivo no admitido o tamaño excedido (INVALID_ATTENDANCE_EVIDENCE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Almacenamiento no configurado (EVIDENCE_STORAGE_UNAVAILABLE) */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1959,6 +2122,63 @@ export interface operations {
             };
             /** @description La salida no está en estado AUTORIZADA (FIELD_TRIP_NOT_AUTHORIZED) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    linkEmployeeAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Ficha vinculada (accountLinked = true) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_EMPLOYEES */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Colaborador no encontrado (EMPLOYEE_NOT_FOUND) o no existe cuenta con ese correo (USER_ACCOUNT_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El correo ya está vinculado a otro colaborador */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La ficha no tiene correo (EMPLOYEE_EMAIL_REQUIRED) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

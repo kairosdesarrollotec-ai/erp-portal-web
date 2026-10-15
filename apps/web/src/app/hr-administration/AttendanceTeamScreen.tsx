@@ -4,7 +4,7 @@ import { AppHeader } from '../shared/AppHeader';
 import { DeductionConfirmDialog } from './DeductionConfirmDialog';
 import { HrFrame } from './HrFrame';
 import { applyMonthDeductions, getAttendanceSummary, type AttendanceSummary } from './hr-client';
-import { formatSoles, isMonthClosing, monthEndLabel, monthKey, monthLabel, shiftMonth } from './hr-domain';
+import { formatSoles, isMonthClosing, monthEndLabel, monthLabel, shiftMonth, limaToday } from './hr-domain';
 import { useHrPermissions } from './hr-permissions';
 import { useHrCommand } from './useHrCommand';
 import { useHrResource } from './useHrResource';
@@ -21,7 +21,7 @@ function AttendanceTeam() {
   const [params, setParams] = useSearchParams();
   const { can } = useHrPermissions();
   const requested = params.get('mes');
-  const month = requested && MONTH_RE.test(requested) ? requested : monthKey(new Date());
+  const month = requested && MONTH_RE.test(requested) ? requested : limaToday().slice(0, 7);
   const [confirming, setConfirming] = useState(false);
 
   const { state, data, context, reload } = useHrResource<AttendanceSummary>(

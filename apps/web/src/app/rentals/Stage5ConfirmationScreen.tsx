@@ -108,6 +108,11 @@ export function Stage5ConfirmationScreen() {
           {rental.contract ? rental.contract.documentRef : 'pendiente'} · Depósito:{' '}
           {rental.deposit ? `${rental.deposit.originalAmount} ${rental.deposit.currency}` : 'pendiente'}
         </p>
+        {Number(rental.deposit?.reservationCreditExcess ?? 0) > 0 && (
+          <p className={styles.summaryLine} data-testid="reservation-credit-excess">
+            Saldo a favor de la reserva (sin reembolso automático): {rental.deposit!.reservationCreditExcess} {rental.deposit!.currency}
+          </p>
+        )}
       </section>
 
       <section className={styles.reviewSection}>

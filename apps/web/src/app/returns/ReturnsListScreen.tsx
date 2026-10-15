@@ -1,10 +1,17 @@
 import { useNavigate } from 'react-router-dom';
+import type { ReturnAlertItem } from './returns-client';
 import { useReturnsList } from './useReturnsList';
 import { RETURN_STATUS_LABELS, returnPathForStatus, type ReturnStatus } from './return-status';
 import { ActiveRentalsPanel } from './ActiveRentalsPanel';
 import { useReturnPermissions } from './return-permissions';
+import { useReturnReminders } from './useReturnReminders';
+import { useReturnAlerts } from './useReturnAlerts';
+import { ReturnRemindersPanel } from './ReturnRemindersPanel';
+import { ReturnAlertsInbox } from './ReturnAlertBanners';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './ReturnsListScreen.module.css';
+import { latenessLabel } from './return-lateness';
+import { formatLimaDateTime } from '../shared/lima-time';
 
 const FILTER_OPTIONS: { value: ReturnStatus | ''; label: string }[] = [
   { value: '', label: 'Todos los estados' },
@@ -31,6 +38,16 @@ export function ReturnsListScreen() {
   const navigate = useNavigate();
   const { can } = useReturnPermissions();
 
+  const scope = context ? { companyId: context.companyId, branchId: context.branchId } : null;
+  const reminders = useReturnReminders(scope, can('READ'));
+  const alertsInbox = useReturnAlerts(scope, can('READ'));
+
+  function openAlert(alert: ReturnAlertItem) {
+    // La garantia por liberar se resuelve en DEV-09; el cobro por paralizacion, en el dano tecnico (DEV-08).
+    const path = alert.type === 'WARRANTY_RELEASE' ? 'garantia' : 'dano/tecnico';
+    navigate(`/devoluciones/${alert.returnId}/${path}`, { state: context ?? undefined });
+  }
+
   function openReturn(item: (typeof returns)[number]) {
     navigate(returnPathForStatus(item.id, item.rentalId, item.status), { state: context ?? undefined });
   }
@@ -42,6 +59,22 @@ export function ReturnsListScreen() {
       <AppHeader pageTitle="Devoluciones" />
 
       <div className={styles.content}>
+        <ReturnAlertsInbox alerts={alertsInbox.alerts} onOpen={openAlert} />
+        {alertsInbox.loadError && (
+          <p className={styles.statusText} role="alert">
+            No pudimos cargar las alertas operativas. La bandeja sigue disponible.
+          </p>
+        )}
+        <ReturnRemindersPanel
+          items={reminders.items}
+          loading={reminders.loading}
+          loadError={reminders.loadError}
+          busyId={reminders.busyId}
+          actionError={reminders.actionError}
+          canRegister={can('CREATE')}
+          onRegister={reminders.register}
+        />
+
         <div className={styles.toolbar}>
           <label htmlFor="returns-status-filter">Estado</label>
           <select
@@ -90,8 +123,21 @@ export function ReturnsListScreen() {
                         <span className={`${styles.badge} ${styles[`badge_${item.status}`] ?? ''}`}>
                           {RETURN_STATUS_LABELS[item.status]}
                         </span>
+                        {latenessLabel(item.lateness) && (
+                          <span className={`${styles.badge} ${styles.badge_alert}`} data-testid="lateness-badge">
+                            {latenessLabel(item.lateness)}
+                          </span>
+                        )}
+                        {item.alerts?.warrantyRelease && (
+                          <span className={`${styles.badge} ${styles.badge_alert}`}>
+                            {item.alerts.warrantyRelease.level === 'OVERDUE' ? 'Garantía vencida' : 'Garantía por liberar'}
+                          </span>
+                        )}
+                        {item.alerts?.immobilization && (
+                          <span className={`${styles.badge} ${styles.badge_alert}`}>Inmovilización &gt; 24 h</span>
+                        )}
                       </td>
-                      <td data-label="Fecha programada">{new Date(item.scheduledAt).toLocaleString('es-PE')}</td>
+                      <td data-label="Fecha programada">{formatLimaDateTime(item.scheduledAt)}</td>
                       <td>
                         <button
                           type="button"

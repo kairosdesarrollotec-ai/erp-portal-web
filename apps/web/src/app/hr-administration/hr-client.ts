@@ -15,6 +15,7 @@ export type HrMemo = components['schemas']['HrMemoResponse'];
 export type Training = components['schemas']['TrainingResponse'];
 export type LeaveEvidence = components['schemas']['LeaveEvidenceResponse'];
 export type MyEmployee = components['schemas']['MyEmployeeResponse'];
+export type AttendanceEvidence = components['schemas']['AttendanceEvidenceResponse'];
 export type CreateEmployeeInput = components['schemas']['CreateEmployeeRequest'];
 
 /** Error HTTP de lectura (GET) - mismo patron que RecruitmentApiError. */
@@ -94,6 +95,16 @@ export async function getEmployee(idToken: string, id: string): Promise<Employee
 
 // --- ADP-02 / ADP-03: asistencia --------------------------------------------------
 
+/** DEC-ADP-ATT-EVIDENCE-001 - foto de WhatsApp (reloj + hora + rostro) que corrobora la marcacion. Requiere storageRef o url. */
+export interface AttendanceEvidenceInput {
+  kind: 'WHATSAPP_PHOTO';
+  storageRef?: string;
+  url?: string;
+  /** Hora de Lima sin offset: `YYYY-MM-DDTHH:mm[:ss]`. */
+  capturedAtLocal: string;
+  note?: string;
+}
+
 export interface LogAttendanceInput {
   date: string;
   status: AttendanceStatus;
@@ -102,6 +113,8 @@ export interface LogAttendanceInput {
   checkInTime?: string;
   checkOutTime?: string;
   notes?: string;
+  /** OBLIGATORIA para PRESENTE y TARDANZA (422 ATTENDANCE_EVIDENCE_REQUIRED); opcional en faltas y permisos. */
+  evidence?: AttendanceEvidenceInput;
 }
 
 /**
@@ -118,11 +131,73 @@ export async function logAttendance(idToken: string, employeeId: string, input: 
     ...(input.checkInTime ? { checkInTime: input.checkInTime } : {}),
     ...(input.checkOutTime ? { checkOutTime: input.checkOutTime } : {}),
     ...(input.notes ? { notes: input.notes } : {}),
+    ...(input.evidence ? { evidence: input.evidence } : {}),
   } as unknown as components['schemas']['LogAttendanceRequest'];
   const { data, error, response } = await hrAdministrationApiClient.POST('/employees/{id}/attendance', {
     params: { path: { id: employeeId } },
     headers: authHeaders(idToken),
     body,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+export const ATTENDANCE_EVIDENCE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export type AttendanceEvidenceContentType = (typeof ATTENDANCE_EVIDENCE_TYPES)[number];
+export const ATTENDANCE_EVIDENCE_MAX_BYTES = 12582912; // 12 MiB
+
+export interface AttendanceEvidenceUploadSession {
+  uploadUrl: string;
+  objectUrl: string;
+  /** Valor para `evidence.storageRef` de logAttendance. */
+  storageRef: string;
+  expiresAt: string;
+}
+
+/** Solicita la URL firmada para subir la foto de evidencia de asistencia (POST .../attendance/evidence/upload-url). */
+export async function requestAttendanceEvidenceUploadUrl(
+  idToken: string,
+  employeeId: string,
+  contentType: AttendanceEvidenceContentType,
+  contentLength: number,
+): Promise<AttendanceEvidenceUploadSession> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/employees/{id}/attendance/evidence/upload-url', {
+    params: { path: { id: employeeId } },
+    headers: authHeaders(idToken),
+    body: { contentType, contentLength },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** PUT directo del archivo a la URL firmada (mismo Content-Type que se pidio). */
+export async function putAttendanceEvidenceFile(uploadUrl: string, file: File, contentType: string): Promise<void> {
+  let uploaded: Response;
+  try {
+    uploaded = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': contentType }, body: file });
+  } catch {
+    throw new HrCommandError(0, null);
+  }
+  if (!uploaded.ok) throw new HrCommandError(uploaded.status, null);
+}
+
+/** Pide la URL firmada y sube la foto; devuelve la sesion (con `storageRef` para log-attendance). */
+export async function uploadAttendanceEvidence(
+  idToken: string,
+  employeeId: string,
+  file: File,
+): Promise<AttendanceEvidenceUploadSession> {
+  const contentType = file.type as AttendanceEvidenceContentType;
+  const session = await requestAttendanceEvidenceUploadUrl(idToken, employeeId, contentType, file.size);
+  await putAttendanceEvidenceFile(session.uploadUrl, file, contentType);
+  return session;
+}
+
+/** DEC-ADP-LINK-EMAIL-001: vincula la ficha con la cuenta de usuario del mismo correo (MANAGE_EMPLOYEES, sin body). */
+export async function linkEmployeeAccount(idToken: string, employeeId: string): Promise<EmployeeResponse> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/employees/{id}/link-account', {
+    params: { path: { id: employeeId } },
+    headers: authHeaders(idToken),
   });
   if (error || !data) throw toCommandError(error, response.status);
   return data;

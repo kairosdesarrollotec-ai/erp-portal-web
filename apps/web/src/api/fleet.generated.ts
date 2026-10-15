@@ -216,8 +216,6 @@ export interface components {
             /** @description Monto mínimo de garantía configurado para este vehículo (PEN). */
             depositMinimum?: number | null;
             photoUrl?: string | null;
-            /** @description Solo presente cuando la consulta envía availableFrom y availableTo. Indica si el vehículo está libre en esa ventana. */
-            availability?: components["schemas"]["VehicleAvailability"];
             /**
              * Format: date-time
              * @description Timestamp ISO 8601 UTC de creación
@@ -228,14 +226,25 @@ export interface components {
              * @description Timestamp ISO 8601 UTC de última modificación
              */
             updatedAt: string;
+            availability?: components["schemas"]["VehicleAvailability"];
         };
+        /** @description Solo presente en GET /fleet/vehicles cuando se envían availableFrom y availableTo. Con available = true no hay campos de conflicto. */
         VehicleAvailability: {
             available: boolean;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Inicio del compromiso/reserva que choca (solo si available = false).
+             */
             conflictFrom?: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Fin del compromiso/reserva que choca (solo si available = false).
+             */
             conflictTo?: string;
-            /** @enum {string} */
+            /**
+             * @description COMMITMENT = alquiler o reserva confirmada (vehicle_commitments); RESERVATION = reserva no terminal.
+             * @enum {string}
+             */
             conflictSource?: "COMMITMENT" | "RESERVATION";
         };
         ListVehiclesResponse: {
@@ -355,15 +364,9 @@ export interface operations {
                 limit?: number;
                 /** @description Posición inicial para la paginación (0-indexed). */
                 offset?: number;
-                /**
-                 * Format: date-time
-                 * @description Inicio de la ventana de disponibilidad. Debe enviarse junto con availableTo; habilita el campo availability por vehículo.
-                 */
+                /** @description Inicio (inclusivo) de la ventana de disponibilidad. ISO 8601 date o date-time (una fecha sin hora = 00:00 America/Lima, DEC-TZ-LIMA-001). Debe enviarse junto con availableTo; si falta uno de los dos, 400 INVALID_AVAILABILITY_WINDOW. */
                 availableFrom?: string;
-                /**
-                 * Format: date-time
-                 * @description Fin de la ventana de disponibilidad. Debe enviarse junto con availableFrom.
-                 */
+                /** @description Fin (exclusivo) de la ventana de disponibilidad. ISO 8601 date o date-time. Debe ser posterior a availableFrom. */
                 availableTo?: string;
             };
             header?: never;

@@ -8,17 +8,12 @@ import { formatDate, formatDateTime } from './hr-format';
 import { useHrPermissions } from './hr-permissions';
 import { useHrCommand } from './useHrCommand';
 import { useHrResource } from './useHrResource';
+import { limaDateTimeToInstant, limaNowInputValue } from '../shared/lima-time';
 import styles from './HrFlow.module.css';
 
 interface Loaded {
   trip: FieldTrip;
   employee: EmployeeDetail | null;
-}
-
-const pad = (n: number) => String(n).padStart(2, '0');
-/** Valor para <input type="datetime-local"> en hora local. */
-function toLocalInput(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 /**
@@ -41,7 +36,7 @@ function ReturnFollowUp() {
     tripId ?? '',
   );
   const command = useHrCommand({ context, reload });
-  const [actual, setActual] = useState(() => toLocalInput(new Date()));
+  const [actual, setActual] = useState(() => limaNowInputValue());
   const [notes, setNotes] = useState('');
   const [newMemo, setNewMemo] = useState<HrMemo | null>(null);
   const actionRef = useRef<HTMLButtonElement>(null);
@@ -54,7 +49,7 @@ function ReturnFollowUp() {
   const summary = employee ?? trip?.employee ?? null;
   const counterKnown = summary !== null;
   const previous = summary?.fieldTripLateCount ?? 0;
-  const actualIso = actual ? new Date(actual).toISOString() : '';
+  const actualIso = actual ? (limaDateTimeToInstant(actual) ?? '') : '';
   const preview = trip && actualIso ? previewReturn(previous, trip.estimatedReturn, actualIso) : null;
 
   useEffect(() => {

@@ -16,6 +16,7 @@ import { useRecruitmentPermissions } from './recruitment-permissions';
 import { useRecruitmentCommand, useUnsavedWarning } from './useRecruitmentCommand';
 import { useCandidateDetail } from './useCandidateDetail';
 import styles from './RecruitmentFlow.module.css';
+import { limaDateTimeToInstant } from '../shared/lima-time';
 
 type Mode = 'VIRTUAL' | 'PRESENCIAL';
 
@@ -134,7 +135,7 @@ export function InterviewScreen() {
   const canSchedule = can('MANAGE_INTERVIEW') && !candidate?.decision;
 
   const modeValid = mode === 'VIRTUAL' ? /^https?:\/\/\S+$/i.test(meetUrl.trim()) : location.trim().length > 0;
-  const scheduleValid = when !== '' && !Number.isNaN(new Date(when).getTime()) && interviewerId.trim() !== '' && modeValid;
+  const scheduleValid = when !== '' && limaDateTimeToInstant(when) !== null && interviewerId.trim() !== '' && modeValid;
 
   async function submitSchedule(event: FormEvent) {
     event.preventDefault();
@@ -142,7 +143,7 @@ export function InterviewScreen() {
     const res = await run(
       (token, scope: RecruitmentScope) =>
         scheduleInterview(token, id, scope, {
-          scheduledAt: new Date(when).toISOString(),
+          scheduledAt: limaDateTimeToInstant(when) ?? when,
           isVirtual: mode === 'VIRTUAL',
           interviewerId: interviewerId.trim(),
           ...(mode === 'VIRTUAL' ? { meetUrl: meetUrl.trim() } : { location: location.trim() }),

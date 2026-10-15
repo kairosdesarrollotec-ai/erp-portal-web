@@ -137,7 +137,7 @@ export function ResultScreen() {
   const inspectionBlocked = !resolved && (!canInspect || !docReady);
 
   return (
-    <ReturnFlowShell step={4} title="Resultado" errorMessage={error}>
+    <ReturnFlowShell step={4} title="Resultado" errorMessage={error} alerts={ret.alerts} lateness={ret.lateness}>
       <h1 className={styles.pageHeading}>Resultado — {ret.vehiclePlate ?? 'Vehículo'}</h1>
 
       {wrongState && (

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { listRentals, getRental, createRental, validateDocuments, RentalApiError, RentalCommandError } from './rentals-client';
+import { listRentals, getRental, createRental, validateDocuments, getContractTemplate, formalizeContract, RentalApiError, RentalCommandError } from './rentals-client';
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -50,5 +50,25 @@ describe('rentals-client', () => {
     await expect(validateDocuments('token', 'r1', 'c1', 'b1', 3)).rejects.toBeInstanceOf(RentalCommandError);
     const request = fetchMock.mock.calls[0][0] as Request;
     expect(request.headers.get('If-Match')).toBe('"3"');
+  });
+
+  it('getContractTemplate envia withCompanyDriver (no withDriver)', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { variant: { holderType: 'LEGAL', withCompanyDriver: true } }));
+    const r = await getContractTemplate('token', 'r1', 'c1', 'b1', { holderType: 'LEGAL', withCompanyDriver: true });
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.url).toContain('holderType=LEGAL');
+    expect(request.url).toContain('withCompanyDriver=true');
+    expect(request.url).not.toContain('withDriver=');
+    expect(r.variant?.withCompanyDriver).toBe(true);
+  });
+
+  it('formalizeContract envia withCompanyDriver en el body y expone CONTRACT_VARIANT_DRIVER_CONFLICT', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1' }));
+    await formalizeContract('token', 'r1', 'c1', 'b1', 3, 'DOC', '0.00', 'PEN', undefined, undefined, { holderType: 'NATURAL', withCompanyDriver: false });
+    const body = await (fetchMock.mock.calls[0][0] as Request).json();
+    expect(body).toMatchObject({ holderType: 'NATURAL', withCompanyDriver: false, depositAmount: '0.00' });
+    expect(body).not.toHaveProperty('withDriver');
+    fetchMock.mockResolvedValue(jsonResponse(400, { code: 'CONTRACT_VARIANT_DRIVER_CONFLICT' }));
+    await expect(formalizeContract('token', 'r1', 'c1', 'b1', 3, 'DOC', '1', 'PEN')).rejects.toMatchObject({ status: 400, problem: { code: 'CONTRACT_VARIANT_DRIVER_CONFLICT' } });
   });
 });

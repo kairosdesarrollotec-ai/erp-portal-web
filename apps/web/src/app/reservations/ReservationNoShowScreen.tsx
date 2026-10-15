@@ -5,6 +5,7 @@ import { useRolePermissions } from '../shared/useRolePermissions';
 import { ResolutionShell } from './ResolutionShell';
 import detail from './ReservationDetailScreen.module.css';
 import styles from './ReservationResolution.module.css';
+import { formatLimaDate } from '../shared/lima-time';
 
 /**
  * RES-08 - Protocolo de no-show y conversión (BR-RES-002/003, EX-RES-004).
@@ -45,7 +46,7 @@ export function ReservationNoShowScreen() {
       ) : reservation && reservation.startDatePassed === false ? (
         <>
           <p className={styles.noteBox}>
-            Disponible desde el {new Date(reservation.startAt).toLocaleDateString('es-PE')}, fecha pactada de la reserva.
+            Disponible desde el {formatLimaDate(reservation.startAt)}, fecha pactada de la reserva.
           </p>
           <button type="button" className={detail.linkButton} onClick={() => navigate(`/reservas/${reservation.id}`)}>
             Volver a la reserva

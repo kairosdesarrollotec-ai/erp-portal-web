@@ -16,6 +16,7 @@ import {
 import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
 import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
 import styles from './RentalStageForms.module.css';
+import { formatLimaTime } from '../shared/lima-time';
 
 const REQUIRED_PHOTOS = 35;
 const REQUIRED_VIDEOS = 3;
@@ -341,7 +342,7 @@ export function Stage4ChecklistScreen() {
               <span>
                 {item.type === 'PHOTO' ? 'Foto' : 'Video'} · {ZONES.find((z) => z.value === item.zone)?.label ?? item.zone}
               </span>
-              <span>{new Date(item.uploadedAt).toLocaleTimeString()}</span>
+              <span>{formatLimaTime(item.uploadedAt)}</span>
             </li>
           ))}
         </ul>

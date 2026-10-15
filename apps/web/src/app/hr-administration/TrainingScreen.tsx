@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { AppHeader } from '../shared/AppHeader';
 import { HrFrame } from './HrFrame';
 import { listEmployees, listTrainings, registerTraining, type EmployeeResponse, type Training } from './hr-client';
-import { toIsoDate } from './hr-domain';
+import { limaToday } from './hr-domain';
 import { formatDate } from './hr-format';
 import { useHrPermissions } from './hr-permissions';
 import { useHrCommand } from './useHrCommand';
@@ -30,7 +30,7 @@ function Training() {
   const command = useHrCommand({ context, reload });
   const topicRef = useRef<HTMLInputElement>(null);
   const [topic, setTopic] = useState('');
-  const [heldOn, setHeldOn] = useState(toIsoDate(new Date()));
+  const [heldOn, setHeldOn] = useState(limaToday());
   const [notes, setNotes] = useState('');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -119,7 +119,7 @@ function Training() {
             <label className={styles.fieldLabel} htmlFor="cap-fecha">
               Fecha
             </label>
-            <input id="cap-fecha" type="date" className={styles.input} value={heldOn} max={toIsoDate(new Date())} onChange={(e) => setHeldOn(e.target.value)} aria-invalid={submitted && !heldOn} required />
+            <input id="cap-fecha" type="date" className={styles.input} value={heldOn} max={limaToday()} onChange={(e) => setHeldOn(e.target.value)} aria-invalid={submitted && !heldOn} required />
             <p className={styles.hint}>{REFERENCE_DURATION_TEXT}</p>
 
             <fieldset className={styles.fieldset}>
