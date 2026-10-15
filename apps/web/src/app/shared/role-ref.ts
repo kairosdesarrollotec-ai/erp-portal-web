@@ -22,3 +22,12 @@ export interface RoleRef {
 export function isPlatformAdminRole(role: Pick<RoleRef, 'key'> | null): boolean {
   return role?.key === 'PLATFORM_ADMIN';
 }
+
+/**
+ * Gerencia (rol de sistema GERENCIA). Solo para UX de decisiones reservadas a Gerencia
+ * (p. ej. incidencias UNAUTHORIZED_DRIVER, MANAGEMENT_DECISION_REQUIRED); la seguridad real vive
+ * en el backend.
+ */
+export function isManagementRole(role: Pick<RoleRef, 'key'> | null): boolean {
+  return role?.key === 'GERENCIA';
+}

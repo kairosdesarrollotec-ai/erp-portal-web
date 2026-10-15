@@ -226,6 +226,30 @@ describe('IncidentsListScreen (INC-01)', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('Conductor no autorizado fuerza severidad Grave, muestra el aviso y envia el tipo', async () => {
+    const user = setupUser();
+    listIncidentsMock.mockResolvedValue([leve]);
+    listRentalsMock.mockResolvedValue([
+      { id: 'rent-9', branchId: 'b1', vehiclePlate: 'K1A-111', customerName: 'Luis Rojas', status: 'ACTIVE' },
+    ]);
+    listReturnsMock.mockResolvedValue([]);
+    createIncidentMock.mockResolvedValue(makeIncident({ id: 'inc-new', rentalCode: 'ALQ-2000' }));
+    renderScreen();
+    await user.click(await screen.findByRole('button', { name: 'Registrar incidencia' }));
+    const dialog = screen.getByRole('dialog', { name: 'Registrar incidencia' });
+    await within(dialog).findByRole('option', { name: 'K1A-111 — Luis Rojas' });
+    await user.selectOptions(within(dialog).getByLabelText('Alquiler'), 'rent-9');
+    await user.selectOptions(within(dialog).getByLabelText('Tipo'), 'UNAUTHORIZED_DRIVER');
+    expect(within(dialog).getByLabelText('Severidad')).toHaveValue('GRAVE');
+    expect(within(dialog).getByLabelText('Severidad')).toBeDisabled();
+    expect(within(dialog).getByTestId('unauthorized-driver-notice')).toHaveTextContent(/La decisión \(retener garantía, resolver el contrato o ninguna\) la toma Gerencia caso por caso/);
+    await user.type(within(dialog).getByLabelText('Descripción de la observación'), 'Manejaba un familiar');
+    await user.click(within(dialog).getByRole('button', { name: 'Registrar incidencia' }));
+    await waitFor(() =>
+      expect(createIncidentMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1', expect.objectContaining({ type: 'UNAUTHORIZED_DRIVER', severity: 'GRAVE' })),
+    );
+  });
+
   it('abre el formulario preseleccionado con ?registrar=1&rentalId= (entrada desde Devolucion)', async () => {
     listIncidentsMock.mockResolvedValue([]);
     listRentalsMock.mockResolvedValue([
