@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getFirebaseAuth } from '../providers/firebase';
 import { listVehicles, type FleetVehicle } from '../fleet/fleet-client';
 import type { ReservationSummary } from './reservations-client';
@@ -15,10 +15,6 @@ export function useAlternativeVehicles(
   context: ReservationsWorkContext | null,
   enabled = true,
 ) {
-  const [state, setState] = useState<AlternativesState>('LOADING');
-  const [vehicles, setVehicles] = useState<FleetVehicle[]>([]);
-  const [attempt, setAttempt] = useState(0);
-
   const reservationId = reservation?.id;
   const currentVehicleId = reservation?.vehicle.id;
   const startAt = reservation?.startAt;
@@ -26,36 +22,31 @@ export function useAlternativeVehicles(
   const companyId = context?.companyId;
   const branchId = context?.branchId;
 
-  useEffect(() => {
-    if (!enabled || !reservationId || !startAt || !endAt || !companyId || !branchId) return;
-    let cancelled = false;
-    void (async () => {
-      setState('LOADING');
-      try {
-        const user = getFirebaseAuth().currentUser;
-        if (!user) throw new Error('Sesión no disponible.');
-        const idToken = await user.getIdToken();
-        const result = await listVehicles(idToken, {
-          companyId,
-          branchId,
-          availableFrom: startAt,
-          availableTo: endAt,
-          limit: 50,
-        });
-        if (cancelled) return;
-        const free = result.items.filter(
-          (v) => v.id !== currentVehicleId && v.status === 'AVAILABLE' && v.availability?.available !== false,
-        );
-        setVehicles(free);
-        setState(free.length === 0 ? 'EMPTY' : 'READY');
-      } catch {
-        if (!cancelled) setState('ERROR');
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled, reservationId, currentVehicleId, startAt, endAt, companyId, branchId, attempt]);
+  const queryEnabled = enabled && Boolean(reservationId && startAt && endAt && companyId && branchId);
 
-  return { state, vehicles, retry: () => setAttempt((n) => n + 1) };
+  const { data, isPending, isError, refetch } = useQuery<FleetVehicle[]>({
+    queryKey: ['alternativeVehicles', reservationId, currentVehicleId, startAt, endAt, companyId, branchId],
+    queryFn: async () => {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible.');
+      const idToken = await user.getIdToken();
+      const result = await listVehicles(idToken, {
+        companyId: companyId!,
+        branchId: branchId!,
+        availableFrom: startAt!,
+        availableTo: endAt!,
+        limit: 50,
+      });
+      return result.items.filter(
+        (v) => v.id !== currentVehicleId && v.status === 'AVAILABLE' && v.availability?.available !== false,
+      );
+    },
+    enabled: queryEnabled,
+  });
+
+  const vehicles: FleetVehicle[] = data ?? [];
+  const state: AlternativesState =
+    !queryEnabled || isPending ? 'LOADING' : isError ? 'ERROR' : vehicles.length === 0 ? 'EMPTY' : 'READY';
+
+  return { state, vehicles, retry: () => void refetch() };
 }

@@ -74,7 +74,12 @@ export function useReservationDetail() {
       let updated = await action(idToken);
       if (refresh && context) {
         // Las respuestas de comandos no traen saleResolution/startDatePassed: se refresca el detalle.
-        updated = await getReservation(idToken, reservation.id, context.companyId, context.branchId);
+        // Si el refresh falla se devuelve la respuesta del comando (el comando ya tuvo éxito).
+        try {
+          updated = await getReservation(idToken, reservation.id, context.companyId, context.branchId);
+        } catch {
+          // intencional: refresh fallido no oculta el éxito del comando
+        }
       }
       setReservation(updated);
       return updated;

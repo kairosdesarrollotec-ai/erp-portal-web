@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getMyProfile, type UserProfileResponse } from './profile-client';
 
@@ -10,43 +10,34 @@ export interface UserProfileData extends UserProfileResponse {
   lastSignInTime: string | null;
 }
 
+async function fetchUserProfile(): Promise<UserProfileData> {
+  const auth = getFirebaseAuth();
+  // Espera a que Firebase restaure la sesión (necesario en hard-refresh antes de onAuthStateChanged).
+  const user = await new Promise<(typeof auth)['currentUser']>((resolve) => {
+    const unsub = auth.onAuthStateChanged((u) => { unsub(); resolve(u); });
+  });
+  if (!user) throw new Error('No hay sesión de usuario activa.');
+  const idToken = await user.getIdToken();
+  const data = await getMyProfile(idToken);
+  return {
+    ...data,
+    creationTime: user.metadata?.creationTime ?? null,
+    lastSignInTime: user.metadata?.lastSignInTime ?? null,
+  };
+}
+
 /** TR-09: carga el perfil desde GET /users/me/profile. Sin datos de relleno: ante error, estado ERROR. */
 export function useUserProfile() {
-  const [state, setState] = useState<UserProfileScreenState>('LOADING');
-  const [profile, setProfile] = useState<UserProfileData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isPending, isError, error, refetch } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: fetchUserProfile,
+    retry: 1,
+  });
 
-  const loadProfile = useCallback(async () => {
-    setState('LOADING');
-    setError(null);
+  const state: UserProfileScreenState = isPending ? 'LOADING' : isError ? 'ERROR' : 'READY';
+  const errorMessage = isError
+    ? (error instanceof Error ? error.message : 'No se pudo cargar el perfil.')
+    : null;
 
-    const user = getFirebaseAuth().currentUser;
-    if (!user) {
-      setProfile(null);
-      setState('ERROR');
-      setError('No hay sesión de usuario activa.');
-      return;
-    }
-
-    try {
-      const idToken = await user.getIdToken();
-      const data = await getMyProfile(idToken);
-      setProfile({
-        ...data,
-        creationTime: user.metadata?.creationTime ?? null,
-        lastSignInTime: user.metadata?.lastSignInTime ?? null,
-      });
-      setState('READY');
-    } catch (err) {
-      setProfile(null);
-      setState('ERROR');
-      setError(err instanceof Error ? err.message : 'No se pudo cargar el perfil.');
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadProfile();
-  }, [loadProfile]);
-
-  return { state, profile, error, reload: loadProfile };
+  return { state, profile: data ?? null, error: errorMessage, reload: refetch };
 }

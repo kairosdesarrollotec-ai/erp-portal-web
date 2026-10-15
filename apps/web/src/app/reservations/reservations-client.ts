@@ -275,7 +275,6 @@ export const RESERVATION_ERROR_MESSAGES: Record<string, string> = {
 };
 
 export function describeReservationError(error: ReservationCommandError): string {
-  if (error.problem?.code === 'INVALID_CANCEL_REASON') return RESERVATION_ERROR_MESSAGES.INVALID_CANCEL_REASON;
   return (
     error.problem?.detail?.trim() ||
     (error.problem?.code ? RESERVATION_ERROR_MESSAGES[error.problem.code] : undefined) ||
@@ -283,29 +282,15 @@ export function describeReservationError(error: ReservationCommandError): string
   );
 }
 
-async function postVersionedCommand(
-  path: 'flag-sale' | 'resolve-sale' | 'change-vehicle',
-  idToken: string,
-  id: string,
+function commandError(
   version: number,
-  body: Record<string, unknown>,
-): Promise<ReservationSummary> {
-  // Los endpoints flag-sale/resolve-sale/change-vehicle aún no están en reservations.generated.ts.
-  const client = reservationsApiClient as unknown as {
-    POST: (
-      url: string,
-      init: unknown,
-    ) => Promise<{ data?: unknown; error?: unknown; response: { status: number } }>;
-  };
-  const { data, error, response } = await client.POST(`/reservations/{id}/commands/${path}`, {
-    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
-    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-    body,
-  });
-  if (error || !data) {
-    throw new ReservationCommandError(response.status, (error as { code?: string; detail?: string } | null) ?? null);
+  error: unknown,
+  status: number,
+): never {
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
   }
-  return data as ReservationSummary;
+  throw new ReservationCommandError(status, (error as { code?: string; detail?: string } | null) ?? null);
 }
 
 /** RES-07 - Gerencia/Administración registra la venta del vehículo reservado (CONFIRMED -> PENDING_SALE_RESOLUTION). */
@@ -316,13 +301,21 @@ export function flagVehicleSale(
   branchId: string,
   version: number,
   opts: { alternativeVehicleId?: string; note?: string } = {},
+  idempotencyKey = crypto.randomUUID(),
 ): Promise<ReservationSummary> {
-  return postVersionedCommand('flag-sale', idToken, id, version, {
-    companyId,
-    branchId,
-    ...(opts.alternativeVehicleId ? { alternativeVehicleId: opts.alternativeVehicleId } : {}),
-    ...(opts.note ? { note: opts.note } : {}),
-  });
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  return reservationsApiClient
+    .POST('/reservations/{id}/commands/flag-sale', {
+      params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+      headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
+      body: { companyId, branchId, alternativeVehicleId: opts.alternativeVehicleId, note: opts.note },
+    })
+    .then(({ data, error, response }) => {
+      if (error || !data) commandError(version, error, response.status);
+      return data as unknown as ReservationSummary;
+    });
 }
 
 /**
@@ -337,8 +330,21 @@ export function changeReservationVehicle(
   branchId: string,
   version: number,
   vehicleId: string,
+  idempotencyKey = crypto.randomUUID(),
 ): Promise<ReservationSummary> {
-  return postVersionedCommand('change-vehicle', idToken, id, version, { companyId, branchId, vehicleId });
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  return reservationsApiClient
+    .POST('/reservations/{id}/commands/change-vehicle', {
+      params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+      headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
+      body: { companyId, branchId, vehicleId },
+    })
+    .then(({ data, error, response }) => {
+      if (error || !data) commandError(version, error, response.status);
+      return data as unknown as ReservationSummary;
+    });
 }
 
 /** RES-07 - resolución de la venta: ACCEPT_ALTERNATIVE (vuelve a DRAFT) o REJECT (CANCELLED + reembolso pendiente). */
@@ -350,12 +356,19 @@ export function resolveVehicleSale(
   version: number,
   decision: 'ACCEPT_ALTERNATIVE' | 'REJECT',
   opts: { alternativeVehicleId?: string; note?: string } = {},
+  idempotencyKey = crypto.randomUUID(),
 ): Promise<ReservationSummary> {
-  return postVersionedCommand('resolve-sale', idToken, id, version, {
-    companyId,
-    branchId,
-    decision,
-    ...(opts.alternativeVehicleId ? { alternativeVehicleId: opts.alternativeVehicleId } : {}),
-    ...(opts.note ? { note: opts.note } : {}),
-  });
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  return reservationsApiClient
+    .POST('/reservations/{id}/commands/resolve-sale', {
+      params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+      headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
+      body: { companyId, branchId, decision, alternativeVehicleId: opts.alternativeVehicleId, note: opts.note },
+    })
+    .then(({ data, error, response }) => {
+      if (error || !data) commandError(version, error, response.status);
+      return data as unknown as ReservationSummary;
+    });
 }

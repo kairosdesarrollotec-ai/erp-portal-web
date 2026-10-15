@@ -183,8 +183,10 @@ export function ReservationDetailScreen() {
 
           {actionError && <p className={styles.errorText}>{actionError}</p>}
           {vehicleUnavailable && (
-            <p id="vehicle-unavailable-alert" role="alert" className={styles.unavailableAlert}>
-              {vehicleUnavailable}{' '}
+            <>
+              <p id="vehicle-unavailable-alert" role="alert" className={styles.unavailableAlert}>
+                {vehicleUnavailable}
+              </p>
               <button
                 type="button"
                 className={styles.linkButton}
@@ -196,7 +198,7 @@ export function ReservationDetailScreen() {
               >
                 Ver alternativas
               </button>
-            </p>
+            </>
           )}
 
           {reservation.status === 'PENDING_SALE_RESOLUTION' && (

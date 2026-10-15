@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getFirebaseAuth } from '../providers/firebase';
 import {
   listReturnReminders,
@@ -13,7 +14,7 @@ export interface ReminderScope {
   branchId: string;
 }
 
-async function getIdToken(): Promise<string> {
+export async function getIdToken(): Promise<string> {
   const user = getFirebaseAuth().currentUser;
   if (!user) throw new Error('Sesión no disponible');
   return user.getIdToken();
@@ -24,33 +25,20 @@ async function getIdToken(): Promise<string> {
  * el panel muestra un aviso recuperable. Registrar el resultado refresca la lista (el servidor manda).
  */
 export function useReturnReminders(scope: ReminderScope | null, enabled = true) {
-  const [items, setItems] = useState<ReturnReminderInboxItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const companyId = scope?.companyId;
+  const branchId = scope?.branchId;
+  const queryEnabled = enabled && Boolean(companyId && branchId);
+  const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<{ returnId: string; message: string } | null>(null);
 
-  const companyId = scope?.companyId;
-  const branchId = scope?.branchId;
+  const queryKey = ['returnReminders', companyId, branchId] as const;
 
-  const reload = useCallback(async () => {
-    if (!companyId || !branchId || !enabled) return;
-    setLoading(true);
-    try {
-      const result = await listReturnReminders(await getIdToken(), companyId, branchId);
-      setItems(result);
-      setLoadError(false);
-    } catch {
-      setLoadError(true);
-    } finally {
-      setLoading(false);
-    }
-  }, [companyId, branchId, enabled]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void reload();
-  }, [reload]);
+  const { data, isFetching: loading, isError: loadError, refetch } = useQuery<ReturnReminderInboxItem[]>({
+    queryKey,
+    queryFn: async () => listReturnReminders(await getIdToken(), companyId!, branchId!),
+    enabled: queryEnabled,
+  });
 
   /** Devuelve true si el resultado quedo registrado. */
   const register = useCallback(
@@ -60,7 +48,7 @@ export function useReturnReminders(scope: ReminderScope | null, enabled = true) 
       setActionError(null);
       try {
         await registerReturnReminder(await getIdToken(), item.returnId, companyId, branchId, item.reminder.etag, input);
-        await reload();
+        await queryClient.invalidateQueries({ queryKey: ['returnReminders', companyId, branchId] });
         return true;
       } catch (error) {
         setActionError({
@@ -68,14 +56,14 @@ export function useReturnReminders(scope: ReminderScope | null, enabled = true) 
           message: describeReturnError(error, 'No pudimos registrar el resultado del recordatorio. Intenta de nuevo.'),
         });
         // 409/412: el recordatorio cambio en el servidor; se recarga para mostrar su estado real.
-        await reload();
+        await queryClient.invalidateQueries({ queryKey: ['returnReminders', companyId, branchId] });
         return false;
       } finally {
         setBusyId(null);
       }
     },
-    [companyId, branchId, reload],
+    [companyId, branchId, queryClient],
   );
 
-  return { items, loading, loadError, busyId, actionError, reload, register };
+  return { items: data ?? [], loading, loadError, busyId, actionError, reload: () => void refetch(), register };
 }

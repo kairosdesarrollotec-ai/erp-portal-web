@@ -54,15 +54,26 @@ export function UserProfileScreen() {
     void refreshLocalDraftCount().catch(() => undefined);
   }, []);
 
-  const remaining = sessionRemainingLabel(profile?.lastSignInTime);
+  const [remaining, setRemaining] = useState<string | null | undefined>(
+    () => sessionRemainingLabel(profile?.lastSignInTime),
+  );
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRemaining(sessionRemainingLabel(profile?.lastSignInTime));
+    const id = setInterval(() => {
+      setRemaining(sessionRemainingLabel(profile?.lastSignInTime));
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [profile?.lastSignInTime]);
 
-  function requestSignOut() {
+  async function requestSignOut() {
+    await refreshLocalDraftCount().catch(() => undefined);
     const count = getLocalDraftCount();
     if (count > 0) {
       setPendingDraftCount(count);
       setShowLogoutModal(true);
     } else {
-      void handleSignOut();
+      await handleSignOut();
     }
   }
 
@@ -209,7 +220,7 @@ export function UserProfileScreen() {
                   <span>Cambiar empresa/sede</span>
                   <ArrowRight size={14} aria-hidden="true" />
                 </button>
-                <button type="button" className={styles.signOutButton} onClick={requestSignOut}>
+                <button type="button" className={styles.signOutButton} onClick={() => void requestSignOut()}>
                   <LogOut size={14} aria-hidden="true" />
                   <span>Cerrar sesión</span>
                 </button>

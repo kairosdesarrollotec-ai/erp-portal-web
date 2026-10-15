@@ -43,7 +43,7 @@ export function ReservationNoShowScreen() {
             Volver a la reserva
           </button>
         </>
-      ) : reservation && !reservation.startDatePassed ? (
+      ) : reservation && reservation.startDatePassed === false ? (
         <>
           <p className={styles.noteBox}>
             Disponible desde el {formatLimaDate(reservation.startAt)}, fecha pactada de la reserva.

@@ -31,7 +31,8 @@ export function ReservationSaleScreen() {
 
   const resolution = reservation?.saleResolution ?? null;
   const offered = resolution?.status === 'PENDING' ? resolution.offeredVehicle : null;
-  const effectiveAlternative = selectedId ?? offered?.id ?? null;
+  const offeredInList = offered?.id && alternatives.vehicles.some((v) => v.id === offered.id) ? offered.id : null;
+  const effectiveAlternative = selectedId ?? offeredInList ?? null;
   const busy = savingRequirement === 'FLAG_SALE' || savingRequirement === 'RESOLVE_SALE';
 
   async function accept() {
@@ -41,8 +42,8 @@ export function ReservationSaleScreen() {
   }
 
   async function reject() {
-    await resolveSale('REJECT', { note: note.trim() || undefined });
-    setConfirmingReject(false);
+    const result = await resolveSale('REJECT', { note: note.trim() || undefined });
+    if (result) setConfirmingReject(false);
   }
 
   return (

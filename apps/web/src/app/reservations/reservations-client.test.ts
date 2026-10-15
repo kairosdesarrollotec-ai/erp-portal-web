@@ -142,9 +142,9 @@ describe('reservations-client RES-07 (flag-sale / resolve-sale)', () => {
     expect(err2.isVersionConflict).toBe(true);
   });
 
-  it('traduce 400 INVALID_CANCEL_REASON aunque venga detail', async () => {
+  it('traduce 400 INVALID_CANCEL_REASON usando el mensaje por codigo cuando no viene detail', async () => {
     const { describeReservationError } = await import('./reservations-client');
-    expect(describeReservationError(new ReservationCommandError(400, { code: 'INVALID_CANCEL_REASON', detail: 'invalid' }))).toMatch(/Motivo de cancelación no válido/);
+    expect(describeReservationError(new ReservationCommandError(400, { code: 'INVALID_CANCEL_REASON' }))).toMatch(/Motivo de cancelación no válido/);
   });
 
   it('describeReservationError prefiere el detail del back y cae al mensaje por código', async () => {

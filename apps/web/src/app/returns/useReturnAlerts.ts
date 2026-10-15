@@ -1,31 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
-import { getFirebaseAuth } from '../providers/firebase';
+import { useQuery } from '@tanstack/react-query';
 import { listReturnAlerts, type ReturnAlertItem } from './returns-client';
 import type { ReminderScope } from './useReturnReminders';
+import { getIdToken } from './useReturnReminders';
 
 /** DEV-01 - alertas de garantia por liberar e inmovilizacion > 24 h. Un fallo no bloquea la bandeja. */
 export function useReturnAlerts(scope: ReminderScope | null, enabled = true) {
-  const [alerts, setAlerts] = useState<ReturnAlertItem[]>([]);
-  const [loadError, setLoadError] = useState(false);
   const companyId = scope?.companyId;
   const branchId = scope?.branchId;
+  const queryEnabled = enabled && Boolean(companyId && branchId);
 
-  const reload = useCallback(async () => {
-    if (!companyId || !branchId || !enabled) return;
-    try {
-      const user = getFirebaseAuth().currentUser;
-      if (!user) throw new Error('Sesión no disponible');
-      setAlerts(await listReturnAlerts(await user.getIdToken(), companyId, branchId));
-      setLoadError(false);
-    } catch {
-      setLoadError(true);
-    }
-  }, [companyId, branchId, enabled]);
+  const { data, isError: loadError, refetch } = useQuery<ReturnAlertItem[]>({
+    queryKey: ['returnAlerts', companyId, branchId],
+    queryFn: async () => listReturnAlerts(await getIdToken(), companyId!, branchId!),
+    enabled: queryEnabled,
+  });
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void reload();
-  }, [reload]);
-
-  return { alerts, loadError, reload };
+  return { alerts: data ?? [], loadError, reload: () => void refetch() };
 }

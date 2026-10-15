@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { axe } from 'jest-axe';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReturnsListScreen } from './ReturnsListScreen';
 import { baseContext, makeReturn } from './test-utils';
 import { setPermissions } from '../../test/permissions';
 
-// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+// AppHeader monta GlobalSearch (react-query); se mockea para evitar dependencias adicionales de red.
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 
 const RETURN_LIST = [
@@ -56,16 +57,19 @@ const activeRental = {
 };
 
 function renderScreen() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/devoluciones', state: baseContext }]}>
-      <Routes>
-        <Route path="/devoluciones" element={<ReturnsListScreen />} />
-        <Route path="/devoluciones/recepcion/:rentalId" element={<div>pantalla recepcion</div>} />
-        <Route path="/devoluciones/:id/alcoholimetro" element={<div>pantalla alcoholimetro</div>} />
-        <Route path="/devoluciones/:id/resultado" element={<div>pantalla resultado</div>} />
-        <Route path="/devoluciones/:id/cierre" element={<div>pantalla cierre</div>} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[{ pathname: '/devoluciones', state: baseContext }]}>
+        <Routes>
+          <Route path="/devoluciones" element={<ReturnsListScreen />} />
+          <Route path="/devoluciones/recepcion/:rentalId" element={<div>pantalla recepcion</div>} />
+          <Route path="/devoluciones/:id/alcoholimetro" element={<div>pantalla alcoholimetro</div>} />
+          <Route path="/devoluciones/:id/resultado" element={<div>pantalla resultado</div>} />
+          <Route path="/devoluciones/:id/cierre" element={<div>pantalla cierre</div>} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

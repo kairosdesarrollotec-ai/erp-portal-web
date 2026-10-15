@@ -119,7 +119,7 @@ export function limaNowInputValue(now: Date = new Date()): string {
 const DASH = '—';
 
 function dmy(parts: { year: number; month: number; day: number }): string {
-  return `${parts.day}/${parts.month}/${parts.year}`;
+  return `${pad(parts.day)}/${pad(parts.month)}/${parts.year}`;
 }
 
 /** `d/m/aaaa` (dia de Lima). Acepta fecha sin hora (no se desplaza) o instante ISO. */
