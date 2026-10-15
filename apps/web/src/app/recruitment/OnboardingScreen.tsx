@@ -164,7 +164,7 @@ export function OnboardingScreen() {
                 <button
                   type="button"
                   className={styles.secondaryButton}
-                  onClick={() => navigate(`/personal/nuevo?candidateId=${id}`, { state: context ?? undefined })}
+                  onClick={() => { if (context) navigate(`/personal/nuevo?candidateId=${id}`, { state: context }); }}
                 >
                   Registrar como persona
                 </button>
