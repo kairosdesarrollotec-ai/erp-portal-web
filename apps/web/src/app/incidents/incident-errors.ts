@@ -6,6 +6,10 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   INCIDENT_NOT_OPEN: 'Esta incidencia ya no está abierta, por lo que no admite más cambios. Recargamos los datos.',
   INCIDENT_DIRECT_RESOLVE_NOT_ALLOWED:
     'Solo las incidencias leves se pueden resolver desde la bandeja. Abre el detalle para revisarla y cerrarla.',
+  INCIDENT_SEVERITY_NOT_ALLOWED_FOR_TYPE:
+    'La severidad elegida no es válida para este tipo de incidencia. Conductor no autorizado solo admite severidad Grave.',
+  MANAGEMENT_DECISION_REQUIRED:
+    'Esta decisión (resolver, cerrar o derivar a vía legal una incidencia de conductor no autorizado) la toma solo Gerencia.',
 };
 
 const STATUS_MESSAGES: Record<number, string> = {

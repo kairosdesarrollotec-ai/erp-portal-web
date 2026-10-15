@@ -68,7 +68,9 @@ export function GuaranteeScreen() {
 
   const damages = ret.damages;
   const charges = ret.immobilizationCharges;
-  const depositAmount = rental?.deposit ? Number(rental.deposit.originalAmount) : null;
+  // Conductor de la empresa: sin garantia (DEC-ALQ-COMPANY-DRIVER-004). close-financial con montos > 0 da 422.
+  const noDeposit = ret.depositRequired === false || rental?.depositRequired === false;
+  const depositAmount = rental?.deposit && !noDeposit ? Number(rental.deposit.originalAmount) : null;
   const currency = rental?.deposit?.currency ?? 'PEN';
   const computedRetained = ret.status === 'SIN_DANOS' ? 0 : totalCharges(damages, charges);
   const hasRecordedCharges = damages.length > 0 || charges.length > 0;
@@ -85,7 +87,8 @@ export function GuaranteeScreen() {
   const elapsed = hoursSince(ret.receivedAt);
   const remaining = elapsed === null ? null : Math.ceil(GUARANTEE_WINDOW_HOURS - elapsed);
   const noRecordedDamages = ret.status === 'CON_DANOS' && !hasRecordedCharges;
-  const canConfirm = actionable && depositAmount !== null && retainedValid && can('CLOSE_FINANCIAL') && !blocked;
+  const canConfirm = actionable && (depositAmount !== null || noDeposit) && retainedValid && can('CLOSE_FINANCIAL') && !blocked;
+  const creditExcess = Number(rental?.reservationCreditExcess ?? rental?.deposit?.reservationCreditExcess ?? 0) || 0;
   const money = (n: number) => (currency === 'PEN' ? formatPen(n) : `${n.toFixed(2)} ${currency}`);
 
   async function handleConfirm() {
@@ -122,12 +125,13 @@ export function GuaranteeScreen() {
       step={5}
       title="Garantía"
       onContinue={actionable ? () => setConfirmOpen(true) : undefined}
-      continueLabel="Confirmar liberación de garantía"
+      continueLabel={noDeposit ? 'Continuar al cierre (sin garantía)' : 'Confirmar liberación de garantía'}
       continueDisabled={!canConfirm}
       continueBusy={busy}
       errorMessage={error}
       alerts={ret.alerts}
       lateness={ret.lateness}
+      latenessCharge={ret.latenessCharge}
     >
       <h1 className={styles.pageHeading}>Resolución de garantía — {ret.vehiclePlate ?? 'Vehículo'}</h1>
 
@@ -163,13 +167,20 @@ export function GuaranteeScreen() {
         </p>
       )}
 
-      {actionable && depositAmount === null && !rentalError && rental && (
+      {noDeposit && (
+        <p className={`${styles.banner} ${styles.banner_info}`} role="status" data-testid="no-deposit-banner">
+          Sin garantía (conductor de la empresa). No hay garantía que liberar ni devolver; los cargos por daños o
+          paralización, si los hay, se cobran aparte.
+        </p>
+      )}
+
+      {actionable && !noDeposit && depositAmount === null && !rentalError && rental && (
         <p className={`${styles.banner} ${styles.banner_warning}`}>El alquiler de origen no tiene garantía registrada.</p>
       )}
 
-      {depositAmount !== null && Number(rental?.deposit?.reservationCreditExcess ?? 0) > 0 && (
+      {creditExcess > 0 && (
         <p className={`${styles.banner} ${styles.banner_warning}`} role="status" data-testid="reservation-credit-excess">
-          Saldo a favor de la reserva (sin reembolso automático): {money(Number(rental!.deposit!.reservationCreditExcess))}
+          Saldo a favor de la reserva (sin reembolso automático): {money(creditExcess)}
         </p>
       )}
 
@@ -231,7 +242,7 @@ export function GuaranteeScreen() {
         </p>
       )}
 
-      {actionable && noRecordedDamages && (
+      {actionable && noRecordedDamages && !noDeposit && (
         <>
           <p className={`${styles.banner} ${styles.banner_warning}`}>
             El expediente no tiene daños valorados. Si corresponde retener algo, ingresa manualmente el monto.
@@ -261,16 +272,20 @@ export function GuaranteeScreen() {
             <p id="guarantee-confirm-title" className={styles.modalTitle}>
               Confirmar liberación de garantía
             </p>
+            {noDeposit ? (
+              <p className={styles.summaryLine}>Sin garantía (conductor de la empresa): se continúa al cierre sin montos de garantía.</p>
+            ) : (
             <p className={styles.summaryLine}>
               Se devolverán <strong>{money(refund)}</strong> al cliente
               {retained > 0 ? ` y se retendrán ${money(retained)}` : ''}. Esta acción es irreversible.
             </p>
+            )}
             <div className={styles.modalActions}>
               <button type="button" className={styles.secondaryButton} onClick={() => setConfirmOpen(false)}>
                 Cancelar
               </button>
               <button type="button" className={styles.dangerButton} onClick={handleConfirm} disabled={busy}>
-                Confirmar {money(refund)}
+                {noDeposit ? 'Continuar' : `Confirmar ${money(refund)}`}
               </button>
             </div>
           </div>

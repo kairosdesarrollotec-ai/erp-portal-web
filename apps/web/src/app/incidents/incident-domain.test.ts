@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canResolveDirect, rentalLabel } from './incident-domain';
+import { canResolveDirect, rentalLabel, forcedSeverityForType, requiresManagementDecision, INCIDENT_TYPES, INCIDENT_TYPE_LABELS } from './incident-domain';
 import { canIncidentAction } from './incident-permissions';
 import { describeIncidentError, isStaleIncidentError } from './incident-errors';
 import { IncidentCommandError } from './incidents-client';
@@ -60,5 +60,22 @@ describe('incident-errors', () => {
     expect(describeIncidentError(unprocessable, 'x')).toMatch(/Solo las incidencias leves/);
 
     expect(describeIncidentError(new Error('boom'), 'fallback')).toBe('fallback');
+  });
+
+  it('traduce los errores de conductor no autorizado', () => {
+    expect(describeIncidentError(new IncidentCommandError(422, { code: 'INCIDENT_SEVERITY_NOT_ALLOWED_FOR_TYPE' }), 'x')).toMatch(/solo admite severidad Grave/);
+    expect(describeIncidentError(new IncidentCommandError(403, { code: 'MANAGEMENT_DECISION_REQUIRED' }), 'x')).toMatch(/solo Gerencia/);
+  });
+});
+
+describe('UNAUTHORIZED_DRIVER (DEC-ALQ-UNAUTH-DRIVER-003)', () => {
+  it('esta en el catalogo con etiqueta, fuerza GRAVE y requiere decision de Gerencia', () => {
+    expect(INCIDENT_TYPES).toContain('UNAUTHORIZED_DRIVER');
+    expect(INCIDENT_TYPE_LABELS.UNAUTHORIZED_DRIVER).toBe('Conductor no autorizado');
+    expect(forcedSeverityForType('UNAUTHORIZED_DRIVER')).toBe('GRAVE');
+    expect(forcedSeverityForType('KEY_LOSS')).toBeNull();
+    expect(forcedSeverityForType('')).toBeNull();
+    expect(requiresManagementDecision('UNAUTHORIZED_DRIVER')).toBe(true);
+    expect(requiresManagementDecision('OTHER')).toBe(false);
   });
 });

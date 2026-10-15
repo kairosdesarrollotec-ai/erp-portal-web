@@ -137,7 +137,7 @@ export function ResultScreen() {
   const inspectionBlocked = !resolved && (!canInspect || !docReady);
 
   return (
-    <ReturnFlowShell step={4} title="Resultado" errorMessage={error} alerts={ret.alerts} lateness={ret.lateness}>
+    <ReturnFlowShell step={4} title="Resultado" errorMessage={error} alerts={ret.alerts} lateness={ret.lateness} latenessCharge={ret.latenessCharge}>
       <h1 className={styles.pageHeading}>Resultado — {ret.vehiclePlate ?? 'Vehículo'}</h1>
 
       {wrongState && (
@@ -201,7 +201,7 @@ export function ResultScreen() {
               disabled={busy || inspectionBlocked}
               onClick={() => (resolved ? goNext(false) : void runInspection(false))}
             >
-              {busy ? 'Guardando…' : 'Liberar garantía'}
+              {busy ? 'Guardando…' : ret?.depositRequired === false ? 'Continuar (sin garantía)' : 'Liberar garantía'}
             </button>
             {canIncident('CREATE') && ret && (
               <Link

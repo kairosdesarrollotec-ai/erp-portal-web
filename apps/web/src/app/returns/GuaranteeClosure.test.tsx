@@ -173,6 +173,49 @@ describe('GuaranteeScreen (DEV-09)', () => {
     expect(screen.getByRole('button', { name: 'Confirmar liberación de garantía' })).toBeDisabled();
   });
 
+  it('sin garantia (conductor de la empresa): lo indica, no ofrece montos y continua al cierre con 0/0', async () => {
+    getRentalMock.mockResolvedValue({ id: 'rent-1', branchId: 'b1', deposit: null, depositRequired: false });
+    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'SIN_DANOS', receivedAt: new Date().toISOString(), depositRequired: false }) }));
+    closeFinancialMock.mockResolvedValue(makeReturn({ status: 'CIERRE_FINANCIERO' }));
+    mount();
+    expect(await screen.findByTestId('no-deposit-banner')).toHaveTextContent('Sin garantía (conductor de la empresa)');
+    expect(screen.queryByLabelText('Resumen de garantía')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirmar liberación de garantía' })).not.toBeInTheDocument();
+    const next = screen.getByRole('button', { name: 'Continuar al cierre (sin garantía)' });
+    await waitFor(() => expect(next).toBeEnabled());
+    fireEvent.click(next);
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Continuar' }));
+    await waitFor(() => expect(closeFinancialMock).toHaveBeenCalledWith('tok', 'ret-1', 'c1', 'b1', 2, 0, 0, undefined));
+  });
+
+  it('sin garantia no pide monto manual aunque haya daños sin valorar', async () => {
+    flowMock.mockReturnValue(makeFlow({ ret: conDanos([], { depositRequired: false }) }));
+    mount();
+    await screen.findByTestId('no-deposit-banner');
+    expect(screen.queryByLabelText(/Monto a retener/)).not.toBeInTheDocument();
+  });
+
+  it('RETURN_NO_DEPOSIT_TO_SETTLE se traduce a lenguaje de negocio', async () => {
+    flowMock.mockReturnValue(makeFlow({ ret: sinDanos() }));
+    closeFinancialMock.mockRejectedValue(new ReturnCommandError(422, { code: 'RETURN_NO_DEPOSIT_TO_SETTLE' }));
+    mount();
+    await screen.findByText('Sin descuentos — sin daños encontrados');
+    await confirmDialog();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Sin garantía \(conductor de la empresa\)/);
+  });
+
+  it('muestra la tarjeta informativa de cargo sugerido por retraso', async () => {
+    const latenessCharge = {
+      tier: 'EXTRA_121_300' as const, basis: 'RECEIVED' as const, informational: true as const, timeChargePercent: 50, guaranteePenaltyPercent: 30,
+      dailyRate: '200.00', guaranteeAmount: '1000.00', currency: 'PEN', suggestedTimeCharge: '100.00', suggestedGuaranteePenalty: '300.00',
+      noticeAndPrepaymentVerified: false, severeBreach: false, severeBreachThresholdHours: 12,
+    };
+    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'SIN_DANOS', receivedAt: new Date().toISOString(), latenessCharge }) }));
+    mount();
+    expect(await screen.findByTestId('lateness-charge-card')).toHaveTextContent('S/ 100.00');
+    expect(screen.getByTestId('late-guarantee-penalty')).toHaveTextContent('S/ 300.00');
+  });
+
   it('no tiene violaciones de accesibilidad (axe)', async () => {
     flowMock.mockReturnValue(makeFlow({ ret: sinDanos() }));
     const { container } = mount();
@@ -245,6 +288,13 @@ describe('ClosureScreen (DEV-10)', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cerrar expediente' }));
     expect((await screen.findAllByRole('alert')).some((a) => /Cierre bloqueado/.test(a.textContent ?? ''))).toBe(true);
     expect(screen.getByRole('button', { name: 'Cerrar y archivar expediente' })).toBeDisabled();
+  });
+
+  it('sin garantia no ofrece el acta de devolucion de garantia', () => {
+    flowMock.mockReturnValue(makeFlow({ ret: { ...financial(), depositRequired: false } }));
+    mount();
+    expect(screen.getByTestId('no-deposit-banner')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/acta de devolución de garantía/)).not.toBeInTheDocument();
   });
 
   it('muestra quien firmo el documento de responsabilidad cuando no es el titular', () => {

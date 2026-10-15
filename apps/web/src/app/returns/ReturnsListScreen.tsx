@@ -10,7 +10,7 @@ import { ReturnRemindersPanel } from './ReturnRemindersPanel';
 import { ReturnAlertsInbox } from './ReturnAlertBanners';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './ReturnsListScreen.module.css';
-import { latenessLabel } from './return-lateness';
+import { latenessChargeBadge, latenessLabel } from './return-lateness';
 import { formatLimaDateTime } from '../shared/lima-time';
 
 const FILTER_OPTIONS: { value: ReturnStatus | ''; label: string }[] = [
@@ -121,6 +121,11 @@ export function ReturnsListScreen() {
                         {latenessLabel(item.lateness) && (
                           <span className={`${styles.badge} ${styles.badge_alert}`} data-testid="lateness-badge">
                             {latenessLabel(item.lateness)}
+                          </span>
+                        )}
+                        {latenessChargeBadge(item.latenessCharge) && (
+                          <span className={`${styles.badge} ${styles.badge_alert}`} data-testid="lateness-charge-badge">
+                            {latenessChargeBadge(item.latenessCharge)}
                           </span>
                         )}
                         {item.alerts?.warrantyRelease && (

@@ -15,6 +15,7 @@ import {
 import { usePermissions } from '../shared/usePermissions';
 import { SignaturePad } from '../shared/SignaturePad';
 import { computeGuaranteeBreakdown, formatPen } from './guarantee-breakdown';
+import { describeRentalError } from './rental-errors';
 import styles from './RentalStageForms.module.css';
 
 const NOTARY_RESULT_LABELS: Record<string, string> = {
@@ -105,11 +106,14 @@ export function Stage3ContractScreen() {
   const depositBelowMinimum = depositMinimum != null && paymentAmountNum != null && paymentAmountNum < depositMinimum;
   const breakdown = computeGuaranteeBreakdown(paymentAmountNum, rental?.reservationCredit ?? null);
   const hasTemplate = templateState === 'READY' && !!templateSel?.template;
+  // Con conductor de la empresa NO hay garantia (DEC-ALQ-COMPANY-DRIVER-004): se omite el cobro.
+  const noDeposit = withCompanyDriver;
+  const appliedCredit = rental?.reservationCredit?.applied ? parseFloat(rental.reservationCredit.creditAmount) || 0 : 0;
+  const companyDriverCreditBalance = noDeposit ? appliedCredit : 0;
   const canFormalize =
     exceptionResolved &&
     !!signatureData &&
-    !!paymentAmount &&
-    !depositBelowMinimum &&
+    (noDeposit || (!!paymentAmount && !depositBelowMinimum)) &&
     !rental?.contract &&
     hasTemplate;
 
@@ -152,8 +156,8 @@ export function Stage3ContractScreen() {
         context.branchId,
         rental.version,
         `CONTRATO-${rental.id.slice(0, 8)}`,
-        paymentAmount,
-        'PEN',
+        noDeposit ? null : paymentAmount,
+        noDeposit ? null : 'PEN',
         undefined,
         signatureData ?? undefined,
         { holderType, withCompanyDriver },
@@ -163,11 +167,7 @@ export function Stage3ContractScreen() {
       navigate(`/alquileres/${id}/entrega-04`, { state: context });
     } catch (err) {
       if (err instanceof RentalCommandError) {
-        setError(
-          err.problem?.code === 'CONTRACT_VARIANT_DRIVER_CONFLICT'
-            ? 'La variante del contrato es inconsistente: la opción de conductor de la empresa no coincide. Recarga la pantalla e inténtalo de nuevo.'
-            : err.message,
-        );
+        setError(describeRentalError(err, err.message));
       } else setError('No pudimos formalizar el contrato.');
       setConfirmOpen(false);
     } finally {
@@ -278,6 +278,19 @@ export function Stage3ContractScreen() {
         )}
       </fieldset>
 
+      {noDeposit && (
+        <fieldset className={styles.fieldset} data-testid="no-deposit-company-driver">
+          <legend>Garantía</legend>
+          <p className={styles.summaryLine} role="status">Con conductor de la empresa no se cobra garantía.</p>
+          {companyDriverCreditBalance > 0 && (
+            <p className={styles.fieldHint} role="status" data-testid="reservation-credit-excess">
+              Saldo a favor de la reserva (sin reembolso automático): {formatPen(companyDriverCreditBalance)}
+            </p>
+          )}
+        </fieldset>
+      )}
+
+      {!noDeposit && (
       <fieldset className={styles.fieldset}>
         <legend>Pago de garantía</legend>
         <label className={styles.fieldLabel}>
@@ -345,16 +358,21 @@ export function Stage3ContractScreen() {
           </button>
         </div>
       </fieldset>
+      )}
 
       {confirmOpen && (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true">
           <div className={styles.modalCard}>
             <p className={styles.modalTitle}>¿Formalizar el contrato?</p>
             <p className={styles.summaryLine}>Esta acción es irreversible y no se puede deshacer.</p>
-            <p className={styles.summaryLine}>
-              Garantía total {formatPen(breakdown.total)}; reserva aplicada {formatPen(breakdown.credit)}; a cobrar ahora{' '}
-              {formatPen(breakdown.toCollect)}.
-            </p>
+            {noDeposit ? (
+              <p className={styles.summaryLine}>Con conductor de la empresa no se cobra garantía.</p>
+            ) : (
+              <p className={styles.summaryLine}>
+                Garantía total {formatPen(breakdown.total)}; reserva aplicada {formatPen(breakdown.credit)}; a cobrar ahora{' '}
+                {formatPen(breakdown.toCollect)}.
+              </p>
+            )}
             <div className={styles.modalActions}>
               <button type="button" className={styles.secondaryButton} onClick={() => setConfirmOpen(false)}>
                 Cancelar

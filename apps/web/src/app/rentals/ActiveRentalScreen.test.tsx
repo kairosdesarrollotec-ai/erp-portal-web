@@ -92,6 +92,14 @@ describe('ActiveRentalScreen (ALQ-10)', () => {
     expect(screen.getByText(/seguimiento GPS aún no está conectado/)).toBeInTheDocument();
   });
 
+  it('conductor de la empresa: tolera deposit null, muestra sin garantia y el saldo a favor', () => {
+    wizardMock.mockReturnValue(wizard({ ...baseRental, deposit: null, depositRequired: false, reservationCreditExcess: '300.00' }));
+    renderScreen();
+    expect(screen.getByTestId('no-deposit-company-driver')).toHaveTextContent('con conductor de la empresa no se cobra garantía');
+    expect(screen.queryByTestId('active-guarantee')).not.toBeInTheDocument();
+    expect(screen.getByTestId('reservation-credit-excess')).toHaveTextContent('S/ 300.00');
+  });
+
   it('Iniciar devolucion lleva a la recepcion', async () => {
     wizardMock.mockReturnValue(wizard());
     renderScreen();

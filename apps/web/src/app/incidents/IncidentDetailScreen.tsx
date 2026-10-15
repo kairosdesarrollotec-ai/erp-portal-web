@@ -9,6 +9,8 @@ import {
   INCIDENT_ACTION_LABELS,
   INCIDENT_TYPE_LABELS,
   MAX_TEXT_LENGTH,
+  UNAUTHORIZED_DRIVER_NOTICE,
+  requiresManagementDecision,
   rentalLabel,
   shortUserId,
 } from './incident-domain';
@@ -31,7 +33,8 @@ function formatDateTime(value: string): string {
 export function IncidentDetailScreen() {
   const { state, incident, context, error, notice, addAction, close, referLegal } = useIncidentDetail();
   const navigate = useNavigate();
-  const { can } = useIncidentPermissions();
+  const { can: canBase } = useIncidentPermissions();
+  const can = (action: Parameters<typeof canBase>[0]) => canBase(action, incident);
   const isMobile = useMediaQuery('(max-width: 640px)');
 
   const [actionText, setActionText] = useState('');
@@ -223,6 +226,13 @@ export function IncidentDetailScreen() {
                 </form>
               )}
             </section>
+
+            {isOpen && requiresManagementDecision(incident.type) && (
+              <p className={styles.hint} role="status" data-testid="unauthorized-driver-notice">
+                {UNAUTHORIZED_DRIVER_NOTICE}
+                {!(can('CLOSE') || can('REFER_LEGAL')) && ' Solo Gerencia puede resolver, cerrar o derivar esta incidencia.'}
+              </p>
+            )}
 
             {isOpen && (can('CLOSE') || can('REFER_LEGAL')) && (
               <section aria-labelledby="inc-close-title" className={styles.card}>

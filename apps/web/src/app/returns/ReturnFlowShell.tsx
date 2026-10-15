@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { AppHeader } from '../shared/AppHeader';
 import { ReturnAlertBanners } from './ReturnAlertBanners';
-import type { ReturnAlerts, ReturnLateness } from './returns-types';
+import { LatenessChargeCard } from './LatenessChargeCard';
+import type { ReturnAlerts, ReturnLateness, ReturnLatenessCharge } from './returns-types';
 import styles from './ReturnFlowShell.module.css';
 
 export type ReturnFlowStep = 1 | 2 | 3 | 4 | 5 | 6;
@@ -21,6 +22,8 @@ export interface ReturnFlowShellProps {
   alerts?: ReturnAlerts | null;
   /** Retraso informativo (BR-DEV-003): sin cobro. */
   lateness?: ReturnLateness | null;
+  /** Cargo sugerido por retraso (DEC-DEV-LATE-CHARGE-001): informativo. */
+  latenessCharge?: ReturnLatenessCharge | null;
 }
 
 /**
@@ -40,6 +43,7 @@ export function ReturnFlowShell({
   errorMessage,
   alerts,
   lateness,
+  latenessCharge,
 }: ReturnFlowShellProps) {
   return (
     <main className={styles.wrapper}>
@@ -64,6 +68,7 @@ export function ReturnFlowShell({
 
       <div className={styles.content}>
         <ReturnAlertBanners alerts={alerts} lateness={lateness} />
+        <LatenessChargeCard charge={latenessCharge} />
         {children}
       </div>
 

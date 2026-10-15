@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
 import { completeDelivery, listRentalEvidence, RentalCommandError } from './rentals-client';
+import { describeRentalError } from './rental-errors';
 import { loadChecklistDraft, clearChecklistDraft } from './rental-checklist-draft';
 import styles from './RentalStageForms.module.css';
 
@@ -51,7 +52,7 @@ export function Stage5ConfirmationScreen() {
       setConfirmOpen(false);
       navigate('/alquileres', { state: context });
     } catch (err) {
-      if (err instanceof RentalCommandError) setError(err.message);
+      if (err instanceof RentalCommandError) setError(describeRentalError(err, err.message));
       else setError('No pudimos confirmar la entrega. Intenta de nuevo.');
     } finally {
       setBusy(false);
@@ -64,6 +65,7 @@ export function Stage5ConfirmationScreen() {
   }
 
   const draft = loadChecklistDraft(id);
+  const creditExcess = Number(rental.reservationCreditExcess ?? rental.deposit?.reservationCreditExcess ?? 0) || 0;
 
   return (
     <RentalWizardShell
@@ -106,11 +108,20 @@ export function Stage5ConfirmationScreen() {
         <p className={styles.summaryLine}>
           Notaría: {rental.notaryEvaluation?.result ?? 'sin evaluar'} · Contrato:{' '}
           {rental.contract ? rental.contract.documentRef : 'pendiente'} · Depósito:{' '}
-          {rental.deposit ? `${rental.deposit.originalAmount} ${rental.deposit.currency}` : 'pendiente'}
+          {rental.depositRequired === false
+            ? 'sin garantía (conductor de la empresa)'
+            : rental.deposit
+              ? `${rental.deposit.originalAmount} ${rental.deposit.currency}`
+              : 'pendiente'}
         </p>
-        {Number(rental.deposit?.reservationCreditExcess ?? 0) > 0 && (
+        {rental.depositRequired === false && (
+          <p className={styles.summaryLine} data-testid="no-deposit-company-driver">
+            Con conductor de la empresa no se cobra garantía.
+          </p>
+        )}
+        {creditExcess > 0 && (
           <p className={styles.summaryLine} data-testid="reservation-credit-excess">
-            Saldo a favor de la reserva (sin reembolso automático): {rental.deposit!.reservationCreditExcess} {rental.deposit!.currency}
+            Saldo a favor de la reserva (sin reembolso automático): {creditExcess.toFixed(2)} {rental.deposit?.currency ?? 'PEN'}
           </p>
         )}
       </section>

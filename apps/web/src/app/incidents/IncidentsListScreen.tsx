@@ -236,7 +236,7 @@ export function IncidentsListScreen() {
                           >
                             Abrir
                           </button>
-                          {canResolveDirect(item) && can('RESOLVE') && (
+                          {canResolveDirect(item) && can('RESOLVE', item) && (
                             <button
                               type="button"
                               className={styles.resolveButton}

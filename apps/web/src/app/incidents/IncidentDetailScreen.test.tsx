@@ -6,7 +6,8 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { IncidentDetailScreen } from './IncidentDetailScreen';
 import { IncidentCommandError } from './incidents-client';
 import { baseContext, makeDetail, setupUser } from './test-utils';
-import { setPermissions, INCIDENT_ALL, INCIDENT_FIELD } from '../../test/permissions';
+import { setPermissions, INCIDENT_ALL, INCIDENT_FIELD, roleRef } from '../../test/permissions';
+import { useWorkSession } from '../shared/useWorkSession';
 
 const getIncidentMock = vi.fn();
 const addActionMock = vi.fn();
@@ -242,5 +243,41 @@ describe('IncidentDetailScreen (INC-02)', () => {
     const { container } = renderScreen();
     await screen.findByRole('heading', { level: 1 });
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('UNAUTHORIZED_DRIVER: quien no es Gerencia ve el aviso y no ve cerrar ni derivar', async () => {
+    useWorkSession.setState({ role: roleRef('ADMINISTRACION') });
+    getIncidentMock.mockResolvedValue(makeDetail({ type: 'UNAUTHORIZED_DRIVER', severity: 'GRAVE' }));
+    renderScreen();
+    expect(await screen.findByRole('heading', { level: 1, name: /Conductor no autorizado/ })).toBeInTheDocument();
+    expect(screen.getByTestId('unauthorized-driver-notice')).toHaveTextContent(/la toma Gerencia caso por caso/);
+    expect(screen.getByTestId('unauthorized-driver-notice')).toHaveTextContent(/Solo Gerencia puede resolver, cerrar o derivar/);
+    expect(screen.queryByRole('button', { name: 'Cerrar incidencia' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Derivar a vía legal' })).toBeNull();
+  });
+
+  it('UNAUTHORIZED_DRIVER: Gerencia si puede cerrar y derivar', async () => {
+    useWorkSession.setState({ role: roleRef('GERENCIA') });
+    getIncidentMock.mockResolvedValue(makeDetail({ type: 'UNAUTHORIZED_DRIVER', severity: 'GRAVE' }));
+    renderScreen();
+    expect(await screen.findByRole('button', { name: 'Cerrar incidencia' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Derivar a vía legal' })).toBeInTheDocument();
+  });
+
+  it('otros tipos no dependen del rol Gerencia', async () => {
+    useWorkSession.setState({ role: roleRef('ADMINISTRACION') });
+    getIncidentMock.mockResolvedValue(makeDetail());
+    renderScreen();
+    expect(await screen.findByRole('button', { name: 'Cerrar incidencia' })).toBeInTheDocument();
+  });
+
+  it('traduce 403 MANAGEMENT_DECISION_REQUIRED al cerrar', async () => {
+    useWorkSession.setState({ role: roleRef('GERENCIA') });
+    getIncidentMock.mockResolvedValue(makeDetail({ type: 'UNAUTHORIZED_DRIVER', severity: 'GRAVE' }));
+    closeMock.mockRejectedValue(new IncidentCommandError(403, { code: 'MANAGEMENT_DECISION_REQUIRED' }));
+    renderScreen();
+    fireEvent.change(await screen.findByLabelText('Resumen de resolución'), { target: { value: 'Se retiene la garantía' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar incidencia' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/solo Gerencia/);
   });
 });
