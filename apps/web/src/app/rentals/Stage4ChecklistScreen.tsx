@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
@@ -17,9 +17,16 @@ import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
 import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
 import styles from './RentalStageForms.module.css';
 import { formatLimaTime } from '../shared/lima-time';
+import { useOnlineStatus } from '../shared/useOnlineStatus';
+import {
+  REQUIRED_EVIDENCE_PHOTOS,
+  REQUIRED_EVIDENCE_VIDEOS,
+  deriveEvidenceSyncState,
+  type EvidenceSyncInput,
+} from '../shared/evidence-sync-state';
 
-const REQUIRED_PHOTOS = 35;
-const REQUIRED_VIDEOS = 3;
+const REQUIRED_PHOTOS = REQUIRED_EVIDENCE_PHOTOS;
+const REQUIRED_VIDEOS = REQUIRED_EVIDENCE_VIDEOS;
 const MIN_TECHNICAL_MINUTES = 30;
 const MIN_DOCUMENTARY_MINUTES = 15;
 const MAX_PHOTO_BYTES = 12 * 1024 * 1024; // 12 MB — SDD-00 §16.5, mismo limite que Fleet
@@ -32,22 +39,6 @@ const ZONES: { value: RentalEvidenceZone; label: string }[] = [
   { value: 'POSTERIOR', label: 'Posterior' },
   { value: 'INTERIOR', label: 'Interior' },
 ];
-
-/** Detecta y suscribe al estado de conectividad del navegador. */
-function useOnlineStatus() {
-  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-  return isOnline;
-}
 
 /**
  * ENTREGA-04 / ALQ-09 - Checklist y evidencias.
@@ -108,25 +99,19 @@ export function Stage4ChecklistScreen() {
 
   // El checklist está completo solo cuando el servidor confirma las evidencias
   // y no hay items locales pendientes de sincronización (ADR-KAI-004).
-  const checklistComplete =
-    evidenceLoaded &&
-    photosCount >= REQUIRED_PHOTOS &&
-    videosCount >= REQUIRED_VIDEOS &&
-    pendingCount === 0 &&
-    !syncing;
+  const syncInput: EvidenceSyncInput = {
+    isOnline,
+    syncing,
+    serverLoaded: evidenceLoaded,
+    photosCount,
+    videosCount,
+    pendingCount,
+  };
+  const syncState = deriveEvidenceSyncState(syncInput);
+  const checklistComplete = syncState === 'SYNCED';
 
   const timeBelowMinimum =
     draft.technicalMinutes < MIN_TECHNICAL_MINUTES || draft.documentaryMinutes < MIN_DOCUMENTARY_MINUTES;
-
-  // Determina el estado de conectividad visible para el banner.
-  const syncState: 'OFFLINE' | 'SYNCING' | 'SYNCED' | 'ONLINE' = (() => {
-    if (!isOnline) return 'OFFLINE';
-    if (syncing) return 'SYNCING';
-    if (evidenceLoaded && photosCount >= REQUIRED_PHOTOS && videosCount >= REQUIRED_VIDEOS && pendingCount === 0) {
-      return 'SYNCED';
-    }
-    return 'ONLINE';
-  })();
 
   async function handleFileSelected(type: RentalEvidenceType, file: File) {
     if (!context || !id) return;

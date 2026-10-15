@@ -1,3 +1,4 @@
+import { useState } from 'react';
 /**
  * ChecklistScreen.test.tsx — DEV-04 offline/sync tests
  *
@@ -222,6 +223,14 @@ describe('ChecklistScreen — estado OFFLINE (PROTO-DEV-04-CHECKLIST-RECEPCION-S
 
   it('el contador de cola local aumenta al encolar archivos offline', async () => {
     setOnline(false);
+    // Igual que el hook real (y ENTREGA-04): tras encolar, refreshCounts relee la cola Dexie.
+    syncManagerMock.mockImplementation(() => {
+      const [pending, setPending] = useState(0);
+      return syncManagerIdle({
+        pendingCount: pending,
+        refreshCounts: async () => { setPending(1); },
+      });
+    });
     renderChecklist();
     act(() => { window.dispatchEvent(new Event('offline')); });
     await screen.findByText(/Sin conexión/);
