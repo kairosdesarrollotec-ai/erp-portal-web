@@ -11,6 +11,11 @@ import {
   recordEvidence,
 } from '../../app/rentals/rentals-documents-client';
 import type { RentalEvidenceContentType } from '../../app/rentals/rentals-documents-client';
+import {
+  requestReturnEvidenceUploadSession,
+  uploadReturnEvidenceToGcs,
+  recordReturnEvidence,
+} from '../../app/returns/returns-evidence-client';
 import type { EvidenceQueueItem } from '../database/kairos-db';
 
 /** Parámetros para ALQ-09 (alquiler) */
@@ -100,35 +105,53 @@ export function useSyncManager(params: SyncManagerParams): SyncManagerResult {
 
         for (const item of items) {
           if (item.id === undefined) continue;
-          // Para DEV-04 usamos el returnId como identificador de recurso;
-          // para ALQ-09 usamos el rentalId. Ambos se sincronizan al mismo endpoint.
+          // DEV-04 usa el returnId (endpoints /returns/{id}/evidence); ALQ-09 el rentalId
+          // (endpoints /rentals/{id}/evidence). Mismo flujo, distinto recurso.
           const resourceId = item.rentalId ?? item.returnId ?? rentalId ?? returnId;
           if (!resourceId) continue;
 
           try {
             const idToken = await getIdToken();
-            const session = await requestEvidenceUploadSession(
-              idToken,
-              resourceId,
-              companyId,
-              branchId,
-              item.type,
-              item.zone as Parameters<typeof requestEvidenceUploadSession>[5],
-              item.mimeType as RentalEvidenceContentType,
-              item.blob.size,
-            );
+            const zone = item.zone;
+            const file = item.blob as File;
             // item.blob es siempre un File (capturado desde <input type="file">);
             // el tipo EvidenceQueueItem declara Blob por compatibilidad con la interfaz de Dexie.
-            await uploadEvidenceToGcs(session.uploadUrl, item.blob as File);
-            await recordEvidence(
-              idToken,
-              resourceId,
-              companyId,
-              branchId,
-              item.type,
-              item.zone as Parameters<typeof recordEvidence>[5],
-              session.objectUrl,
-            );
+            if (item.returnId && !item.rentalId) {
+              // DEV-04: mismo flujo de 3 pasos, pero contra /returns/{id}/evidence.
+              const session = await requestReturnEvidenceUploadSession(
+                idToken,
+                resourceId,
+                companyId,
+                branchId,
+                item.type,
+                zone,
+                item.mimeType as Parameters<typeof requestReturnEvidenceUploadSession>[6],
+                item.blob.size,
+              );
+              await uploadReturnEvidenceToGcs(session.uploadUrl, file);
+              await recordReturnEvidence(idToken, resourceId, companyId, branchId, item.type, zone, session.objectUrl);
+            } else {
+              const session = await requestEvidenceUploadSession(
+                idToken,
+                resourceId,
+                companyId,
+                branchId,
+                item.type,
+                zone as Parameters<typeof requestEvidenceUploadSession>[5],
+                item.mimeType as RentalEvidenceContentType,
+                item.blob.size,
+              );
+              await uploadEvidenceToGcs(session.uploadUrl, file);
+              await recordEvidence(
+                idToken,
+                resourceId,
+                companyId,
+                branchId,
+                item.type,
+                zone as Parameters<typeof recordEvidence>[5],
+                session.objectUrl,
+              );
+            }
             await markEvidenceSynced(item.id);
             syncedCount++;
           } catch (err) {
