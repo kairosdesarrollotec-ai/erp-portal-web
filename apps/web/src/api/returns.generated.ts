@@ -439,6 +439,37 @@ export interface components {
              */
             basis: "RECEIVED" | "NOW";
         };
+        /** @description Cargo SUGERIDO por retraso (Hoja de Políticas VR-GA-PA-VS.04). Solo informativo; el cobro es manual (ajustes de garantía / cargo de paralización). La tolerancia de 30 min exactos (30:00) no es retraso (tier NONE). */
+        ReturnLatenessCharge: {
+            /**
+             * @description NONE = dentro de tolerancia; EXTRA_31_120 = 31-120 min; EXTRA_121_300 = 121 min a 5 h; EXTRA_OVER_300 = más de 5 h
+             * @enum {string}
+             */
+            tier: "NONE" | "EXTRA_31_120" | "EXTRA_121_300" | "EXTRA_OVER_300";
+            /** @enum {string} */
+            basis: "RECEIVED" | "NOW";
+            /** @enum {boolean} */
+            informational: true;
+            /** @description 0 / 25 / 50 / 100 (% de la tarifa diaria) */
+            timeChargePercent: number;
+            /** @description 0 / 20 / 30 / 50 (% de la garantía) */
+            guaranteePenaltyPercent: number;
+            /** @description dailyRate vigente del vehículo (misma fuente que el cargo de paralización) */
+            dailyRate: string | null;
+            /** @description Garantía del alquiler; null si no tiene (p. ej. con conductor de la empresa) */
+            guaranteeAmount: string | null;
+            currency: string | null;
+            /** @description timeChargePercent x tarifa diaria; null si NONE o sin tarifa */
+            suggestedTimeCharge: string | null;
+            /** @description guaranteePenaltyPercent x garantía, aplicable "si no avisó / no pagó antes". null si NONE, sin garantía o si noticeAndPrepaymentVerified es true. */
+            suggestedGuaranteePenalty: string | null;
+            /** @description true = ampliación AUTORIZADA y pagada que cubre el tiempo; false = ninguna cubre; null = no determinable, lo confirma el operador */
+            noticeAndPrepaymentVerified: boolean | null;
+            /** @description Retraso > 12 h: incumplimiento grave (retener garantía / resolver contrato es decisión de Gerencia) */
+            severeBreach: boolean;
+            /** @example 12 */
+            severeBreachThresholdHours: number;
+        };
         ReturnAlerts: {
             warrantyRelease: components["schemas"]["WarrantyReleaseAlert"] | null;
             immobilization: components["schemas"]["ImmobilizationAlert"] | null;
@@ -729,6 +760,8 @@ export interface components {
             customerId: string;
             vehiclePlate?: string | null;
             customerName?: string | null;
+            /** @description false = alquiler con conductor de la empresa, sin garantía (liberación/devolución N/A, sin alerta de 24 h). true por defecto. */
+            depositRequired: boolean;
             status: components["schemas"]["ReturnStatus"];
             custodyHolder: components["schemas"]["CustodyHolder"];
             customerPresent: boolean;
@@ -746,6 +779,8 @@ export interface components {
             alerts?: components["schemas"]["ReturnAlerts"];
             /** @description BR-DEV-003 (CONFIRMADO): tolerancia de devolución sin sanción de 30 min sobre scheduledAt. Solo en GET /returns/{id} y GET /returns; las respuestas de comandos la omiten. null si no aplica (CANCELADA sin recepción). Informativo: no dispara cargos (los documentos no definen cargo por retraso). */
             lateness?: components["schemas"]["ReturnLateness"] | null;
+            /** @description DEC-DEV-LATE-CHARGE-001: cargo SUGERIDO por retraso según la Hoja de Políticas VR-GA-PA-VS.04. Solo en GET /returns/{id} y GET /returns. null si no aplica (CANCELADA sin recepción). No cobra ni bloquea. */
+            latenessCharge?: components["schemas"]["ReturnLatenessCharge"] | null;
             /** Format: date-time */
             scheduledAt: string;
             /** Format: date-time */
@@ -1797,7 +1832,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Existen incidencias abiertas (INCIDENT_STILL_OPEN, TDD §11.4) o la liquidación no cuadra con la garantía / no cubre los cargos de paralización (INVALID_FINANCIAL_SETTLEMENT) */
+            /** @description Existen incidencias abiertas (INCIDENT_STILL_OPEN, TDD §11.4) o la liquidación no cuadra con la garantía / no cubre los cargos de paralización (INVALID_FINANCIAL_SETTLEMENT), o el alquiler no tiene garantía (conductor de la empresa) y se envían montos > 0 (RETURN_NO_DEPOSIT_TO_SETTLE) */
             422: {
                 headers: {
                     [name: string]: unknown;

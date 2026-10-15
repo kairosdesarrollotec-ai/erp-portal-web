@@ -84,7 +84,9 @@ export function SeriousBreachModal({
 
   const depositLabel = rental.deposit
     ? `${rental.deposit.currency} ${rental.deposit.originalAmount}`
-    : '—';
+    : rental.depositRequired === false
+      ? 'Sin garantía (conductor de la empresa)'
+      : '—';
 
   function resetState() {
     setNotes('');
@@ -205,9 +207,11 @@ export function SeriousBreachModal({
             <div className={styles.consequences}>
               <h3 className={styles.consequencesTitle}>Consecuencias que se activarán al confirmar</h3>
               <ul className={styles.consequencesList}>
-                <li>
-                  <strong>Retención total de garantía:</strong> {depositLabel} queda retenido íntegramente (no se devuelve al cliente)
-                </li>
+                {rental.depositRequired !== false && (
+                  <li>
+                    <strong>Retención total de garantía:</strong> {depositLabel} queda retenido íntegramente (no se devuelve al cliente)
+                  </li>
+                )}
                 <li>
                   <strong>Cliente marcado como Rojo de inmediato:</strong>{' '}
                   {rental.customerName} quedará inhabilitado para nuevos alquileres hasta revisión de Gerencia

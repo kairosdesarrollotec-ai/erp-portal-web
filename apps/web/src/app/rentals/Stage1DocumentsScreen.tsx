@@ -9,12 +9,26 @@ import {
   requestRentalDocumentUploadSession,
   uploadFileToGcs,
   recordRentalDocument,
+  registerAuthorizedDriver,
   RentalDocumentType,
+  ContractHolderType,
 } from './rentals-client';
+import { describeRentalError } from './rental-errors';
+import { useInquiryCustomerSearch } from '../inquiries/useInquiryCustomerSearch';
+import type { Customer } from '../customers/customers-client';
 import styles from './RentalStageForms.module.css';
 
 type DriverType = 'TITULAR' | 'ACOMPANANTE' | 'JURIDICA';
 type IdDocType = 'DNI' | 'PASAPORTE_CE';
+
+/**
+ * El expediente no expone el tipo de persona del titular. Se infiere del documento: un RUC de 11
+ * digitos que empieza con 20 es persona juridica; el resto se trata como natural. El backend es la
+ * autoridad (NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED / HOLDER_TYPE_MISMATCH) y su mensaje se muestra.
+ */
+export function inferHolderType(docNumber: string | undefined | null): ContractHolderType {
+  return /^20\d{9}$/.test((docNumber ?? '').trim()) ? 'LEGAL' : 'NATURAL';
+}
 
 /**
  * ENTREGA-01 / ALQ-03 - Cliente y documentos (mapea a POST .../commands/validate-documents).
@@ -42,6 +56,11 @@ export function Stage1DocumentsScreen() {
   const [uploadingType, setUploadingType] = useState<RentalDocumentType | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Conductor propio de persona juridica (DEC-ALQ-OWN-DRIVER-005): cliente-conductor + adenda.
+  const [driverCustomer, setDriverCustomer] = useState<Customer | null>(null);
+  const [addendumRef, setAddendumRef] = useState('');
+  const driverSearch = useInquiryCustomerSearch(context, (c) => setDriverCustomer(c));
+
   const licenseFileRef = useRef<HTMLInputElement>(null);
   const idDocFileRef = useRef<HTMLInputElement>(null);
   const addressFileRef = useRef<HTMLInputElement>(null);
@@ -49,7 +68,12 @@ export function Stage1DocumentsScreen() {
   const licenseUploaded = uploadedTypes.has('LICENSE');
   const idDocUploaded = uploadedTypes.has('ID_DOCUMENT');
   const addressUploaded = uploadedTypes.has('PROOF_OF_ADDRESS');
-  const canContinue = licenseUploaded && idDocUploaded;
+  const holderType = inferHolderType(rental?.customerDocNumber);
+  const isNaturalHolder = holderType === 'NATURAL';
+  const registeredDriver = rental?.parties?.find((p) => p.role === 'DRIVER') ?? null;
+  const needsOwnDriver = driverType === 'JURIDICA' && !registeredDriver;
+  const ownDriverReady = !needsOwnDriver || (!!driverCustomer && addendumRef.trim().length > 0);
+  const canContinue = licenseUploaded && idDocUploaded && ownDriverReady;
 
   async function handleFileUpload(file: File, docType: RentalDocumentType) {
     if (!rental || !context) return;
@@ -78,7 +102,15 @@ export function Stage1DocumentsScreen() {
     setError(null);
     try {
       const idToken = await getIdToken();
-      const updated = await validateDocuments(idToken, id, context.companyId, context.branchId, rental.version, {
+      let current = rental;
+      if (needsOwnDriver && driverCustomer) {
+        current = await registerAuthorizedDriver(
+          idToken, id, context.companyId, context.branchId, rental.version,
+          driverCustomer.id, addendumRef.trim(), holderType,
+        );
+        setRental(current);
+      }
+      const updated = await validateDocuments(idToken, id, context.companyId, context.branchId, current.version, {
         identityDocumentValid: idDocUploaded,
         driverLicenseValid: licenseUploaded,
         addressOrStayProofValid: addressUploaded,
@@ -87,7 +119,7 @@ export function Stage1DocumentsScreen() {
       setRental(updated);
       navigate(`/alquileres/${id}/entrega-02`, { state: context });
     } catch (err) {
-      if (err instanceof RentalCommandError) setError(err.message);
+      if (err instanceof RentalCommandError) setError(describeRentalError(err, err.message));
       else setError('No pudimos guardar los documentos. Intenta de nuevo.');
     } finally {
       setBusy(false);
@@ -125,6 +157,8 @@ export function Stage1DocumentsScreen() {
             <button
               key={option}
               type="button"
+              aria-pressed={driverType === option}
+              disabled={option === 'JURIDICA' && isNaturalHolder}
               className={`${styles.chip} ${driverType === option ? styles.chipActive : ''}`}
               onClick={() => setDriverType(option)}
             >
@@ -132,6 +166,59 @@ export function Stage1DocumentsScreen() {
             </button>
           ))}
         </div>
+        {isNaturalHolder && (
+          <p className={styles.fieldHint} data-testid="natural-no-own-driver">
+            Titular persona natural: conduce el titular o se asigna conductor de la empresa. No se registra un conductor propio distinto.
+          </p>
+        )}
+        {registeredDriver && (
+          <p className={styles.summaryLine} data-testid="registered-driver">
+            Conductor autorizado registrado. Adenda: {registeredDriver.addendumDocumentRef ?? 'sin referencia'}
+          </p>
+        )}
+        {driverType === 'JURIDICA' && !isNaturalHolder && !registeredDriver && (
+          <div data-testid="own-driver-form">
+            {driverCustomer ? (
+              <p className={styles.summaryLine}>
+                <strong>Cliente-conductor:</strong> {driverCustomer.fullName} ({driverCustomer.documentNumber}){' '}
+                <button type="button" className={styles.retryButton} onClick={() => setDriverCustomer(null)}>
+                  Cambiar
+                </button>
+              </p>
+            ) : (
+              <label className={styles.fieldLabel}>
+                Buscar cliente-conductor (nombre o documento)
+                <input
+                  className={styles.input}
+                  type="search"
+                  value={driverSearch.customerSearchQuery}
+                  onChange={(e) => driverSearch.setCustomerSearchQuery(e.target.value)}
+                />
+                {driverSearch.searchingCustomers && <span className={styles.fieldHint}>Buscando…</span>}
+                {driverSearch.customerSearchResults.length > 0 && (
+                  <ul role="listbox" aria-label="Conductores encontrados">
+                    {driverSearch.customerSearchResults.map((c) => (
+                      <li key={c.id} role="option" aria-selected={false}>
+                        <button type="button" className={styles.chip} onClick={() => driverSearch.selectCustomer(c)}>
+                          {c.fullName} - {c.documentNumber}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </label>
+            )}
+            <label className={styles.fieldLabel}>
+              Referencia de la adenda del conductor
+              <input
+                className={styles.input}
+                value={addendumRef}
+                onChange={(e) => setAddendumRef(e.target.value)}
+              />
+              <span className={styles.fieldHint}>La adenda firmada por el conductor es obligatoria.</span>
+            </label>
+          </div>
+        )}
       </fieldset>
 
       <fieldset className={styles.fieldset}>

@@ -398,7 +398,6 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     fireEvent.click(screen.getByRole('button', { name: 'Persona jurídica' }));
     fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
-    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     await screen.findByText(/Contrato persona jurídica con conductor/);
     await waitFor(() =>
       expect(getContractTemplateMock).toHaveBeenLastCalledWith('tok', 'rent-1', 'c1', 'b1', { holderType: 'LEGAL', withCompanyDriver: true }),
@@ -407,6 +406,49 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
     await screen.findByText('etapa 4');
     expect(formalizeContractMock.mock.calls[0][10]).toEqual({ holderType: 'LEGAL', withCompanyDriver: true });
+    // Con conductor de la empresa NO se envia garantia (DEC-ALQ-COMPANY-DRIVER-004).
+    expect(formalizeContractMock.mock.calls[0][6]).toBeNull();
+    expect(formalizeContractMock.mock.calls[0][7]).toBeNull();
+  });
+
+  it('con conductor de la empresa oculta el cobro de garantia y muestra el mensaje', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+    expect(screen.getByLabelText(/Garantía total \(PEN\)/)).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
+    expect(screen.queryByLabelText(/Garantía total \(PEN\)/)).not.toBeInTheDocument();
+    expect(screen.getByTestId('no-deposit-company-driver')).toHaveTextContent('Con conductor de la empresa no se cobra garantía');
+    // formalizar solo exige la firma
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
+  });
+
+  it('con conductor de la empresa y reserva pagada muestra todo el credito como saldo a favor', async () => {
+    useRentalWizardMock.mockReturnValue(
+      makeWizard({
+        rental: {
+          ...baseRental,
+          reservationCredit: { reservationId: 'res-1', applied: true, reason: 'APPLIED', creditAmount: '300.00', currency: 'PEN' },
+        },
+      }),
+    );
+    renderScreen();
+    fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
+    expect(screen.getByTestId('reservation-credit-excess')).toHaveTextContent('S/ 300.00');
+  });
+
+  it('traduce DEPOSIT_NOT_APPLICABLE_WITH_COMPANY_DRIVER', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    formalizeContractMock.mockRejectedValue(
+      new (await import('./rentals-client')).RentalCommandError(422, { code: 'DEPOSIT_NOT_APPLICABLE_WITH_COMPANY_DRIVER', detail: 'x' }),
+    );
+    renderScreen();
+    fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Con conductor de la empresa no se cobra garantía.');
   });
 
   it('avisa cuando se usa la plantilla general por falta de la especifica', async () => {
