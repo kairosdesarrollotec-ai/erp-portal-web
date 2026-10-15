@@ -60,6 +60,11 @@ export function ReturnsListScreen() {
 
       <div className={styles.content}>
         <ReturnAlertsInbox alerts={alertsInbox.alerts} onOpen={openAlert} />
+        {alertsInbox.loadError && (
+          <p className={styles.statusText} role="alert">
+            No pudimos cargar las alertas operativas. La bandeja sigue disponible.
+          </p>
+        )}
         <ReturnRemindersPanel
           items={reminders.items}
           loading={reminders.loading}

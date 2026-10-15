@@ -275,7 +275,6 @@ export const RESERVATION_ERROR_MESSAGES: Record<string, string> = {
 };
 
 export function describeReservationError(error: ReservationCommandError): string {
-  if (error.problem?.code === 'INVALID_CANCEL_REASON') return RESERVATION_ERROR_MESSAGES.INVALID_CANCEL_REASON;
   return (
     error.problem?.detail?.trim() ||
     (error.problem?.code ? RESERVATION_ERROR_MESSAGES[error.problem.code] : undefined) ||

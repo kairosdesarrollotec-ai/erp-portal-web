@@ -34,6 +34,7 @@ export function ReturnReminderCard({ item, canRegister, busy, errorMessage, onRe
 
   async function handleCopy() {
     setCopied((await copyText(reminder.text)) ? 'ok' : 'error');
+    setTimeout(() => setCopied(null), 2000);
   }
 
   async function handleFail() {

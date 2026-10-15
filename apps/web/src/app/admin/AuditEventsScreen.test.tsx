@@ -60,7 +60,7 @@ describe('AuditEventsScreen (ADM-04)', () => {
     expect(screen.getByRole('cell', { name: 'Usuarios y asignaciones' })).toBeInTheDocument();
     expect(screen.getByText('USER_ASSIGNMENT_CREATED_OR_REACTIVATED')).toBeInTheDocument();
     // 2026-09-23T12:00Z = 07:00 en Lima, sin depender de la zona del navegador.
-    expect(screen.getByText('23/9/2026 07:00')).toBeInTheDocument();
+    expect(screen.getByText('23/09/2026 07:00')).toBeInTheDocument();
   });
 
   it('no tiene ninguna columna ni boton de accion de escritura', async () => {

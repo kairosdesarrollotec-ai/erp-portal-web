@@ -106,6 +106,13 @@ describe('lima-time - mostrar', () => {
     expect(formatLimaDateTime('2026-10-15T05:00:00Z')).toBe('15/10/2026 00:00');
   });
 
+  it('zero-padea dia y mes menores a 10 en formatLimaDate y formatLimaDateTime', () => {
+    // 2026-01-05T05:00:00Z = 00:00 Lima del 5 de enero
+    expect(formatLimaDate('2026-01-05T05:00:00Z')).toBe('05/01/2026');
+    expect(formatLimaDate('2026-01-05')).toBe('05/01/2026');
+    expect(formatLimaDateTime('2026-01-05T05:03:00Z')).toBe('05/01/2026 00:03');
+  });
+
   it('valores vacios o invalidos no revientan', () => {
     expect(formatLimaDate(null)).toBe('—');
     expect(formatLimaDate('nope')).toBe('—');
