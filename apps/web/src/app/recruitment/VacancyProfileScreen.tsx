@@ -11,6 +11,7 @@ import {
   VACANCY_SOURCE_LABEL,
   VACANCY_STATUS_LABEL,
 } from './recruitment-domain';
+import { PauseVacancyControl } from './PauseVacancyControl';
 import { useVacancyDetail } from './useVacancyDetail';
 import type { RecruitmentWorkContext } from './useWorkContextForRecruitment';
 import styles from './VacancyProfileScreen.module.css';
@@ -173,7 +174,7 @@ function ProfileForm({ vacancy, context, onPublished, onStale }: FormProps) {
   );
 }
 
-/** REC-02 - Perfil y publicacion de la vacante (AS-IS informal). Sin "Pausar": el back no lo ofrece. */
+/** REC-02 - Perfil y publicacion de la vacante; Pausar / Reanudar con confirmacion. */
 function VacancyProfile() {
   const { id, state, vacancy, setVacancy, context, reload } = useVacancyDetail();
   const navigate = useNavigate();
@@ -213,6 +214,16 @@ function VacancyProfile() {
             {vacancy.status !== 'NECESIDAD_REGISTRADA' && (
               <div className={styles.notice} role="status">
                 <strong>{vacancy.status === 'PUBLICADA' ? 'Vacante publicada' : `Vacante ${VACANCY_STATUS_LABEL[vacancy.status].toLowerCase()}`}</strong>
+                <PauseVacancyControl
+                  vacancy={vacancy}
+                  context={context}
+                  buttonClassName={styles.secondaryButton}
+                  onChanged={(detail, message) => {
+                    setVacancy(detail);
+                    setNotice(message);
+                  }}
+                  onStale={reload}
+                />
                 <button
                   type="button"
                   className={styles.primaryButton}

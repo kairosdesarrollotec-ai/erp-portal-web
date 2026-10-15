@@ -10,7 +10,10 @@ const getEmployeeMock = vi.fn();
 const getLeavesMock = vi.fn();
 const requestMock = vi.fn();
 const resolveMock = vi.fn();
+const listEvidenceMock = vi.fn();
+const attachMock = vi.fn();
 
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({ currentUser: { email: 'u@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') } }),
 }));
@@ -21,6 +24,8 @@ vi.mock('./hr-client', async () => {
   const actual = await vi.importActual<typeof import('./hr-client')>('./hr-client');
   return {
     ...actual,
+    listLeaveEvidence: (...a: unknown[]) => listEvidenceMock(...a),
+    attachLeaveEvidence: (...a: unknown[]) => attachMock(...a),
     getEmployee: (...a: unknown[]) => getEmployeeMock(...a),
     getEmployeeLeaves: (...a: unknown[]) => getLeavesMock(...a),
     requestLeave: (...a: unknown[]) => requestMock(...a),
@@ -42,6 +47,7 @@ describe('LeavesScreen (ADP-04)', () => {
   beforeEach(() => {
     getEmployeeMock.mockReset().mockResolvedValue(makeDetail());
     getLeavesMock.mockReset().mockResolvedValue([makeLeave()]);
+    listEvidenceMock.mockReset().mockResolvedValue([]);
     requestMock.mockReset();
     resolveMock.mockReset();
     setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES']);
@@ -68,7 +74,7 @@ describe('LeavesScreen (ADP-04)', () => {
 
   it('un permiso ya resuelto no ofrece botones aunque se tenga permiso', async () => {
     setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE']);
-    getLeavesMock.mockResolvedValue([makeLeave({ status: 'DENEGADO', authorizedByName: 'Fiorella' })]);
+    getLeavesMock.mockResolvedValue([makeLeave({ status: 'DENEGADO', authorizedByName: 'Autorizador de prueba' })]);
     renderScreen();
     expect(await screen.findByText('Denegado')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Aprobar/ })).not.toBeInTheDocument();
@@ -123,5 +129,58 @@ describe('LeavesScreen (ADP-04)', () => {
     setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.AUTHORIZE_LEAVE']);
     renderScreen();
     expect(await screen.findByRole('button', { name: 'Solicitar permiso' })).toBeInTheDocument();
+  });
+
+  describe('sustento adjunto (evidencia)', () => {
+    const file = (name = 'certificado.pdf', type = 'application/pdf', size = 1000) => {
+      const f = new File(['x'], name, { type });
+      Object.defineProperty(f, 'size', { value: size });
+      return f;
+    };
+
+    beforeEach(() => {
+      listEvidenceMock.mockReset().mockResolvedValue([]);
+      attachMock.mockReset();
+      setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES']);
+    });
+
+    it('lista el sustento ya adjunto y el estado vacio', async () => {
+      getLeavesMock.mockResolvedValue([makeLeave({ id: 'l1' }), makeLeave({ id: 'l2', date: '2026-10-11' })]);
+      listEvidenceMock.mockImplementation(async (_t: string, id: string) =>
+        id === 'l1' ? [{ id: 'e1', leaveId: 'l1', objectUrl: 'https://storage.googleapis.com/b/a.pdf', contentType: 'application/pdf', uploadedById: 'u', createdAt: '2026-10-08T10:00:00Z' }] : [],
+      );
+      renderScreen();
+      expect(await screen.findByRole('link', { name: 'Sustento 1 (PDF)' })).toHaveAttribute('href', 'https://storage.googleapis.com/b/a.pdf');
+      expect(screen.getByText('Sin sustento adjunto.')).toBeInTheDocument();
+    });
+
+    it('adjunta un PDF a un permiso solicitado', async () => {
+      getLeavesMock.mockResolvedValue([makeLeave({ id: 'l1' })]);
+      attachMock.mockResolvedValue({ id: 'e1' });
+      renderScreen();
+      const input = await screen.findByLabelText(/Adjuntar sustento/);
+      const pdf = file();
+      fireEvent.change(input, { target: { files: [pdf] } });
+      await waitFor(() => expect(attachMock).toHaveBeenCalledWith('tok', 'l1', pdf));
+      expect(await screen.findByText('Sustento adjuntado al permiso.')).toBeInTheDocument();
+    });
+
+    it('rechaza en el cliente un tipo no admitido o un archivo muy grande', async () => {
+      getLeavesMock.mockResolvedValue([makeLeave({ id: 'l1' })]);
+      renderScreen();
+      const input = await screen.findByLabelText(/Adjuntar sustento/);
+      fireEvent.change(input, { target: { files: [file('x.html', 'text/html')] } });
+      expect(await screen.findByRole('alert')).toHaveTextContent(/imagen \(JPG, PNG, WEBP\) o un PDF/);
+      fireEvent.change(input, { target: { files: [file('grande.pdf', 'application/pdf', 20 * 1024 * 1024)] } });
+      expect(await screen.findByRole('alert')).toHaveTextContent(/10 MB/);
+      expect(attachMock).not.toHaveBeenCalled();
+    });
+
+    it('un permiso ya resuelto no admite mas sustento', async () => {
+      getLeavesMock.mockResolvedValue([makeLeave({ id: 'l1', status: 'AUTORIZADO', authorizedByName: 'Autorizador de prueba' })]);
+      renderScreen();
+      await screen.findByText('Autorizado');
+      expect(screen.queryByLabelText(/Adjuntar sustento/)).not.toBeInTheDocument();
+    });
   });
 });

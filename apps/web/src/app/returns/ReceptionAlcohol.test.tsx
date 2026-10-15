@@ -9,6 +9,9 @@ import { ReturnCommandError } from './returns-client';
 import { useWorkSession } from '../shared/useWorkSession';
 import { roleRef, setPermissions } from '../../test/permissions';
 
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
+
 const RETURN_RECEPTION = [
   'RETURN.READ', 'RETURN.RECEIVE_PROVISIONAL',
   'RETURN.REGISTER_ALCOHOL_TEST', 'RETURN.RESOLVE_ALCOHOL_ESCALATION',
@@ -186,8 +189,8 @@ describe('AlcoholTestScreen (DEV-03)', () => {
     registerAlcoholMock.mockResolvedValue(makeReturn({ status: 'INSPECCION', alcoholTestResult: 'FAVORABLE' }));
     renderAlcohol();
 
-    fireEvent.click(screen.getByLabelText('Favorable'));
-    fireEvent.click(screen.getByRole('button', { name: 'Registrar y continuar' }));
+    fireEvent.click(screen.getByLabelText('Favorable — puede continuar'));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar al checklist' }));
 
     await waitFor(() =>
       expect(registerAlcoholMock).toHaveBeenCalledWith('tok', 'ret-1', 'c1', 'b1', 2, 'FAVORABLE', undefined),
@@ -203,7 +206,7 @@ describe('AlcoholTestScreen (DEV-03)', () => {
     );
     renderAlcohol();
 
-    fireEvent.click(screen.getByLabelText('Desfavorable'));
+    fireEvent.click(screen.getByLabelText('Desfavorable — no puede continuar normalmente'));
     expect(screen.getByRole('alert')).toHaveTextContent('custodia');
     fireEvent.click(screen.getByRole('button', { name: 'Derivar a Gerencia' }));
 
@@ -211,12 +214,22 @@ describe('AlcoholTestScreen (DEV-03)', () => {
     expect(screen.queryByText('pantalla checklist')).not.toBeInTheDocument();
   });
 
+  it('desfavorable no ofrece "Continuar al checklist" (nunca llega a Resultado) y favorable si', () => {
+    flowMock.mockReturnValue(makeFlow());
+    renderAlcohol();
+    fireEvent.click(screen.getByLabelText('Desfavorable — no puede continuar normalmente'));
+    expect(screen.queryByRole('button', { name: 'Continuar al checklist' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Derivar a Gerencia' })).toBeEnabled();
+    fireEvent.click(screen.getByLabelText('Favorable — puede continuar'));
+    expect(screen.getByRole('button', { name: 'Continuar al checklist' })).toBeEnabled();
+  });
+
   it('un 200 desfavorable no es un error: el expediente queda en custodia y la pantalla pasa a la decision de Gerencia', async () => {
     const setRet = vi.fn();
     flowMock.mockReturnValue(makeFlow({ setRet }));
     registerAlcoholMock.mockResolvedValue(makeReturn({ status: 'RECEPCION_PROVISIONAL', alcoholTestResult: 'RECHAZADO' }));
     renderAlcohol();
-    fireEvent.click(screen.getByLabelText(/Rechazado/));
+    fireEvent.click(screen.getByLabelText('Se negó a realizar la prueba'));
     fireEvent.click(screen.getByRole('button', { name: 'Derivar a Gerencia' }));
     await waitFor(() => expect(setRet).toHaveBeenCalled());
     expect(screen.queryByText(/No pudimos registrar la prueba/)).not.toBeInTheDocument();
@@ -228,8 +241,8 @@ describe('AlcoholTestScreen (DEV-03)', () => {
     registerAlcoholMock.mockRejectedValue(new ReturnCommandError(412, { code: 'RETURN_VERSION_CONFLICT' }));
     renderAlcohol();
 
-    fireEvent.click(screen.getByLabelText('Favorable'));
-    fireEvent.click(screen.getByRole('button', { name: 'Registrar y continuar' }));
+    fireEvent.click(screen.getByLabelText('Favorable — puede continuar'));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar al checklist' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Otra persona modificó');
     expect(reload).toHaveBeenCalled();
   });

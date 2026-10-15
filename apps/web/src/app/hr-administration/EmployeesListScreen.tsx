@@ -36,9 +36,21 @@ function EmployeesList() {
               Salidas a campo
             </Link>
           )}
-          <Link className={styles.smallButton} to="/personal/capacitacion" state={context ?? undefined}>
-            Capacitación
-          </Link>
+          {can('REGISTER_TRAINING') && (
+            <Link className={styles.smallButton} to="/personal/capacitacion" state={context ?? undefined}>
+              Capacitación
+            </Link>
+          )}
+          {can('REQUEST_FIELD_TRIP') && (
+            <Link className={styles.smallButton} to="/personal/salida-a-campo" state={context ?? undefined}>
+              Solicitar mi salida a campo
+            </Link>
+          )}
+          {can('MANAGE_EMPLOYEES') && (
+            <Link className={styles.smallButton} to="/personal/nuevo" state={context ?? undefined}>
+              Nueva persona
+            </Link>
+          )}
         </nav>
 
         <div className={styles.toolbar}>
@@ -149,6 +161,13 @@ export function EmployeesListScreen() {
           <p className={styles.statusText} role="alert">
             No tienes acceso a la información del personal.
           </p>
+          {can('REQUEST_FIELD_TRIP') && (
+            <p>
+              <Link className={styles.smallButton} to="/personal/salida-a-campo">
+                Solicitar mi salida a campo
+              </Link>
+            </p>
+          )}
         </div>
       </main>
     );

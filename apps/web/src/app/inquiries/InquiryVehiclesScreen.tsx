@@ -26,6 +26,13 @@ import styles from './InquiryVehiclesScreen.module.css';
  * transicion REGISTRADA/pendiente -> COTIZADA) y navega a CON-04, donde
  * el estado real de la consulta se refleja sin inventar una reserva.
  */
+/** dd/mm en hora local a partir de un ISO date-time. */
+function formatDayMonth(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export function InquiryVehiclesScreen() {
   const { id, navState, state, vehicles, quotingVehicleId, error, quoteVehicle, refreshAvailability } =
     useInquiryVehicles();
@@ -45,6 +52,8 @@ export function InquiryVehiclesScreen() {
     const matchesMax = priceMax === '' || v.dailyRate <= Number(priceMax);
     return matchesSearch && matchesMin && matchesMax;
   });
+
+  const allBusy = vehicles.length > 0 && vehicles.every((v) => !v.available);
 
   if (state === 'LOADING') {
     return (
@@ -133,13 +142,27 @@ export function InquiryVehiclesScreen() {
               </label>
             </div>
 
+            {allBusy && (
+              <p className={styles.busyNotice} role="status">
+                Todos los vehículos están ocupados en las fechas de este viaje. Cambia las fechas de la consulta o
+                revisa más tarde.
+              </p>
+            )}
+
             {filteredVehicles.length === 0 && (
               <p className={styles.statusText}>No hay vehículos que coincidan con los filtros aplicados.</p>
             )}
 
           <div className={styles.grid}>
-            {filteredVehicles.map((vehicle) => (
-              <article key={vehicle.id} className={`${styles.card} ${isStale ? styles.cardStale : ''}`}>
+            {filteredVehicles.map((vehicle) => {
+              const reasonId = `unavailable-${vehicle.id}`;
+              const conflictFrom = vehicle.conflictFrom ? formatDayMonth(vehicle.conflictFrom) : '';
+              const conflictTo = vehicle.conflictTo ? formatDayMonth(vehicle.conflictTo) : '';
+              return (
+              <article
+                key={vehicle.id}
+                className={`${styles.card} ${isStale ? styles.cardStale : ''} ${vehicle.available ? '' : styles.cardUnavailable}`}
+              >
                 <img className={styles.photo} src={vehicle.photoUrl} alt={vehicle.model} />
                 <div className={styles.cardBody}>
                   <h2 className={styles.model}>{vehicle.model}</h2>
@@ -154,10 +177,20 @@ export function InquiryVehiclesScreen() {
                     ) : null}
                   </span>
 
+                  {!vehicle.available && (
+                    <p id={reasonId} className={styles.unavailableReason}>
+                      <strong>No disponible en estas fechas</strong>
+                      {conflictFrom && conflictTo && (
+                        <span className={styles.unavailableDates}>Ocupado del {conflictFrom} al {conflictTo}</span>
+                      )}
+                    </p>
+                  )}
+
                   <button
                     type="button"
                     className={styles.reserveButton}
-                    disabled={isStale || quotingVehicleId === vehicle.id}
+                    disabled={isStale || !vehicle.available || quotingVehicleId === vehicle.id}
+                    aria-describedby={vehicle.available ? undefined : reasonId}
                     onClick={() => void quoteVehicle(vehicle.id)}
                   >
                     {quotingVehicleId === vehicle.id ? 'Cotizando…' : 'Cotizar este vehículo'}
@@ -179,7 +212,8 @@ export function InquiryVehiclesScreen() {
                   )}
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
           </>
         )}

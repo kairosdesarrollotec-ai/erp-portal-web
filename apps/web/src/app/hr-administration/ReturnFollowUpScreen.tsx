@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AppHeader } from '../shared/AppHeader';
 import { HrFrame } from './HrFrame';
-import { evaluateFieldTripReturn, getEmployee, getFieldTrip, type EmployeeDetail, type FieldTrip } from './hr-client';
+import { evaluateFieldTripReturn, getEmployee, getFieldTrip, type EmployeeDetail, type FieldTrip, type HrMemo } from './hr-client';
 import { FIELD_TRIP_STATUS_LABEL, ordinal, previewReturn } from './hr-domain';
-import { formatDateTime } from './hr-format';
+import { formatDate, formatDateTime } from './hr-format';
 import { useHrPermissions } from './hr-permissions';
 import { useHrCommand } from './useHrCommand';
 import { useHrResource } from './useHrResource';
@@ -43,14 +43,17 @@ function ReturnFollowUp() {
   const command = useHrCommand({ context, reload });
   const [actual, setActual] = useState(() => toLocalInput(new Date()));
   const [notes, setNotes] = useState('');
+  const [newMemo, setNewMemo] = useState<HrMemo | null>(null);
   const actionRef = useRef<HTMLButtonElement>(null);
 
   const trip = data?.trip;
   const employee = data?.employee ?? null;
   const open = trip?.status === 'AUTORIZADA';
   const canEvaluate = can('EVALUATE_FIELD_TRIP_RETURN') && open;
-  const counterKnown = employee !== null;
-  const previous = employee?.fieldTripLateCount ?? 0;
+  // El resumen del colaborador viene en la propia salida: quien solo evalua retornos no necesita VIEW_EMPLOYEES.
+  const summary = employee ?? trip?.employee ?? null;
+  const counterKnown = summary !== null;
+  const previous = summary?.fieldTripLateCount ?? 0;
   const actualIso = actual ? new Date(actual).toISOString() : '';
   const preview = trip && actualIso ? previewReturn(previous, trip.estimatedReturn, actualIso) : null;
 
@@ -62,7 +65,7 @@ function ReturnFollowUp() {
     ? 'No pudimos obtener el contador de incumplimientos de esta persona, por eso no se puede decidir ahora.'
     : previous === 0
       ? 'Esta persona no tiene tardanzas previas en salidas a campo — hasta la 3ª es advertencia, la 4ª pasa a observado.'
-      : employee?.isFieldTripObserved || previous >= 4
+      : summary?.isFieldTripObserved || previous >= 4
         ? `Esta persona tiene ${previous} tardanzas previas y ya está observada — cualquier nueva tardanza se registra con observación.`
         : `Esta persona tiene ${previous} tardanza${previous === 1 ? '' : 's'} previa${previous === 1 ? '' : 's'} en salidas a campo — hasta la 3ª es advertencia, la 4ª pasa a observado.`;
 
@@ -88,6 +91,7 @@ function ReturnFollowUp() {
             : 'Regreso registrado a tiempo. La salida quedó cerrada.',
       );
       setNotes('');
+      setNewMemo(t.memo ?? null);
       await reload();
     }
   }
@@ -157,6 +161,32 @@ function ReturnFollowUp() {
             </p>
           )}
           {trip.status === 'NO_AUTORIZADA' && <p className={styles.warning}>Esta salida no fue autorizada: no hay regreso que registrar.</p>}
+
+          {newMemo && (
+            <section className={styles.bannerError} role="status" aria-labelledby="regreso-memo">
+              <h2 id="regreso-memo" className={styles.sectionTitle}>
+                Memo de advertencia generado
+              </h2>
+              <p>{newMemo.reason}</p>
+              <p className={styles.hint}>Lo generó el sistema automáticamente por reincidencia y quedó en la ficha de la persona.</p>
+            </section>
+          )}
+
+          {employee && employee.recentMemos && employee.recentMemos.length > 0 && (
+            <section className={styles.card} aria-labelledby="regreso-memos">
+              <h2 id="regreso-memos" className={styles.sectionTitle}>
+                Memos de la persona
+              </h2>
+              <ul className={styles.plainList}>
+                {employee.recentMemos.map((memo) => (
+                  <li key={memo.id} className={styles.listItem}>
+                    <span className={styles.entryMeta}>{formatDate(memo.issuedOn)}</span>
+                    <span className={styles.entryText}>{memo.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section className={styles.card} aria-labelledby="regreso-contador">
             <h2 id="regreso-contador" className={styles.sectionTitle}>

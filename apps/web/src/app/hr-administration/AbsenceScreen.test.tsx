@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AbsenceScreen } from './AbsenceScreen';
+import { HrCommandError } from './hr-client';
 import { baseContext, makeDetail, makeRecord } from './hr-test-utils';
 import { setPermissions } from '../../test/permissions';
 
@@ -10,7 +11,9 @@ const getAttendanceMock = vi.fn();
 const summaryMock = vi.fn();
 const logMock = vi.fn();
 const applyMock = vi.fn();
+const reclassifyMock = vi.fn();
 
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({ currentUser: { email: 'u@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') } }),
 }));
@@ -21,6 +24,7 @@ vi.mock('./hr-client', async () => {
   const actual = await vi.importActual<typeof import('./hr-client')>('./hr-client');
   return {
     ...actual,
+    reclassifyAttendance: (...a: unknown[]) => reclassifyMock(...a),
     getEmployee: (...a: unknown[]) => getEmployeeMock(...a),
     getEmployeeAttendance: (...a: unknown[]) => getAttendanceMock(...a),
     getAttendanceSummary: (...a: unknown[]) => summaryMock(...a),
@@ -125,5 +129,59 @@ describe('AbsenceScreen (ADP-03)', () => {
     await screen.findByText(/Historial de faltas/);
     expect(screen.queryByRole('button', { name: 'Confirmar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Aplicar descuento' })).not.toBeInTheDocument();
+  });
+
+  describe('reclasificar una falta ya registrada', () => {
+    const recorded = (over = {}) => makeRecord({ id: 'att-9', date: '2026-09-06', status: 'FALTA_INJUSTIFICADA', deductionAmount: 45, ...over });
+
+    it('una falta injustificada se puede justificar con su justificacion', async () => {
+      getAttendanceMock.mockResolvedValue([recorded()]);
+      reclassifyMock.mockResolvedValue(recorded({ status: 'FALTA_JUSTIFICADA', deductionAmount: 0, justification: 'Certificado médico' }));
+      renderScreen('2026-09-06');
+      fireEvent.click(await screen.findByRole('button', { name: 'Justificar esta falta' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar cambio' }));
+      expect(await screen.findByText(/Escribe la justificación \(al menos 5 caracteres\)/)).toBeInTheDocument();
+      expect(reclassifyMock).not.toHaveBeenCalled();
+      fireEvent.change(screen.getByLabelText('Justificación de la falta'), { target: { value: 'Certificado médico' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar cambio' }));
+      await waitFor(() => expect(reclassifyMock).toHaveBeenCalledWith('tok', 'att-9', 'FALTA_JUSTIFICADA', 'Certificado médico'));
+      expect(await screen.findByText(/ya no genera descuento/)).toBeInTheDocument();
+    });
+
+    it('una falta justificada se puede dejar injustificada y avisa el memo generado por el sistema', async () => {
+      getAttendanceMock.mockResolvedValue([recorded({ status: 'FALTA_JUSTIFICADA', deductionAmount: 0 })]);
+      reclassifyMock.mockResolvedValue({ ...recorded(), memo: { id: 'm1', reason: 'Segunda falta injustificada del mes' } });
+      renderScreen('2026-09-06');
+      fireEvent.click(await screen.findByRole('button', { name: 'Marcar como injustificada' }));
+      fireEvent.change(screen.getByLabelText('Motivo para dejarla injustificada'), { target: { value: 'No presentó sustento' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar cambio' }));
+      await waitFor(() => expect(reclassifyMock).toHaveBeenCalledWith('tok', 'att-9', 'FALTA_INJUSTIFICADA', 'No presentó sustento'));
+      expect(await screen.findByText(/Memo de advertencia generado automáticamente: Segunda falta/)).toBeInTheDocument();
+    });
+
+    it('si el descuento ya se aplico no se puede reclasificar', async () => {
+      getAttendanceMock.mockResolvedValue([recorded({ isDeductionApplied: true })]);
+      renderScreen('2026-09-06');
+      expect(await screen.findByText(/ya no se puede cambiar/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Justificar esta falta' })).not.toBeInTheDocument();
+    });
+
+    it('sin LOG_ATTENDANCE no se ofrece reclasificar', async () => {
+      setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES']);
+      getAttendanceMock.mockResolvedValue([recorded()]);
+      renderScreen('2026-09-06');
+      await screen.findByText(/Resultado: Falta injustificada/);
+      expect(screen.queryByRole('button', { name: 'Justificar esta falta' })).not.toBeInTheDocument();
+    });
+
+    it('un conflicto (descuento liquidado mientras tanto) se explica en lenguaje de negocio', async () => {
+      getAttendanceMock.mockResolvedValue([recorded()]);
+      reclassifyMock.mockRejectedValue(new HrCommandError(409, { code: 'ATTENDANCE_NOT_RECLASSIFIABLE' }));
+      renderScreen('2026-09-06');
+      fireEvent.click(await screen.findByRole('button', { name: 'Justificar esta falta' }));
+      fireEvent.change(screen.getByLabelText('Justificación de la falta'), { target: { value: 'Certificado médico' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar cambio' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(/ya no se puede reclasificar/);
+    });
   });
 });

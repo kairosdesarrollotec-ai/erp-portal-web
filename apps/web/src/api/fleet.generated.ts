@@ -216,6 +216,8 @@ export interface components {
             /** @description Monto mínimo de garantía configurado para este vehículo (PEN). */
             depositMinimum?: number | null;
             photoUrl?: string | null;
+            /** @description Solo presente cuando la consulta envía availableFrom y availableTo. Indica si el vehículo está libre en esa ventana. */
+            availability?: components["schemas"]["VehicleAvailability"];
             /**
              * Format: date-time
              * @description Timestamp ISO 8601 UTC de creación
@@ -226,6 +228,15 @@ export interface components {
              * @description Timestamp ISO 8601 UTC de última modificación
              */
             updatedAt: string;
+        };
+        VehicleAvailability: {
+            available: boolean;
+            /** Format: date-time */
+            conflictFrom?: string;
+            /** Format: date-time */
+            conflictTo?: string;
+            /** @enum {string} */
+            conflictSource?: "COMMITMENT" | "RESERVATION";
         };
         ListVehiclesResponse: {
             items: components["schemas"]["VehicleResponse"][];
@@ -344,6 +355,16 @@ export interface operations {
                 limit?: number;
                 /** @description Posición inicial para la paginación (0-indexed). */
                 offset?: number;
+                /**
+                 * Format: date-time
+                 * @description Inicio de la ventana de disponibilidad. Debe enviarse junto con availableTo; habilita el campo availability por vehículo.
+                 */
+                availableFrom?: string;
+                /**
+                 * Format: date-time
+                 * @description Fin de la ventana de disponibilidad. Debe enviarse junto con availableFrom.
+                 */
+                availableTo?: string;
             };
             header?: never;
             path?: never;

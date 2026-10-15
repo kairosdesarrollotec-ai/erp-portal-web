@@ -22,6 +22,22 @@ const DECISION_LABELS: Record<AlcoholEscalationDecision, string> = {
 };
 const MIN_DECISION_NOTES = 5;
 
+/** Textos de las opciones segun PROTO-DEV-03-* (titulo + descripcion bajo el radio). */
+const OPTION_COPY: Record<ReturnAlcoholTestResult, { title: string; description: string }> = {
+  FAVORABLE: {
+    title: 'Favorable — puede continuar',
+    description: 'Prueba negativa (0.00 g/l). Habilita el inicio inmediato de la inspección técnica vehicular 360° en patio.',
+  },
+  DESFAVORABLE: {
+    title: 'Desfavorable — no puede continuar normalmente',
+    description: 'Detección positiva de alcohol. Se bloquea la entrega normal de la unidad y se deriva a Gerencia.',
+  },
+  RECHAZADO: {
+    title: 'Se negó a realizar la prueba',
+    description: 'El conductor rechaza la prueba. Requiere acta de negativa y se deriva a Gerencia.',
+  },
+};
+
 /**
  * DEV-03 - Alcolimetro de devolucion (BR-DEV-005). Favorable continua al
  * checklist (INSPECCION). Desfavorable/rechazado: el vehiculo queda en
@@ -128,7 +144,9 @@ export function AlcoholTestScreen() {
           ? 'Registrar decisión de Gerencia'
           : unfavorableSelected
             ? 'Derivar a Gerencia'
-            : 'Registrar y continuar'
+            : result === 'FAVORABLE'
+              ? 'Continuar al checklist'
+              : 'Registrar y continuar'
       }
       continueDisabled={
         escalatedForManager ? !decisionValid : result === '' || !can('REGISTER_ALCOHOL_TEST') || alreadyEscalated
@@ -243,18 +261,24 @@ export function AlcoholTestScreen() {
         <>
           <fieldset className={styles.fieldset}>
             <legend>Resultado de la prueba</legend>
-            <div className={styles.radioRow}>
+            <div className={styles.radioColumn}>
               {OPTIONS.map((option) => (
-                <label key={option} className={styles.radioOption}>
-                  <input
-                    type="radio"
-                    name="alcohol-result"
-                    value={option}
-                    checked={result === option}
-                    onChange={() => setResult(option)}
-                  />
-                  {ALCOHOL_RESULT_LABELS[option]}
-                </label>
+                <div key={option} className={styles.radioCard}>
+                  <label className={styles.radioOption}>
+                    <input
+                      type="radio"
+                      name="alcohol-result"
+                      value={option}
+                      checked={result === option}
+                      onChange={() => setResult(option)}
+                      aria-describedby={`alcohol-desc-${option}`}
+                    />
+                    {OPTION_COPY[option].title}
+                  </label>
+                  <p id={`alcohol-desc-${option}`} className={styles.radioDescription}>
+                    {OPTION_COPY[option].description}
+                  </p>
+                </div>
               ))}
             </div>
           </fieldset>

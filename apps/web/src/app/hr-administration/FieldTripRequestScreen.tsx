@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { WifiOff } from 'lucide-react';
 import { AppHeader } from '../shared/AppHeader';
-import { getEmployee, requestFieldTrip, type EmployeeDetail } from './hr-client';
+import { getEmployee, getMyEmployee, requestFieldTrip } from './hr-client';
 import { localToIso, toIsoDate } from './hr-domain';
 import { describeHrError } from './hr-errors';
 import { useHrPermissions } from './hr-permissions';
@@ -13,8 +13,17 @@ import styles from './HrFlow.module.css';
 
 export const OFFLINE_MESSAGE = 'Necesitas conexión a internet para solicitar una salida a campo — esta solicitud no se puede guardar sin conexión';
 
+interface RequestTarget {
+  employeeId: string | null;
+  areaName: string | null;
+  /** Mensaje de negocio cuando el usuario aun no esta vinculado a una ficha (EMPLOYEE_NOT_LINKED). */
+  linkError: string | null;
+}
+
 /**
- * ADP-06 - Solicitud de salida a campo (mobile-first). Siempre requiere conexion (ADP-P12): sin
+ * ADP-06 - Solicitud de salida a campo (mobile-first). Sin `:id` en la ruta la solicitud es PARA MI: la ficha se
+ * resuelve con `GET /me/employee` (el trabajador de campo no elige colaborador ni necesita ver expedientes).
+ * Con `:id` (Personal solicitando por otra persona) se usa ese colaborador. Siempre requiere conexion (ADP-P12): sin
  * conexion el formulario se REEMPLAZA por un mensaje bloqueante y nada se guarda como borrador local.
  */
 function FieldTripRequest() {
@@ -22,10 +31,18 @@ function FieldTripRequest() {
   const navigate = useNavigate();
   const online = useOnlineStatus();
   // El area es informativa: si la ficha no se puede leer (p. ej. rol de campo sin VIEW_EMPLOYEES) igual se puede solicitar.
-  const { state, data, context } = useHrResource<{ employee: EmployeeDetail | null }>(
-    id ? async (token) => ({ employee: await getEmployee(token, id).catch(() => null) }) : null,
-    id ?? '',
-  );
+  const { state, data, context } = useHrResource<RequestTarget>(async (token, scope) => {
+    if (id) {
+      const employee = await getEmployee(token, id).catch(() => null);
+      return { employeeId: id, areaName: employee?.areaName ?? null, linkError: null };
+    }
+    try {
+      const mine = await getMyEmployee(token, scope);
+      return { employeeId: mine.id, areaName: mine.areaName, linkError: null };
+    } catch (err) {
+      return { employeeId: null, areaName: null, linkError: describeHrError(err, 'No pudimos encontrar tu ficha de colaborador. Intenta de nuevo.') };
+    }
+  }, id ?? 'yo');
   const [destination, setDestination] = useState('');
   const [objective, setObjective] = useState('');
   const [departure, setDeparture] = useState('');
@@ -35,7 +52,8 @@ function FieldTripRequest() {
   const [error, setError] = useState<string | null>(null);
   const objectiveRef = useRef<HTMLInputElement>(null);
 
-  const ready = state === 'READY' && online;
+  const targetId = data?.employeeId ?? null;
+  const ready = state === 'READY' && online && !!targetId;
   useEffect(() => {
     if (ready) objectiveRef.current?.focus();
   }, [ready]);
@@ -45,7 +63,7 @@ function FieldTripRequest() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     setSubmitted(true);
-    if (!id || !context || !objective.trim() || !destination.trim() || !departure || !returnTime || timesInvalid) return;
+    if (!targetId || !context || !objective.trim() || !destination.trim() || !departure || !returnTime || timesInvalid) return;
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
     setBusy(true);
     setError(null);
@@ -54,7 +72,7 @@ function FieldTripRequest() {
       if (!user) throw new Error('Sesión no disponible');
       const idToken = await user.getIdToken();
       const today = toIsoDate(new Date());
-      const trip = await requestFieldTrip(idToken, id, {
+      const trip = await requestFieldTrip(idToken, targetId, {
         destination: destination.trim(),
         objective: objective.trim(),
         estimatedDeparture: localToIso(today, departure),
@@ -71,8 +89,8 @@ function FieldTripRequest() {
     <main className={styles.wrapper}>
       <AppHeader pageTitle="Personal" />
       <div className={styles.content} aria-busy={busy || state === 'LOADING'}>
-        <button type="button" className={styles.backLink} onClick={() => navigate(`/personal/${id}`, { state: context ?? undefined })}>
-          ← Volver a la ficha
+        <button type="button" className={styles.backLink} onClick={() => navigate(id ? `/personal/${id}` : '/personal', { state: context ?? undefined })}>
+          ← {id ? 'Volver a la ficha' : 'Volver a Personal'}
         </button>
         <h1 className={styles.title}>Solicitar salida a campo</h1>
 
@@ -92,12 +110,18 @@ function FieldTripRequest() {
           </div>
         )}
 
-        {state === 'READY' && online && data && (
+        {state === 'READY' && data?.linkError && (
+          <p className={styles.errorBanner} role="alert">
+            {data.linkError}
+          </p>
+        )}
+
+        {state === 'READY' && online && data && !data.linkError && (
           <form onSubmit={(e) => void submit(e)} noValidate className={styles.form} aria-label="Solicitud de salida a campo">
             <label className={styles.fieldLabel} htmlFor="campo-area">
               Área
             </label>
-            <input id="campo-area" className={`${styles.input} ${styles.readOnlyField} ${styles.mobileInput}`} value={data.employee?.areaName ?? 'No disponible'} readOnly aria-readonly="true" />
+            <input id="campo-area" className={`${styles.input} ${styles.readOnlyField} ${styles.mobileInput}`} value={data.areaName ?? 'No disponible'} readOnly aria-readonly="true" />
 
             <label className={styles.fieldLabel} htmlFor="campo-tema">
               Tema de la salida

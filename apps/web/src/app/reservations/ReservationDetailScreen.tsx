@@ -30,7 +30,7 @@ import styles from './ReservationDetailScreen.module.css';
  * via location.state (ver NewRentalScreen.tsx).
  */
 export function ReservationDetailScreen() {
-  const { state, reservation, context, savingRequirement, actionError, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
+  const { state, reservation, context, savingRequirement, actionError, vehicleUnavailable, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
     useReservationDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
@@ -181,6 +181,47 @@ export function ReservationDetailScreen() {
           </span>
 
           {actionError && <p className={styles.errorText}>{actionError}</p>}
+          {vehicleUnavailable && (
+            <>
+              <p id="vehicle-unavailable-alert" role="alert" className={styles.unavailableAlert}>
+                {vehicleUnavailable}
+              </p>
+              <button
+                type="button"
+                className={styles.linkButton}
+                onClick={() =>
+                  navigate(`/reservas/${reservation.id}/conflicto`, {
+                    state: { ...context, conflictDetail: vehicleUnavailable },
+                  })
+                }
+              >
+                Ver alternativas
+              </button>
+            </>
+          )}
+
+          {reservation.status === 'PENDING_SALE_RESOLUTION' && (
+            <>
+              <p className={styles.helperText}>
+                El vehículo fue vendido y la reserva está pendiente de resolver con el cliente.
+              </p>
+              {can('RESERVATION', 'RESOLVE_SALE') && (
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  onClick={() => navigate(`/reservas/${reservation.id}/venta`, { state: context })}
+                >
+                  Resolver venta
+                </button>
+              )}
+            </>
+          )}
+
+          {reservation.status === 'CANCELLED' && reservation.saleResolution?.refundStatus === 'PENDING_TRANSFER' && (
+            <p className={styles.helperText}>
+              Reembolso pendiente de transferencia: Gerencia debe devolver S/ {reservation.requiredPayment.amount} al cliente.
+            </p>
+          )}
 
           {!isConfirmed && reservation.status === 'DRAFT' && (
             <>
@@ -233,7 +274,8 @@ export function ReservationDetailScreen() {
                 <button
                   type="button"
                   className={styles.confirmButton}
-                  disabled={savingRequirement === 'CONFIRM'}
+                  disabled={savingRequirement === 'CONFIRM' || Boolean(vehicleUnavailable)}
+                  aria-describedby={vehicleUnavailable ? 'vehicle-unavailable-alert' : undefined}
                   onClick={() => void confirm()}
                 >
                   {savingRequirement === 'CONFIRM' ? 'Confirmando…' : 'Confirmar reserva'}
@@ -273,6 +315,25 @@ export function ReservationDetailScreen() {
               >
                 Continuar con alquiler
               </button>
+
+              {reservation.startDatePassed && (
+                <button
+                  type="button"
+                  className={styles.linkButton}
+                  onClick={() => navigate(`/reservas/${reservation.id}/no-show`, { state: context })}
+                >
+                  Protocolo de no-show
+                </button>
+              )}
+              {can('RESERVATION', 'FLAG_SALE') && (
+                <button
+                  type="button"
+                  className={styles.linkButton}
+                  onClick={() => navigate(`/reservas/${reservation.id}/venta`, { state: context })}
+                >
+                  Registrar venta del vehículo
+                </button>
+              )}
 
               {!showCancelForm && can('RESERVATION', 'CANCEL_CUSTOMER_REQUESTED_CHANGE') ? (
                 <button type="button" className={styles.dangerLink} onClick={() => setShowCancelForm(true)}>

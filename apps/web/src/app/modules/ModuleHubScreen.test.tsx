@@ -14,6 +14,9 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 import { ModuleHubScreen } from './ModuleHubScreen';
 import { clearPermissions, roleRef, setPermissions, INCIDENT_VIEW_ONLY } from '../../test/permissions';
 
@@ -62,7 +65,7 @@ describe('ModuleHubScreen', () => {
     expect(screen.getByText(/no pudimos determinar/i)).toBeDefined();
   });
 
-  it('muestra 13 módulos a quien tiene permisos de Administración, Reclutamiento y Personal', () => {
+  it('muestra 13 módulos a quien tiene permisos de Administración, Reclutamiento, Personal, Pagos y Reportes', () => {
     setPermissions([
       ...INCIDENT_VIEW_ONLY,
       'ADMIN.MANAGE_USERS',
@@ -77,12 +80,20 @@ describe('ModuleHubScreen', () => {
     expect(items).toHaveLength(13);
   });
 
-  it('muestra 10 módulos a quien no tiene permisos ADMIN.*, de Reclutamiento ni de Personal (sin Admin, Personal ni Reclutamiento)', () => {
+  it('muestra 10 módulos a quien no tiene permisos de Admin, Reclutamiento ni Personal pero sí de Pagos y Reportes', () => {
     setPermissions([...INCIDENT_VIEW_ONLY, 'PAYMENT.READ_LIST', 'REPORT.READ_OPERATIONAL']);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(10);
+    expect(screen.queryByText('Admin')).toBeNull();
+  });
+
+  it('muestra 8 módulos a quien no tiene permisos de Admin, Reclutamiento, Personal, Pagos ni Reportes', () => {
+    mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
+    renderHub();
+    const items = screen.getAllByRole('listitem');
+    expect(items).toHaveLength(8);
     expect(screen.queryByText('Admin')).toBeNull();
   });
 
@@ -107,12 +118,13 @@ describe('ModuleHubScreen', () => {
     expect(flota).toBeDefined();
   });
 
-  it('muestra badge "Próximamente" para módulos no implementados', () => {
+  it('ya no quedan módulos "Próximamente": Pagos y Reportes tienen ruta y se muestran solo con permiso', () => {
     setPermissions([...INCIDENT_VIEW_ONLY, 'PAYMENT.READ_LIST', 'REPORT.READ_OPERATIONAL']);
     mockUseModuleHub.mockReturnValue({ ...baseReady, role: roleRef('FRONT_OFFICE') });
     renderHub();
-    // Todos los módulos ya tienen ruta implementada (pagos y reportes incluidos).
     expect(screen.queryAllByText(/próximamente/i)).toHaveLength(0);
+    expect(screen.getByRole('link', { name: /pagos y garantías/i }).getAttribute('href')).toBe('/pagos/garantias');
+    expect(screen.getByRole('link', { name: /reportes/i }).getAttribute('href')).toBe('/reportes');
   });
 
   it('Personal lleva a ADP-01 (/personal) y solo se muestra con HR_ADMINISTRATION.VIEW_EMPLOYEES', () => {

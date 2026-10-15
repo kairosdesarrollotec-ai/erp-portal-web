@@ -10,6 +10,7 @@ import * as localDraftsModule from './local-drafts';
 // Por defecto devuelve 0 (TR-08 pendiente).
 vi.mock('./local-drafts', () => ({
   getLocalDraftCount: vi.fn(() => 0),
+  refreshLocalDraftCount: vi.fn().mockResolvedValue(undefined),
 }));
 
 const signOutMock = vi.fn();
@@ -136,6 +137,16 @@ describe('UserMenuDropdown', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
+  it('muestra el enlace a "Mi Perfil" y navega a /perfil cerrando el dropdown al hacer clic', () => {
+    renderDropdown({}, { companyName: 'VeloxRent', branchName: 'Lima Norte' });
+    fireEvent.click(screen.getByRole('button', { name: /Menú de perfil y sesión/i }));
+    const profileItem = screen.getByRole('menuitem', { name: /Mi Perfil/i });
+    expect(profileItem).toBeInTheDocument();
+    fireEvent.click(profileItem);
+    expect(mockNavigate).toHaveBeenCalledWith('/perfil', expect.objectContaining({ state: expect.anything() }));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
   // ── Modal de confirmación de cierre de sesión (TR-09) ────────────────
 
   it('cuando no hay borradores (count=0), "Cerrar sesión" ejecuta signOut directamente sin mostrar modal', async () => {
@@ -150,24 +161,24 @@ describe('UserMenuDropdown', () => {
     });
   });
 
-  it('cuando hay borradores (count>0), "Cerrar sesión" muestra el modal de confirmación sin cerrar sesión', () => {
+  it('cuando hay borradores (count>0), "Cerrar sesión" muestra el modal de confirmación sin cerrar sesión', async () => {
     vi.mocked(localDraftsModule.getLocalDraftCount).mockReturnValue(2);
     renderDropdown();
     fireEvent.click(screen.getByRole('button', { name: /Menú de perfil y sesión/i }));
     fireEvent.click(screen.getByRole('menuitem', { name: /Cerrar sesión/i }));
     // Modal debe aparecer
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText(/Cerrar sesión ahora/i)).toBeInTheDocument();
     // signOut no debe haberse llamado todavía
     expect(signOutMock).not.toHaveBeenCalled();
   });
 
-  it('en el modal, "Cancelar" cierra el modal sin ejecutar signOut', () => {
+  it('en el modal, "Cancelar" cierra el modal sin ejecutar signOut', async () => {
     vi.mocked(localDraftsModule.getLocalDraftCount).mockReturnValue(1);
     renderDropdown();
     fireEvent.click(screen.getByRole('button', { name: /Menú de perfil y sesión/i }));
     fireEvent.click(screen.getByRole('menuitem', { name: /Cerrar sesión/i }));
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /^Cancelar$/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(signOutMock).not.toHaveBeenCalled();
@@ -178,10 +189,48 @@ describe('UserMenuDropdown', () => {
     renderDropdown();
     fireEvent.click(screen.getByRole('button', { name: /Menú de perfil y sesión/i }));
     fireEvent.click(screen.getByRole('menuitem', { name: /Cerrar sesión/i }));
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Cerrar sesión de todas formas/i }));
     await waitFor(() => {
       expect(signOutMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  // ── Conteo de borradores locales (refresco del caché) ──────────────
+
+  it('refresca el conteo de borradores al montar y al abrir el menú', async () => {
+    renderDropdown();
+    await waitFor(() => expect(localDraftsModule.refreshLocalDraftCount).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: /Menú de perfil y sesión/i }));
+    await waitFor(() => expect(localDraftsModule.refreshLocalDraftCount).toHaveBeenCalledTimes(2));
+  });
+
+  it('refresca el conteo al recuperar conexión', async () => {
+    renderDropdown();
+    await waitFor(() => expect(localDraftsModule.refreshLocalDraftCount).toHaveBeenCalledTimes(1));
+    window.dispatchEvent(new Event('online'));
+    await waitFor(() => expect(localDraftsModule.refreshLocalDraftCount).toHaveBeenCalledTimes(2));
+  });
+
+  it('al cerrar sesión refresca el conteo antes de decidir si muestra el aviso', async () => {
+    vi.mocked(localDraftsModule.getLocalDraftCount).mockReturnValue(0);
+    vi.mocked(localDraftsModule.refreshLocalDraftCount).mockImplementationOnce(async () => undefined);
+    vi.mocked(localDraftsModule.refreshLocalDraftCount).mockImplementation(async () => {
+      vi.mocked(localDraftsModule.getLocalDraftCount).mockReturnValue(2);
+    });
+    renderDropdown();
+    fireEvent.click(screen.getByRole('button', { name: /Menú de perfil y sesión/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Cerrar sesión/i }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
+  it('si el refresco falla cierra sesión con el último conteo conocido', async () => {
+    vi.mocked(localDraftsModule.getLocalDraftCount).mockReturnValue(0);
+    vi.mocked(localDraftsModule.refreshLocalDraftCount).mockRejectedValue(new Error('idb'));
+    renderDropdown();
+    fireEvent.click(screen.getByRole('button', { name: /Menú de perfil y sesión/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Cerrar sesión/i }));
+    await waitFor(() => expect(signOutMock).toHaveBeenCalledTimes(1));
   });
 });

@@ -1,7 +1,19 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { HrFrame } from './HrFrame';
-import { getEmployee, getEmployeeLeaves, requestLeave, resolveLeave, type EmployeeDetail, type LeaveRequest } from './hr-client';
+import {
+  LEAVE_EVIDENCE_MAX_BYTES,
+  LEAVE_EVIDENCE_TYPES,
+  attachLeaveEvidence,
+  getEmployee,
+  getEmployeeLeaves,
+  listLeaveEvidence,
+  requestLeave,
+  resolveLeave,
+  type EmployeeDetail,
+  type LeaveEvidence,
+  type LeaveRequest,
+} from './hr-client';
 import { LEAVE_STATUS_LABEL, LEAVE_TYPE_LABEL, localToIso, toIsoDate, type LeaveStatus, type LeaveType } from './hr-domain';
 import { formatDate, formatTime } from './hr-format';
 import { useHrPermissions } from './hr-permissions';
@@ -12,7 +24,13 @@ import styles from './HrFlow.module.css';
 interface Loaded {
   employee: EmployeeDetail;
   leaves: LeaveRequest[];
+  /** Sustento adjunto por permiso (ADP-04). */
+  evidence: Record<string, LeaveEvidence[]>;
 }
+
+const EVIDENCE_LABEL: Record<string, string> = { 'application/pdf': 'PDF', 'image/jpeg': 'Foto', 'image/png': 'Foto', 'image/webp': 'Foto' };
+const EVIDENCE_ACCEPT = LEAVE_EVIDENCE_TYPES.join(',');
+const isAllowedEvidenceType = (type: string) => (LEAVE_EVIDENCE_TYPES as readonly string[]).includes(type);
 
 const TYPES = Object.keys(LEAVE_TYPE_LABEL) as LeaveType[];
 const STATUS_CLASS: Record<LeaveStatus, string> = {
@@ -32,7 +50,8 @@ export function LeavesScreen() {
     id
       ? async (token) => {
           const [employee, leaves] = await Promise.all([getEmployee(token, id), getEmployeeLeaves(token, id)]);
-          return { employee, leaves };
+          const entries = await Promise.all(leaves.map(async (leave) => [leave.id, await listLeaveEvidence(token, leave.id).catch(() => [] as LeaveEvidence[])] as const));
+          return { employee, leaves, evidence: Object.fromEntries(entries) };
         }
       : null,
     id ?? '',
@@ -79,6 +98,23 @@ export function LeavesScreen() {
       setStartTime('');
       setEndTime('');
       setSubmitted(false);
+      await reload();
+    }
+  }
+
+  async function attach(leave: LeaveRequest, file: File | undefined) {
+    if (!file) return;
+    if (!isAllowedEvidenceType(file.type)) {
+      command.setError('Adjunta una imagen (JPG, PNG, WEBP) o un PDF.');
+      return;
+    }
+    if (file.size > LEAVE_EVIDENCE_MAX_BYTES) {
+      command.setError('El archivo supera el tamaño máximo de 10 MB.');
+      return;
+    }
+    const res = await command.run((token) => attachLeaveEvidence(token, leave.id, file), 'No pudimos adjuntar el archivo. Intenta de nuevo.');
+    if (res.ok) {
+      command.setNotice('Sustento adjuntado al permiso.');
       await reload();
     }
   }
@@ -195,6 +231,39 @@ export function LeavesScreen() {
                         Resuelto por {leave.authorizedByName}
                         {leave.resolutionNotes ? ` · ${leave.resolutionNotes}` : ''}
                       </p>
+                    )}
+                    <div className={styles.entryMeta}>
+                      {(data.evidence[leave.id] ?? []).length > 0 ? (
+                        <ul className={styles.plainList} aria-label={`Sustento del permiso del ${formatDate(leave.date)}`}>
+                          {(data.evidence[leave.id] ?? []).map((item, index) => (
+                            <li key={item.id}>
+                              <a href={item.objectUrl} target="_blank" rel="noreferrer">
+                                Sustento {index + 1} ({EVIDENCE_LABEL[item.contentType] ?? 'Archivo'})
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span>Sin sustento adjunto.</span>
+                      )}
+                    </div>
+                    {leave.status === 'SOLICITADO' && canRequest && (
+                      <div>
+                        <label className={styles.fieldLabel} htmlFor={`sustento-${leave.id}`}>
+                          Adjuntar sustento (foto o PDF, hasta 10 MB)
+                        </label>
+                        <input
+                          id={`sustento-${leave.id}`}
+                          type="file"
+                          accept={EVIDENCE_ACCEPT}
+                          disabled={command.saving}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            void attach(leave, file);
+                          }}
+                        />
+                      </div>
                     )}
                     {leave.status === 'SOLICITADO' && can('AUTHORIZE_LEAVE') && (
                       <div className={styles.rowActions}>

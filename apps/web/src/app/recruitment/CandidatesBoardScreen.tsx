@@ -8,12 +8,12 @@ import { CANDIDATE_STAGES, CANDIDATE_STAGE_LABEL, type CandidateStage } from './
 import {
   changeCandidateStage,
   registerCandidate,
+  uploadCandidateCv,
   type CandidateResponse,
-  type RegisterCandidateInput,
 } from './recruitment-client';
 import { describeRecruitmentError, isStaleRecruitmentError } from './recruitment-errors';
 import { CandidateCard } from './CandidateCard';
-import { NewCandidateDialog } from './NewCandidateDialog';
+import { NewCandidateDialog, type NewCandidateSubmit } from './NewCandidateDialog';
 import styles from './CandidatesBoardScreen.module.css';
 
 /**
@@ -64,7 +64,7 @@ export function CandidatesBoardScreen() {
     }
   }
 
-  async function create(input: RegisterCandidateInput) {
+  async function create({ cvFile, ...input }: NewCandidateSubmit) {
     if (!context || !vacancyId) return;
     setCreateBusy(true);
     setCreateError(null);
@@ -74,8 +74,23 @@ export function CandidatesBoardScreen() {
         idToken, vacancyId, { companyId: context.companyId, branchId: context.branchId }, input,
       );
       addCandidate(created);
-      setNotice(`Candidato ${created.fullName} creado en la etapa Nuevo.`);
       setCreating(false);
+      if (!cvFile) {
+        setNotice(`Candidato ${created.fullName} creado en la etapa Nuevo.`);
+      } else {
+        try {
+          const withCv = await uploadCandidateCv(
+            idToken, created.id, created.version, { companyId: context.companyId, branchId: context.branchId }, cvFile,
+          );
+          replaceCandidate(withCv);
+          setNotice(`Candidato ${created.fullName} creado en la etapa Nuevo, con su CV.`);
+        } catch (cvErr) {
+          setNotice(null);
+          setProblem(
+            `El candidato ${created.fullName} se creó, pero el CV no se pudo subir. ${describeRecruitmentError(cvErr, 'Súbelo desde su ficha.')}`,
+          );
+        }
+      }
     } catch (err) {
       setCreateError(describeRecruitmentError(err, 'No pudimos crear el candidato. Intenta de nuevo.'));
     } finally {

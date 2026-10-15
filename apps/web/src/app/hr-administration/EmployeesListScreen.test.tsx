@@ -7,6 +7,7 @@ import { setPermissions } from '../../test/permissions';
 
 const listEmployeesMock = vi.fn();
 
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({ currentUser: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') } }),
 }));
@@ -104,5 +105,28 @@ describe('EmployeesListScreen (ADP-01)', () => {
     listEmployeesMock.mockReturnValue(new Promise(() => {}));
     renderScreen();
     expect(await screen.findByText(/Cargando personal/)).toBeInTheDocument();
+  });
+
+  it('los accesos a Nueva persona, Capacitacion y Mi salida a campo dependen del permiso', async () => {
+    listEmployeesMock.mockResolvedValue({ items: [makeEmployee()], total: 1 });
+    const { unmount } = renderScreen();
+    await screen.findByRole('table');
+    expect(screen.queryByRole('link', { name: 'Nueva persona' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Capacitación' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Solicitar mi salida a campo' })).not.toBeInTheDocument();
+    unmount();
+    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.REGISTER_TRAINING', 'HR_ADMINISTRATION.REQUEST_FIELD_TRIP']);
+    renderScreen();
+    expect(await screen.findByRole('link', { name: 'Nueva persona' })).toHaveAttribute('href', '/personal/nuevo');
+    expect(screen.getByRole('link', { name: 'Capacitación' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Solicitar mi salida a campo' })).toHaveAttribute('href', '/personal/salida-a-campo');
+  });
+
+  it('un trabajador de campo sin VIEW_EMPLOYEES igual llega a solicitar su salida', () => {
+    setPermissions(['HR_ADMINISTRATION.REQUEST_FIELD_TRIP']);
+    renderScreen();
+    expect(screen.getByRole('alert')).toHaveTextContent(/No tienes acceso a la información del personal/);
+    expect(screen.getByRole('link', { name: 'Solicitar mi salida a campo' })).toHaveAttribute('href', '/personal/salida-a-campo');
+    expect(listEmployeesMock).not.toHaveBeenCalled();
   });
 });

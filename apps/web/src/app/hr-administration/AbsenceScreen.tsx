@@ -9,6 +9,7 @@ import {
   getEmployee,
   getEmployeeAttendance,
   logAttendance,
+  reclassifyAttendance,
   type AttendanceRecord,
   type AttendanceSummary,
   type EmployeeDetail,
@@ -37,6 +38,8 @@ interface Loaded {
 }
 
 type Classification = 'FALTA_JUSTIFICADA' | 'FALTA_INJUSTIFICADA';
+
+const isAbsence = (record: AttendanceRecord) => record.status === 'FALTA_JUSTIFICADA' || record.status === 'FALTA_INJUSTIFICADA';
 
 /**
  * ADP-03 - Falta, advertencia y descuento (BR-ADP-001). Se justifica o se deja injustificada; el
@@ -73,6 +76,10 @@ export function AbsenceScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const [reclassifying, setReclassifying] = useState(false);
+  const [newJustification, setNewJustification] = useState('');
+  const [reclassSubmitted, setReclassSubmitted] = useState(false);
+  const [memoText, setMemoText] = useState<string | null>(null);
 
   const record = data?.records.find((r) => r.date.slice(0, 10) === date) ?? null;
   const showForm = !!data && !record && can('LOG_ATTENDANCE') && data.employee.status !== 'TERMINADO';
@@ -110,6 +117,22 @@ export function AbsenceScreen() {
       );
       setJustification('');
       setSubmitted(false);
+      await reload();
+    }
+  }
+
+  async function reclassify(event: FormEvent) {
+    event.preventDefault();
+    setReclassSubmitted(true);
+    if (!record || newJustification.trim().length < 5) return;
+    const target: Classification = record.status === 'FALTA_JUSTIFICADA' ? 'FALTA_INJUSTIFICADA' : 'FALTA_JUSTIFICADA';
+    const res = await command.run((token) => reclassifyAttendance(token, record.id, target, newJustification.trim()), 'No pudimos reclasificar la falta. Intenta de nuevo.');
+    if (res.ok) {
+      command.setNotice(target === 'FALTA_JUSTIFICADA' ? 'La falta quedó justificada: ya no genera descuento.' : 'La falta quedó injustificada: el descuento se aplicará a fin de mes.');
+      setMemoText(res.value.memo?.reason ?? null);
+      setReclassifying(false);
+      setNewJustification('');
+      setReclassSubmitted(false);
       await reload();
     }
   }
@@ -180,7 +203,7 @@ export function AbsenceScreen() {
                 Registro del {formatDate(date)}
               </h2>
               <p className={styles.entryText}>Resultado: {ATTENDANCE_STATUS_LABEL[record.status]}</p>
-              {record.notes && <p className={styles.entryText}>Justificación: {record.notes}</p>}
+              {(record.justification ?? record.notes) && <p className={styles.entryText}>Justificación: {record.justification ?? record.notes}</p>}
               {record.deductionAmount > 0 && (
                 <p className={styles.entryText}>
                   {record.isDeductionApplied
@@ -188,8 +211,48 @@ export function AbsenceScreen() {
                     : `Se descuenta ${formatSoles(record.deductionAmount)} de la quincena, aplicado en el pago de fin de mes.`}
                 </p>
               )}
-              {record.status === 'FALTA_INJUSTIFICADA' && (
-                <p className={styles.hint}>Esta falta ya quedó registrada como injustificada. Por ahora su clasificación no se puede cambiar desde el sistema.</p>
+              {memoText && (
+                <p className={styles.banner} role="status">
+                  <AlertTriangle size={16} aria-hidden="true" /> Memo de advertencia generado automáticamente: {memoText}
+                </p>
+              )}
+              {isAbsence(record) && record.isDeductionApplied && (
+                <p className={styles.hint}>El descuento de esta falta ya se aplicó en el cierre de mes: su clasificación ya no se puede cambiar.</p>
+              )}
+              {isAbsence(record) && !record.isDeductionApplied && can('LOG_ATTENDANCE') && !reclassifying && (
+                <div className={styles.rowActions}>
+                  <button type="button" className={styles.secondaryButton} onClick={() => setReclassifying(true)}>
+                    {record.status === 'FALTA_JUSTIFICADA' ? 'Marcar como injustificada' : 'Justificar esta falta'}
+                  </button>
+                </div>
+              )}
+              {isAbsence(record) && !record.isDeductionApplied && can('LOG_ATTENDANCE') && reclassifying && (
+                <form onSubmit={(e) => void reclassify(e)} noValidate aria-label="Reclasificar la falta">
+                  <label className={styles.fieldLabel} htmlFor="falta-reclasificar">
+                    {record.status === 'FALTA_JUSTIFICADA' ? 'Motivo para dejarla injustificada' : 'Justificación de la falta'}
+                  </label>
+                  <textarea
+                    id="falta-reclasificar"
+                    className={styles.input}
+                    value={newJustification}
+                    onChange={(e) => setNewJustification(e.target.value)}
+                    aria-invalid={reclassSubmitted && newJustification.trim().length < 5}
+                    disabled={command.saving}
+                  />
+                  {reclassSubmitted && newJustification.trim().length < 5 && (
+                    <p className={styles.fieldError} role="alert">
+                      Escribe la justificación (al menos 5 caracteres).
+                    </p>
+                  )}
+                  <div className={styles.rowActions}>
+                    <button type="button" className={styles.secondaryButton} onClick={() => setReclassifying(false)} disabled={command.saving}>
+                      Cancelar
+                    </button>
+                    <button type="submit" className={styles.primaryButton} disabled={command.saving}>
+                      {command.saving ? 'Guardando…' : 'Guardar cambio'}
+                    </button>
+                  </div>
+                </form>
               )}
             </section>
           )}

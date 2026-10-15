@@ -3,6 +3,8 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { RentalsListScreen } from './RentalsListScreen';
 
+vi.mock('../shared/AppHeader', () => ({ AppHeader: () => <header>cabecera</header> }));
+
 const listRentalsMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
@@ -32,6 +34,7 @@ function renderScreen() {
       <Routes>
         <Route path="/alquileres" element={<RentalsListScreen />} />
         <Route path="/devoluciones/recepcion/:rentalId" element={<div>recepcion de devolucion</div>} />
+        <Route path="/alquileres/:id" element={<div>alquiler activo ALQ-10</div>} />
         <Route path="/devoluciones" element={<div>bandeja de devoluciones</div>} />
         <Route path="/alquileres/:id/entrega-05" element={<div>entrega 5</div>} />
       </Routes>
@@ -52,6 +55,14 @@ describe('RentalsListScreen - acceso a Devolucion (ALQ-10 -> DEV-02)', () => {
     expect(screen.queryByText('Continuar')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Iniciar devolución de D0Y-704/ }));
     expect(await screen.findByText('recepcion de devolucion')).toBeInTheDocument();
+  });
+
+  it('clic en la fila de un alquiler ACTIVE abre ALQ-10 (alquiler activo)', async () => {
+    listRentalsMock.mockResolvedValue([{ ...baseRental, id: 'rent-9', status: 'ACTIVE' }]);
+    renderScreen();
+
+    fireEvent.click(await screen.findByText('Maria Quispe'));
+    expect(await screen.findByText('alquiler activo ALQ-10')).toBeInTheDocument();
   });
 
   it('un alquiler RETURN_IN_PROGRESS lleva a la bandeja de devoluciones', async () => {

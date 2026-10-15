@@ -8,6 +8,7 @@ import { setPermissions } from '../../test/permissions';
 
 const getEmployeeMock = vi.fn();
 
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({ currentUser: { email: 'u@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') } }),
 }));
@@ -87,5 +88,20 @@ describe('EmployeeFileScreen (ADP-01 ficha)', () => {
     getEmployeeMock.mockRejectedValueOnce(new Error('x'));
     renderScreen();
     expect(await screen.findByRole('alert')).toHaveTextContent(/No pudimos cargar la ficha/);
+  });
+
+  it('muestra los memos de advertencia (generados por el sistema) y las capacitaciones de la persona', async () => {
+    getEmployeeMock.mockResolvedValue(
+      makeDetail({
+        recentMemos: [{ id: 'm1', employeeId: 'emp-1', kind: 'TARDANZA_CAMPO', violationNumber: 4, reason: 'Cuarta tardanza al regresar de campo', issuedOn: '2026-10-09', generatedBy: 'SISTEMA', createdAt: '2026-10-09T10:00:00Z' }],
+        recentTrainings: [{ id: 't1', topic: 'Manejo defensivo', heldOn: '2026-10-01', durationMinutes: 60, attendees: [], createdAt: '2026-10-01T10:00:00Z' }],
+      }),
+    );
+    renderScreen();
+    expect(await screen.findByRole('heading', { name: 'Memos de advertencia' })).toBeInTheDocument();
+    expect(screen.getByText('Cuarta tardanza al regresar de campo')).toBeInTheDocument();
+    expect(screen.getByText(/generado automáticamente/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Capacitaciones' })).toBeInTheDocument();
+    expect(screen.getByText(/Manejo defensivo/)).toBeInTheDocument();
   });
 });

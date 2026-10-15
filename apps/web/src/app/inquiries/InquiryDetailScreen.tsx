@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInquiryDetail } from './useInquiryDetail';
 import { INQUIRY_STATUS_LABELS } from './inquiry-status';
@@ -322,28 +322,13 @@ export function InquiryDetailScreen() {
           )}
 
           {showCloseForm && (
-            <div className={styles.closeForm}>
-              <p className={styles.closeQuestion}>¿Por qué cierras esta consulta sin conversión?</p>
-              <textarea
-                className={styles.closeReason}
-                placeholder="Motivo del cierre (obligatorio)"
-                value={closeReason}
-                onChange={(event) => setCloseReason(event.target.value)}
-              />
-              <div className={styles.closeActions}>
-                <button
-                  type="button"
-                  className={styles.dangerButton}
-                  disabled={saving || closeReason.trim().length === 0}
-                  onClick={() => void closeWithoutConversion(closeReason.trim())}
-                >
-                  {saving ? 'Cerrando…' : 'Confirmar cierre'}
-                </button>
-                <button type="button" className={styles.linkButton} onClick={() => setShowCloseForm(false)}>
-                  Cancelar
-                </button>
-              </div>
-            </div>
+            <CloseWithoutConversionModal
+              reason={closeReason}
+              onReasonChange={setCloseReason}
+              saving={saving}
+              onCancel={() => setShowCloseForm(false)}
+              onConfirm={() => void closeWithoutConversion(closeReason.trim())}
+            />
           )}
 
           {inquiry.status === 'CERRADA_SIN_CONVERSION' && <p className={styles.closedMessage}>Esta consulta fue cerrada sin conversión.</p>}
@@ -367,5 +352,107 @@ function Timeline({ events }: { events: Array<{ id: string; label: string; detai
         </li>
       ))}
     </ol>
+  );
+}
+
+/**
+ * Modal "Cerrar sin conversión" (PROTO-CON-04-MODAL-CERRAR-SIN-CONVERSION):
+ * foco inicial en el motivo, Esc cierra, Tab queda atrapado dentro del modal y
+ * "Confirmar cierre" (#C22B2B) sigue deshabilitado hasta escribir el motivo.
+ */
+function CloseWithoutConversionModal({
+  reason,
+  onReasonChange,
+  saving,
+  onCancel,
+  onConfirm,
+}: {
+  reason: string;
+  onReasonChange: (value: string) => void;
+  saving: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const reasonRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    reasonRef.current?.focus();
+    return () => previous?.focus?.();
+  }, []);
+
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      onCancel();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusables = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), textarea, [href]');
+    if (!focusables || focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  return (
+    <div className={styles.modalOverlay}>
+      <div
+        ref={dialogRef}
+        className={styles.modalCard}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="close-inquiry-title"
+        onKeyDown={onKeyDown}
+      >
+        <div className={styles.modalHeader}>
+          <h2 id="close-inquiry-title" className={styles.modalTitle}>
+            ¿Por qué cierras esta consulta sin conversión?
+          </h2>
+          <button type="button" className={styles.modalClose} aria-label="Cerrar ventana" onClick={onCancel}>
+            ×
+          </button>
+        </div>
+        <p className={styles.fieldHint}>
+          Registra el motivo del cierre sin concretar alquiler ni reserva para fines de reporte y trazabilidad interna.
+        </p>
+        <label htmlFor="close-inquiry-reason" className={styles.fieldLabel}>
+          Motivo de cierre
+        </label>
+        <textarea
+          id="close-inquiry-reason"
+          ref={reasonRef}
+          className={styles.closeReason}
+          placeholder="Motivo del cierre (obligatorio)"
+          aria-describedby="close-inquiry-reason-hint"
+          required
+          value={reason}
+          onChange={(event) => onReasonChange(event.target.value)}
+        />
+        <p id="close-inquiry-reason-hint" className={styles.fieldHint}>
+          Campo obligatorio para auditoría interna
+        </p>
+        <div className={styles.closeActions}>
+          <button type="button" className={styles.cancelButton} onClick={onCancel}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className={styles.dangerButton}
+            disabled={saving || reason.trim().length === 0}
+            onClick={onConfirm}
+          >
+            {saving ? 'Cerrando…' : 'Confirmar cierre'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

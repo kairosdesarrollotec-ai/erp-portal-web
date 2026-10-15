@@ -9,6 +9,9 @@ import { RequireCompletedActivation } from './RequireCompletedActivation';
 import { AuthenticatedLayout } from './AuthenticatedLayout';
 import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
 import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
+import { ReservationConflictScreen } from '../reservations/ReservationConflictScreen';
+import { ReservationSaleScreen } from '../reservations/ReservationSaleScreen';
+import { ReservationNoShowScreen } from '../reservations/ReservationNoShowScreen';
 import { InquiriesListScreen } from '../inquiries/InquiriesListScreen';
 import { NewInquiryScreen } from '../inquiries/NewInquiryScreen';
 import { InquiryVehiclesScreen } from '../inquiries/InquiryVehiclesScreen';
@@ -26,6 +29,7 @@ import { FleetListScreen } from '../fleet/FleetListScreen';
 import { VehicleDetailScreen } from '../fleet/VehicleDetailScreen';
 import { RentalsListScreen } from '../rentals/RentalsListScreen';
 import { NewRentalScreen } from '../rentals/NewRentalScreen';
+import { ActiveRentalScreen } from '../rentals/ActiveRentalScreen';
 import { Stage1DocumentsScreen } from '../rentals/Stage1DocumentsScreen';
 import { Stage2ValidationsScreen } from '../rentals/Stage2ValidationsScreen';
 import { Stage3ContractScreen } from '../rentals/Stage3ContractScreen';
@@ -64,9 +68,11 @@ import { FieldTripAuthorizationScreen } from '../hr-administration/FieldTripAuth
 import { ReturnFollowUpScreen } from '../hr-administration/ReturnFollowUpScreen';
 import { TerminationScreen } from '../hr-administration/TerminationScreen';
 import { TrainingScreen } from '../hr-administration/TrainingScreen';
+import { NewEmployeeScreen } from '../hr-administration/NewEmployeeScreen';
 import { ReportsDashboardScreen } from '../reporting/ReportsDashboardScreen';
 import { DepositsListScreen } from '../payments/DepositsListScreen';
 import { DepositDetailScreen } from '../payments/DepositDetailScreen';
+import { UserProfileScreen } from '../profile/UserProfileScreen';
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -97,8 +103,13 @@ export const router = createBrowserRouter([
             element: <AuthenticatedLayout />,
             children: [
               { path: '/tablero', element: <DashboardScreen /> },
+              { path: '/perfil', element: <UserProfileScreen /> },
+              { path: '/profile', element: <UserProfileScreen /> },
               { path: '/reservas', element: <ReservationsListScreen /> },
               { path: '/reservas/:id', element: <ReservationDetailScreen /> },
+              { path: '/reservas/:id/conflicto', element: <ReservationConflictScreen /> },
+              { path: '/reservas/:id/venta', element: <ReservationSaleScreen /> },
+              { path: '/reservas/:id/no-show', element: <ReservationNoShowScreen /> },
               { path: '/consultas', element: <InquiriesListScreen /> },
               { path: '/consultas/nueva', element: <NewInquiryScreen /> },
               { path: '/consultas/:id/vehiculos', element: <InquiryVehiclesScreen /> },
@@ -109,6 +120,7 @@ export const router = createBrowserRouter([
               { path: '/flota/:id', element: <VehicleDetailScreen /> },
               { path: '/alquileres', element: <RentalsListScreen /> },
               { path: '/alquileres/nuevo', element: <NewRentalScreen /> },
+              { path: '/alquileres/:id', element: <ActiveRentalScreen /> },
               { path: '/alquileres/:id/entrega-01', element: <Stage1DocumentsScreen /> },
               { path: '/alquileres/:id/entrega-02', element: <Stage2ValidationsScreen /> },
               { path: '/alquileres/:id/entrega-03', element: <Stage3ContractScreen /> },
@@ -144,6 +156,8 @@ export const router = createBrowserRouter([
               { path: '/personal/campo/:tripId/autorizacion', element: <FieldTripAuthorizationScreen /> },
               { path: '/personal/campo/:tripId/regreso', element: <ReturnFollowUpScreen /> },
               { path: '/personal/capacitacion', element: <TrainingScreen /> },
+              { path: '/personal/nuevo', element: <NewEmployeeScreen /> },
+              { path: '/personal/salida-a-campo', element: <FieldTripRequestScreen /> },
               { path: '/personal/:id', element: <EmployeeFileScreen /> },
               { path: '/personal/:id/asistencia', element: <PersonAttendanceScreen /> },
               { path: '/personal/:id/asistencia/falta', element: <AbsenceScreen /> },

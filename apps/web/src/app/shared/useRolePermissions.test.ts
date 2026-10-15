@@ -46,6 +46,13 @@ describe('useRolePermissions — RESERVATION (por permiso)', () => {
     expect(result.current.can('RESERVATION', 'CANCEL_CUSTOMER_REQUESTED_CHANGE')).toBe(false);
   });
 
+  it('CHANGE_VEHICLE se concede solo con RESERVATION.CHANGE_VEHICLE', () => {
+    setPermissions(['RESERVATION.CHANGE_VEHICLE']);
+    expect(renderHook(() => useRolePermissions()).result.current.can('RESERVATION', 'CHANGE_VEHICLE')).toBe(true);
+    setPermissions(['RESERVATION.READ_DETAIL']);
+    expect(renderHook(() => useRolePermissions()).result.current.can('RESERVATION', 'CHANGE_VEHICLE')).toBe(false);
+  });
+
   it('un permiso de otro modulo con la misma accion no cuenta', () => {
     setPermissions(['RENTAL.CREATE', 'INQUIRY.CLOSE']);
     const { result } = renderHook(() => useRolePermissions());

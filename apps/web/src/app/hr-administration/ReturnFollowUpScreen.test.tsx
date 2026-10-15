@@ -9,6 +9,7 @@ const getTripMock = vi.fn();
 const getEmployeeMock = vi.fn();
 const evaluateMock = vi.fn();
 
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({ currentUser: { email: 'u@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') } }),
 }));
@@ -117,5 +118,38 @@ describe('ReturnFollowUpScreen (ADP-08)', () => {
     getTripMock.mockReset().mockRejectedValue(new Error('x'));
     renderScreen();
     expect(await screen.findByRole('alert')).toHaveTextContent(/No pudimos cargar la salida/);
+  });
+
+  it('quien solo evalua retornos (sin VIEW_EMPLOYEES) ve el contador con el resumen que viene en la salida', async () => {
+    setPermissions(['HR_ADMINISTRATION.EVALUATE_FIELD_TRIP_RETURN']);
+    getEmployeeMock.mockRejectedValue(new Error('403'));
+    getTripMock.mockResolvedValue(
+      trip({ employee: { id: 'emp-1', fullName: 'Carlos Pérez', areaName: 'Operaciones', jobTitle: 'Conductor', fieldTripLateCount: 3, isFieldTripObserved: false } }),
+    );
+    renderScreen();
+    const counter = await screen.findByTestId('contador-incumplimientos');
+    expect(counter).toHaveTextContent('3 tardanzas previas');
+    await screen.findByLabelText('Hora real de regreso');
+    setActual('2026-10-09T17:10');
+    expect(screen.getByRole('button', { name: 'Registrar tardanza (4ª) y marcar como observado' })).toBeEnabled();
+  });
+
+  it('la 4ª tardanza muestra el memo que genero el sistema automaticamente', async () => {
+    getEmployeeMock.mockResolvedValue(makeDetail({ fieldTripLateCount: 3 }));
+    evaluateMock.mockResolvedValue(trip({ status: 'OBSERVADA', lateMinutes: 10, memo: { id: 'm1', employeeId: 'emp-1', kind: 'TARDANZA_CAMPO', violationNumber: 4, reason: 'Cuarta tardanza al regresar de campo', issuedOn: '2026-10-09', generatedBy: 'SISTEMA', createdAt: '2026-10-09T17:10:00Z' } }));
+    renderScreen();
+    await screen.findByLabelText('Hora real de regreso');
+    setActual('2026-10-09T17:10');
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar tardanza (4ª) y marcar como observado' }));
+    expect(await screen.findByText('Memo de advertencia generado')).toBeInTheDocument();
+    expect(screen.getByText('Cuarta tardanza al regresar de campo')).toBeInTheDocument();
+  });
+
+  it('lista los memos ya emitidos a la persona', async () => {
+    getEmployeeMock.mockResolvedValue(
+      makeDetail({ recentMemos: [{ id: 'm0', employeeId: 'emp-1', kind: 'TARDANZA_CAMPO', violationNumber: 4, reason: 'Cuarta tardanza al regresar de campo', issuedOn: '2026-09-01', generatedBy: 'SISTEMA', createdAt: '2026-09-01T10:00:00Z' }] }),
+    );
+    renderScreen();
+    expect(await screen.findByRole('heading', { name: 'Memos de la persona' })).toBeInTheDocument();
   });
 });

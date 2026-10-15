@@ -9,6 +9,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   EMPLOYEE_NOT_FOUND: 'No encontramos a esta persona en tu empresa y sede.',
   LEAVE_NOT_FOUND: 'No encontramos esa solicitud de permiso.',
   FIELD_TRIP_NOT_FOUND: 'No encontramos esa salida a campo.',
+  ATTENDANCE_NOT_FOUND: 'No encontramos ese registro de asistencia.',
+  EMPLOYEE_NOT_LINKED: 'Tu usuario todavía no está vinculado a una ficha de colaborador. Pide a Personal que registre tu correo de acceso en tu ficha.',
   // 409
   CANDIDATE_ALREADY_EMPLOYEE: 'Este candidato ya fue registrado como personal.',
   DUPLICATE_EMPLOYEE_DOCUMENT: 'Ya existe una persona registrada con ese documento en esta empresa.',
@@ -21,7 +23,13 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   FIELD_TRIP_NOT_AUTHORIZED: 'Solo se puede registrar el regreso de una salida que fue autorizada.',
   FIELD_TRIP_TIMEOUT_NOT_ELAPSED: 'Todavía no vencen los 5 minutos de este nivel. Volveremos a intentarlo.',
   NO_AUTHORIZATION_AVAILABLE: 'Nadie autorizó esta salida. La persona no sale; cualquier otra gestión es manual, fuera del sistema.',
+  ATTENDANCE_NOT_RECLASSIFIABLE: 'Esta falta ya no se puede reclasificar (su descuento ya se aplicó o cambió). Recargamos los datos.',
+  LEAVE_EVIDENCE_NOT_ALLOWED: 'Solo se puede adjuntar sustento a un permiso que aún no fue resuelto.',
   // 422
+  FIELD_TRIP_REJECTION_REASON_REQUIRED: 'Indica el motivo del rechazo (al menos unas palabras).',
+  INVALID_ATTENDANCE_RECLASSIFICATION: 'Indica si la falta es justificada o injustificada y escribe la justificación.',
+  TRAINING_ATTENDEES_INVALID: 'Hay asistentes que no pertenecen a esta empresa o ya no tienen relación laboral vigente.',
+  INVALID_TRAINING: 'Revisa el taller: indica el tema, una fecha que no sea futura y una duración válida.',
   EMPLOYEE_STATUS_TRANSITION_NOT_ALLOWED: 'Ese cambio de relación laboral no está permitido. El término se registra con renuncia o despido.',
   INVALID_TERMINATION_NOTICE: 'El aviso no es válido: una renuncia sin previo aviso es 0 días y un despido por reincidencia es de 15 días.',
   TERMINATION_NOTES_REQUIRED: 'Indica el motivo del despido (al menos unas palabras).',
@@ -35,6 +43,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   INVALID_AUTHORIZATION_LEVEL: 'Nivel de autorización no válido: la cascada tiene exactamente 3 niveles.',
   AUTHORIZATION_LEVEL_NOT_REACHED: 'Esta solicitud todavía no llegó a ese nivel. Recargamos los datos.',
   INVALID_PAYROLL_MONTH: 'El mes indicado no es válido.',
+  INVALID_LEAVE_EVIDENCE: 'El archivo no es válido: adjunta una imagen (JPG, PNG, WEBP) o un PDF de hasta 10 MB, con un máximo de 5 archivos por permiso.',
+  EVIDENCE_STORAGE_UNAVAILABLE: 'No se pueden subir archivos por ahora. Intenta más tarde.',
 };
 
 const STATUS_MESSAGES: Record<number, string> = {

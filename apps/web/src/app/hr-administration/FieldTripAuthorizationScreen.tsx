@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { AppHeader } from '../shared/AppHeader';
 import { getFirebaseAuth } from '../providers/firebase';
 import { HrFrame } from './HrFrame';
-import { HrCommandError, advanceFieldTripTimeout, authorizeFieldTrip, getFieldTrip, type FieldTrip } from './hr-client';
+import { HrCommandError, advanceFieldTripTimeout, authorizeFieldTrip, getFieldTrip, rejectFieldTrip, type FieldTrip } from './hr-client';
+import { HrDialog } from './HrDialog';
 import {
-  CASCADE_LEVEL_NAME,
+  CASCADE_LEVEL_LABEL,
   FIELD_TRIP_STATUS_LABEL,
   formatCountdown,
   levelTimeoutAt,
@@ -19,12 +20,13 @@ import { useHrCommand } from './useHrCommand';
 import { useHrResource } from './useHrResource';
 import { useNow } from './useNow';
 import styles from './HrFlow.module.css';
+import dialogStyles from './HrDialog.module.css';
 
 const POLL_MS = 10_000;
 
 /**
  * ADP-07 - Cola de autorizacion de salida a campo (BR-ADP-004). Mobile-first. Cascada de 3 niveles
- * exactos (Fiorella, Jose, Cecilia), 5 minutos por nivel. Los plazos los fija y avanza el SERVIDOR
+ * exactos (genericos: Nivel 1 de 3, 2 de 3, 3 de 3; los decide el permiso, no una persona), 5 minutos por nivel. Los plazos los fija y avanza el SERVIDOR
  * (advance-timeout): el cliente solo muestra la cuenta regresiva y pide el avance cuando vence.
  * Si los 3 niveles no responden: "Sin autorizacion". Nunca hay aprobacion automatica ni un 4º nivel.
  */
@@ -36,6 +38,9 @@ function FieldTripAuthorization() {
   const approveRef = useRef<HTMLButtonElement>(null);
   const advancedFor = useRef<string | null>(null);
   const [retryTick, setRetryTick] = useState(0);
+  const [rejecting, setRejecting] = useState(false);
+  const [reason, setReason] = useState('');
+  const [reasonSubmitted, setReasonSubmitted] = useState(false);
 
   const level = trip ? pendingLevel(trip.status) : null;
   const now = useNow(level !== null);
@@ -90,7 +95,23 @@ function FieldTripAuthorization() {
     }
   }
 
-  const levelText = level ? `Nivel ${level} de 3 · ${CASCADE_LEVEL_NAME[level]}` : null;
+  async function reject(event: FormEvent) {
+    event.preventDefault();
+    setReasonSubmitted(true);
+    if (!trip || reason.trim().length < 5) return;
+    const res = await command.run((token) => rejectFieldTrip(token, trip.id, reason.trim()), 'No pudimos registrar el rechazo. Intenta de nuevo.');
+    if (res.ok) {
+      setData(res.value);
+      setRejecting(false);
+      setReason('');
+      setReasonSubmitted(false);
+      command.setNotice('Salida rechazada. La persona no sale.');
+    } else if (res.stale) {
+      setRejecting(false);
+    }
+  }
+
+  const levelText = level ? CASCADE_LEVEL_LABEL[level] : null;
 
   return (
     <HrFrame
@@ -158,7 +179,7 @@ function FieldTripAuthorization() {
                 <p className={styles.hint}>El tiempo de espera de este nivel todavía no está disponible.</p>
               )}
               <p className={styles.hint}>
-                Cada nivel tiene 5 minutos para responder. Si no hay respuesta, pasa al siguiente nivel (Fiorella, José, Cecilia). Si los 3 niveles no responden, la salida no se autoriza.
+                Cada nivel tiene 5 minutos para responder. Si no hay respuesta, pasa solo al siguiente nivel (Nivel 1 de 3, 2 de 3 y 3 de 3). Si los 3 niveles no responden, la salida no se autoriza.
               </p>
               <div aria-live="polite" className={styles.srOnly}>
                 {levelText}
@@ -171,7 +192,14 @@ function FieldTripAuthorization() {
               <p id="campo-sin-autorizacion" className={styles.resultAlert}>
                 <AlertTriangle size={22} aria-hidden="true" /> Sin autorización
               </p>
-              <p>Ningún nivel respondió a tiempo. La persona no puede salir. Cualquier otra gestión es manual, fuera del sistema.</p>
+              {trip.rejectionReason ? (
+                <p>
+                  La salida fue rechazada{trip.rejectedAtLevel ? ` en el nivel ${trip.rejectedAtLevel} de 3` : ''}
+                  {trip.rejectedByName ? ` por ${trip.rejectedByName}` : ''}. Motivo: {trip.rejectionReason}
+                </p>
+              ) : (
+                <p>Ningún nivel respondió a tiempo. La persona no puede salir. Cualquier otra gestión es manual, fuera del sistema.</p>
+              )}
             </section>
           )}
 
@@ -194,6 +222,9 @@ function FieldTripAuthorization() {
               <button ref={approveRef} type="button" className={styles.primaryButton} disabled={command.saving} onClick={() => void approve()}>
                 {command.saving ? 'Guardando…' : 'Aprobar'}
               </button>
+              <button type="button" className={styles.dangerButton} disabled={command.saving} onClick={() => setRejecting(true)}>
+                Rechazar
+              </button>
             </div>
           )}
 
@@ -203,6 +234,41 @@ function FieldTripAuthorization() {
                 Seguimiento de regreso
               </Link>
             </p>
+          )}
+          {rejecting && (
+            <HrDialog
+              titleId="rechazo-salida-title"
+              title="Rechazar salida a campo"
+              description="La persona no saldrá. Indica el motivo: queda en el expediente de la salida."
+              onClose={() => {
+                if (!command.saving) setRejecting(false);
+              }}
+            >
+              <form onSubmit={(e) => void reject(e)} noValidate>
+                <div className={dialogStyles.field}>
+                  <label htmlFor="rechazo-motivo">Motivo del rechazo</label>
+                  <textarea id="rechazo-motivo" className={dialogStyles.input} value={reason} maxLength={1000} onChange={(e) => setReason(e.target.value)} aria-invalid={reasonSubmitted && reason.trim().length < 5} required />
+                  {reasonSubmitted && reason.trim().length < 5 && (
+                    <span className={dialogStyles.error} role="alert">
+                      Indica el motivo del rechazo (al menos 5 caracteres).
+                    </span>
+                  )}
+                </div>
+                {command.error && (
+                  <p className={dialogStyles.error} role="alert">
+                    {command.error}
+                  </p>
+                )}
+                <div className={dialogStyles.actions}>
+                  <button type="button" className={dialogStyles.secondaryButton} onClick={() => setRejecting(false)} disabled={command.saving}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className={dialogStyles.primaryButton} disabled={command.saving}>
+                    {command.saving ? 'Guardando…' : 'Confirmar rechazo'}
+                  </button>
+                </div>
+              </form>
+            </HrDialog>
           )}
         </>
       )}

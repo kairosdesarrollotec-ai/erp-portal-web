@@ -2,18 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { CandidateFileScreen } from './CandidateFileScreen';
-import { RecruitmentApiError, RecruitmentCommandError, type CandidateDetail } from './recruitment-client';
+import { RecruitmentApiError, RecruitmentCommandError, type CandidateDetail, type NegotiationResponse } from './recruitment-client';
 import { setPermissions } from '../../test/permissions';
 
 const getCandidateMock = vi.fn();
 const changeStageMock = vi.fn();
 const decideMock = vi.fn();
+const uploadCvMock = vi.fn();
+const getCvMock = vi.fn();
+const negotiationMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: { email: 'u@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') },
   }),
 }));
+// AppHeader incluye la busqueda global (React Query); aqui no se prueba.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../notifications/useNotifications', () => ({
   useNotifications: () => ({ unreadCount: 0, notifications: [], markRead: vi.fn(), reload: vi.fn() }),
 }));
@@ -24,6 +29,9 @@ vi.mock('./recruitment-client', async () => {
     getCandidate: (...a: unknown[]) => getCandidateMock(...a),
     changeCandidateStage: (...a: unknown[]) => changeStageMock(...a),
     decideCandidate: (...a: unknown[]) => decideMock(...a),
+    uploadCandidateCv: (...a: unknown[]) => uploadCvMock(...a),
+    getCandidateCv: (...a: unknown[]) => getCvMock(...a),
+    recordNegotiation: (...a: unknown[]) => negotiationMock(...a),
   };
 });
 
@@ -53,7 +61,7 @@ function renderScreen() {
 
 describe('CandidateFileScreen (REC-04)', () => {
   beforeEach(() => {
-    [getCandidateMock, changeStageMock, decideMock].forEach((m) => m.mockReset());
+    [getCandidateMock, changeStageMock, decideMock, uploadCvMock, getCvMock, negotiationMock].forEach((m) => m.mockReset());
     getCandidateMock.mockResolvedValue(detail());
     setPermissions(ALL);
   });
@@ -164,5 +172,164 @@ describe('CandidateFileScreen (REC-04)', () => {
     await screen.findByText('Ana Pérez');
     expect(screen.getByRole('heading', { name: 'Entrevistas' })).toBeInTheDocument();
     expect(screen.getByText(/Virtual · Avanza/)).toBeInTheDocument();
+  });
+
+  describe('CV (carga y visor)', () => {
+    const cv = { fileName: 'cv-ana.pdf', contentType: 'application/pdf', sizeBytes: 2 * 1024 * 1024, uploadedAt: '2026-10-02T10:00:00Z' };
+    const file = (name: string, type: string, size = 1000) => {
+      const f = new File(['x'], name, { type });
+      Object.defineProperty(f, 'size', { value: size });
+      return f;
+    };
+
+    it('sin CV ofrece "Subir CV" y sube el archivo con la versión de la ficha', async () => {
+      uploadCvMock.mockResolvedValue(detail({ version: 5, hasCv: true, cv, cvDocumentId: null }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      const input = screen.getByLabelText('Subir CV') as HTMLInputElement;
+      const f = file('cv.pdf', 'application/pdf');
+      fireEvent.change(input, { target: { files: [f] } });
+      await waitFor(() => expect(uploadCvMock).toHaveBeenCalledWith('tok', 'cand-1', 4, { companyId: 'c1', branchId: 'b1' }, f));
+      expect(await screen.findByText(/cv-ana\.pdf/)).toBeInTheDocument();
+      expect(screen.getByText('El CV se subió correctamente.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Ver CV' })).toBeInTheDocument();
+    });
+
+    it('rechaza en el cliente un tipo no permitido o más de 10 MB sin llamar al servidor', async () => {
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      const input = screen.getByLabelText('Subir CV');
+      fireEvent.change(input, { target: { files: [file('a.zip', 'application/zip')] } });
+      expect(await screen.findByRole('alert')).toHaveTextContent(/PDF, Word/);
+      fireEvent.change(input, { target: { files: [file('big.pdf', 'application/pdf', 11 * 1024 * 1024)] } });
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/10 MB/));
+      expect(uploadCvMock).not.toHaveBeenCalled();
+    });
+
+    it('muestra el error del servidor al subir', async () => {
+      uploadCvMock.mockRejectedValue(new RecruitmentCommandError(400, { code: 'CANDIDATE_CV_INVALID_FILE' }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      fireEvent.change(screen.getByLabelText('Subir CV'), { target: { files: [file('cv.pdf', 'application/pdf')] } });
+      expect(await screen.findByRole('alert')).toHaveTextContent(/de máximo 10 MB/);
+    });
+
+    it('"Ver CV" pide la URL firmada y la abre en otra pestaña sin referrer', async () => {
+      getCandidateMock.mockResolvedValue(detail({ hasCv: true, cv, cvDocumentId: null }));
+      getCvMock.mockResolvedValue({ ...cv, url: 'https://storage.example/signed', expiresAt: '2026-10-12T10:05:00Z' });
+      const open = vi.spyOn(window, 'open').mockReturnValue(null);
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      expect(screen.getByLabelText('Reemplazar CV')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Ver CV' }));
+      await waitFor(() => expect(open).toHaveBeenCalledWith('https://storage.example/signed', '_blank', 'noopener,noreferrer'));
+      expect(getCvMock).toHaveBeenCalledWith('tok', 'cand-1', { companyId: 'c1', branchId: 'b1' });
+      open.mockRestore();
+    });
+
+    it('sin permiso sensible no hay carga ni visor, solo el candado', async () => {
+      setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.REGISTER_CANDIDATE']);
+      getCandidateMock.mockResolvedValue(detail({ hasCv: true, cv: null, isRestrictedView: true }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      expect(screen.queryByLabelText('Subir CV')).toBeNull();
+      expect(screen.queryByLabelText('Reemplazar CV')).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Ver CV' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Registrar negociación' })).toBeNull();
+    });
+  });
+
+  describe('Negociación (historial y registro)', () => {
+    const nego = (o: Partial<NegotiationResponse> = {}): NegotiationResponse => ({
+      id: 'n1', candidateId: 'cand-1', outcome: 'EN_CURSO', offeredSalary: 2400, offeredSchedule: 'L-V 8-5',
+      candidateSalary: 2800, candidateStartDate: '2026-11-01', recordedBy: 'u1', createdAt: '2026-10-05T10:00:00Z', ...o,
+    });
+
+    it('lista el historial con lo ofrecido, lo pedido y el acuerdo', async () => {
+      getCandidateMock.mockResolvedValue(detail({
+        negotiations: [nego({ id: 'n2', outcome: 'ACORDADA', agreedSalary: 2600, agreedConditions: 'Almuerzo incluido' }), nego()],
+      }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      const list = screen.getByRole('list', { name: 'Historial de negociación' });
+      expect(within(list).getAllByRole('listitem')).toHaveLength(2);
+      expect(within(list).getByText('Acordada')).toBeInTheDocument();
+      expect(within(list).getByText(/Acordado:.*2.?600.*Almuerzo incluido/)).toBeInTheDocument();
+      expect(within(list).getAllByText(/Candidato pide:.*2.?800.*ingreso 2026-11-01/)).toHaveLength(2);
+    });
+
+    it('sin registros muestra el estado vacío', async () => {
+      getCandidateMock.mockResolvedValue(detail({ negotiations: [] }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      expect(screen.getByText(/Todavía no hay negociaciones registradas/)).toBeInTheDocument();
+    });
+
+    it('valida campos obligatorios y registra un acuerdo con la versión de la ficha', async () => {
+      negotiationMock.mockResolvedValue(detail({ version: 5, stage: 'ENTREVISTA', negotiations: [nego({ outcome: 'ACORDADA', agreedSalary: 2600 })] }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar negociación' }));
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByLabelText(/Pretensión salarial/)).toHaveValue(2500);
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar negociación' }));
+      expect(within(dialog).getByText(/Indica el sueldo ofrecido/)).toBeInTheDocument();
+      expect(negotiationMock).not.toHaveBeenCalled();
+
+      fireEvent.change(within(dialog).getByLabelText('Sueldo ofrecido (S/)'), { target: { value: '2400' } });
+      fireEvent.change(within(dialog).getByLabelText('Resultado de esta ronda'), { target: { value: 'ACORDADA' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar negociación' }));
+      expect(within(dialog).getByText(/Indica el sueldo acordado/)).toBeInTheDocument();
+      expect(negotiationMock).not.toHaveBeenCalled();
+
+      fireEvent.change(within(dialog).getByLabelText('Sueldo acordado (S/)'), { target: { value: '2600' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar negociación' }));
+      await waitFor(() => expect(negotiationMock).toHaveBeenCalled());
+      expect(negotiationMock).toHaveBeenCalledWith('tok', 'cand-1', 4, { companyId: 'c1', branchId: 'b1' }, {
+        outcome: 'ACORDADA', offeredSalary: 2400, candidateSalary: 2500, agreedSalary: 2600,
+      });
+      expect(await screen.findByText(/pasó a la etapa Entrevista/)).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('"No acordada" exige motivo', async () => {
+      negotiationMock.mockResolvedValue(detail({ negotiations: [nego({ outcome: 'NO_ACORDADA', reason: 'Pide más' })] }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar negociación' }));
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.change(within(dialog).getByLabelText('Sueldo ofrecido (S/)'), { target: { value: '2400' } });
+      fireEvent.change(within(dialog).getByLabelText('Resultado de esta ronda'), { target: { value: 'NO_ACORDADA' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar negociación' }));
+      expect(within(dialog).getByText(/Indica por qué no se acordó/)).toBeInTheDocument();
+      fireEvent.change(within(dialog).getByLabelText('Motivo'), { target: { value: 'Pide más' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar negociación' }));
+      await waitFor(() => expect(negotiationMock).toHaveBeenCalled());
+      expect(negotiationMock.mock.calls[0][4]).toMatchObject({ outcome: 'NO_ACORDADA', reason: 'Pide más' });
+    });
+
+    it('un error del servidor se muestra en el diálogo y un conflicto recarga la ficha', async () => {
+      negotiationMock.mockRejectedValueOnce(new RecruitmentCommandError(422, { code: 'NEGOTIATION_INVALID' }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar negociación' }));
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.change(within(dialog).getByLabelText('Sueldo ofrecido (S/)'), { target: { value: '2400' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar negociación' }));
+      expect(await within(dialog).findByText(/Revisa la negociación/)).toBeInTheDocument();
+
+      negotiationMock.mockRejectedValueOnce(new RecruitmentCommandError(409, { code: 'VERSION_CONFLICT' }));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar negociación' }));
+      await waitFor(() => expect(getCandidateMock).toHaveBeenCalledTimes(2));
+      expect(await screen.findByText(/Otra persona modificó/)).toBeInTheDocument();
+    });
+
+    it('con decisión tomada ya no se registra negociación', async () => {
+      getCandidateMock.mockResolvedValue(detail({ decision: 'CONTRATADO' }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      expect(screen.queryByRole('button', { name: 'Registrar negociación' })).toBeNull();
+      expect(screen.queryByLabelText('Subir CV')).toBeNull();
+    });
   });
 });

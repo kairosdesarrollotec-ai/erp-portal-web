@@ -10,6 +10,9 @@ import { clearCosmeticTariffCache } from './useCosmeticTariff';
 import type { ReturnDamageResponse } from './returns-client';
 import { setPermissions } from '../../test/permissions';
 
+// AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
+
 const RETURN_CLOSE = [
   'RETURN.READ', 'RETURN.CLOSE_FINANCIAL', 'RETURN.CLOSE',
 ] as const;

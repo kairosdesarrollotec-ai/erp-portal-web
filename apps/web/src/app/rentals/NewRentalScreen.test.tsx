@@ -4,6 +4,8 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { NewRentalScreen } from './NewRentalScreen';
 import { RentalCommandError } from './rentals-client';
 
+vi.mock('../shared/AppHeader', () => ({ AppHeader: () => <header>cabecera</header> }));
+
 const createRentalMock = vi.fn();
 const createRentalFromReservationMock = vi.fn();
 

@@ -23,6 +23,23 @@ export interface ReservationSummary {
   missingRequirements: string[];
   confirmedAt: string | null;
   createdAt: string;
+  /** RES-08: ya llegó la fecha pactada (now >= startAt). Solo en GET /reservations/{id}. */
+  startDatePassed?: boolean;
+  /** RES-07: última resolución por venta del vehículo. Solo en GET /reservations/{id}; los comandos NO la traen. */
+  saleResolution?: SaleResolution | null;
+}
+
+export interface SaleResolution {
+  id: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  reason: string;
+  offeredVehicle: { id: string; plate: string; label: string } | null;
+  offerNote: string | null;
+  flaggedAt: string;
+  alternativeVehicleId: string | null;
+  refundStatus: 'PENDING_TRANSFER' | null;
+  resolutionNote: string | null;
+  resolvedAt: string | null;
 }
 
 /** Cuerpo `problem+json` que el backend devuelve en 409/422 (TDD-RES-001.md 11.4). */
@@ -33,7 +50,20 @@ export class ReservationCommandError extends Error {
   ) {
     super(problem?.detail ?? `La operacion no se pudo completar (${status})`);
   }
+
+  /** 412 / RESERVATION_VERSION_CONFLICT: la reserva cambió (If-Match) y hay que recargarla. */
+  get isVersionConflict(): boolean {
+    return this.status === 412 || this.problem?.code === 'RESERVATION_VERSION_CONFLICT';
+  }
+
+  /** 409 / VEHICLE_NOT_AVAILABLE: el vehículo ya está ocupado para las fechas de la reserva. */
+  get isVehicleUnavailable(): boolean {
+    return this.problem?.code === 'VEHICLE_NOT_AVAILABLE';
+  }
 }
+
+export const VEHICLE_NOT_AVAILABLE_MESSAGE =
+  'Este vehículo ya está ocupado para estas fechas. Elige otro vehículo u otras fechas.';
 
 /** RES-01 - bandeja de reservas (TDD-RES-001.md 11, GET /reservations). */
 export async function listReservations(
@@ -228,4 +258,115 @@ export async function recordReservationDocument(
     throw new ReservationCommandError(response.status, problem);
   }
   return data as unknown as ReservationDocumentRecord;
+}
+
+/** Mensajes en español por código de error de negocio de RES-06/07/08 (se usa el `detail` del back si viene). */
+export const RESERVATION_ERROR_MESSAGES: Record<string, string> = {
+  ROLE_NOT_ALLOWED: 'Tu rol no tiene permiso para realizar esta acción.',
+  RESERVATION_STATE_CONFLICT: 'La reserva ya no está en un estado que permita esta acción. Recarga para ver su estado actual.',
+  VEHICLE_NOT_AVAILABLE: VEHICLE_NOT_AVAILABLE_MESSAGE,
+  SALE_RESOLUTION_ALREADY_OPEN: 'Esta reserva ya tiene una venta pendiente de resolver.',
+  ALTERNATIVE_VEHICLE_INVALID: 'El vehículo alternativo no es válido (mismo vehículo, otra sede o no está disponible). Elige otro.',
+  ALTERNATIVE_VEHICLE_REQUIRED: 'Elige un vehículo alternativo para aceptar la oferta.',
+  RESERVATION_VERSION_CONFLICT: 'La reserva cambió mientras trabajabas. Recarga para ver la versión actual.',
+  IF_MATCH_REQUIRED: 'No se pudo verificar la versión de la reserva. Recarga e intenta de nuevo.',
+};
+
+export function describeReservationError(error: ReservationCommandError): string {
+  return (
+    error.problem?.detail?.trim() ||
+    (error.problem?.code ? RESERVATION_ERROR_MESSAGES[error.problem.code] : undefined) ||
+    'No se pudo completar la operación. Intenta de nuevo.'
+  );
+}
+
+function commandError(
+  version: number,
+  error: unknown,
+  status: number,
+): never {
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  throw new ReservationCommandError(status, (error as { code?: string; detail?: string } | null) ?? null);
+}
+
+/** RES-07 - Gerencia/Administración registra la venta del vehículo reservado (CONFIRMED -> PENDING_SALE_RESOLUTION). */
+export function flagVehicleSale(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  opts: { alternativeVehicleId?: string; note?: string } = {},
+  idempotencyKey = crypto.randomUUID(),
+): Promise<ReservationSummary> {
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  return reservationsApiClient
+    .POST('/reservations/{id}/commands/flag-sale', {
+      params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+      headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
+      body: { companyId, branchId, alternativeVehicleId: opts.alternativeVehicleId, note: opts.note },
+    })
+    .then(({ data, error, response }) => {
+      if (error || !data) commandError(version, error, response.status);
+      return data as unknown as ReservationSummary;
+    });
+}
+
+/**
+ * RES-06 - cambia el vehículo de una reserva en borrador (POST .../commands/change-vehicle).
+ * Limpia documentsCompletedAt y conserva el pago. Errores: 409 RESERVATION_STATE_CONFLICT / VEHICLE_NOT_AVAILABLE,
+ * 412 RESERVATION_VERSION_CONFLICT, 422 ALTERNATIVE_VEHICLE_INVALID, 428 IF_MATCH_REQUIRED, 403 ROLE_NOT_ALLOWED.
+ */
+export function changeReservationVehicle(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  vehicleId: string,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<ReservationSummary> {
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  return reservationsApiClient
+    .POST('/reservations/{id}/commands/change-vehicle', {
+      params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+      headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
+      body: { companyId, branchId, vehicleId },
+    })
+    .then(({ data, error, response }) => {
+      if (error || !data) commandError(version, error, response.status);
+      return data as unknown as ReservationSummary;
+    });
+}
+
+/** RES-07 - resolución de la venta: ACCEPT_ALTERNATIVE (vuelve a DRAFT) o REJECT (CANCELLED + reembolso pendiente). */
+export function resolveVehicleSale(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  decision: 'ACCEPT_ALTERNATIVE' | 'REJECT',
+  opts: { alternativeVehicleId?: string; note?: string } = {},
+  idempotencyKey = crypto.randomUUID(),
+): Promise<ReservationSummary> {
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  return reservationsApiClient
+    .POST('/reservations/{id}/commands/resolve-sale', {
+      params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+      headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
+      body: { companyId, branchId, decision, alternativeVehicleId: opts.alternativeVehicleId, note: opts.note },
+    })
+    .then(({ data, error, response }) => {
+      if (error || !data) commandError(version, error, response.status);
+      return data as unknown as ReservationSummary;
+    });
 }

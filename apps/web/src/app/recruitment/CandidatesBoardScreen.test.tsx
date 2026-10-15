@@ -9,12 +9,15 @@ const listCandidatesMock = vi.fn();
 const getVacancyMock = vi.fn();
 const changeStageMock = vi.fn();
 const registerMock = vi.fn();
+const uploadCvMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
     currentUser: { email: 'u@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') },
   }),
 }));
+// AppHeader incluye la busqueda global (React Query); aqui no se prueba.
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../notifications/useNotifications', () => ({
   useNotifications: () => ({ unreadCount: 0, notifications: [], markRead: vi.fn(), reload: vi.fn() }),
 }));
@@ -26,6 +29,7 @@ vi.mock('./recruitment-client', async () => {
     getVacancy: (...a: unknown[]) => getVacancyMock(...a),
     changeCandidateStage: (...a: unknown[]) => changeStageMock(...a),
     registerCandidate: (...a: unknown[]) => registerMock(...a),
+    uploadCandidateCv: (...a: unknown[]) => uploadCvMock(...a),
   };
 });
 
@@ -131,10 +135,47 @@ describe('CandidatesBoardScreen (REC-03)', () => {
     expect(registerMock).not.toHaveBeenCalled();
     fireEvent.change(within(dialog).getByLabelText('Nombre completo'), { target: { value: 'Nuevo Uno' } });
     fireEvent.change(within(dialog).getByLabelText('Número de documento'), { target: { value: '99999999' } });
-    fireEvent.change(within(dialog).getByLabelText('Código del documento del CV'), { target: { value: 'doc-1' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Crear candidato' }));
     await waitFor(() => expect(registerMock).toHaveBeenCalled());
-    expect(registerMock.mock.calls[0][3]).toMatchObject({ fullName: 'Nuevo Uno', documentType: 'DNI', documentNumber: '99999999', cvDocumentId: 'doc-1' });
+    expect(registerMock.mock.calls[0][3]).toMatchObject({ fullName: 'Nuevo Uno', documentType: 'DNI', documentNumber: '99999999' });
+    expect(registerMock.mock.calls[0][3]).not.toHaveProperty('cvDocumentId');
+    expect(uploadCvMock).not.toHaveBeenCalled();
+    expect(await screen.findByText('Nuevo Uno')).toBeInTheDocument();
+  });
+
+  it('crear candidato con CV lo sube justo después usando la versión devuelta', async () => {
+    registerMock.mockResolvedValue(cand({ id: 'cand-9', fullName: 'Nuevo Uno', version: 1 }));
+    uploadCvMock.mockResolvedValue(cand({ id: 'cand-9', fullName: 'Nuevo Uno', version: 2 }));
+    renderScreen();
+    await screen.findByText('Ana Pérez');
+    fireEvent.click(screen.getByRole('button', { name: 'Crear candidato' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Nombre completo'), { target: { value: 'Nuevo Uno' } });
+    fireEvent.change(within(dialog).getByLabelText('Número de documento'), { target: { value: '99999999' } });
+    const file = new File(['x'], 'cv.pdf', { type: 'application/pdf' });
+    fireEvent.change(within(dialog).getByLabelText('CV (opcional)'), { target: { files: [file] } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Crear candidato' }));
+    await waitFor(() => expect(uploadCvMock).toHaveBeenCalledWith('tok', 'cand-9', 1, { companyId: 'c1', branchId: 'b1' }, file));
+    expect(registerMock.mock.calls[0][3]).not.toHaveProperty('cvFile');
+    expect(await screen.findByText(/con su CV/)).toBeInTheDocument();
+  });
+
+  it('un CV inválido bloquea el alta y, si falla la subida, el candidato queda creado con aviso', async () => {
+    registerMock.mockResolvedValue(cand({ id: 'cand-9', fullName: 'Nuevo Uno', version: 1 }));
+    uploadCvMock.mockRejectedValue(new RecruitmentCommandError(400, { code: 'CANDIDATE_CV_INVALID_FILE' }));
+    renderScreen();
+    await screen.findByText('Ana Pérez');
+    fireEvent.click(screen.getByRole('button', { name: 'Crear candidato' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Nombre completo'), { target: { value: 'Nuevo Uno' } });
+    fireEvent.change(within(dialog).getByLabelText('Número de documento'), { target: { value: '99999999' } });
+    fireEvent.change(within(dialog).getByLabelText('CV (opcional)'), { target: { files: [new File(['x'], 'a.zip', { type: 'application/zip' })] } });
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(/PDF, Word/);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Crear candidato' }));
+    expect(registerMock).not.toHaveBeenCalled();
+    fireEvent.change(within(dialog).getByLabelText('CV (opcional)'), { target: { files: [new File(['x'], 'cv.pdf', { type: 'application/pdf' })] } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Crear candidato' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/se creó, pero el CV no se pudo subir/);
     expect(await screen.findByText('Nuevo Uno')).toBeInTheDocument();
   });
 

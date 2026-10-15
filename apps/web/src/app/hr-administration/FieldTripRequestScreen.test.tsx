@@ -2,12 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { FieldTripRequestScreen, OFFLINE_MESSAGE } from './FieldTripRequestScreen';
+import { HrCommandError } from './hr-client';
 import { baseContext, makeDetail, makeTrip } from './hr-test-utils';
 import { setPermissions } from '../../test/permissions';
 
 const getEmployeeMock = vi.fn();
 const requestMock = vi.fn();
+const getMineMock = vi.fn();
 
+vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({ currentUser: { email: 'u@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('tok') } }),
 }));
@@ -18,6 +21,7 @@ vi.mock('./hr-client', async () => {
   const actual = await vi.importActual<typeof import('./hr-client')>('./hr-client');
   return {
     ...actual,
+    getMyEmployee: (...a: unknown[]) => getMineMock(...a),
     getEmployee: (...a: unknown[]) => getEmployeeMock(...a),
     requestFieldTrip: (...a: unknown[]) => requestMock(...a),
   };
@@ -120,5 +124,43 @@ describe('FieldTripRequestScreen (ADP-06)', () => {
     setPermissions([]);
     renderScreen();
     expect(screen.getByText(/No tienes permiso para solicitar salidas a campo/)).toBeInTheDocument();
+  });
+
+  describe('sin :id (solicitud propia, GET /me/employee)', () => {
+    function renderOwn() {
+      return render(
+        <MemoryRouter initialEntries={[{ pathname: '/personal/salida-a-campo', state: baseContext }]}>
+          <Routes>
+            <Route path="/personal/salida-a-campo" element={<FieldTripRequestScreen />} />
+            <Route path="/personal/campo/:tripId/autorizacion" element={<div>cola de autorizacion</div>} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    }
+
+    beforeEach(() => {
+      getMineMock.mockReset().mockResolvedValue({ id: 'emp-mia', companyId: 'c1', branchId: 'b1', fullName: 'Yo Mismo', areaId: 'OPERACIONES', areaName: 'Operaciones y Logística', jobTitle: 'Conductor', status: 'PLANILLA', fieldTripLateCount: 0, isFieldTripObserved: false });
+    });
+
+    it('resuelve la ficha propia sin elegir colaborador ni leer expedientes', async () => {
+      requestMock.mockResolvedValue(makeTrip());
+      renderOwn();
+      expect(await screen.findByLabelText('Área')).toHaveValue('Operaciones y Logística');
+      expect(getEmployeeMock).not.toHaveBeenCalled();
+      fireEvent.change(screen.getByLabelText('Tema de la salida'), { target: { value: 'Entrega' } });
+      fireEvent.change(screen.getByLabelText('Destino'), { target: { value: 'Sede Norte' } });
+      fireEvent.change(screen.getByLabelText('Hora de salida (hoy)'), { target: { value: '14:00' } });
+      fireEvent.change(screen.getByLabelText('Hora estimada de retorno'), { target: { value: '17:00' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
+      expect(await screen.findByText('cola de autorizacion')).toBeInTheDocument();
+      expect(requestMock).toHaveBeenCalledWith('tok', 'emp-mia', expect.objectContaining({ destination: 'Sede Norte' }));
+    });
+
+    it('si el usuario aun no esta vinculado a una ficha lo dice en lenguaje de negocio y no ofrece el formulario', async () => {
+      getMineMock.mockRejectedValue(new HrCommandError(404, { code: 'EMPLOYEE_NOT_LINKED' }));
+      renderOwn();
+      expect(await screen.findByRole('alert')).toHaveTextContent(/todavía no está vinculado a una ficha de colaborador/);
+      expect(screen.queryByRole('button', { name: 'Enviar solicitud' })).not.toBeInTheDocument();
+    });
   });
 });

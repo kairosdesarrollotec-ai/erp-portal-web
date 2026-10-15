@@ -2,7 +2,7 @@ import { can, usePermissions } from '../shared/usePermissions';
 
 /**
  * Permisos de Administracion de Personal por PERMISO (modulo HR_ADMINISTRATION del
- * catalogo de ADM-02), no por rol. Fuente: hr-administration.yaml v0.1.0 y
+ * catalogo de ADM-02), no por rol. Fuente: hr-administration.yaml v0.2.0 y
  * PANTALLAS-V2-B-ADMINISTRACION-PERSONAL (ADP-01..10):
  *  - ADP-01: VIEW_EMPLOYEES (ver) y MANAGE_EMPLOYEES (aplicar descuentos de fin de mes).
  *  - ADP-02/03: LOG_ATTENDANCE (registrar marcacion y justificar).
@@ -10,6 +10,7 @@ import { can, usePermissions } from '../shared/usePermissions';
  *  - ADP-05: SCHEDULE_VACATION. ADP-06: REQUEST_FIELD_TRIP.
  *  - ADP-07: AUTHORIZE_FIELD_TRIP. ADP-08: EVALUATE_FIELD_TRIP_RETURN.
  *  - ADP-09: TERMINATE_EMPLOYMENT.
+ *  - ADP-10: REGISTER_TRAINING (registrar talleres internos).
  * Mientras los permisos cargan (o si fallan) no se muestra ninguna accion.
  */
 export type HrAction =
@@ -21,7 +22,8 @@ export type HrAction =
   | 'REQUEST_FIELD_TRIP'
   | 'AUTHORIZE_FIELD_TRIP'
   | 'EVALUATE_FIELD_TRIP_RETURN'
-  | 'TERMINATE_EMPLOYMENT';
+  | 'TERMINATE_EMPLOYMENT'
+  | 'REGISTER_TRAINING';
 
 export const HR_MODULE = 'HR_ADMINISTRATION';
 

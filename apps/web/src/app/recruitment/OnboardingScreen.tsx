@@ -6,6 +6,7 @@ import { formatDate, formatDateTime } from './flow-format';
 import { completeOnboarding } from './recruitment-client';
 import { defaultStartDate } from './recruitment-domain';
 import { useRecruitmentPermissions } from './recruitment-permissions';
+import { useHrPermissions } from '../hr-administration/hr-permissions';
 import { useRecruitmentCommand, useUnsavedWarning } from './useRecruitmentCommand';
 import { useCandidateDetail } from './useCandidateDetail';
 import styles from './RecruitmentFlow.module.css';
@@ -23,6 +24,7 @@ export function OnboardingScreen() {
   const { state, candidate, context } = detail;
   const { run, saving, error, notice, setNotice } = useRecruitmentCommand(detail);
   const { can } = useRecruitmentPermissions();
+  const { can: canHr } = useHrPermissions();
 
   const [startDate, setStartDate] = useState(() => defaultStartDate());
   const [induction, setInduction] = useState(false);
@@ -147,6 +149,24 @@ export function OnboardingScreen() {
                   onClick={() => navigate(`/reclutamiento/candidatos/${id}/periodo-de-prueba`, { state: context ?? undefined })}
                 >
                   Ir al periodo de prueba
+                </button>
+              </div>
+            </section>
+          )}
+
+          {hired && canHr('MANAGE_EMPLOYEES') && (
+            <section className={styles.card} aria-labelledby="onb-person-title">
+              <h2 id="onb-person-title" className={styles.sectionTitle}>
+                Alta en Personal
+              </h2>
+              <p className={styles.statusText}>Registra a la persona contratada en Personal con sus datos del candidato.</p>
+              <div className={styles.rowActions}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => { if (context) navigate(`/personal/nuevo?candidateId=${id}`, { state: context }); }}
+                >
+                  Registrar como persona
                 </button>
               </div>
             </section>

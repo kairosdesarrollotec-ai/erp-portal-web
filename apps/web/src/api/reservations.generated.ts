@@ -33,7 +33,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Detalle de una reserva (RES-04/RES-05) */
+        /**
+         * Detalle de una reserva (RES-04/RES-05/RES-07/RES-08)
+         * @description Ademas de la reserva trae `startDatePassed` (RES-08: ya llego la fecha pactada, now >= startAt) y `saleResolution` (RES-07: ultima resolucion por venta del vehiculo, null si nunca hubo). Para RES-06/RES-07 los vehiculos alternativos libres en la ventana salen de GET /fleet/vehicles?availableFrom=<startAt>&availableTo=<endAt>.
+         */
         get: operations["getReservation"];
         put?: never;
         post?: never;
@@ -103,8 +106,73 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cancela por cambio solicitado por el cliente (BR-RES-003 - nunca una reprogramacion) */
+        /**
+         * Cancela por cambio solicitado por el cliente o por no-show (BR-RES-003 - nunca una reprogramacion)
+         * @description reason CUSTOMER_REQUESTED_CHANGE: Front-office/Administracion/Gerencia. reason NO_SHOW (RES-08, EX-RES-004): solo Gerencia (403 ROLE_NOT_ALLOWED para otros roles); el monto de reserva se pierde y no hay reembolso. En ambos casos se libera el vehicle_commitment. No aplica a PENDING_SALE_RESOLUTION (usar resolve-sale).
+         */
         post: operations["cancelReservation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reservations/{id}/commands/flag-sale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registra la venta del vehiculo reservado y ofrece alternativa (UC-RES-004, RES-07, BR-RES-007)
+         * @description Roles: GERENCIA y ADMINISTRACION (accion RESERVATION.FLAG_SALE de la matriz ADM-02). Solo desde CONFIRMED -> PENDING_SALE_RESOLUTION. El vehicle_commitment del vehiculo vendido SIGUE bloqueando hasta resolve-sale. Crea una fila abierta en reservation_resolutions (visible en `saleResolution` del detalle). La alternativa es opcional aqui (tambien puede indicarse al resolver); si se envia se valida: misma empresa, distinta del vendido, sede compatible, status AVAILABLE y libre en [startAt, endAt).
+         */
+        post: operations["flagReservationVehicleSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reservations/{id}/commands/resolve-sale": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resuelve la venta segun la decision del cliente (UC-RES-004, RES-06/RES-07, BR-RES-007)
+         * @description Roles: GERENCIA y ADMINISTRACION (RESERVATION.RESOLVE_SALE). Solo desde PENDING_SALE_RESOLUTION.
+         *     ACCEPT_ALTERNATIVE: valida la alternativa (la del body, o la ofrecida en flag-sale) con la regla unica de solape (409 VEHICLE_NOT_AVAILABLE), libera el commitment del vehiculo vendido, asigna el vehiculo alternativo y devuelve la reserva a DRAFT conservando el pago validado y limpiando documentsCompletedAt (el cliente reenvia requisitos / nuevo formato, BDD 10.6): el frontend continua en RES-04 (register-documents + confirm), que crea el nuevo commitment. La ventana de fechas no cambia (BR-RES-003). Evento ReservationReformulated.
+         *     REJECT: cancela (status CANCELLED) con motivo VEHICLE_SOLD_REFUND, libera el commitment y marca el reembolso inmediato como PENDING_TRANSFER en saleResolution.refundStatus (monto = requiredPayment); Gerencia transfiere fuera del sistema (no hay integracion de pagos). A diferencia de CUSTOMER_REQUESTED_CHANGE/NO_SHOW, el monto NO se pierde.
+         */
+        post: operations["resolveReservationVehicleSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reservations/{id}/commands/change-vehicle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cambia el vehiculo de una reserva en borrador (RES-06 Continuar con alternativa elegida)
+         * @description Roles: FRONT_OFFICE, GERENCIA y ADMINISTRACION (accion RESERVATION.CHANGE_VEHICLE de la matriz ADM-02). Solo en DRAFT (sin compromiso ni confirmacion, por eso no es reprogramar, BR-RES-003); en otro estado 409. El vehiculo nuevo se valida: misma empresa, distinto del actual, sede compatible, status AVAILABLE y libre en [startAt, endAt) segun la regla compartida de solape. Conserva el pago validado y limpia documentsCompletedAt (los documentos/contrato refieren al vehiculo; pendiente de Fiorella). Incrementa version.
+         */
+        post: operations["changeReservationVehicle"];
         delete?: never;
         options?: never;
         head?: never;
@@ -178,7 +246,7 @@ export interface components {
             startAt: string;
             /** Format: date-time */
             endAt: string;
-            /** @description Importe de pago requerido en formato decimal (ej. "300.00") */
+            /** @description Importe de pago requerido en formato decimal (ej. "300.00"). Si la reserva llega a alquiler, este monto se TRASLADA ÍNTEGRO a la garantía del alquiler y solo se cobra la diferencia (P0-03 opción a; ver rentals.yaml formalize-contract). Una reserva cancelada (incluye no-show) no traslada nada. */
             requiredPaymentAmount: string;
             currency: string;
             paymentPolicyVersion: number;
@@ -187,6 +255,61 @@ export interface components {
             /** @enum {string} */
             reason: "CUSTOMER_REQUESTED_CHANGE" | "NO_SHOW";
             note?: string;
+        };
+        FlagVehicleSaleRequest: components["schemas"]["CommandScopeRequest"] & {
+            /**
+             * Format: uuid
+             * @description Vehiculo alternativo que se ofrece (RES-P14). Opcional.
+             */
+            alternativeVehicleId?: string;
+            note?: string;
+        };
+        ChangeReservationVehicleRequest: components["schemas"]["CommandScopeRequest"] & {
+            /**
+             * Format: uuid
+             * @description Vehiculo nuevo (alternativa elegida en RES-06).
+             */
+            vehicleId: string;
+        };
+        ResolveVehicleSaleRequest: components["schemas"]["CommandScopeRequest"] & {
+            /** @enum {string} */
+            decision: "ACCEPT_ALTERNATIVE" | "REJECT";
+            /**
+             * Format: uuid
+             * @description Con ACCEPT_ALTERNATIVE: vehiculo elegido; si se omite se usa el ofrecido en flag-sale.
+             */
+            alternativeVehicleId?: string;
+            note?: string;
+        };
+        SaleResolution: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "PENDING" | "ACCEPTED" | "REJECTED";
+            /** @description VEHICLE_SOLD */
+            reason: string;
+            offeredVehicle: {
+                /** Format: uuid */
+                id: string;
+                plate: string;
+                label: string;
+            } | null;
+            offerNote: string | null;
+            /** Format: date-time */
+            flaggedAt: string;
+            /**
+             * Format: uuid
+             * @description Alternativa elegida (solo ACCEPTED)
+             */
+            alternativeVehicleId: string | null;
+            /**
+             * @description Solo REJECTED: Gerencia debe transferir la devolucion inmediata (sin integracion de pagos)
+             * @enum {string|null}
+             */
+            refundStatus: "PENDING_TRANSFER" | null;
+            resolutionNote: string | null;
+            /** Format: date-time */
+            resolvedAt: string | null;
         };
         ReservationResponse: {
             /** Format: uuid */
@@ -224,6 +347,10 @@ export interface components {
             confirmedAt?: string | null;
             /** Format: date-time */
             createdAt: string;
+            /** @description RES-08: true si now >= startAt. El no-show no se marca solo (pendiente de Fiorella). */
+            startDatePassed: boolean;
+            /** @description RES-07: ultima resolucion por venta del vehiculo. Solo GET /reservations/{id} la incluye (null = nunca hubo venta); las demas respuestas la omiten. */
+            saleResolution?: components["schemas"]["SaleResolution"] | null;
         };
         /**
          * @description Tipo de documento adjunto a una reserva.
@@ -541,7 +668,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description VEHICLE_NOT_AVAILABLE o RESERVATION_STATE_CONFLICT (la reserva ya no esta en DRAFT) */
+            /** @description VEHICLE_NOT_AVAILABLE (el detail indica las fechas ocupadas, dd/mm/yyyy) o RESERVATION_STATE_CONFLICT (la reserva ya no esta en DRAFT) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -604,7 +731,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description RESERVATION_STATE_CONFLICT - la reserva ya esta en un estado terminal (CANCELLED/CONVERTED) */
+            /** @description RESERVATION_STATE_CONFLICT - la reserva ya esta en un estado terminal (CANCELLED/CONVERTED) o en PENDING_SALE_RESOLUTION (usar resolve-sale) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -613,6 +740,219 @@ export interface operations {
             };
             /** @description RESERVATION_VERSION_CONFLICT */
             412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description IF_MATCH_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    flagReservationVehicleSale: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlagVehicleSaleRequest"];
+            };
+        };
+        responses: {
+            /** @description Reserva en PENDING_SALE_RESOLUTION (el detalle trae saleResolution) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationResponse"];
+                };
+            };
+            /** @description ROLE_NOT_ALLOWED o empresa/sede no autorizada */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reserva no encontrada en el scope del usuario */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_STATE_CONFLICT (no esta CONFIRMED), VEHICLE_NOT_AVAILABLE (la alternativa esta ocupada, el detail indica las fechas) o SALE_RESOLUTION_ALREADY_OPEN */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_VERSION_CONFLICT */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ALTERNATIVE_VEHICLE_INVALID - la alternativa es el mismo vehiculo, de otra empresa/sede o no esta AVAILABLE */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description IF_MATCH_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resolveReservationVehicleSale: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveVehicleSaleRequest"];
+            };
+        };
+        responses: {
+            /** @description ACCEPT_ALTERNATIVE: reserva DRAFT con el vehiculo alternativo. REJECT: reserva CANCELLED */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationResponse"];
+                };
+            };
+            /** @description ROLE_NOT_ALLOWED o empresa/sede no autorizada */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reserva no encontrada en el scope del usuario */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_STATE_CONFLICT (no esta en PENDING_SALE_RESOLUTION) o VEHICLE_NOT_AVAILABLE (la alternativa ya no esta libre) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_VERSION_CONFLICT */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ALTERNATIVE_VEHICLE_REQUIRED (ACCEPT_ALTERNATIVE sin alternativa en el body ni ofrecida) o ALTERNATIVE_VEHICLE_INVALID */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description IF_MATCH_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    changeReservationVehicle: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeReservationVehicleRequest"];
+            };
+        };
+        responses: {
+            /** @description Reserva en DRAFT con el vehiculo nuevo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationResponse"];
+                };
+            };
+            /** @description ROLE_NOT_ALLOWED o empresa/sede no autorizada */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reserva no encontrada en el scope del usuario */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_STATE_CONFLICT (no esta en DRAFT) o VEHICLE_NOT_AVAILABLE (el vehiculo esta ocupado, el detail indica las fechas) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_VERSION_CONFLICT */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ALTERNATIVE_VEHICLE_INVALID - el mismo vehiculo, de otra empresa/sede o no esta AVAILABLE */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
