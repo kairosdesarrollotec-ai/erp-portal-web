@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import type { ReactElement } from 'react';
 
@@ -39,7 +40,9 @@ function LocationProbe({ label }: { label: string }) {
 
 /** Monta la pantalla en `path` con rutas destino mínimas para verificar la navegación. */
 export function renderAt(path: string, routePath: string, element: ReactElement) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
+    <QueryClientProvider client={queryClient}>
     <MemoryRouter
       initialEntries={[
         { pathname: path, state: { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' } },
@@ -54,6 +57,7 @@ export function renderAt(path: string, routePath: string, element: ReactElement)
         <Route path="/reservas/:id/venta" element={<LocationProbe label="RES-07" />} />
         <Route path="/reservas/:id/no-show" element={<LocationProbe label="RES-08" />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
+    </QueryClientProvider>,
   );
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { ReservationSaleScreen } from './ReservationSaleScreen';
 import { ReservationCommandError } from './reservations-client';
 import { buildReservation, buildVehicle, renderAt } from './resolution-test-utils';
@@ -73,7 +73,10 @@ describe('ReservationSaleScreen (RES-07)', () => {
     getReservationMock.mockResolvedValueOnce(pending()).mockResolvedValueOnce(buildReservation({ status: 'DRAFT' }));
     resolveMock.mockResolvedValue(buildReservation({ status: 'DRAFT' }));
     render();
-    fireEvent.click(await screen.findByRole('button', { name: 'Aceptar alternativa' }));
+    const acceptButton = await screen.findByRole('button', { name: 'Aceptar alternativa' });
+    // El botón nace deshabilitado hasta que carga la lista de alternativas.
+    await waitFor(() => expect(acceptButton).toBeEnabled());
+    fireEvent.click(acceptButton);
     expect(await screen.findByText('RES-04')).toBeInTheDocument();
     expect(resolveMock).toHaveBeenCalledWith('tok', 'res-1', 'c1', 'b1', 3, 'ACCEPT_ALTERNATIVE', { alternativeVehicleId: 'v-2', note: undefined });
   });
