@@ -6,6 +6,7 @@ import { RentalWizardShell } from './RentalWizardShell';
 import { loadChecklistDraft, saveChecklistDraft, RentalChecklistDraft } from './rental-checklist-draft';
 import {
   listRentalEvidence,
+  deleteRentalEvidence,
   recordEvidence,
   requestEvidenceUploadSession,
   uploadEvidenceToGcs,
@@ -13,6 +14,7 @@ import {
   RentalEvidenceType,
   RentalEvidenceZone,
 } from './rentals-client';
+import { EvidenceDeleteButton } from '../shared/EvidenceDeleteButton';
 import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
 import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
 import styles from './RentalStageForms.module.css';
@@ -85,6 +87,26 @@ export function Stage4ChecklistScreen() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleDeleteEvidence(evidenceId: string) {
+    if (!context) return;
+    setUploadError(null);
+    try {
+      const idToken = await getIdToken();
+      await deleteRentalEvidence(idToken, id, evidenceId, context.companyId, context.branchId);
+      await queryClient.invalidateQueries({ queryKey: ['rental', id, 'evidence'] });
+    } catch (err) {
+      const status = (err as { status?: number }).status;
+      setUploadError(
+        status === 409
+          ? 'La entrega ya no admite cambios en la evidencia.'
+          : status === 404
+            ? 'Ese archivo ya no existe. Actualizamos la lista.'
+            : 'No pudimos eliminar el archivo. Intenta de nuevo.',
+      );
+      if (status === 404) void queryClient.invalidateQueries({ queryKey: ['rental', id, 'evidence'] });
+    }
+  }
 
   function update(patch: Partial<RentalChecklistDraft>) {
     setDraft((prev) => {
@@ -328,6 +350,11 @@ export function Stage4ChecklistScreen() {
                 {item.type === 'PHOTO' ? 'Foto' : 'Video'} · {ZONES.find((z) => z.value === item.zone)?.label ?? item.zone}
               </span>
               <span>{formatLimaTime(item.uploadedAt)}</span>
+              <EvidenceDeleteButton
+                label={`${item.type === 'PHOTO' ? 'foto' : 'video'} ${ZONES.find((z) => z.value === item.zone)?.label ?? item.zone}`}
+                disabled={!isOnline}
+                onConfirm={() => handleDeleteEvidence(item.id)}
+              />
             </li>
           ))}
         </ul>

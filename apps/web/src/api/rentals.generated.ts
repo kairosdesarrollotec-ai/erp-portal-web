@@ -248,6 +248,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rentals/{id}/evidence/{evidenceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Elimina una evidencia (foto/video) de entrega registrada por error
+         * @description Solo mientras el alquiler esté en PENDING_DELIVERY; una vez completada la entrega la evidencia no se puede alterar. Misma acción de matriz que subirla (RENTAL.UPLOAD_EVIDENCE). Se elimina el registro; el archivo del bucket no se toca.
+         */
+        delete: operations["deleteRentalEvidence"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rentals/{id}/documents/upload-url": {
         parameters: {
             query?: never;
@@ -1784,6 +1804,58 @@ export interface operations {
                 content?: never;
             };
             /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Estado incompatible (debe estar en PENDING_DELIVERY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteRentalEvidence: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                evidenceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Evidencia eliminada */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler o evidencia no encontrados */
             404: {
                 headers: {
                     [name: string]: unknown;

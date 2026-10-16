@@ -99,7 +99,9 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
           onClose={() => setNotificationsOpen(false)}
           onNavigate={(deepLink) => {
             setNotificationsOpen(false);
-            navigate(deepLink);
+            // Las pantallas autenticadas leen empresa/sede de location.state;
+            // sin propagarlo, el destino no tiene contexto y vuelve al inicio.
+            navigate(deepLink, { state: location.state });
           }}
         />
       )}

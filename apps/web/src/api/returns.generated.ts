@@ -333,6 +333,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/returns/{id}/evidence/{evidenceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Eliminar una evidencia de recepción registrada por error (DEV-04)
+         * @description Solo en los estados que admiten evidencia (RECEPCION_PROVISIONAL, INSPECCION o CON_DANOS) y con la misma acción de matriz que subirla (UPLOAD_EVIDENCE). Se elimina el registro; el archivo del bucket no se toca.
+         */
+        delete: operations["deleteReturnEvidence"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2120,6 +2140,65 @@ export interface operations {
                 content?: never;
             };
             /** @description La devolución no está en un estado que admita evidencia (RECEPCION_PROVISIONAL, INSPECCION o CON_DANOS) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno del servidor */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteReturnEvidence: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                evidenceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Evidencia eliminada */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución o evidencia no encontradas en la empresa/sede (RETURN_NOT_FOUND / RETURN_EVIDENCE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La devolución no está en un estado que admita evidencia */
             409: {
                 headers: {
                     [name: string]: unknown;

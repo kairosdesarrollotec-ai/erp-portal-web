@@ -47,6 +47,7 @@ const listReturnEvidenceMock = vi.fn();
 const requestSessionMock = vi.fn();
 const uploadGcsMock = vi.fn();
 const recordEvidenceMock = vi.fn();
+const deleteEvidenceMock = vi.fn();
 const getResponsibilityTemplateMock = vi.fn();
 
 vi.mock('./returns-client', async () => {
@@ -57,6 +58,7 @@ vi.mock('./returns-client', async () => {
     requestReturnEvidenceUploadSession: (...args: unknown[]) => requestSessionMock(...args),
     uploadReturnEvidenceToGcs: (...args: unknown[]) => uploadGcsMock(...args),
     recordReturnEvidence: (...args: unknown[]) => recordEvidenceMock(...args),
+    deleteReturnEvidence: (...args: unknown[]) => deleteEvidenceMock(...args),
     getResponsibilityTemplate: (...args: unknown[]) => getResponsibilityTemplateMock(...args),
   };
 });
@@ -126,7 +128,7 @@ function setOnline(value: boolean) {
 }
 
 beforeEach(() => {
-  [flowMock, listReturnEvidenceMock, requestSessionMock, uploadGcsMock, recordEvidenceMock, getResponsibilityTemplateMock, addEvidenceToQueueMock].forEach((m) => m.mockReset());
+  [flowMock, listReturnEvidenceMock, requestSessionMock, uploadGcsMock, recordEvidenceMock, deleteEvidenceMock, getResponsibilityTemplateMock, addEvidenceToQueueMock].forEach((m) => m.mockReset());
   syncManagerMock.mockReset();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sessionStorage.clear();
@@ -347,5 +349,35 @@ describe('ChecklistScreen — validacion MIME offline', () => {
     expect(addEvidenceToQueueMock).not.toHaveBeenCalled();
     // Se muestra el error
     expect(await screen.findByRole('alert')).toHaveTextContent(/Solo se admiten/);
+  });
+});
+
+// ── Suite: eliminar evidencia registrada por error (DEV-04) ───────────────────
+describe('ChecklistScreen — eliminar evidencia', () => {
+  it('lista los archivos subidos y elimina uno con confirmación, refrescando el progreso', async () => {
+    deleteEvidenceMock.mockResolvedValue(undefined);
+    listReturnEvidenceMock
+      .mockResolvedValueOnce([evidence('PHOTO', 0)])
+      .mockResolvedValueOnce([]);
+    renderChecklist();
+
+    const deleteButtons = await screen.findAllByRole('button', { name: /^Eliminar foto/i });
+    expect(deleteButtons).toHaveLength(1);
+    fireEvent.click(deleteButtons[0]);
+    expect(deleteEvidenceMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+
+    await waitFor(() => expect(deleteEvidenceMock).toHaveBeenCalledWith(expect.anything(), 'ret-1', 'PHOTO-0', baseContext.companyId, baseContext.branchId));
+    await waitFor(() => expect(listReturnEvidenceMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('sin conexión el botón Eliminar está deshabilitado', async () => {
+    listReturnEvidenceMock.mockResolvedValue([evidence('VIDEO', 0)]);
+    setOnline(false);
+    renderChecklist();
+    act(() => { window.dispatchEvent(new Event('offline')); });
+
+    const btn = await screen.findByRole('button', { name: /^Eliminar video/i });
+    expect(btn).toBeDisabled();
   });
 });

@@ -482,4 +482,5 @@ export {
   uploadReturnEvidenceToGcs,
   recordReturnEvidence,
   listReturnEvidence,
+  deleteReturnEvidence,
 } from './returns-evidence-client';

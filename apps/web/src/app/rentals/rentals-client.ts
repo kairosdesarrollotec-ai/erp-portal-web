@@ -441,6 +441,7 @@ export {
   uploadEvidenceToGcs,
   recordEvidence,
   listRentalEvidence,
+  deleteRentalEvidence,
   type RentalDocumentType,
   type RentalDocumentContentType,
   type RentalDocumentRecord,

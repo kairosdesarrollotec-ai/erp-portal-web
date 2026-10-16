@@ -88,6 +88,21 @@ export async function recordReturnEvidence(
   return data as unknown as ReturnEvidenceResponse;
 }
 
+/** DEV-04 - elimina una evidencia de recepcion registrada por error. */
+export async function deleteReturnEvidence(
+  idToken: string,
+  id: string,
+  evidenceId: string,
+  companyId: string,
+  branchId: string,
+): Promise<void> {
+  const { error, response } = await returnsApiClient.DELETE('/returns/{id}/evidence/{evidenceId}', {
+    params: { path: { id, evidenceId }, query: { companyId, branchId } },
+    headers: authHeaders(idToken),
+  });
+  if (error || !response.ok) throw new ReturnApiError(response.status);
+}
+
 export async function listReturnEvidence(
   idToken: string,
   id: string,

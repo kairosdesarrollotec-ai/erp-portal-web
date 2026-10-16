@@ -18,6 +18,7 @@ import { getResponsibilityTemplate, type ResponsibilityTemplateResult } from './
 import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
 import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
 import { useOnlineStatus } from '../shared/useOnlineStatus';
+import { EvidenceDeleteButton } from '../shared/EvidenceDeleteButton';
 import { isServerConfirmed } from '../shared/evidence-sync-state';
 import styles from './ReturnForms.module.css';
 
@@ -50,7 +51,7 @@ export function ChecklistScreen() {
   const navigate = useNavigate();
   const { can } = useReturnPermissions();
   const online = useOnlineStatus();
-  const { evidence, loaded, uploading, error, upload, reload } = useReturnEvidence(id, context, getIdToken);
+  const { evidence, loaded, uploading, error, upload, remove: removeEvidence, reload } = useReturnEvidence(id, context, getIdToken);
   const [zone, setZone] = useState(RETURN_ZONES[0].value);
   const [draft, setDraft] = useState<ReturnChecklistDraft>(() => loadReturnChecklist(id));
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -331,6 +332,30 @@ export function ChecklistScreen() {
           })}
         </ul>
       </fieldset>
+
+      {evidence.length > 0 && (
+        <fieldset className={styles.fieldset}>
+          <legend>Archivos subidos</legend>
+          <ul className={styles.evidenceList}>
+            {evidence.map((item) => {
+              const zoneLabel = RETURN_ZONES.find((z) => z.value === item.zone)?.label ?? item.zone;
+              const kind = item.type === 'PHOTO' ? 'Foto' : 'Video';
+              return (
+                <li key={item.id} className={styles.evidenceListItem}>
+                  <span>
+                    {kind} · {zoneLabel}
+                  </span>
+                  <EvidenceDeleteButton
+                    label={`${kind.toLowerCase()} ${zoneLabel}`}
+                    disabled={!online}
+                    onConfirm={() => removeEvidence(item.id)}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </fieldset>
+      )}
 
       <fieldset className={styles.fieldset}>
         <legend>Formatos</legend>

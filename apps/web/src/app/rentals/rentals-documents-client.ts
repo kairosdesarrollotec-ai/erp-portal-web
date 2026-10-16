@@ -109,6 +109,23 @@ export async function listRentalEvidence(
   return data as unknown as RentalEvidenceResponse[];
 }
 
+/** ALQ-09 - elimina una evidencia registrada por error (solo mientras el alquiler esta pendiente de entrega). */
+export async function deleteRentalEvidence(
+  idToken: string,
+  rentalId: string,
+  evidenceId: string,
+  companyId: string,
+  branchId: string,
+): Promise<void> {
+  const { error, response } = await rentalsApiClient.DELETE('/rentals/{id}/evidence/{evidenceId}', {
+    params: { path: { id: rentalId, evidenceId }, query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (error || !response.ok) {
+    throw new RentalApiError(response.status);
+  }
+}
+
 export type RentalDocumentType = 'LICENSE' | 'ID_DOCUMENT' | 'PROOF_OF_ADDRESS' | 'BANK_STATEMENT' | 'OTHER';
 export type RentalDocumentContentType = 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf';
 
