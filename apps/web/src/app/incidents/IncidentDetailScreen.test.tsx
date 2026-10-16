@@ -280,4 +280,63 @@ describe('IncidentDetailScreen (INC-02)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar incidencia' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/solo Gerencia/);
   });
+
+  it('UNAUTHORIZED_DRIVER: cerrar envia el resultado estructurado de la decision (por defecto sin consecuencias)', async () => {
+    useWorkSession.setState({ role: roleRef('GERENCIA') });
+    getIncidentMock.mockResolvedValue(makeDetail({ type: 'UNAUTHORIZED_DRIVER', severity: 'GRAVE' }));
+    closeMock.mockResolvedValue(makeDetail({ type: 'UNAUTHORIZED_DRIVER', severity: 'GRAVE', status: 'CERRADA', version: 4 }));
+    renderScreen();
+
+    expect(await screen.findByRole('group', { name: 'Decisión de Gerencia' })).toBeInTheDocument();
+    expect(screen.getByTestId('decision-outcome-summary')).toHaveTextContent('no se retiene la garantía; se mantiene el contrato');
+    fireEvent.change(screen.getByLabelText('Resumen de resolución'), { target: { value: 'Se mantiene el contrato' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar incidencia' }));
+
+    await waitFor(() =>
+      expect(closeMock).toHaveBeenCalledWith('fake-id-token', 'inc-1', 3, 'c1', 'b1', 'Se mantiene el contrato', {
+        retainGuarantee: false,
+        terminateContract: false,
+      }),
+    );
+  });
+
+  it('UNAUTHORIZED_DRIVER: derivar a vía legal envia garantia retenida y contrato resuelto', async () => {
+    const user = setupUser();
+    useWorkSession.setState({ role: roleRef('GERENCIA') });
+    getIncidentMock.mockResolvedValue(makeDetail({ type: 'UNAUTHORIZED_DRIVER', severity: 'GRAVE' }));
+    referLegalMock.mockResolvedValue(makeDetail({ type: 'UNAUTHORIZED_DRIVER', severity: 'GRAVE', status: 'VIA_LEGAL', version: 4 }));
+    renderScreen();
+
+    await user.click(await screen.findByLabelText('Retener la garantía del alquiler'));
+    await user.click(screen.getByLabelText('Resolver el contrato'));
+    expect(screen.getByTestId('decision-outcome-summary')).toHaveTextContent('se retiene la garantía; se resuelve el contrato');
+    await user.click(screen.getByRole('button', { name: 'Derivar a vía legal' }));
+    const dialog = screen.getByRole('dialog', { name: 'Derivar a vía legal' });
+    await user.type(within(dialog).getByLabelText('Motivo de la derivación'), 'Conductor no firmante');
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar derivación' }));
+
+    await waitFor(() =>
+      expect(referLegalMock).toHaveBeenCalledWith('fake-id-token', 'inc-1', 3, 'c1', 'b1', 'Conductor no firmante', {
+        retainGuarantee: true,
+        terminateContract: true,
+      }),
+    );
+  });
+
+  it('otros tipos no muestran la decision estructurada', async () => {
+    getIncidentMock.mockResolvedValue(makeDetail());
+    renderScreen();
+    await screen.findByRole('button', { name: 'Cerrar incidencia' });
+    expect(screen.queryByRole('group', { name: 'Decisión de Gerencia' })).toBeNull();
+  });
+
+  it('traduce 422 MANAGEMENT_DECISION_OUTCOME_REQUIRED', async () => {
+    useWorkSession.setState({ role: roleRef('GERENCIA') });
+    getIncidentMock.mockResolvedValue(makeDetail({ type: 'UNAUTHORIZED_DRIVER', severity: 'GRAVE' }));
+    closeMock.mockRejectedValue(new IncidentCommandError(422, { code: 'MANAGEMENT_DECISION_OUTCOME_REQUIRED' }));
+    renderScreen();
+    fireEvent.change(await screen.findByLabelText('Resumen de resolución'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar incidencia' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/resultado de la decisión de Gerencia/);
+  });
 });

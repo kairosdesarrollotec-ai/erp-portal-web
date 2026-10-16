@@ -44,6 +44,8 @@ export class PermissionCommandError extends Error {
 
   private static friendlyMessage(code: string | null): string | null {
     switch (code) {
+      // El back responde INCOMPATIBLE_PERMISSIONS (admin.yaml); se acepta tambien el nombre antiguo.
+      case 'INCOMPATIBLE_PERMISSIONS':
       case 'INCOMPATIBLE_PERMISSION_COMBINATION':
         return 'Un rol no puede tener a la vez dos permisos incompatibles (segregación de funciones). Revisa las celdas marcadas en rojo.';
       case 'INCOMPLETE_MATRIX':

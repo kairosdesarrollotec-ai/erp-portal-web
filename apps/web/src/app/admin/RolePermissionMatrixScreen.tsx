@@ -54,7 +54,7 @@ function valueToScope(value: string): MatrixScope {
  */
 export function RolePermissionMatrixScreen() {
   const {
-    state, matrix, roles, pendingEntries, context, dirty, conflicts, saving, saveError,
+    state, matrix, roles, pendingEntries, context, dirty, newActions, conflicts, saving, saveError,
     companies, scope, setScope, toggle, save, discard, reloadRoles,
   } = useRolePermissionMatrix();
   const management = useRoleManagement(context, reloadRoles);
@@ -178,6 +178,15 @@ export function RolePermissionMatrixScreen() {
                 </select>
               </div>
 
+              {newActions.length > 0 && (
+                <p role="status" className={styles.versionNote}>
+                  La versión vigente no incluye {newActions.length === 1 ? 'esta acción nueva' : 'estas acciones nuevas'} y se
+                  {newActions.length === 1 ? ' deniega' : ' deniegan'} por defecto hasta que guardes la matriz:{' '}
+                  {newActions.map((descriptor) => descriptor.label).join('; ')}. Marca los roles que correspondan y pulsa
+                  «Guardar cambios».
+                </p>
+              )}
+
               {conflicts.size > 0 && (
                 <p role="alert" className={styles.errorText}>
                   Hay permisos incompatibles marcados en rojo (segregación de funciones). Corrígelos para poder guardar.
@@ -194,7 +203,7 @@ export function RolePermissionMatrixScreen() {
                   type="button"
                   className={styles.primaryButton}
                   onClick={handleSave}
-                  disabled={!dirty || saving || conflicts.size > 0}
+                  disabled={(!dirty && newActions.length === 0) || saving || conflicts.size > 0}
                 >
                   {saving ? 'Guardando…' : 'Guardar cambios'}
                 </button>

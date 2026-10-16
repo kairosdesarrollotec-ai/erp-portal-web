@@ -146,6 +146,21 @@ export function useRolePermissionMatrix() {
 
   const dirty = Object.keys(edits).length > 0;
 
+  /**
+   * Acciones del catalogo que la version vigente aun no contiene (p. ej. FLAG_SALE, RESOLVE_SALE y CHANGE_VEHICLE
+   * en una matriz guardada antes de que existieran). El back las deniega hasta que se guarde una version nueva
+   * (deny-by-default), asi que la pantalla avisa y permite guardar aunque no haya ediciones.
+   */
+  const newActions = useMemo(
+    () =>
+      matrix
+        ? matrix.actionCatalog.filter(
+            (descriptor) => !matrix.entries.some((e) => e.module === descriptor.module && e.action === descriptor.action),
+          )
+        : [],
+    [matrix],
+  );
+
   const conflicts = useMemo(() => {
     const set = new Set<string>();
     const allowedByRole = new Map<string, Set<string>>();
@@ -213,6 +228,7 @@ export function useRolePermissionMatrix() {
     pendingEntries,
     context,
     dirty,
+    newActions,
     conflicts,
     saving,
     saveError,

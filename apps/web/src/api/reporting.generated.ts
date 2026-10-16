@@ -1,5 +1,5 @@
 /**
- * Types generated manually from OpenAPI reporting.yaml v0.1.0.
+ * Types generated manually from OpenAPI reporting.yaml v0.3.0 (dateFrom/dateTo inclusivos en America/Lima; errores 400 {statusCode, code, detail}).
  * Source: apps/erp-monolithic-api/packages/contracts/openapi/reporting.yaml
  * REP-01 — BDD-REP-001 / SDD-REP-001 / TDD-REP-001.
  */
@@ -79,7 +79,12 @@ export interface operations {
           'application/json': components['schemas']['OperationalKpisResponse'];
         };
       };
-      400: { headers: Record<string, never>; content?: never };
+      400: {
+        headers: Record<string, never>;
+        content: {
+          'application/json': components['schemas']['ReportingError'];
+        };
+      };
       401: { headers: Record<string, never>; content?: never };
       403: { headers: Record<string, never>; content?: never };
       500: { headers: Record<string, never>; content?: never };
@@ -105,7 +110,12 @@ export interface operations {
           'application/json': components['schemas']['FinancialKpisResponse'];
         };
       };
-      400: { headers: Record<string, never>; content?: never };
+      400: {
+        headers: Record<string, never>;
+        content: {
+          'application/json': components['schemas']['ReportingError'];
+        };
+      };
       401: { headers: Record<string, never>; content?: never };
       403: { headers: Record<string, never>; content?: never };
       500: { headers: Record<string, never>; content?: never };
@@ -134,7 +144,12 @@ export interface operations {
           'text/csv': string;
         };
       };
-      400: { headers: Record<string, never>; content?: never };
+      400: {
+        headers: Record<string, never>;
+        content: {
+          'application/json': components['schemas']['ReportingError'];
+        };
+      };
       401: { headers: Record<string, never>; content?: never };
       403: { headers: Record<string, never>; content?: never };
       500: { headers: Record<string, never>; content?: never };
@@ -144,6 +159,11 @@ export interface operations {
 
 export interface components {
   schemas: {
+    ReportingError: {
+      statusCode: number;
+      code: 'INVALID_DATE' | 'INVALID_DATE_RANGE' | 'RANGE_EXCEEDS_MAX';
+      detail: string;
+    };
     OperationalKpisResponse: {
       companyId: string;
       branchId?: string | null;
