@@ -29,6 +29,8 @@ import type {
   ReturnAlertType,
   ReturnAlerts,
   ReturnLateness,
+  ReturnLatenessCharge,
+  LatenessTier,
   ReturnReminder,
   ReturnReminderInboxItem,
   ReturnReminderResult,
@@ -65,6 +67,8 @@ export type {
   ReturnAlertType,
   ReturnAlerts,
   ReturnLateness,
+  ReturnLatenessCharge,
+  LatenessTier,
   ReturnReminder,
   ReturnReminderInboxItem,
   ReturnReminderResult,
@@ -478,4 +482,5 @@ export {
   uploadReturnEvidenceToGcs,
   recordReturnEvidence,
   listReturnEvidence,
+  deleteReturnEvidence,
 } from './returns-evidence-client';

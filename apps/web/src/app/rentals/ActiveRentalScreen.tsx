@@ -39,6 +39,7 @@ export function ActiveRentalScreen() {
   const isExtensionPending = rental.status === 'EXTENSION_PENDING';
   const inProgress = isActive || isExtensionPending;
   const deposit = rental.deposit;
+  const creditExcess = Number(rental.reservationCreditExcess ?? deposit?.reservationCreditExcess ?? 0) || 0;
   const lastExtension = rental.extensions && rental.extensions.length > 0 ? rental.extensions[rental.extensions.length - 1] : null;
   const incidentsPath = `/incidencias?rentalId=${rental.id}`;
 
@@ -79,8 +80,17 @@ export function ActiveRentalScreen() {
                 <dd>{formatPen(parseFloat(deposit.amountCollected ?? deposit.originalAmount))}</dd>
               </div>
             </dl>
+          ) : rental.depositRequired === false ? (
+            <p className={styles.statusText} data-testid="no-deposit-company-driver">
+              Sin garantía: con conductor de la empresa no se cobra garantía.
+            </p>
           ) : (
             <p className={styles.statusText}>Sin garantía registrada.</p>
+          )}
+          {creditExcess > 0 && (
+            <p className={styles.statusText} data-testid="reservation-credit-excess">
+              Saldo a favor de la reserva (sin reembolso automático): {formatPen(creditExcess)}
+            </p>
           )}
         </section>
 

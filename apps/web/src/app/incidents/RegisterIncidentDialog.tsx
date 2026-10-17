@@ -9,6 +9,8 @@ import {
   INCIDENT_TYPES,
   INCIDENT_TYPE_LABELS,
   MAX_TEXT_LENGTH,
+  UNAUTHORIZED_DRIVER_NOTICE,
+  forcedSeverityForType,
   type IncidentSeverity,
   type IncidentType,
 } from './incident-domain';
@@ -66,6 +68,7 @@ export function RegisterIncidentDialog({ context, initialRentalId, initialReturn
   }, [context.companyId, context.branchId]);
 
   const rentalReturns = returns.filter((r) => r.rentalId === rentalId && r.status !== 'CANCELADA');
+  const forcedSeverity = forcedSeverityForType(type);
   const descriptionTrimmed = description.trim();
   const missing = {
     rental: !rentalId,
@@ -157,7 +160,12 @@ export function RegisterIncidentDialog({ context, initialRentalId, initialReturn
             id="inc-type"
             className={styles.input}
             value={type}
-            onChange={(e) => setType(e.target.value as IncidentType | '')}
+            onChange={(e) => {
+              const next = e.target.value as IncidentType | '';
+              setType(next);
+              const forced = forcedSeverityForType(next);
+              if (forced) setSeverity(forced);
+            }}
             aria-required="true"
             aria-invalid={submitted && missing.type}
           >
@@ -169,6 +177,11 @@ export function RegisterIncidentDialog({ context, initialRentalId, initialReturn
             ))}
           </select>
           {submitted && missing.type && <span className={styles.error}>Selecciona el tipo de incidencia.</span>}
+          {forcedSeverity && (
+            <span className={styles.hint} role="status" data-testid="unauthorized-driver-notice">
+              {UNAUTHORIZED_DRIVER_NOTICE}
+            </span>
+          )}
         </div>
 
         <div className={styles.field}>
@@ -178,6 +191,7 @@ export function RegisterIncidentDialog({ context, initialRentalId, initialReturn
             className={styles.input}
             value={severity}
             onChange={(e) => setSeverity(e.target.value as IncidentSeverity | '')}
+            disabled={!!forcedSeverity}
             aria-required="true"
             aria-invalid={submitted && missing.severity}
           >

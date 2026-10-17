@@ -272,4 +272,14 @@ describe('Stage5ConfirmationScreen (ENTREGA-05 / ALQ-09)', () => {
     renderScreen();
     expect(await screen.findByTestId('reservation-credit-excess')).toHaveTextContent('Saldo a favor de la reserva (sin reembolso automático): 100.00 PEN');
   });
+
+  it('conductor de la empresa: sin garantia (deposit null) y saldo a favor del credito de reserva', async () => {
+    useRentalWizardMock.mockReturnValue(
+      makeWizard({ rental: { ...baseRental, deposit: null, depositRequired: false, reservationCreditExcess: '250.00' } }),
+    );
+    renderScreen();
+    expect(await screen.findByTestId('no-deposit-company-driver')).toHaveTextContent('Con conductor de la empresa no se cobra garantía');
+    expect(screen.getByText(/sin garantía \(conductor de la empresa\)/)).toBeInTheDocument();
+    expect(screen.getByTestId('reservation-credit-excess')).toHaveTextContent('250.00 PEN');
+  });
 });

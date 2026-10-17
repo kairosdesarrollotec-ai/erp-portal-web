@@ -33,6 +33,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   RETURN_REMINDER_VERSION_CONFLICT: 'Otra persona actualizó este recordatorio. Recargamos la bandeja; revisa y vuelve a intentar.',
   INVALID_RETURN_REMINDER_RESULT:
     'Si el envío falló, indica el motivo en la nota. La hora de envío no puede estar en el futuro.',
+  RETURN_NO_DEPOSIT_TO_SETTLE:
+    'Sin garantía (conductor de la empresa): no hay garantía que liberar ni retener. Continúa al cierre sin montos de garantía.',
   RETURN_NOT_FOUND: 'No encontramos esta devolución en tu empresa y sede.',
   ROLE_NOT_ALLOWED: 'Tu rol no tiene permiso para realizar esta acción.',
   CUSTOMER_BLOCKED: 'El cliente está bloqueado (semáforo rojo) y no puede realizar nuevas operaciones.',

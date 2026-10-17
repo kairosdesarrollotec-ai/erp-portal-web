@@ -12,6 +12,7 @@ export const INCIDENT_TYPES: readonly IncidentType[] = [
   'TRAFFIC_FINE_OR_INTERVENTION',
   'TOWING',
   'OTHER',
+  'UNAUTHORIZED_DRIVER',
 ];
 export const INCIDENT_SEVERITIES: readonly IncidentSeverity[] = ['LEVE', 'MODERADA', 'GRAVE'];
 export const INCIDENT_STATUSES: readonly IncidentStatus[] = ['ABIERTA', 'CERRADA', 'VIA_LEGAL'];
@@ -22,6 +23,7 @@ export const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
   TRAFFIC_FINE_OR_INTERVENTION: 'Papeleta o intervención',
   TOWING: 'Remolque',
   OTHER: 'Otro',
+  UNAUTHORIZED_DRIVER: 'Conductor no autorizado',
 };
 
 export const INCIDENT_SEVERITY_LABELS: Record<IncidentSeverity, string> = {
@@ -63,3 +65,16 @@ export function rentalLabel(incident: { rentalId: string; rentalCode?: string | 
 export function shortUserId(userId: string): string {
   return userId.slice(0, 8);
 }
+
+/** UNAUTHORIZED_DRIVER solo admite severidad GRAVE (422 INCIDENT_SEVERITY_NOT_ALLOWED_FOR_TYPE). */
+export function forcedSeverityForType(type: IncidentType | ''): IncidentSeverity | null {
+  return type === 'UNAUTHORIZED_DRIVER' ? 'GRAVE' : null;
+}
+
+/** Resolver/cerrar/derivar a via legal es decision exclusiva de Gerencia para este tipo. */
+export function requiresManagementDecision(type: IncidentType | ''): boolean {
+  return type === 'UNAUTHORIZED_DRIVER';
+}
+
+export const UNAUTHORIZED_DRIVER_NOTICE =
+  'La decisión (retener garantía, resolver el contrato o ninguna) la toma Gerencia caso por caso. Registrarla no tiene consecuencias automáticas.';

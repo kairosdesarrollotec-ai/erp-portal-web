@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { listRentals, getRental, createRental, validateDocuments, getContractTemplate, formalizeContract, RentalApiError, RentalCommandError } from './rentals-client';
+import { listRentals, getRental, createRental, validateDocuments, getContractTemplate, formalizeContract, registerAuthorizedDriver, RentalApiError, RentalCommandError } from './rentals-client';
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -70,5 +70,37 @@ describe('rentals-client', () => {
     expect(body).not.toHaveProperty('withDriver');
     fetchMock.mockResolvedValue(jsonResponse(400, { code: 'CONTRACT_VARIANT_DRIVER_CONFLICT' }));
     await expect(formalizeContract('token', 'r1', 'c1', 'b1', 3, 'DOC', '1', 'PEN')).rejects.toMatchObject({ status: 400, problem: { code: 'CONTRACT_VARIANT_DRIVER_CONFLICT' } });
+  });
+
+  it('formalizeContract NO envia garantia con conductor de la empresa', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1', deposit: null, depositRequired: false }));
+    await formalizeContract('token', 'r1', 'c1', 'b1', 3, 'DOC', null, null, undefined, undefined, { holderType: 'LEGAL', withCompanyDriver: true });
+    const body = await (fetchMock.mock.calls[0][0] as Request).json();
+    expect(body).toMatchObject({ withCompanyDriver: true, holderType: 'LEGAL' });
+    expect(body).not.toHaveProperty('depositAmount');
+    expect(body).not.toHaveProperty('depositCurrency');
+    // aunque se pase un monto, con conductor de la empresa se omite
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1' }));
+    await formalizeContract('token', 'r1', 'c1', 'b1', 3, 'DOC', '500', 'PEN', undefined, undefined, { holderType: 'LEGAL', withCompanyDriver: true });
+    expect(await (fetchMock.mock.calls[1][0] as Request).json()).not.toHaveProperty('depositAmount');
+  });
+
+  it('registerAuthorizedDriver hace POST con If-Match y body del conductor', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1', parties: [{ id: 'p', customerId: 'd1', role: 'DRIVER', addendumDocumentRef: 'AD-1' }] }));
+    const r = await registerAuthorizedDriver('token', 'r1', 'c1', 'b1', 4, 'd1', 'AD-1', 'LEGAL');
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.method).toBe('POST');
+    expect(request.url).toContain('/rentals/r1/commands/register-authorized-driver');
+    expect(request.headers.get('If-Match')).toBe('"4"');
+    expect(await request.json()).toEqual({ companyId: 'c1', branchId: 'b1', driverCustomerId: 'd1', addendumDocumentRef: 'AD-1', holderType: 'LEGAL' });
+    expect(r.parties?.[0].addendumDocumentRef).toBe('AD-1');
+  });
+
+  it('registerAuthorizedDriver expone el codigo del 422', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(422, { code: 'NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED' }));
+    await expect(registerAuthorizedDriver('token', 'r1', 'c1', 'b1', 4, 'd1', 'AD-1')).rejects.toMatchObject({
+      status: 422,
+      problem: { code: 'NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED' },
+    });
   });
 });

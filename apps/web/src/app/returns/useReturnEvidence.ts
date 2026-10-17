@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   listReturnEvidence,
+  deleteReturnEvidence,
   recordReturnEvidence,
   requestReturnEvidenceUploadSession,
   uploadReturnEvidenceToGcs,
@@ -92,5 +93,28 @@ export function useReturnEvidence(
     [context, id, getIdToken, reload],
   );
 
-  return { evidence, loaded, uploading, error, upload, reload };
+  /** Elimina una evidencia ya registrada (solo mientras la devolucion admite evidencia). */
+  const remove = useCallback(
+    async (evidenceId: string) => {
+      if (!context || !id) return;
+      setError(null);
+      try {
+        const idToken = await getIdToken();
+        await deleteReturnEvidence(idToken, id, evidenceId, context.companyId, context.branchId);
+      } catch (err) {
+        const status = (err as { status?: number }).status;
+        setError(
+          status === 409
+            ? 'La devolución ya no admite cambios en la evidencia.'
+            : status === 404
+              ? 'Ese archivo ya no existe. Actualizamos la lista.'
+              : 'No pudimos eliminar el archivo. Intenta de nuevo.',
+        );
+      }
+      await reload();
+    },
+    [context, id, getIdToken, reload],
+  );
+
+  return { evidence, loaded, uploading, error, upload, remove, reload };
 }

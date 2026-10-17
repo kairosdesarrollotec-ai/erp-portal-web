@@ -17,22 +17,10 @@ import { useReturnPermissions } from './return-permissions';
 import { getResponsibilityTemplate, type ResponsibilityTemplateResult } from './returns-client';
 import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
 import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
+import { useOnlineStatus } from '../shared/useOnlineStatus';
+import { EvidenceDeleteButton } from '../shared/EvidenceDeleteButton';
+import { isServerConfirmed } from '../shared/evidence-sync-state';
 import styles from './ReturnForms.module.css';
-
-function useOnline(): boolean {
-  const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
-  useEffect(() => {
-    const on = () => setOnline(true);
-    const off = () => setOnline(false);
-    window.addEventListener('online', on);
-    window.addEventListener('offline', off);
-    return () => {
-      window.removeEventListener('online', on);
-      window.removeEventListener('offline', off);
-    };
-  }, []);
-  return online;
-}
 
 /**
  * DEV-04 - Checklist de recepcion (movil primero). Sube fotos/videos reales
@@ -62,8 +50,8 @@ export function ChecklistScreen() {
   const { id, state, ret, context, getIdToken } = useReturnFlow();
   const navigate = useNavigate();
   const { can } = useReturnPermissions();
-  const online = useOnline();
-  const { evidence, loaded, uploading, error, upload, reload } = useReturnEvidence(id, context, getIdToken);
+  const online = useOnlineStatus();
+  const { evidence, loaded, uploading, error, upload, remove: removeEvidence, reload } = useReturnEvidence(id, context, getIdToken);
   const [zone, setZone] = useState(RETURN_ZONES[0].value);
   const [draft, setDraft] = useState<ReturnChecklistDraft>(() => loadReturnChecklist(id));
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -72,8 +60,6 @@ export function ChecklistScreen() {
   const [template, setTemplate] = useState<ResponsibilityTemplateResult | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
 
-  /** Contador de archivos encolados offline en esta sesion (se resetea al sincronizar). */
-  const [localQueueCount, setLocalQueueCount] = useState(0);
   /** Error al encolar en Dexie (p.ej. almacenamiento lleno). */
   const [queueError, setQueueError] = useState<string | null>(null);
 
@@ -82,13 +68,13 @@ export function ChecklistScreen() {
     pendingCount: syncerPending,
     failedCount: syncerFailed,
     triggerSync,
+    refreshCounts,
   } = useSyncManager({
     returnId: id,
     companyId: context?.companyId ?? '',
     branchId: context?.branchId ?? '',
     getIdToken,
     onSyncComplete: () => {
-      setLocalQueueCount(0);
       void reload();
     },
   });
@@ -119,14 +105,14 @@ export function ChecklistScreen() {
 
   const photosCount = evidence.filter((e) => e.type === 'PHOTO').length;
   const videosCount = evidence.filter((e) => e.type === 'VIDEO').length;
-  const synced = loaded && photosCount >= REQUIRED_PHOTOS && videosCount >= REQUIRED_VIDEOS;
+  const synced = isServerConfirmed({ serverLoaded: loaded, photosCount, videosCount });
   const signedDoc = ret.responsibilityDocument;
   const doc = draft.responsibilityDocument;
   const docComplete = Boolean(signedDoc) || isResponsibilityDocumentComplete(doc);
   const wrongState = ret.status !== 'INSPECCION' && ret.status !== 'SIN_DANOS' && ret.status !== 'CON_DANOS';
 
-  /** Items pendientes de sincronizar: combinacion de los encolados en esta sesion y los pre-existentes en Dexie. */
-  const totalPending = Math.max(localQueueCount, syncerPending);
+  /** Items pendientes en la cola Dexie (mismo contador que ENTREGA-04: refreshCounts tras encolar). */
+  const totalPending = syncerPending;
   const hasPending = totalPending > 0;
 
   /**
@@ -178,7 +164,7 @@ export function ChecklistScreen() {
         break;
       }
     }
-    if (added > 0) setLocalQueueCount((prev) => prev + added);
+    if (added > 0) await refreshCounts();
   }
 
   function onFiles(type: 'PHOTO' | 'VIDEO', event: ChangeEvent<HTMLInputElement>) {
@@ -201,6 +187,8 @@ export function ChecklistScreen() {
       onContinue={() => navigate(`/devoluciones/${id}/resultado`, { state: context })}
       continueLabel="Continuar a Resultado"
       continueDisabled={continueDisabled}
+      lateness={ret.lateness}
+      latenessCharge={ret.latenessCharge}
     >
       <h1 className={styles.pageHeading}>
         Recepción — {ret.vehiclePlate ?? 'Vehículo'}
@@ -211,7 +199,7 @@ export function ChecklistScreen() {
       {!online && (
         <p className={`${styles.banner} ${styles.banner_warning}`} role="status">
           Sin conexión — tu trabajo se guarda en este dispositivo
-          {localQueueCount > 0 && ` ${localQueueCount} archivo${localQueueCount !== 1 ? 's' : ''} pendiente${localQueueCount !== 1 ? 's' : ''} de sincronizar.`}
+          {totalPending > 0 && ` ${totalPending} archivo${totalPending !== 1 ? 's' : ''} pendiente${totalPending !== 1 ? 's' : ''} de sincronizar.`}
         </p>
       )}
       {online && syncerSyncing && (
@@ -262,7 +250,7 @@ export function ChecklistScreen() {
 
       <fieldset className={styles.fieldset}>
         <legend>
-          Fotos ({photosCount}/{REQUIRED_PHOTOS}{localQueueCount > 0 ? ` + ${localQueueCount} en cola` : ''})
+          Fotos ({photosCount}/{REQUIRED_PHOTOS}{totalPending > 0 ? ` + ${totalPending} en cola` : ''})
         </legend>
         <div
           className={styles.meter}
@@ -344,6 +332,30 @@ export function ChecklistScreen() {
           })}
         </ul>
       </fieldset>
+
+      {evidence.length > 0 && (
+        <fieldset className={styles.fieldset}>
+          <legend>Archivos subidos</legend>
+          <ul className={styles.evidenceList}>
+            {evidence.map((item) => {
+              const zoneLabel = RETURN_ZONES.find((z) => z.value === item.zone)?.label ?? item.zone;
+              const kind = item.type === 'PHOTO' ? 'Foto' : 'Video';
+              return (
+                <li key={item.id} className={styles.evidenceListItem}>
+                  <span>
+                    {kind} · {zoneLabel}
+                  </span>
+                  <EvidenceDeleteButton
+                    label={`${kind.toLowerCase()} ${zoneLabel}`}
+                    disabled={!online}
+                    onConfirm={() => removeEvidence(item.id)}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </fieldset>
+      )}
 
       <fieldset className={styles.fieldset}>
         <legend>Formatos</legend>

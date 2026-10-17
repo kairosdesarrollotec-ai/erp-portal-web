@@ -147,6 +147,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rentals/{id}/commands/register-authorized-driver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar conductor propio autorizado de persona jurídica con su adenda (DEC-ALQ-OWN-DRIVER-005, BR-ALQ-015)
+         * @description Solo PERSONA JURÍDICA: la empresa asume la responsabilidad y el conductor firma una adenda aparte (`addendumDocumentRef`). Persona NATURAL con conductor propio distinto del titular NO está permitido (conduce quien alquila, o se pide el conductor de la empresa): 422 NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED. El tipo de titular se toma del contrato formalizado; si aún no hay contrato, enviar `holderType`. Estados admitidos: VALIDATION, NOTARY_EVALUATION, CONTRACTING, PENDING_DELIVERY. Incrementa la versión del alquiler (If-Match). Permiso: RENTAL.FORMALIZE_CONTRACT.
+         */
+        post: operations["registerAuthorizedDriver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rentals/{id}/commands/formalize-contract": {
         parameters: {
             query?: never;
@@ -223,6 +243,26 @@ export interface paths {
          */
         post: operations["recordRentalEvidence"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rentals/{id}/evidence/{evidenceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Elimina una evidencia (foto/video) de entrega registrada por error
+         * @description Solo mientras el alquiler esté en PENDING_DELIVERY; una vez completada la entrega la evidencia no se puede alterar. Misma acción de matriz que subirla (RENTAL.UPLOAD_EVIDENCE). Se elimina el registro; el archivo del bucket no se toca.
+         */
+        delete: operations["deleteRentalEvidence"];
         options?: never;
         head?: never;
         patch?: never;
@@ -409,16 +449,34 @@ export interface components {
             branchId: string;
             justification: string;
         };
+        RegisterAuthorizedDriverRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /**
+             * Format: uuid
+             * @description Cliente (persona) que conducirá.
+             */
+            driverCustomerId: string;
+            /** @description Referencia de la adenda firmada por el conductor autorizado. */
+            addendumDocumentRef: string;
+            holderType?: components["schemas"]["ContractHolderType"];
+        };
+        /** @description `depositAmount` y `depositCurrency` son obligatorios SALVO con conductor de la empresa (`withCompanyDriver=true`), donde no hay garantía y se omiten (DEC-ALQ-COMPANY-DRIVER-004). */
         FormalizeContractRequest: {
             /** Format: uuid */
             companyId: string;
             /** Format: uuid */
             branchId: string;
             documentRef: string;
-            /** @description Garantía TOTAL del vehículo (incluye el monto de reserva que se traslada, si lo hay). */
-            depositAmount: string;
-            /** @enum {string} */
-            depositCurrency: "PEN" | "USD";
+            /** @description Garantía TOTAL del vehículo (incluye el monto de reserva que se traslada, si lo hay). Omitir con conductor de la empresa. */
+            depositAmount?: string;
+            /**
+             * @description Omitir con conductor de la empresa.
+             * @enum {string}
+             */
+            depositCurrency?: "PEN" | "USD";
             holderType?: components["schemas"]["ContractHolderType"];
             /** @description BR-DOC-003. El cliente pide que la empresa le OFREZCA un conductor (servicio). No es el conductor distinto del titular de BR-ALQ-015. Obligatorio si se envía holderType. */
             withCompanyDriver?: boolean;
@@ -536,6 +594,8 @@ export interface components {
             /** Format: uuid */
             customerId: string;
             role: components["schemas"]["RentalPartyRole"];
+            /** @description Adenda firmada del conductor autorizado (DRIVER de persona jurídica, DEC-ALQ-OWN-DRIVER-005). Null en el resto. */
+            addendumDocumentRef?: string | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -561,6 +621,10 @@ export interface components {
             signedAt?: string | null;
             /** @description Combinación con la que se eligió la plantilla (p. ej. NATURAL_NO_DRIVER). Null en contratos anteriores. */
             contractVariant?: string | null;
+            /** @description false = con conductor de la empresa */
+            depositRequired?: boolean;
+            /** @description Crédito de reserva sin garantía a la cual aplicarse (saldo a favor; "0.00" si no aplica). */
+            reservationCreditExcess?: string;
             /** Format: date-time */
             createdAt: string;
         };
@@ -687,7 +751,12 @@ export interface components {
             parties?: components["schemas"]["RentalPartyResponse"][];
             notaryEvaluation?: components["schemas"]["NotaryEvaluationResponse"] | null;
             contract?: components["schemas"]["RentalContractResponse"] | null;
+            /** @description Null si aún no se formalizó o si el alquiler es con conductor de la empresa (ver depositRequired). */
             deposit?: components["schemas"]["RentalDepositResponse"] | null;
+            /** @description false = alquiler con conductor de la empresa; no se exige ni cobra garantía (Devolución la trata como N/A). true por defecto. */
+            depositRequired?: boolean;
+            /** @description Saldo a favor del crédito de reserva ("0.00" si no hay). Con garantía = deposit.reservationCreditExcess; con conductor de la empresa = todo el crédito pagado. Sin reembolso automático (pendiente Finanzas). */
+            reservationCreditExcess?: string;
             /** @description Solo en GET /rentals/{id}. Null = alquiler sin reserva de origen. */
             reservationCredit?: components["schemas"]["ReservationCreditResponse"] | null;
             /** @description Solo en GET /rentals/{id}. Ampliaciones, la más reciente primero. */
@@ -1340,6 +1409,97 @@ export interface operations {
             };
         };
     };
+    registerAuthorizedDriver: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterAuthorizedDriverRequest"];
+            };
+        };
+        responses: {
+            /** @description Conductor autorizado registrado; el alquiler trae la nueva party con role DRIVER y `addendumDocumentRef` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalResponse"];
+                };
+            };
+            /** @description ADDENDUM_DOCUMENT_REQUIRED o datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin permiso o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RENTAL_DRIVER_ALREADY_REGISTERED o RENTAL_DRIVER_REGISTRATION_CLOSED (estado posterior a la entrega) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     formalizeContract: {
         parameters: {
             query?: never;
@@ -1401,7 +1561,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description RESERVATION_CREDIT_CURRENCY_MISMATCH (moneda distinta). Un monto de reserva mayor que la garantía ya NO es error (queda en deposit.reservationCreditExcess). */
+            /** @description DEPOSIT_NOT_APPLICABLE_WITH_COMPANY_DRIVER (se envió garantía con conductor de la empresa). RESERVATION_CREDIT_CURRENCY_MISMATCH (moneda distinta). Un monto de reserva mayor que la garantía ya NO es error (queda en deposit.reservationCreditExcess). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1644,6 +1804,58 @@ export interface operations {
                 content?: never;
             };
             /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Estado incompatible (debe estar en PENDING_DELIVERY) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deleteRentalEvidence: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                evidenceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Evidencia eliminada */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler o evidencia no encontrados */
             404: {
                 headers: {
                     [name: string]: unknown;

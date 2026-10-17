@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UserProfileScreen } from './UserProfileScreen';
 import { useWorkSession } from '../shared/useWorkSession';
 import { roleRef } from '../../test/permissions';
@@ -29,6 +30,11 @@ vi.mock('../providers/firebase', () => ({
     get currentUser() {
       return currentUserMock;
     },
+    // El hook espera a que Firebase restaure la sesión antes de consultar el perfil.
+    onAuthStateChanged: (cb: (u: unknown) => void) => {
+      queueMicrotask(() => cb(currentUserMock));
+      return () => {};
+    },
   }),
 }));
 
@@ -41,10 +47,13 @@ const mockSignOut = vi.fn();
 vi.mock('../shared/useSignOut', () => ({ useSignOut: () => mockSignOut }));
 
 function renderProfileScreen(state: Record<string, unknown> = {}) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/perfil', state }]}>
-      <UserProfileScreen />
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[{ pathname: '/perfil', state }]}>
+        <UserProfileScreen />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -169,6 +178,8 @@ describe('UserProfileScreen (TR-09)', () => {
 
   it('muestra estado ERROR con reintento cuando el backend falla (sin datos de relleno)', async () => {
     vi.mocked(profileClientModule.getMyProfile)
+      // El hook reintenta una vez (retry: 1): dos rechazos antes de que "Reintentar" tenga éxito.
+      .mockRejectedValueOnce(new Error('No se pudo obtener el perfil (500)'))
       .mockRejectedValueOnce(new Error('No se pudo obtener el perfil (500)'))
       .mockResolvedValueOnce(apiProfile);
     renderProfileScreen();
@@ -198,7 +209,7 @@ describe('UserProfileScreen (TR-09)', () => {
   it('"Cerrar sesión" sin borradores cierra sesión directamente', async () => {
     renderProfileScreen();
     fireEvent.click(await screen.findByRole('button', { name: 'Cerrar sesión' }));
-    expect(mockSignOut).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockSignOut).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 

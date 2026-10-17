@@ -159,6 +159,29 @@ export interface ReturnLateness {
   basis: 'RECEIVED' | 'NOW';
 }
 
+export type LatenessTier = 'NONE' | 'EXTRA_31_120' | 'EXTRA_121_300' | 'EXTRA_OVER_300';
+
+/**
+ * DEC-DEV-LATE-CHARGE-001 (Hoja de Politicas VR-GA-PA-VS.04): cargo SUGERIDO por retraso.
+ * Solo informativo; el cobro es manual. Montos decimales como string, null si no aplican.
+ */
+export interface ReturnLatenessCharge {
+  tier: LatenessTier;
+  basis: 'RECEIVED' | 'NOW';
+  informational: true;
+  timeChargePercent: number;
+  guaranteePenaltyPercent: number;
+  dailyRate: string | null;
+  guaranteeAmount: string | null;
+  currency: string | null;
+  suggestedTimeCharge: string | null;
+  suggestedGuaranteePenalty: string | null;
+  /** true = ampliacion autorizada y pagada cubre el tiempo; false = ninguna; null = lo confirma el operador. */
+  noticeAndPrepaymentVerified: boolean | null;
+  severeBreach: boolean;
+  severeBreachThresholdHours: number;
+}
+
 export interface ReturnResponse {
   id: string;
   organizationId: string;
@@ -198,6 +221,10 @@ export interface ReturnResponse {
   alerts?: ReturnAlerts;
   /** Retraso informativo; solo en GET /returns y GET /returns/{id}. null si no aplica. */
   lateness?: ReturnLateness | null;
+  /** false = alquiler con conductor de la empresa: sin garantia (liberacion/devolucion N/A). Se asume true si falta. */
+  depositRequired?: boolean;
+  /** Cargo sugerido por retraso; solo en GET /returns y GET /returns/{id}. null si CANCELADA sin recepcion. */
+  latenessCharge?: ReturnLatenessCharge | null;
   /** Fuente de verdad de danos y cargos de paralizacion del expediente. */
   damages: ReturnDamageResponse[];
   immobilizationCharges: ImmobilizationChargeResponse[];

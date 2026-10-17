@@ -80,6 +80,8 @@ export function ClosureScreen() {
       continueDisabled={!canSubmit}
       continueBusy={busy}
       errorMessage={error}
+      lateness={ret.lateness}
+      latenessCharge={ret.latenessCharge}
     >
       <h1 className={styles.pageHeading}>Cierre y expediente — {ret.vehiclePlate ?? 'Vehículo'}</h1>
 
@@ -161,11 +163,18 @@ export function ClosureScreen() {
 
       {actionable && (
         <>
+          {ret.depositRequired === false && (
+            <p className={`${styles.banner} ${styles.banner_info}`} role="status" data-testid="no-deposit-banner">
+              Sin garantía (conductor de la empresa): no hay acta de devolución de garantía.
+            </p>
+          )}
+          {ret.depositRequired !== false && (
           <label className={styles.checkboxRow}>
             <input type="checkbox" checked={wantsAct} onChange={(e) => setWantsAct(e.target.checked)} />
             El cliente solicita el acta de devolución de garantía
           </label>
-          {wantsAct && (
+          )}
+          {wantsAct && ret.depositRequired !== false && (
             <label className={styles.fieldLabel}>
               Firma (nombre completo de quien firma el acta)
               <input className={styles.input} value={signature} onChange={(e) => setSignature(e.target.value)} />

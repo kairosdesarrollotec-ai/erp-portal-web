@@ -20,6 +20,7 @@ const listRentalEvidenceMock = vi.fn();
 const requestEvidenceUploadSessionMock = vi.fn();
 const uploadEvidenceToGcsMock = vi.fn();
 const recordEvidenceMock = vi.fn();
+const deleteRentalEvidenceMock = vi.fn();
 
 vi.mock('./rentals-client', async () => {
   const actual = await vi.importActual<typeof import('./rentals-client')>('./rentals-client');
@@ -29,6 +30,7 @@ vi.mock('./rentals-client', async () => {
     requestEvidenceUploadSession: (...args: unknown[]) => requestEvidenceUploadSessionMock(...args),
     uploadEvidenceToGcs: (...args: unknown[]) => uploadEvidenceToGcsMock(...args),
     recordEvidence: (...args: unknown[]) => recordEvidenceMock(...args),
+    deleteRentalEvidence: (...args: unknown[]) => deleteRentalEvidenceMock(...args),
   };
 });
 
@@ -144,6 +146,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     requestEvidenceUploadSessionMock.mockReset();
     uploadEvidenceToGcsMock.mockReset();
     recordEvidenceMock.mockReset();
+    deleteRentalEvidenceMock.mockReset();
     addEvidenceToQueueMock.mockReset();
     useSyncManagerMock.mockReset();
     listRentalEvidenceMock.mockResolvedValue([]);
@@ -313,6 +316,50 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     );
     expect(uploadEvidenceToGcsMock).toHaveBeenCalledWith('https://storage.googleapis.com/bucket/upload-signed-url', file);
     await waitFor(() => expect(screen.getByText(/1\/35/)).toBeInTheDocument());
+  });
+
+  it('permite eliminar una foto subida por error, con confirmación, y refresca la lista', async () => {
+    deleteRentalEvidenceMock.mockResolvedValue(undefined);
+    listRentalEvidenceMock
+      .mockResolvedValueOnce([evidenceItem('PHOTO', 0)])
+      .mockResolvedValueOnce([]);
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Eliminar foto Frontal/i }));
+    // pide confirmación antes de borrar
+    expect(deleteRentalEvidenceMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+
+    await waitFor(() =>
+      expect(deleteRentalEvidenceMock).toHaveBeenCalledWith('tok', 'rent-1', 'ev-PHOTO-0', 'c1', 'b1'),
+    );
+    await waitFor(() => expect(listRentalEvidenceMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Eliminar foto Frontal/i })).not.toBeInTheDocument());
+  });
+
+  it('al decir "No" en la confirmación no se elimina nada', async () => {
+    listRentalEvidenceMock.mockResolvedValue([evidenceItem('VIDEO', 0)]);
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Eliminar video Frontal/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'No' }));
+
+    expect(deleteRentalEvidenceMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /Eliminar video Frontal/i })).toBeInTheDocument();
+  });
+
+  it('si la entrega ya no admite cambios (409) muestra un mensaje claro', async () => {
+    deleteRentalEvidenceMock.mockRejectedValue(Object.assign(new Error('conflict'), { status: 409 }));
+    listRentalEvidenceMock.mockResolvedValue([evidenceItem('PHOTO', 0)]);
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Eliminar foto Frontal/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+
+    expect(await screen.findByText(/La entrega ya no admite cambios en la evidencia/)).toBeInTheDocument();
   });
 
   it('rechaza un tipo de archivo no permitido sin llamar al backend', async () => {

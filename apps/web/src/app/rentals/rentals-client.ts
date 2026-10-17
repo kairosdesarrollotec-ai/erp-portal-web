@@ -11,6 +11,7 @@ type EvaluateNotaryBody = components['schemas']['EvaluateNotaryRequest'];
 type ApproveNotaryExceptionBody = components['schemas']['ApproveNotaryExceptionRequest'];
 type FormalizeContractBody = components['schemas']['FormalizeContractRequest'];
 type CompleteDeliveryBody = components['schemas']['CompleteDeliveryRequest'];
+type RegisterAuthorizedDriverBody = components['schemas']['RegisterAuthorizedDriverRequest'];
 
 /** Error HTTP de lectura (GET) - mismo patron que ReservationApiError. */
 export class RentalApiError extends Error {
@@ -34,6 +35,8 @@ export interface RentalPartyResponse {
   id: string;
   customerId: string;
   role: 'SIGNER' | 'DRIVER' | 'RESPONSIBLE';
+  /** Adenda firmada del conductor autorizado (DRIVER de persona juridica, DEC-ALQ-OWN-DRIVER-005). */
+  addendumDocumentRef?: string | null;
   createdAt: string;
 }
 
@@ -133,7 +136,12 @@ export interface RentalResponse {
   parties?: RentalPartyResponse[];
   notaryEvaluation?: NotaryEvaluationResponse | null;
   contract?: RentalContractResponse | null;
+  /** Null si aun no se formalizo o si el alquiler es con conductor de la empresa (DEC-ALQ-COMPANY-DRIVER-004). */
   deposit?: RentalDepositResponse | null;
+  /** false = con conductor de la empresa: no se exige ni cobra garantia. Se asume true si falta. */
+  depositRequired?: boolean;
+  /** Saldo a favor del credito de reserva ("0.00" si no hay). Sin reembolso automatico. */
+  reservationCreditExcess?: string;
   reservationCredit?: ReservationCreditResponse | null;
   extensions?: RentalExtensionResponse[];
 }
@@ -334,8 +342,9 @@ export async function formalizeContract(
   branchId: string,
   version: number,
   documentRef: string,
-  depositAmount: string,
-  depositCurrency: 'PEN' | 'USD',
+  /** Omitir (null) con conductor de la empresa: no hay garantia (DEC-ALQ-COMPANY-DRIVER-004). */
+  depositAmount: string | null,
+  depositCurrency: 'PEN' | 'USD' | null,
   templateVersionId?: string,
   signatureData?: string,
   variant?: { holderType: ContractHolderType; withCompanyDriver: boolean },
@@ -348,11 +357,43 @@ export async function formalizeContract(
       branchId,
       ...(templateVersionId ? { templateVersionId } : {}),
       documentRef,
-      depositAmount,
-      depositCurrency,
+      // Con conductor de la empresa NO se envia garantia (si no, 422 DEPOSIT_NOT_APPLICABLE_WITH_COMPANY_DRIVER).
+      ...(variant?.withCompanyDriver || depositAmount == null ? {} : { depositAmount, depositCurrency: depositCurrency ?? 'PEN' }),
       ...(signatureData ? { signatureData } : {}),
       ...(variant ? { holderType: variant.holderType, withCompanyDriver: variant.withCompanyDriver } : {}),
     } as unknown as FormalizeContractBody,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
+}
+
+/**
+ * ENTREGA-01 - registra al conductor propio autorizado de una persona JURIDICA con su adenda
+ * (DEC-ALQ-OWN-DRIVER-005, BR-ALQ-015). Persona natural -> 422 NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED.
+ */
+export async function registerAuthorizedDriver(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  driverCustomerId: string,
+  addendumDocumentRef: string,
+  holderType?: ContractHolderType,
+): Promise<RentalResponse> {
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/register-authorized-driver', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: {
+      companyId,
+      branchId,
+      driverCustomerId,
+      addendumDocumentRef,
+      ...(holderType ? { holderType } : {}),
+    } as unknown as RegisterAuthorizedDriverBody,
   });
   if (error || !data) {
     const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
@@ -400,6 +441,7 @@ export {
   uploadEvidenceToGcs,
   recordEvidence,
   listRentalEvidence,
+  deleteRentalEvidence,
   type RentalDocumentType,
   type RentalDocumentContentType,
   type RentalDocumentRecord,

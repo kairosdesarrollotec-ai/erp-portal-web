@@ -389,4 +389,22 @@ describe('ReturnsListScreen (DEV-01) - recordatorios y alertas', () => {
     expect(await screen.findByText('Retraso: 50 min (tolerancia 30 min)')).toBeInTheDocument();
     expect(screen.getAllByTestId('lateness-badge')).toHaveLength(1);
   });
+
+  it('muestra el resumen del cargo sugerido por retraso en la fila y marca el incumplimiento grave', async () => {
+    const mk = (over: Record<string, unknown>) => ({
+      tier: 'EXTRA_31_120' as const, basis: 'NOW' as const, informational: true as const, timeChargePercent: 25, guaranteePenaltyPercent: 20,
+      dailyRate: '200.00', guaranteeAmount: '1000.00', currency: 'PEN', suggestedTimeCharge: '50.00', suggestedGuaranteePenalty: '200.00',
+      noticeAndPrepaymentVerified: null, severeBreach: false, severeBreachThresholdHours: 12, ...over,
+    });
+    listReturnsMock.mockResolvedValue([
+      makeReturn({ id: 'a', latenessCharge: mk({}) }),
+      makeReturn({ id: 'b', latenessCharge: mk({ tier: 'EXTRA_OVER_300', severeBreach: true }) }),
+      makeReturn({ id: 'c', latenessCharge: mk({ tier: 'NONE' }) }),
+      makeReturn({ id: 'd', latenessCharge: null }),
+    ]);
+    renderScreen();
+    expect(await screen.findByText('Cargo sugerido: 25% de la tarifa')).toBeInTheDocument();
+    expect(screen.getByText('Incumplimiento grave (> 12 h)')).toBeInTheDocument();
+    expect(screen.getAllByTestId('lateness-charge-badge')).toHaveLength(2);
+  });
 });

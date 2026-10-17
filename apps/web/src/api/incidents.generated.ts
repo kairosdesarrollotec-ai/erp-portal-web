@@ -112,10 +112,10 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
-         * @description Catálogo mínimo; ampliable sin cambiar el modelo.
+         * @description Catálogo mínimo; ampliable sin cambiar el modelo. UNAUTHORIZED_DRIVER (DEC-ALQ-UNAUTH-DRIVER-003, Hoja de Políticas: solo la persona que firma puede manejar): otra persona condujo sin autorización. Solo admite severidad GRAVE (422 INCIDENT_SEVERITY_NOT_ALLOWED_FOR_TYPE). Registrarla NO tiene consecuencias automáticas (ni retención de garantía, ni resolución del contrato, ni cliente rojo): resolver, cerrar o derivar a vía legal es decisión exclusiva de Gerencia, caso por caso (403 MANAGEMENT_DECISION_REQUIRED para otros roles); la decisión queda en el historial append-only (resolutionSummary / reason).
          * @enum {string}
          */
-        IncidentType: "KEY_LOSS" | "CRASH_OR_DAMAGE" | "TRAFFIC_FINE_OR_INTERVENTION" | "TOWING" | "OTHER";
+        IncidentType: "KEY_LOSS" | "CRASH_OR_DAMAGE" | "TRAFFIC_FINE_OR_INTERVENTION" | "TOWING" | "OTHER" | "UNAUTHORIZED_DRIVER";
         /** @enum {string} */
         IncidentSeverity: "LEVE" | "MODERADA" | "GRAVE";
         /**
@@ -342,6 +342,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Severidad no admitida por el tipo (INCIDENT_SEVERITY_NOT_ALLOWED_FOR_TYPE; UNAUTHORIZED_DRIVER solo GRAVE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Error interno */
             500: {
                 headers: {
@@ -525,7 +532,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso INCIDENT.RESOLVE */
+            /** @description Rol sin permiso INCIDENT.RESOLVE; en incidencias UNAUTHORIZED_DRIVER solo Gerencia decide (MANAGEMENT_DECISION_REQUIRED) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -610,7 +617,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso INCIDENT.CLOSE */
+            /** @description Rol sin permiso INCIDENT.CLOSE; en incidencias UNAUTHORIZED_DRIVER solo Gerencia decide (MANAGEMENT_DECISION_REQUIRED) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -688,7 +695,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso INCIDENT.REFER_LEGAL */
+            /** @description Rol sin permiso INCIDENT.REFER_LEGAL; en incidencias UNAUTHORIZED_DRIVER solo Gerencia decide (MANAGEMENT_DECISION_REQUIRED) */
             403: {
                 headers: {
                     [name: string]: unknown;
