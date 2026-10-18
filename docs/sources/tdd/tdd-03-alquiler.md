@@ -1,5 +1,7 @@
 # TDD — 03 Alquiler
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica pendiente de revisión; cambios posteriores se gestionan como mejoras documentadas.
+
 # Technical Design Document — Alquiler
 
 **Código:** TDD-KAIROS-MVP-002 / ALQ **Versión:** 2.1 — dividido a partir de `TDD-KAIROS-Consolidado-Detallado.md` (v1.0), actualizado 02 sep 2026 (evidencia: 35 fotos + video de 3 a 16 min) **Estado:** Completo en contenido, pendiente de revisión formal **Entradas:** `BDD-ALQ-001`, `SDD-ALQ-001` **Dominio:** Alquiler **Propietario técnico:** Tech Lead — pendiente de asignar **Revisores:** Arquitectura, Backend, Frontend, Datos, Seguridad, QA **Fecha:** 31 de agosto de 2026

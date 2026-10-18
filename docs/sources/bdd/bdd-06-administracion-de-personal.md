@@ -2,6 +2,8 @@
 
 # BDD-ADP-001 — Proceso: Administración de Personal
 
+**Estado:** APROBADO — versión base (usuario, 18 oct 2026; cambios posteriores se gestionan como mejoras documentadas)
+
 **Código:** BDD-KAIROS-MVP-002 / ADP **Versión:** 1.9 (actualizado 02 sep 2026 — 2 escenarios Gherkin nuevos: BR-ADP-007/008) **Depende de:** `BDD-KAIROS-TRANSVERSAL.md` (glosario, actores, catálogo de Cliente, reglas transversales, NFR, privacidad, criterios de aceptación)
 
 > ⚠️ **Corrección importante (02 sep 2026):** BR-ADP-002 se documentaba como "las 2 personas clave de un área nunca pueden superponer vacaciones" — Fiorella aclaró que **no es así**: es una regla de capacidad de área (máximo 1 persona de vacaciones a la vez, sin importar cuántos colaboradores tenga el área), resuelta por orden de solicitud, verificada contra el calendario del área. Se corrige en toda la sección 16.9 y en el resto del documento.

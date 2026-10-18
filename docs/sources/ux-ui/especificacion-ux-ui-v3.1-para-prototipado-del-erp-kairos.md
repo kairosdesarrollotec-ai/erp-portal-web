@@ -7,7 +7,7 @@
 
 **Versión:** 3.1  
 **Fecha:** 10 de septiembre de 2026  
-**Estado:** Candidato consolidado para aprobación de Producto, UX, UI, Tech Lead, Seguridad y QA  
+**Estado:** APROBADO — versión base (usuario, 18 oct 2026; cambios posteriores se gestionan como mejoras documentadas)
 **Sponsor:** Fiorella  
 **Tech Lead:** Eder Ramos  
 **Plataforma:** React SPA/PWA con TypeScript, Vite y React Router; sin Next.js  

@@ -1,5 +1,7 @@
 # TDD — 06 Administración de Personal
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica pendiente de revisión; cambios posteriores se gestionan como mejoras documentadas.
+
 # Technical Design Document — Administración de Personal
 
 **Código:** TDD-KAIROS-MVP-002 / ADP **Versión:** 2.1 — dividido a partir de `TDD-KAIROS-Consolidado-Detallado.md` (v1.0), corregido 02 sep 2026 (constraint de vacaciones: `area_id`, no `employee_id`) **Estado:** Completo en contenido, pendiente de revisión formal **Entradas:** `BDD-ADP-001` (v1.6), `SDD-ADP-001` **Dominio:** Administración de Personal **Propietario técnico:** Tech Lead — pendiente de asignar **Revisores:** Arquitectura, Backend, Frontend, QA **Fecha:** 31 de agosto de 2026

@@ -1,5 +1,7 @@
 # TDD — 02 Reserva
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica pendiente de revisión; cambios posteriores se gestionan como mejoras documentadas.
+
 # Technical Design Document — Reserva
 
 **Código:** TDD-KAIROS-MVP-002 / RES **Versión:** 2.2 — 03 sep 2026: resuelto el hallazgo P0-03 (tratamiento financiero de la garantía, ya implementable), precisado el mecanismo de no-show (decisión humana, no job automático) **Estado:** Completo en contenido, pendiente de revisión formal **Entradas:** `BDD-RES-001` (v1.9), `SDD-RES-001` (v2.2) **Dominio:** Reserva **Propietario técnico:** **Eder Ramos (Tech Lead)**, confirmado 02 sep 2026 — corregido 03 sep 2026, este documento seguía sin reflejarlo **Revisores:** Arquitectura, Backend, Frontend, Datos, Seguridad, QA **Fecha:** 31 de agosto de 2026

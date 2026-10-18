@@ -1,5 +1,7 @@
 # SDD — 04 Devolución
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica de borrador; cambios posteriores se gestionan como mejoras documentadas.
+
 # Solution Design Document — Devolución
 
 **Código:** SDD-KAIROS-MVP-002 / DEV **Versión:** 2.2 — corregido 02 sep 2026 (hallazgo P0-05 + P1-05: criterio 1 recalculado, 0 preguntas abiertas) **Estado:** DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado **Entrada funcional:** `BDD-DEV-001` (Devolución) — **v1.8, 02 sep 2026** (corregido 02 sep, hallazgo P0-05: este encabezado citaba v1.6) **Depende de:** `SDD-KAIROS-TRANSVERSAL.md` (arquitectura base, multiempresa, seguridad, integraciones, offline, observabilidad, despliegue, migración, ADR y riesgos transversales, decisiones abiertas de arquitectura, criterios de aprobación) **Alcance:** Proceso de Devolución — recepción, inspección, daños, garantía **Propietario:** Arquitectura de Solución — pendiente de asignar **Revisores:** Producto, Operaciones, UX, Finanzas, Legal, QA **Fecha:** 31 de agosto de 2026

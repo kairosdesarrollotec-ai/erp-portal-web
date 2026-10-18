@@ -1,5 +1,7 @@
 # SDD — 02 Reserva
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica de borrador; cambios posteriores se gestionan como mejoras documentadas.
+
 # Solution Design Document — Reserva
 
 **Código:** SDD-KAIROS-MVP-002 / RES **Versión:** 2.2 — 03 sep 2026: resuelto el hallazgo P0-03 (tratamiento financiero de la garantía, confirmado por José y Fiorella), precisado el mecanismo de no-show (P1-02), agregada nota sobre reembolso por reserva no completada (`EX-RES-005`) **Estado:** DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado **Entrada funcional:** `BDD-RES-001` (Reserva) — v1.9, 03 sep 2026 **Depende de:** `SDD-KAIROS-TRANSVERSAL.md` (arquitectura base, multiempresa, seguridad, integraciones, offline, observabilidad, despliegue, migración, ADR y riesgos transversales, decisiones abiertas de arquitectura, criterios de aprobación) **Alcance:** Proceso de Reserva — presencial y remota, incluida venta de vehículo reservado **Propietario:** Arquitectura de Solución — **Eder Ramos (Tech Lead)**, confirmado 02 sep 2026 — corregido 03 sep 2026, este documento seguía sin reflejarlo **Revisores:** Producto, Operaciones, UX, Seguridad, Datos, Finanzas, QA **Fecha:** 31 de agosto de 2026

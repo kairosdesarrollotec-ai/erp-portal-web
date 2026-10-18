@@ -2,6 +2,8 @@
 
 # BDD-RES-001 — Proceso: Reserva
 
+**Estado:** APROBADO — versión base (usuario, 18 oct 2026; cambios posteriores se gestionan como mejoras documentadas)
+
 **Código:** BDD-KAIROS-MVP-002 / RES **Versión:** 1.9 (actualizado 03 sep 2026 — BR-RES-002 confirmada (traslado íntegro a garantía), BR-RES-009 ampliada para incluir la atomicidad que ya se citaba en SDD/TDD, EX-RES-005 nueva, protocolo de no-show precisado) **Depende de:** `BDD-KAIROS-TRANSVERSAL.md` (glosario, actores, catálogo de Cliente, reglas transversales, NFR, privacidad, criterios de aceptación)
 
 > Parte de la serie BDD-KAIROS-MVP-002, dividida por gobernanza el 27 ago 2026. La fuente canónica sigue siendo el conjunto de estos documentos — ninguno se lee de forma aislada sin `BDD-KAIROS-TRANSVERSAL.md`.

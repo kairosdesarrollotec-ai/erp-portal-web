@@ -2,6 +2,8 @@
 
 # BDD-DEV-001 — Proceso: Devolución
 
+**Estado:** APROBADO — versión base (usuario, 18 oct 2026; cambios posteriores se gestionan como mejoras documentadas)
+
 **Código:** BDD-KAIROS-MVP-002 / DEV **Versión:** 1.9 (actualizado 02 sep 2026 — 3 escenarios Gherkin nuevos: BR-DEV-004/005/009) **Depende de:** `BDD-KAIROS-TRANSVERSAL.md` (glosario, actores, catálogo de Cliente, reglas transversales, NFR, privacidad, criterios de aceptación)
 
 > Parte de la serie BDD-KAIROS-MVP-002, dividida por gobernanza el 27 ago 2026. La fuente canónica sigue siendo el conjunto de estos documentos — ninguno se lee de forma aislada sin `BDD-KAIROS-TRANSVERSAL.md`.

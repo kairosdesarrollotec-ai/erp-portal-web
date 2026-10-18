@@ -1,5 +1,7 @@
 # SDD — 06 Administración de Personal
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica de borrador; cambios posteriores se gestionan como mejoras documentadas.
+
 # Solution Design Document — Administración de Personal
 
 **Código:** SDD-KAIROS-MVP-002 / ADP **Versión:** 2.1 — dividido a partir de `SDD-KAIROS-Consolidado-Detallado.md` (v1.2), corregido 02 sep 2026 (BR-ADP-002: capacidad de área, no "2 personas clave") **Estado:** DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado **Entrada funcional:** `BDD-ADP-001` (Administración de Personal) — v1.6, 31 ago 2026 **Depende de:** `SDD-KAIROS-TRANSVERSAL.md` (arquitectura base, multiempresa, seguridad, integraciones, offline, observabilidad, despliegue, migración, ADR y riesgos transversales, decisiones abiertas de arquitectura, criterios de aprobación) **Alcance:** Proceso de Administración de Personal — asistencia, permisos, vacaciones, remuneración, salidas a campo, salida **Propietario:** Arquitectura de Solución — pendiente de asignar **Revisores:** Producto, Operaciones, QA **Fecha:** 31 de agosto de 2026

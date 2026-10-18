@@ -2,6 +2,8 @@
 
 # BDD-KAIROS-TRACEABILITY — Matriz de trazabilidad consolidada
 
+**Estado:** APROBADO — versión base (usuario, 18 oct 2026; cambios posteriores se gestionan como mejoras documentadas)
+
 **Código:** BDD-KAIROS-MVP-002 / TRACEABILITY **Versión:** 1.11 (actualizada 03 sep 2026 — 76→79 escenarios: BR-RES-002 y EX-RES-005 nuevas; corrige 2 filas de Reserva desactualizadas — BR-RES-005 ya tenía escenario desde el 02 sep y esta tabla seguía diciendo que no) **Contenido:** Trazabilidad completa (necesidad → paso → dato → regla → escenario `@SC-*` → resultado → fuente → estado) de los 6 procesos.
 
 > Versión 1.6 corrigió los 7 hallazgos de la primera auditoría independiente. La versión 1.7 migró y creó escenarios Gherkin nuevos. La versión 1.8 corrigió el conteo de Reserva y el título "sin celdas huérfanas". **Esta versión 1.9 corrige el hallazgo técnico más importante de una tercera auditoría:** la matriz solo trazaba 47 de las 70 reglas — faltaban 23, principalmente porque nunca existió una sección transversal propia (nueva sección 18.0, 12 reglas) y porque 11 reglas de proceso simples, sin rama de decisión, se habían omitido al construir las tablas. Se agregan las 23, todas con al menos una fila — las que no tienen escenario Gherkin dedicado lo declaran explícitamente con su justificación. También se corrige la introducción de la sección 19 (contradecía su propia tabla) y se aclara la propiedad cruzada del "aviso tardío de choque" entre Alquiler y Devolución.
