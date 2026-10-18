@@ -3409,8 +3409,8 @@ screens:
   status: APPROVED
   approved_by_role: GERENCIA
   approved_at: '2026-10-11'
-  sha256: 91de5806912db6787a5f353ae99fe11b200cbffcd8d5e3096838ad5d298aefa9
-  bytes: 19093
+  sha256: 8aaeb5540bbcc3a3a38de1a4f30db4eff5bf7bdfb6f05c961fdeead410e208d2
+  bytes: 30666
   supersedes: null
   note: modal confirmación falta grave BR-ALQ-013 — retención de garantía + cliente rojo + proceso penal. Actor GERENCIA. Acción irreversible. CTA destructivo habilitado solo con checkbox + observaciones.
   is_reference_asset: false
