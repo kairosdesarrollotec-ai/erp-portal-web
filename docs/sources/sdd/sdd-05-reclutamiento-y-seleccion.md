@@ -1,5 +1,7 @@
 # SDD — 05 Reclutamiento y Selección
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica de borrador; cambios posteriores se gestionan como mejoras documentadas.
+
 # Solution Design Document — Reclutamiento y Selección
 
 **Código:** SDD-KAIROS-MVP-002 / REC **Versión:** 2.0 — dividido a partir de `SDD-KAIROS-Consolidado-Detallado.md` (v1.2) **Estado:** DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado **Entrada funcional:** `BDD-REC-001` (Reclutamiento y Selección) **Depende de:** `SDD-KAIROS-TRANSVERSAL.md` (arquitectura base, multiempresa, seguridad, integraciones, offline, observabilidad, despliegue, migración, ADR y riesgos transversales, decisiones abiertas de arquitectura, criterios de aprobación) **Alcance:** Proceso de Reclutamiento y Selección — AS-IS real, con espacio para el Plan de Talento Humano formal **Propietario:** Arquitectura de Solución — pendiente de asignar **Revisores:** Producto, Operaciones, QA **Fecha:** 31 de agosto de 2026

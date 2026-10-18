@@ -1,5 +1,7 @@
 # SDD — 07 Trazabilidad
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica de borrador; cambios posteriores se gestionan como mejoras documentadas.
+
 # SDD-KAIROS-TRACEABILITY — Matriz de trazabilidad consolidada
 
 **Código:** SDD-KAIROS-MVP-002 / TRACEABILITY **Versión:** 2.1 — corregido 02 sep 2026 (hallazgo P0-02: completadas las 43 reglas que faltaban, de 27 a las 70 trazadas) **Estado:** DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado **Contenido:** Trazabilidad completa (regla BDD → dato → caso de uso → componente → operación/evento → refinamiento TDD) de los 6 procesos, consolidada en un solo lugar — mismo criterio ya aplicado en `BDD-KAIROS-TRACEABILITY.md` **Fecha:** 02 de septiembre de 2026

@@ -9,10 +9,10 @@ sources:
   module: Transversal
   version: '1.18'
   date: unknown
-  status: draft_pending_review
+  status: approved
   estado_original: Candidato para revisión funcional — ver `BDD-KAIROS-EXECUTIVE-SUMMARY.md` para el estado
     global
-  sha256: 4ebcdc8f970e1afdfd4bc748aba7b0d7ec4bfdcdeb1ec4b9d902a41ef572afc7
+  sha256: e6903ac049087030ed6b13670192240c16c63036ed6843472b083691bedc4f77
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-CON
@@ -21,9 +21,9 @@ sources:
   module: Consulta
   version: '1.8'
   date: unknown
-  status: pending_review
+  status: approved
   estado_original: unknown
-  sha256: deed5c50c341495338b6dbc9218f8d5835bfd37568a01757a15f9dd08e4cc41d
+  sha256: 700d540b0b9b6b71b69bf62879d1f093c4e718e5a6805938eeb5d2f70d74467c
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-RES
@@ -32,9 +32,9 @@ sources:
   module: Reserva
   version: '1.9'
   date: unknown
-  status: pending_review
+  status: approved
   estado_original: unknown
-  sha256: c225d6d59b2793926418b692f001e867d00fd33e1ff2c05e59ed7d8cda7106ad
+  sha256: a16e963b5db2095cb566184670fba220a2b70b249a343555c337398aaab2d86e
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-ALQ
@@ -43,9 +43,9 @@ sources:
   module: Alquiler
   version: '1.7'
   date: unknown
-  status: pending_review
+  status: approved
   estado_original: unknown
-  sha256: f3ddf5388e14784739711ffd65e65c70ce388dc5fa508e8ac93ec246ec59f837
+  sha256: 145216288baadaeb56f45b3a904d7a7716e8d2bc81089cf219c6d73a1dc0c593
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-DEV
@@ -54,9 +54,9 @@ sources:
   module: Devolución
   version: '1.9'
   date: unknown
-  status: pending_review
+  status: approved
   estado_original: unknown
-  sha256: 0804f3000bb130f744320ed3ca97e2d3af751c3599c1f9b465929faf6a0de454
+  sha256: db3864f15ae6bae56d402f9424d3bae67e32782743aa22becd329761f7ca3492
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-REC
@@ -65,9 +65,9 @@ sources:
   module: Reclutamiento y Selección
   version: '1.7'
   date: unknown
-  status: pending_review
+  status: approved
   estado_original: unknown
-  sha256: dee619a0164bb298a151a73499d46239c1f19de4b80383acf6277fa92ae86c0d
+  sha256: 78bef03b11fe94988ace1f4e77e9a227b95ffff262e699226a3e764544b5a6ec
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-ADP
@@ -76,9 +76,9 @@ sources:
   module: Administración de Personal
   version: '1.9'
   date: unknown
-  status: pending_review
+  status: approved
   estado_original: unknown
-  sha256: 9730670d7d91d722f9e05a726dbe3a383e81eee9386f43b8b10603dc3e36ea9c
+  sha256: 7d76d6b20960bcb07f5d349aca3cc07e8cb5d6d793f834138274dc165ef36994
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-TRACEABILITY
@@ -87,9 +87,9 @@ sources:
   module: Trazabilidad
   version: '1.11'
   date: unknown
-  status: pending_review
+  status: approved
   estado_original: unknown
-  sha256: 7624fd9bfceeaa4328512e461875f62dafc47053d1839eac824bf970f832a2b3
+  sha256: 10f9768d16c72140b2f6cfc59ec7322116a70b19d771156832c6d7fcfde067d9
   authority: business
   supersedes: null
 - id: BDD-KAIROS-MVP-002-EXECUTIVE-SUMMARY
@@ -98,9 +98,9 @@ sources:
   module: Resumen ejecutivo
   version: '1.19'
   date: unknown
-  status: pending_review
+  status: approved
   estado_original: unknown
-  sha256: 1afb0204dec658005c5126cce4549f5a29aa98638d9c2c25bbe1c43c7b811e87
+  sha256: bf4f22b510fd8c5e8e3edebf498566a455d4510fc7626d7999e0c4606904b43c
   authority: business
   supersedes: null
 - id: SDD-KAIROS-MVP-002-TRANSVERSAL
@@ -109,9 +109,9 @@ sources:
   module: Transversal
   version: '3.6'
   date: 10 de septiembre de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado
-  sha256: c02c97dba24ad435c95af54034c20e1e9c520afbde10a5621ec1d34a97b3dc56
+  sha256: 0e7ce76ce1bcc3fcb6157a6039e9427d2e0de404418f7afece86a4cc34061df2
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-CON
@@ -120,9 +120,9 @@ sources:
   module: Consulta
   version: '2.1'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado
-  sha256: 4c1075fc53fd14fe99f4691deac8135298ee158105227dba6c964fdfe6af850b
+  sha256: c42c278a626bbaf1d1c512ef610a521377768960fddef668908ef8519ab814ca
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-RES
@@ -131,9 +131,9 @@ sources:
   module: Reserva
   version: '2.2'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado
-  sha256: fa2c9e0f4595aef5738f68436d31848d27101d4fce6155a3d92787d678bf1e84
+  sha256: 694577341ac5596c7439e078be30bd1f7fa2e27d5794e731bb97cd8d4200c3eb
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-ALQ
@@ -142,9 +142,9 @@ sources:
   module: Alquiler
   version: '2.1'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado
-  sha256: e6499df2d4c747e4cf23fc74b91cedbc49c005650439fae8b06594988fb39cbf
+  sha256: 484b71a1392aaa21e0b630845cc9ac3a11ba071a88c04c5ccd31444406974072
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-DEV
@@ -153,9 +153,9 @@ sources:
   module: Devolución
   version: '2.2'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado
-  sha256: 4693e6f50c5404572ab34d6db4c4ab57e727550648d73dfd73fc00b24d6e6227
+  sha256: 16791bf521ca2d861135e174bbd2be2ecdedf84d021546be8fdd076155716a92
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-REC
@@ -164,9 +164,9 @@ sources:
   module: Reclutamiento y Selección
   version: '2.0'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado
-  sha256: 0756c61da8e97b692f90170ad7d4830549e9bd10e7cce69f4d29ec678afd5893
+  sha256: 0bec204a63bb9a057f45bc93d8dfd004d8d356592b41d2bbf27230e1974b9db3
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-ADP
@@ -175,9 +175,9 @@ sources:
   module: Administración de Personal
   version: '2.1'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado
-  sha256: 038f4bc2454b99f3826e83accb9e365c24046ba23a6efd5ccb516792d8c2b2b6
+  sha256: 2352165af25a6f3be0d9f0bd0f77a437a8143899167b3e2f8b99a17d8a62d587
   authority: functional
   supersedes: null
 - id: SDD-KAIROS-MVP-002-TRACEABILITY
@@ -186,9 +186,9 @@ sources:
   module: Trazabilidad
   version: '2.1'
   date: 02 de septiembre de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado
-  sha256: e8c77281a16c3f83281cd02c89816d2288fd76a6c697ea6206078740e8156ef8
+  sha256: 9e235982e12fdf070e6adddd0ed22960c1ac0596bc3245b3d32fb0ca23ed1a88
   authority: functional
   supersedes: null
 - id: TDD-KAIROS-MVP-002-TRANSVERSAL
@@ -197,9 +197,9 @@ sources:
   module: Transversal
   version: '3.4'
   date: 10 de septiembre de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: Completo en contenido, pendiente de revisión formal
-  sha256: a4d01294286579e53c56490b48ae4234fbfa19e917df12c452e6fd06af79f1df
+  sha256: 1f6bf44d9f1ce7c08468ced8f1097b964c8f2f028c42e97c2d56f748ba3ea023
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-CON
@@ -208,9 +208,9 @@ sources:
   module: Consulta
   version: '2.0'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: Completo en contenido, pendiente de revisión formal
-  sha256: 8af34aef4ffde5bad4c6375385fc5bc0606eee2ad11513b00c0a93c9d11ab0f3
+  sha256: 16d36defc2d63076b91ef65f7905644e25e62728cee3019a4e28f4260355a099
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-RES
@@ -219,9 +219,9 @@ sources:
   module: Reserva
   version: '2.3'
   date: '2026-10-03'
-  status: draft_pending_review
+  status: approved
   estado_original: v2.3 — Bug 3: ReservationDocumentStoragePort, ReservationDocumentRepositoryPort, ReservationDocumentsController, tabla reservation_documents (GCS).
-  sha256: unknown
+  sha256: f0a91acb0a993b22e86478f8e8743357fca167362ccc2bf37b804cda4e131979
   authority: technical
   supersedes: TDD-KAIROS-MVP-002-RES-V2.2
 - id: TDD-KAIROS-MVP-002-ALQ
@@ -230,9 +230,9 @@ sources:
   module: Alquiler
   version: '2.2'
   date: '2026-10-03'
-  status: draft_pending_review
+  status: approved
   estado_original: v2.2 — Bug 4 (RentalDocumentsController/GCS), Bug 7 (signatureData en rental_contracts), Bug 8 (vehicleDepositMinimum en RentalResponse).
-  sha256: unknown
+  sha256: 2f2f9d066b1e646d23cb84065339adc2503d097f66efb3ebf22ab15b08b3c08b
   authority: technical
   supersedes: TDD-KAIROS-MVP-002-ALQ-V2.1
 - id: TDD-KAIROS-MVP-002-DEV
@@ -241,9 +241,9 @@ sources:
   module: Devolución
   version: '2.1'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: Completo en contenido, pendiente de revisión formal
-  sha256: 4f3db9b4e97722e1c30a1d24c95506976f9244c969d11ca0d2efd49cef558917
+  sha256: 56ee091974c76cbbb23421d52d8f77403f30cf56aedae9e7c8573b1976cac2fb
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-REC
@@ -252,9 +252,9 @@ sources:
   module: Reclutamiento y Selección
   version: '2.0'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: Completo en contenido, pendiente de revisión formal
-  sha256: c994dc8d3120332ea1af25d09dc8cb7ce40d9c4cd1f31531cc157792ef7fe0c4
+  sha256: 7b1889816a15da23a6efb03850fb2ffc21447c0e2b9087756b8fda60bcf606e9
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-ADP
@@ -263,9 +263,9 @@ sources:
   module: Administración de Personal
   version: '2.1'
   date: 31 de agosto de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: Completo en contenido, pendiente de revisión formal
-  sha256: e13fbd27ad0b079cac355c4539bf5abf862d025f44c265b74c2aa3ab5d991a9e
+  sha256: b58bc289a0c17369d7edcdaf782fb82de31fd9d1bc98251da8e08e6ad41e9529
   authority: technical
   supersedes: null
 - id: TDD-KAIROS-MVP-002-TRACEABILITY
@@ -274,9 +274,9 @@ sources:
   module: Trazabilidad
   version: '2.1'
   date: 02 de septiembre de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: Completo en contenido, pendiente de revisión formal
-  sha256: e0add45e4601a3181d54c64811acdfd107e4c9e29f047015e20c3876e4243b2c
+  sha256: 2e74029b24e26a3660b5eb7b075ec58b0d5dcb94f2b9022530fc9aea588dabc1
   authority: technical
   supersedes: null
 - id: UX-UI-V3.1-KAIROS
@@ -285,8 +285,8 @@ sources:
   module: transversal-ux
   version: '3.1'
   date: 10 de septiembre de 2026
-  status: draft_pending_review
+  status: approved
   estado_original: Candidato consolidado para aprobación de Producto, UX, UI, Tech Lead, Seguridad y QA
-  sha256: a297e50455f8462ea3af34d1b604e9dc2dc476ad78c559b7825182bccc2f7b84
+  sha256: 5c44c1388e0376d30a7f42f7a493cfab6d555544b189fc6c1b5924876a8dcab0
   authority: ux
   supersedes: null

@@ -2,7 +2,7 @@
 
 # BDD-KAIROS-TRANSVERSAL — Fundación transversal a los 6 procesos
 
-**Código:** BDD-KAIROS-MVP-002 / TRANSVERSAL **Versión:** 1.18 (sincronizado 04 sep 2026, verificación final) **Estado:** Candidato para revisión funcional — ver `BDD-KAIROS-EXECUTIVE-SUMMARY.md` para el estado global
+**Código:** BDD-KAIROS-MVP-002 / TRANSVERSAL **Versión:** 1.18 (sincronizado 04 sep 2026, verificación final) **Estado:** APROBADO — versión base (usuario, 18 oct 2026; cambios posteriores se gestionan como mejoras documentadas)
 
 > Parte de la serie BDD-KAIROS-MVP-002, dividida por gobernanza el 27 ago 2026. La fuente canónica sigue siendo el conjunto de estos documentos — ninguno se lee de forma aislada sin este archivo.
 

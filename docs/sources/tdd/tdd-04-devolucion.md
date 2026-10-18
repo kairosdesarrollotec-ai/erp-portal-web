@@ -1,5 +1,7 @@
 # TDD — 04 Devolución
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica pendiente de revisión; cambios posteriores se gestionan como mejoras documentadas.
+
 # Technical Design Document — Devolución
 
 **Código:** TDD-KAIROS-MVP-002 / DEV **Versión:** 2.1 — dividido a partir de `TDD-KAIROS-Consolidado-Detallado.md` (v1.0), **actualizado 31 ago 2026 y 02 sep 2026** (evidencia: 35 fotos + video \~7-8 min; `OQ-TDD-DEV-001` cerrada — Motrix queda fuera de alcance de release por depender de otra empresa) **Estado:** Completo en contenido, pendiente de revisión formal **Entradas:** `BDD-DEV-001` (v1.6), `SDD-DEV-001` **Dominio:** Devolución **Propietario técnico:** Tech Lead — pendiente de asignar **Revisores:** Arquitectura, Backend, Frontend, Datos, Seguridad, Finanzas, QA **Fecha:** 31 de agosto de 2026

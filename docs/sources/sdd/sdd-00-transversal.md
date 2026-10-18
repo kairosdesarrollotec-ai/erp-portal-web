@@ -1,5 +1,7 @@
 # SDD — 00 Transversal
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica de borrador; cambios posteriores se gestionan como mejoras documentadas.
+
 # Solution Design Document — Fundación Transversal KAIROS
 
 **Código:** SDD-KAIROS-MVP-002 / TRANSVERSAL **Versión:** 3.6 — 10 sep 2026: stack frontend React SPA/PWA formalizado **Estado:** DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado **Entrada funcional:** `BDD-KAIROS-TRANSVERSAL.md` **Alcance:** Plataforma, identidad y acceso, multiempresa, seguridad, integraciones, offline, observabilidad, despliegue, migración y gobernanza de arquitectura — base común para los 6 procesos de VeloxRent bajo KAIROS **Propietario:** Arquitectura de Solución — **Eder Ramos (Tech Lead)** **Revisores:** Producto, Operaciones, UX, Seguridad, Datos, Integraciones, QA y DevOps **Fecha:** 10 de septiembre de 2026

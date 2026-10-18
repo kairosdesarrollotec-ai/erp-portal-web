@@ -1,5 +1,7 @@
 # TDD — 00 Transversal
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica pendiente de revisión; cambios posteriores se gestionan como mejoras documentadas.
+
 # Technical Design Document — Fundación Transversal KAIROS
 
 **Código:** TDD-KAIROS-MVP-002 / TRANSVERSAL **Versión:** 3.4 — 10 sep 2026: stack frontend React formalizado **Estado:** Completo en contenido, pendiente de revisión formal **Entradas:** `BDD-KAIROS-TRANSVERSAL.md`, `SDD-KAIROS-TRANSVERSAL.md`, `SAD-KAIROS-MVP-001.md`, `UX-UI-KAIROS-v3.1` **Dominio:** Plataforma, IAM, convenciones de dominio compartidas, seguridad técnica, infraestructura, CI/CD, runbooks — base común para los 6 procesos **Propietario técnico:** **Eder Ramos (Tech Lead)** **Revisores:** Arquitectura, Backend, Frontend, Datos, Seguridad, QA, DevOps **Fecha:** 10 de septiembre de 2026

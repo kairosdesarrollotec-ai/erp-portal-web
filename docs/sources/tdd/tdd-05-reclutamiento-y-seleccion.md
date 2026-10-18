@@ -1,5 +1,7 @@
 # TDD — 05 Reclutamiento y Selección
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica pendiente de revisión; cambios posteriores se gestionan como mejoras documentadas.
+
 # Technical Design Document — Reclutamiento y Selección
 
 **Código:** TDD-KAIROS-MVP-002 / REC **Versión:** 2.0 — dividido a partir de `TDD-KAIROS-Consolidado-Detallado.md` (v1.0) **Estado:** Completo en contenido, pendiente de revisión formal **Entradas:** `BDD-REC-001`, `SDD-REC-001` **Dominio:** Reclutamiento y Selección **Propietario técnico:** Tech Lead — pendiente de asignar **Revisores:** Arquitectura, Backend, Frontend, QA **Fecha:** 31 de agosto de 2026

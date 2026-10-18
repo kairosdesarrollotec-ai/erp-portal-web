@@ -20,6 +20,12 @@ Cada entrada: `ID | Fecha | Fuentes en conflicto | Decision | Aprobado por | Alc
 | BOOT-002 | 2026-09-14 | El catalogo completo de las 148 pantallas se genero mediante mapeo automatico nombre-de-carpeta -> UX-ID cruzando contra la seccion 5 de la especificacion UX/UI v3.1, no mediante lectura manual de cada `code.html`. | Bootstrap Claude Code (accion tecnica, no de negocio) | Precision del campo `ux_id`/`module` en `docs/prototype-manifest.yaml`; requiere verificacion humana puntual, especialmente en las pantallas del wizard "entrega_etapa_X_de_5" mapeadas a ALQ-03..ALQ-09 por inferencia de contenido. |
 | BOOT-003 | 2026-09-14 | La arquitectura de indexacion del blueprint (Zoekt, SCIP/LSP, Tree-sitter, pgvector, Sourcegraph) no se implementa en este bootstrap. Se usa exclusivamente filesystem + `rg` + manifiestos + indices IDE/LSP disponibles. | Instruccion explicita del usuario (principios obligatorios del bootstrap) | `.claude/rules`, busqueda/recuperacion de contexto de todos los agentes y skills. |
 
+## Aprobación de baseline documental — 2026-10-18
+
+| ID | Fecha | Decisión | Aprobado por | Alcance afectado |
+|---|---|---|---|---|
+| DOC-BASELINE-001 | 2026-10-18 | Se aprueban como **versión base oficial** los BDD, SDD, TDD y la especificación UX/UI registrados en `docs/source-manifest.yaml`. Su contenido vigente se usará como fuente de verdad para implementación, pruebas y aceptación. Todo cambio posterior deberá registrarse como mejora, decisión o nueva versión, preservando esta línea base. | Usuario, instrucción explícita en sesión 2026-10-18 | 8 BDD, 8 SDD, 8 TDD y UX/UI v3.1; sus manifiestos y trazabilidad. |
+
 ## Decisiones provisionales de implementación (post-bootstrap)
 
 | ID | Fecha | Decision | Aprobado por | Alcance afectado |

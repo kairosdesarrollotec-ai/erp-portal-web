@@ -1,5 +1,7 @@
 # SDD — 01 Consulta
 
+> **Estado vigente:** APROBADO como versión base por instrucción explícita del usuario el 18 oct 2026. Este estado reemplaza cualquier indicación histórica de borrador; cambios posteriores se gestionan como mejoras documentadas.
+
 # Solution Design Document — Consulta
 
 **Código:** SDD-KAIROS-MVP-002 / CON **Versión:** 2.1 — corregido 02 sep 2026 (hallazgo P1-05: `OQ-CON-101` sincronizada a `RESUELTO` formal, ya no "informal") **Estado:** DRAFT COMPLETE — candidato a revisión arquitectónica, no aprobado **Entrada funcional:** `BDD-CON-001` (Consulta) — v1.7, 01 sep 2026 **Depende de:** `SDD-KAIROS-TRANSVERSAL.md` (arquitectura de contexto/contenedores/componentes, multiempresa, seguridad, integraciones, offline, observabilidad, despliegue, migración, ADR y riesgos transversales, decisiones abiertas de arquitectura, criterios de aprobación) **Alcance:** Proceso de Consulta — presencial y virtual **Propietario:** Arquitectura de Solución — pendiente de asignar **Revisores:** Producto, Operaciones, UX, QA **Fecha:** 31 de agosto de 2026
