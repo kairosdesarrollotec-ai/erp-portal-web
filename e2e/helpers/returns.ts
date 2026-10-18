@@ -167,6 +167,12 @@ export async function interceptReturns(page: Page, options: InterceptReturnsOpti
   // Detalle.
   await page.route(/\/returns\/[^?/]+(\?.*)?$/, (route) => route.fulfill(json(ret)));
 
+  // Paneles complementarios de DEV-01. Deben registrarse despues del detalle
+  // generico: Playwright prioriza la ultima ruta registrada y estos recursos
+  // no son expedientes individuales.
+  await page.route(/\/returns\/reminders(\?.*)?$/, (route) => route.fulfill(json([])));
+  await page.route(/\/returns\/alerts(\?.*)?$/, (route) => route.fulfill(json([])));
+
   // Tarifario oficial de daños estéticos (mas especifico que el detalle: se registra despues).
   await page.route(/\/returns\/cosmetic-tariff(\?.*)?$/, (route) => {
     intercepted.tariffRequests.push(route.request().url());
