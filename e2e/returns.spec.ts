@@ -45,7 +45,11 @@ async function markZones(page: Parameters<typeof loginViaUI>[0], values: ('ok' |
 test.describe('DEV-01 Bandeja de devoluciones', () => {
   test('muestra la lista con badge de etapa y el aislamiento por empresa/sede en la consulta', async ({ page }) => {
     const intercepted = await setup(page);
+    const listLoaded = page.waitForResponse((response) =>
+      response.request().method() === 'GET' && /\/returns\?/.test(response.url()),
+    );
     await page.goto('/devoluciones');
+    await listLoaded;
 
     await expect(page.getByText('Carlos López').first()).toBeVisible();
     await expect(page.getByRole('table').first().getByText('Recepción')).toBeVisible();
@@ -63,7 +67,11 @@ test.describe('DEV-01 Bandeja de devoluciones', () => {
 
   test('Iniciar devolución desde un alquiler activo lleva a la recepción (1 accion)', async ({ page }) => {
     await setup(page, { list: [] });
+    const rentalsLoaded = page.waitForResponse((response) =>
+      response.request().method() === 'GET' && /\/rentals\?/.test(response.url()),
+    );
     await page.goto('/devoluciones');
+    await rentalsLoaded;
     await page.getByRole('link', { name: /Iniciar devolución de ABC-123/ }).click();
     await expect(page).toHaveURL(/\/devoluciones\/recepcion\/rent-e2e-001/);
     await expect(page.getByText(/Cliente titular: Carlos López/)).toBeVisible();
@@ -322,4 +330,3 @@ test.describe('Aislamiento por sede', () => {
     await expect(page.getByText(/No encontramos esta devolución en tu empresa y sede/)).toBeVisible();
   });
 });
-
