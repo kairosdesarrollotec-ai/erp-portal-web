@@ -43,7 +43,8 @@ const OPTION_COPY: Record<ReturnAlcoholTestResult, { title: string; description:
   },
   RECHAZADO: {
     title: 'Se negó a realizar la prueba',
-    description: 'El conductor rechaza la prueba. Requiere acta de negativa y se deriva a Gerencia.',
+    description:
+      'El conductor rechaza la prueba. Adjunta la foto de la prueba como evidencia (obligatoria) y se deriva a Gerencia.',
   },
 };
 
@@ -72,7 +73,7 @@ export function AlcoholTestScreen() {
   const [markRed, setMarkRed] = useState(true); // sugerido por BR-DEV-005
   const [decisionNotes, setDecisionNotes] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
-  // Foto de la prueba (DEV-03, Fiorella 2026-10-16): obligatoria si DESFAVORABLE. `photoUploaded` evita volver a subirla
+  // Foto de la prueba (DEV-03, Fiorella 2026-10-16): obligatoria si DESFAVORABLE o RECHAZADO. `photoUploaded` evita volver a subirla
   // si el registro del resultado falla y el usuario reintenta.
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoUploaded, setPhotoUploaded] = useState(false);
@@ -84,7 +85,7 @@ export function AlcoholTestScreen() {
     ret.status === 'RECEPCION_PROVISIONAL' && (ret.alcoholTestResult === 'DESFAVORABLE' || ret.alcoholTestResult === 'RECHAZADO');
   const unfavorableSelected = result === 'DESFAVORABLE' || result === 'RECHAZADO';
   const wrongState = ret.status !== 'RECEPCION_PROVISIONAL';
-  const needsPhoto = result === 'DESFAVORABLE';
+  const needsPhoto = result === 'DESFAVORABLE' || result === 'RECHAZADO';
   const photoReady = !needsPhoto || photoUploaded || photo !== null;
   const canDecide = can('RESOLVE_ALCOHOL_ESCALATION');
   const previous = ret.alcoholEscalation ?? null;
@@ -96,7 +97,7 @@ export function AlcoholTestScreen() {
     setError(null);
     try {
       const idToken = await getIdToken();
-      if (result === 'DESFAVORABLE' && !photoUploaded) {
+      if (needsPhoto && !photoUploaded) {
         if (!photo) {
           setError('Adjunta la foto de la prueba del alcoholímetro (obligatoria).');
           return;

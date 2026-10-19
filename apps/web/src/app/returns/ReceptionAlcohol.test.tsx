@@ -283,15 +283,17 @@ describe('AlcoholTestScreen (DEV-03)', () => {
     expect(requestUploadMock).toHaveBeenCalledTimes(1);
   });
 
-  it('rechazado (se negó) no exige ni muestra la foto', async () => {
+  it('rechazado (se negó) también exige la foto de la prueba como evidencia', async () => {
     flowMock.mockReturnValue(makeFlow());
     registerAlcoholMock.mockResolvedValue(makeReturn({ alcoholTestResult: 'RECHAZADO' }));
     renderAlcohol();
     fireEvent.click(screen.getByLabelText('Se negó a realizar la prueba'));
-    expect(screen.queryByLabelText(/Foto de la prueba del alcoholímetro/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Foto de la prueba del alcoholímetro/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Derivar a Gerencia' })).toBeDisabled();
+    attachAlcoholPhoto();
     fireEvent.click(screen.getByRole('button', { name: 'Derivar a Gerencia' }));
     await waitFor(() => expect(registerAlcoholMock).toHaveBeenCalled());
-    expect(requestUploadMock).not.toHaveBeenCalled();
+    expect(requestUploadMock).toHaveBeenCalled();
   });
 
   it('desfavorable ofrece "Derivar a Gerencia" y no "Continuar al checklist" (nunca llega a Resultado); favorable si', () => {
@@ -309,6 +311,7 @@ describe('AlcoholTestScreen (DEV-03)', () => {
     registerAlcoholMock.mockResolvedValue(makeReturn({ status: 'RECEPCION_PROVISIONAL', alcoholTestResult: 'RECHAZADO' }));
     renderAlcohol();
     fireEvent.click(screen.getByLabelText('Se negó a realizar la prueba'));
+    attachAlcoholPhoto();
     fireEvent.click(screen.getByRole('button', { name: 'Derivar a Gerencia' }));
     await waitFor(() => expect(setRet).toHaveBeenCalled());
     expect(screen.queryByText(/No pudimos registrar la prueba/)).not.toBeInTheDocument();
