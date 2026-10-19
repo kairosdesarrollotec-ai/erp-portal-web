@@ -1,6 +1,6 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, CheckCircle, AlertTriangle, Upload, FileText, ChevronRight } from 'lucide-react';
@@ -77,20 +77,20 @@ function StepIndicator({
 
 export function DocumentTemplateWizard({ wizard, companyName, branchName }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const selectedFileRef = useRef<File | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
+    control,
   } = useForm<Step1Fields>({
     resolver: zodResolver(step1Schema),
     defaultValues: { type: 'RENTAL_CONTRACT', name: '', effectiveFrom: '' },
   });
 
-  const watchedType = watch('type');
-  const watchedName = watch('name');
+  const watchedType = useWatch({ control, name: 'type' });
+  const watchedName = useWatch({ control, name: 'name' });
 
   function getStepState(stepNum: number): 'done' | 'current' | 'pending' {
     const current = wizard.step ?? 1;
@@ -275,19 +275,17 @@ export function DocumentTemplateWizard({ wizard, companyName, branchName }: Prop
                 aria-label="Archivo de plantilla"
                 onChange={(e) => {
                   const file = e.target.files?.[0] ?? null;
-                  selectedFileRef.current = file;
-                  // Force re-render to show file name
-                  e.target.form?.dispatchEvent(new Event('change'));
+                  setSelectedFile(file);
                 }}
               />
 
               {/* File selected indicator */}
-              {selectedFileRef.current && (
+              {selectedFile && (
                 <div className={styles.fileSelected}>
                   <FileText size={14} className={styles.fileSelectedIcon} />
-                  <span className={styles.fileSelectedName}>{selectedFileRef.current.name}</span>
+                  <span className={styles.fileSelectedName}>{selectedFile.name}</span>
                   <span className={styles.fileSelectedSize}>
-                    ({Math.round(selectedFileRef.current.size / 1024)} KB)
+                    ({Math.round(selectedFile.size / 1024)} KB)
                   </span>
                 </div>
               )}
@@ -312,9 +310,8 @@ export function DocumentTemplateWizard({ wizard, companyName, branchName }: Prop
                   className={styles.primaryButton}
                   disabled={wizard.isSubmitting}
                   onClick={() => {
-                    const file = selectedFileRef.current;
-                    if (!file) return;
-                    void wizard.submitStep2(file);
+                    if (!selectedFile) return;
+                    void wizard.submitStep2(selectedFile);
                   }}
                 >
                   {wizard.isSubmitting ? 'Subiendo…' : 'Subir y continuar'}

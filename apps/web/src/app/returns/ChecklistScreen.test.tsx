@@ -130,7 +130,6 @@ function setOnline(value: boolean) {
 beforeEach(() => {
   [flowMock, listReturnEvidenceMock, requestSessionMock, uploadGcsMock, recordEvidenceMock, deleteEvidenceMock, getResponsibilityTemplateMock, addEvidenceToQueueMock].forEach((m) => m.mockReset());
   syncManagerMock.mockReset();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sessionStorage.clear();
   setPermissions(RETURN_FULL);
   setOnline(true);

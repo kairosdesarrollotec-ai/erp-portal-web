@@ -15,7 +15,7 @@
     "build:web:e2e": "npm run build:e2e --workspace apps/web",
     "preview:web": "npm run preview --workspace apps/web",
     "test:web": "npm run test --workspace apps/web",
-    "test:e2e": "playwright test",
+    "test:e2e": "npm run build:web:e2e && playwright test",
     "lint": "npm run lint --workspaces --if-present",
     "verify:manifest": "node scripts/verify-prototype-manifest.mjs",
     "audit:prod": "node scripts/audit-check.mjs",

@@ -1,6 +1,8 @@
+import { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AppSidebar } from '../shared/AppSidebar';
 import { useSyncPermissionsWithContext } from '../shared/useSyncPermissionsWithContext';
+import { GuardLoadingScreen } from './GuardScreens';
 import styles from './AuthenticatedLayout.module.css';
 
 /**
@@ -19,7 +21,9 @@ export function AuthenticatedLayout() {
     <div className={styles.shell}>
       <AppSidebar />
       <div className={styles.rightPanel}>
-        <Outlet />
+        <Suspense fallback={<GuardLoadingScreen />}>
+          <Outlet />
+        </Suspense>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { lazy, type ComponentType } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { LoginScreen } from '../auth/LoginScreen';
 import { ActivationScreen } from '../auth/ActivationScreen';
@@ -35,44 +36,52 @@ import { Stage2ValidationsScreen } from '../rentals/Stage2ValidationsScreen';
 import { Stage3ContractScreen } from '../rentals/Stage3ContractScreen';
 import { Stage4ChecklistScreen } from '../rentals/Stage4ChecklistScreen';
 import { Stage5ConfirmationScreen } from '../rentals/Stage5ConfirmationScreen';
-import { ReturnsListScreen } from '../returns/ReturnsListScreen';
-import { ReceptionScreen } from '../returns/ReceptionScreen';
-import { AlcoholTestScreen } from '../returns/AlcoholTestScreen';
-import { ChecklistScreen } from '../returns/ChecklistScreen';
-import { ResultScreen } from '../returns/ResultScreen';
-import { DamageSeverityScreen } from '../returns/DamageSeverityScreen';
-import { CosmeticDamageScreen } from '../returns/CosmeticDamageScreen';
-import { TechnicalDamageScreen } from '../returns/TechnicalDamageScreen';
-import { GuaranteeScreen } from '../returns/GuaranteeScreen';
-import { ClosureScreen } from '../returns/ClosureScreen';
 import { IncidentsListScreen } from '../incidents/IncidentsListScreen';
 import { IncidentDetailScreen } from '../incidents/IncidentDetailScreen';
-import { VacanciesListScreen } from '../recruitment/VacanciesListScreen';
-import { VacancyProfileScreen } from '../recruitment/VacancyProfileScreen';
-import { CandidatesBoardScreen } from '../recruitment/CandidatesBoardScreen';
-import { CandidateFileScreen } from '../recruitment/CandidateFileScreen';
-import { InterviewScreen } from '../recruitment/InterviewScreen';
-import { HiringDecisionScreen } from '../recruitment/HiringDecisionScreen';
-import { OnboardingScreen } from '../recruitment/OnboardingScreen';
-import { ProbationScreen } from '../recruitment/ProbationScreen';
-import { EmployeesListScreen } from '../hr-administration/EmployeesListScreen';
-import { EmployeeFileScreen } from '../hr-administration/EmployeeFileScreen';
-import { AttendanceTeamScreen } from '../hr-administration/AttendanceTeamScreen';
-import { PersonAttendanceScreen } from '../hr-administration/PersonAttendanceScreen';
-import { AbsenceScreen } from '../hr-administration/AbsenceScreen';
-import { LeavesScreen } from '../hr-administration/LeavesScreen';
-import { VacationScreen } from '../hr-administration/VacationScreen';
-import { FieldTripRequestScreen } from '../hr-administration/FieldTripRequestScreen';
-import { FieldTripsListScreen } from '../hr-administration/FieldTripsListScreen';
-import { FieldTripAuthorizationScreen } from '../hr-administration/FieldTripAuthorizationScreen';
-import { ReturnFollowUpScreen } from '../hr-administration/ReturnFollowUpScreen';
-import { TerminationScreen } from '../hr-administration/TerminationScreen';
-import { TrainingScreen } from '../hr-administration/TrainingScreen';
-import { NewEmployeeScreen } from '../hr-administration/NewEmployeeScreen';
 import { ReportsDashboardScreen } from '../reporting/ReportsDashboardScreen';
 import { DepositsListScreen } from '../payments/DepositsListScreen';
 import { DepositDetailScreen } from '../payments/DepositDetailScreen';
 import { UserProfileScreen } from '../profile/UserProfileScreen';
+
+function lazyNamed<TModule extends Record<string, unknown>, TName extends keyof TModule>(
+  load: () => Promise<TModule>,
+  name: TName,
+) {
+  return lazy(async () => ({ default: (await load())[name] as ComponentType }));
+}
+
+const ReturnsListScreen = lazyNamed(() => import('../returns/ReturnsListScreen'), 'ReturnsListScreen');
+const ReceptionScreen = lazyNamed(() => import('../returns/ReceptionScreen'), 'ReceptionScreen');
+const AlcoholTestScreen = lazyNamed(() => import('../returns/AlcoholTestScreen'), 'AlcoholTestScreen');
+const ChecklistScreen = lazyNamed(() => import('../returns/ChecklistScreen'), 'ChecklistScreen');
+const ResultScreen = lazyNamed(() => import('../returns/ResultScreen'), 'ResultScreen');
+const DamageSeverityScreen = lazyNamed(() => import('../returns/DamageSeverityScreen'), 'DamageSeverityScreen');
+const CosmeticDamageScreen = lazyNamed(() => import('../returns/CosmeticDamageScreen'), 'CosmeticDamageScreen');
+const TechnicalDamageScreen = lazyNamed(() => import('../returns/TechnicalDamageScreen'), 'TechnicalDamageScreen');
+const GuaranteeScreen = lazyNamed(() => import('../returns/GuaranteeScreen'), 'GuaranteeScreen');
+const ClosureScreen = lazyNamed(() => import('../returns/ClosureScreen'), 'ClosureScreen');
+const VacanciesListScreen = lazyNamed(() => import('../recruitment/VacanciesListScreen'), 'VacanciesListScreen');
+const VacancyProfileScreen = lazyNamed(() => import('../recruitment/VacancyProfileScreen'), 'VacancyProfileScreen');
+const CandidatesBoardScreen = lazyNamed(() => import('../recruitment/CandidatesBoardScreen'), 'CandidatesBoardScreen');
+const CandidateFileScreen = lazyNamed(() => import('../recruitment/CandidateFileScreen'), 'CandidateFileScreen');
+const InterviewScreen = lazyNamed(() => import('../recruitment/InterviewScreen'), 'InterviewScreen');
+const HiringDecisionScreen = lazyNamed(() => import('../recruitment/HiringDecisionScreen'), 'HiringDecisionScreen');
+const OnboardingScreen = lazyNamed(() => import('../recruitment/OnboardingScreen'), 'OnboardingScreen');
+const ProbationScreen = lazyNamed(() => import('../recruitment/ProbationScreen'), 'ProbationScreen');
+const EmployeesListScreen = lazyNamed(() => import('../hr-administration/EmployeesListScreen'), 'EmployeesListScreen');
+const EmployeeFileScreen = lazyNamed(() => import('../hr-administration/EmployeeFileScreen'), 'EmployeeFileScreen');
+const AttendanceTeamScreen = lazyNamed(() => import('../hr-administration/AttendanceTeamScreen'), 'AttendanceTeamScreen');
+const PersonAttendanceScreen = lazyNamed(() => import('../hr-administration/PersonAttendanceScreen'), 'PersonAttendanceScreen');
+const AbsenceScreen = lazyNamed(() => import('../hr-administration/AbsenceScreen'), 'AbsenceScreen');
+const LeavesScreen = lazyNamed(() => import('../hr-administration/LeavesScreen'), 'LeavesScreen');
+const VacationScreen = lazyNamed(() => import('../hr-administration/VacationScreen'), 'VacationScreen');
+const FieldTripRequestScreen = lazyNamed(() => import('../hr-administration/FieldTripRequestScreen'), 'FieldTripRequestScreen');
+const FieldTripsListScreen = lazyNamed(() => import('../hr-administration/FieldTripsListScreen'), 'FieldTripsListScreen');
+const FieldTripAuthorizationScreen = lazyNamed(() => import('../hr-administration/FieldTripAuthorizationScreen'), 'FieldTripAuthorizationScreen');
+const ReturnFollowUpScreen = lazyNamed(() => import('../hr-administration/ReturnFollowUpScreen'), 'ReturnFollowUpScreen');
+const TerminationScreen = lazyNamed(() => import('../hr-administration/TerminationScreen'), 'TerminationScreen');
+const TrainingScreen = lazyNamed(() => import('../hr-administration/TrainingScreen'), 'TrainingScreen');
+const NewEmployeeScreen = lazyNamed(() => import('../hr-administration/NewEmployeeScreen'), 'NewEmployeeScreen');
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
