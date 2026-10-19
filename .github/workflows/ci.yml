@@ -52,14 +52,9 @@ jobs:
       - name: Instalar navegadores Playwright (solo Chromium)
         run: npx playwright install --with-deps chromium
 
-      # Build con variables Firebase simuladas (las llamadas reales son
-      # interceptadas por page.route() -- estos valores son placeholders).
-      - name: Build E2E (app con variables Firebase simuladas)
-        run: npm run build:web:e2e
-
       - name: Tests E2E Playwright
-        # El reporter 'github' (playwright.config.ts) anota los fallos
-        # directamente en el PR sin necesidad de subir artefactos.
+        # El script construye en modo E2E y luego ejecuta Playwright para que
+        # pueda usarse de forma reproducible tanto en CI como localmente.
         run: npm run test:e2e
 
   sbom:
