@@ -230,6 +230,9 @@ describe('FleetListScreen', () => {
     fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), {
       target: { value: 'Tucson' },
     });
+    fireEvent.change(screen.getByLabelText(/^Garantía/), { target: { value: '500' } });
+    fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '5' } });
+    fireEvent.change(screen.getByLabelText(/^Precio del combustible/), { target: { value: '4.5' } });
 
     fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
 
@@ -242,10 +245,44 @@ describe('FleetListScreen', () => {
           plate: 'XYZ-789',
           brand: 'Hyundai',
           model: 'Tucson',
+          depositMinimum: 500,
+          passengerCapacity: 5,
+          fuelPrice: 4.5,
         }),
         expect.any(String),
       );
     });
+  });
+
+  it('F-05/G-05: no registra si faltan garantía, capacidad y precio del combustible', async () => {
+    listVehiclesMock.mockResolvedValue({ items: [], total: 0 });
+    renderScreen();
+
+    fireEvent.click(await screen.findByText('+ Nuevo Vehículo'));
+    fireEvent.change(screen.getByPlaceholderText('ABC-123'), { target: { value: 'XYZ-789' } });
+    fireEvent.change(screen.getByPlaceholderText('Toyota, Hyundai, Nissan...'), { target: { value: 'Hyundai' } });
+    fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), { target: { value: 'Tucson' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
+
+    expect(await screen.findByText('La garantía es obligatoria.')).toBeInTheDocument();
+    expect(createVehicleMock).not.toHaveBeenCalled();
+  });
+
+  it('F-05/G-05: rechaza capacidad fuera de 1..60 con mensaje claro', async () => {
+    listVehiclesMock.mockResolvedValue({ items: [], total: 0 });
+    renderScreen();
+
+    fireEvent.click(await screen.findByText('+ Nuevo Vehículo'));
+    fireEvent.change(screen.getByPlaceholderText('ABC-123'), { target: { value: 'XYZ-789' } });
+    fireEvent.change(screen.getByPlaceholderText('Toyota, Hyundai, Nissan...'), { target: { value: 'Hyundai' } });
+    fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), { target: { value: 'Tucson' } });
+    fireEvent.change(screen.getByLabelText(/^Garantía/), { target: { value: '500' } });
+    fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '61' } });
+    fireEvent.change(screen.getByLabelText(/^Precio del combustible/), { target: { value: '4.5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
+
+    expect(await screen.findByText('La capacidad de pasajeros debe ser un entero entre 1 y 60.')).toBeInTheDocument();
+    expect(createVehicleMock).not.toHaveBeenCalled();
   });
 
   it('flujo GCS: requestPhotoUploadSession → uploadPhotoToGcs → createVehicle con objectUrl', async () => {
@@ -270,6 +307,9 @@ describe('FleetListScreen', () => {
     fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), {
       target: { value: 'Hilux' },
     });
+    fireEvent.change(screen.getByLabelText(/^Garantía/), { target: { value: '500' } });
+    fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '5' } });
+    fireEvent.change(screen.getByLabelText(/^Precio del combustible/), { target: { value: '4.5' } });
 
     // Simula selección de archivo de foto
     const photoFile = new File(['fake-jpeg-data'], 'foto.jpg', { type: 'image/jpeg' });

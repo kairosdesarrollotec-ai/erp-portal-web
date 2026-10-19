@@ -173,6 +173,28 @@ export function VehicleDetailScreen() {
                   </span>
                 </div>
               )}
+              {vehicle.depositMinimum != null && (
+                <div className={styles.vehicleMetaItem}>
+                  <span className={styles.vehicleMetaLabel}>Garantía</span>
+                  <span className={styles.vehicleMetaValue}>
+                    S/ {Number(vehicle.depositMinimum).toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className={styles.vehicleMetaItem}>
+                <span className={styles.vehicleMetaLabel}>Capacidad de pasajeros</span>
+                <span className={styles.vehicleMetaValue}>
+                  {vehicle.passengerCapacity != null ? vehicle.passengerCapacity : 'Sin registrar'}
+                </span>
+              </div>
+              <div className={styles.vehicleMetaItem}>
+                <span className={styles.vehicleMetaLabel}>Precio del combustible</span>
+                <span className={styles.vehicleMetaValue}>
+                  {vehicle.fuelPrice != null
+                    ? `S/ ${Number(vehicle.fuelPrice).toFixed(2)} / unidad`
+                    : 'Sin registrar'}
+                </span>
+              </div>
             </div>
           </div>
 

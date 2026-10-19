@@ -63,6 +63,9 @@ const sampleVehicle = {
   category: 'PICK-UP 4X4',
   status: 'AVAILABLE',
   dailyRate: 350,
+  depositMinimum: 800,
+  passengerCapacity: 5,
+  fuelPrice: 4.5,
   photoUrl: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -109,6 +112,17 @@ describe('VehicleDetailScreen', () => {
     expect(screen.getByText(/S\/ 350\.00 \/ día/)).toBeInTheDocument();
     expect(screen.getByText('PICK-UP 4X4')).toBeInTheDocument();
     expect(screen.getByText('Año: 2024')).toBeInTheDocument();
+    expect(screen.getByText('S/ 800.00')).toBeInTheDocument();
+    expect(screen.getByText('Capacidad de pasajeros')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('S/ 4.50 / unidad')).toBeInTheDocument();
+  });
+
+  it('indica "Sin registrar" cuando el vehículo aún no tiene capacidad ni precio de combustible', async () => {
+    getVehicleMock.mockResolvedValue({ ...sampleVehicle, passengerCapacity: null, fuelPrice: null, depositMinimum: null });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
+    expect(screen.getAllByText('Sin registrar')).toHaveLength(2);
   });
 
   it('muestra el estado operativo actual', async () => {

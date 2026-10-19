@@ -147,8 +147,12 @@ export interface components {
             status?: components["schemas"]["VehicleStatus"];
             /** @description Tarifa diaria de alquiler en moneda local. */
             dailyRate?: number | null;
-            /** @description Monto mínimo de garantía para este vehículo (PEN). Si se omite no se configura mínimo. */
-            depositMinimum?: number | null;
+            /** @description Monto mínimo de garantía para este vehículo (PEN). Obligatorio en el alta (F-05). */
+            depositMinimum: number;
+            /** @description Cantidad de pasajeros que admite el vehículo; es el máximo de acompañantes de un alquiler (G-05). Obligatorio en el alta. */
+            passengerCapacity: number;
+            /** @description Precio del combustible por unidad para este vehículo (PEN). Insumo de la multa por combustible (aún no calculada). Obligatorio en el alta (F-05). */
+            fuelPrice: number;
             /**
              * Format: uri
              * @description URL HTTPS de Google Cloud Storage del objeto ya cargado. Obtener previamente via POST /fleet/vehicles/photo-upload-sessions. No se acepta data: URI ni URL de otro proveedor.
@@ -173,6 +177,10 @@ export interface components {
             dailyRate?: number | null;
             /** @description Monto mínimo de garantía (PEN). Si se omite, el valor existente no cambia. */
             depositMinimum?: number | null;
+            /** @description Capacidad de pasajeros (1..60). Si se omite, el valor existente no cambia. */
+            passengerCapacity?: number;
+            /** @description Precio del combustible por unidad (PEN). Si se omite, el valor existente no cambia. */
+            fuelPrice?: number;
             /**
              * Format: uri
              * @description URL HTTPS de GCS del objeto ya cargado. Si no se proporciona, la foto existente del vehículo no cambia.
@@ -215,6 +223,10 @@ export interface components {
             dailyRate?: number | null;
             /** @description Monto mínimo de garantía configurado para este vehículo (PEN). */
             depositMinimum?: number | null;
+            /** @description Pasajeros que admite el vehículo (1..60). null en vehículos anteriores a 0.5.0 (sin tope de acompañantes). */
+            passengerCapacity?: number | null;
+            /** @description Precio del combustible por unidad (PEN). null en vehículos anteriores a 0.5.0. */
+            fuelPrice?: number | null;
             photoUrl?: string | null;
             /**
              * Format: date-time
