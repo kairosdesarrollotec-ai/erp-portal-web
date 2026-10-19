@@ -789,7 +789,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Sin contexto vigente, o rol sin MANAGE_PERMISSIONS */
+            /** @description Token invalido, expirado o revocado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description MFA_RECENT_REQUIRED - el token no trae segundo factor o su `auth_time` supera 5 minutos (SEC-F4, TDD-00 8.4; 0.4.0). El cliente debe reautenticar con MFA (TR-03), obtener un token nuevo y reintentar. Tambien: sin contexto vigente, o rol sin MANAGE_PERMISSIONS. Cuerpo `{statusCode, code, detail, maxAgeSeconds}`. */
             403: {
                 headers: {
                     [name: string]: unknown;

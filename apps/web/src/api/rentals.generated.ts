@@ -167,6 +167,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rentals/{id}/commands/register-companion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar acompañante autorizado de persona natural como responsable del contrato (DEC-ALQ-COMPANION-006, BR-ALQ-015)
+         * @description Excepción de conductor (BDD ALQ-P03; Ficha AS-IS): si el titular persona NATURAL no puede firmar (p. ej. su brevete extranjero no es válido), un acompañante con licencia vigente firma como RESPONSABLE del contrato. Se registra como party con role RESPONSIBLE y se EXIGE registrar también al conductor real (`driverCustomerId`, party DRIVER); el responsable legal es quien firma. La licencia no se guarda: solo los checks `companionLicenseVerified` y `driverLicenseVerified`. NO habilita al acompañante a conducir: el conductor propio distinto del titular sigue sin permitirse en persona natural (register-authorized-driver responde 422 NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED). En persona JURÍDICA no aplica (422 COMPANION_NOT_APPLICABLE_FOR_LEGAL_HOLDER): ahí se usa register-authorized-driver. `reason` es obligatorio y queda en auditoría y en el evento AcompananteAutorizadoRegistrado.v1 (no se persiste en columna). El tipo de titular se toma del contrato formalizado o, si no hay, del tipo de documento del titular (RUC → LEGAL, DNI → NATURAL); `holderType` es solo respaldo. Estados admitidos: VALIDATION, NOTARY_EVALUATION, CONTRACTING, PENDING_DELIVERY. Incrementa la versión (If-Match). Permiso: RENTAL.FORMALIZE_CONTRACT.
+         */
+        post: operations["registerCompanion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rentals/{id}/commands/formalize-contract": {
         parameters: {
             query?: never;
@@ -463,6 +483,31 @@ export interface components {
             addendumDocumentRef: string;
             holderType?: components["schemas"]["ContractHolderType"];
         };
+        RegisterCompanionRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /**
+             * Format: uuid
+             * @description Cliente (persona) con licencia vigente que firma como responsable.
+             */
+            companionCustomerId: string;
+            /**
+             * Format: uuid
+             * @description Conductor real del alquiler (party DRIVER); distinto del acompañante.
+             */
+            driverCustomerId: string;
+            /** @description Check del checklist "licencia vigente verificada" del acompañante (debe ser true; la licencia no se guarda). */
+            companionLicenseVerified: boolean;
+            /** @description Check del checklist "licencia vigente verificada" del conductor real (debe ser true; la licencia no se guarda). */
+            driverLicenseVerified: boolean;
+            /** @description Motivo por el que el titular no puede firmar. */
+            reason: string;
+            /** @description Referencia documental opcional (la autorización del acompañante es la del firmante; no se exige documento aparte). */
+            addendumDocumentRef?: string;
+            holderType?: components["schemas"]["ContractHolderType"];
+        };
         /** @description `depositAmount` y `depositCurrency` son obligatorios SALVO con conductor de la empresa (`withCompanyDriver=true`), donde no hay garantía y se omiten (DEC-ALQ-COMPANY-DRIVER-004). */
         FormalizeContractRequest: {
             /** Format: uuid */
@@ -676,6 +721,16 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /** @description Servicio de conductor de la empresa: TARIFA DIARIA × días del alquiler, sin garantía (Fiorella, 16-oct-2026). Vista calculada; la tarifa es un parámetro del sistema (COMPANY_DRIVER_DAILY_RATE) aún sin definir por negocio. */
+        CompanyDriverChargeResponse: {
+            /** @description false = la tarifa diaria aún no está configurada (importes en "0.00"). */
+            configured: boolean;
+            dailyRate: string;
+            /** @enum {string} */
+            currency: "PEN" | "USD";
+            days: number;
+            total: string;
+        };
         /** @description P0-03 (a) - vista previa del traslado del monto de la reserva a la garantía (solo GET detalle, solo alquileres de origen Reserva). */
         ReservationCreditResponse: {
             applicable: boolean;
@@ -759,6 +814,8 @@ export interface components {
             reservationCreditExcess?: string;
             /** @description Solo en GET /rentals/{id}. Null = alquiler sin reserva de origen. */
             reservationCredit?: components["schemas"]["ReservationCreditResponse"] | null;
+            /** @description Solo en GET /rentals/{id}. Cargo del servicio de conductor de la empresa (tarifa diaria × días); null si el alquiler no es con conductor de la empresa. No se persiste. */
+            companyDriverCharge?: components["schemas"]["CompanyDriverChargeResponse"] | null;
             /** @description Solo en GET /rentals/{id}. Ampliaciones, la más reciente primero. */
             extensions?: components["schemas"]["RentalExtensionResponse"][];
         };
@@ -1478,6 +1535,97 @@ export interface operations {
                 content?: never;
             };
             /** @description NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    registerCompanion: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterCompanionRequest"];
+            };
+        };
+        responses: {
+            /** @description Acompañante registrado; el alquiler trae la nueva party con role RESPONSIBLE */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalResponse"];
+                };
+            };
+            /** @description COMPANION_REASON_REQUIRED o datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin permiso o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RENTAL_DRIVER_ALREADY_REGISTERED (el cliente ya es interviniente) o RENTAL_DRIVER_REGISTRATION_CLOSED (estado posterior a la entrega) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description COMPANION_NOT_APPLICABLE_FOR_LEGAL_HOLDER, HOLDER_TYPE_REQUIRED, HOLDER_TYPE_MISMATCH, COMPANION_CUSTOMER_NOT_FOUND, DRIVER_CUSTOMER_NOT_FOUND, LICENSE_VERIFICATION_REQUIRED, COMPANION_DRIVER_MUST_DIFFER o COMPANION_PASSENGER_CAPACITY_EXCEEDED */
             422: {
                 headers: {
                     [name: string]: unknown;

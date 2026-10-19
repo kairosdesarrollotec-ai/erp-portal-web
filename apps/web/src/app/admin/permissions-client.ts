@@ -50,6 +50,8 @@ export class PermissionCommandError extends Error {
         return 'Un rol no puede tener a la vez dos permisos incompatibles (segregación de funciones). Revisa las celdas marcadas en rojo.';
       case 'INCOMPLETE_MATRIX':
         return 'La matriz está incompleta. Recarga la pantalla e intenta de nuevo.';
+      case 'MFA_RECENT_REQUIRED':
+        return 'No se pudo confirmar tu identidad con un segundo factor reciente (últimos 5 minutos). Intenta de nuevo.';
       case 'ROLE_NOT_EDITABLE':
         return 'Los permisos del Administrador de Plataforma son fijos y no se pueden editar.';
       case 'LAST_ADMINISTRATOR_ROLE':

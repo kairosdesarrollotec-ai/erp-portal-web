@@ -1,6 +1,6 @@
 /**
  * REP-01 — Pruebas de componente para ReportsDashboardScreen.
- * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.3.0.
+ * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.4.0.
  *
  * Estados cubiertos: tab por defecto, LOADING, READY con KPIs, cambio de tab,
  * validación de rango de fechas, botón de exportar CSV, permisos insuficientes.

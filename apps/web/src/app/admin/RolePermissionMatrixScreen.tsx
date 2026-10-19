@@ -1,6 +1,7 @@
 import { isReadOnlyRole, ORGANIZATION_SCOPE, useRolePermissionMatrix } from './useRolePermissionMatrix';
 import { useRoleManagement } from './useRoleManagement';
 import { RoleManagementPanel } from './RoleManagementPanel';
+import { MfaChallengeModal } from '../auth/MfaChallengeModal';
 import { AppHeader } from '../shared/AppHeader';
 import type { MatrixScope } from './permissions-client';
 import styles from './RolePermissionMatrixScreen.module.css';
@@ -46,15 +47,16 @@ function valueToScope(value: string): MatrixScope {
  *
  * ALCANCE REAL (no sobre-declarado):
  * 1) El contrato pide (punto 10) "guardar cambios de permisos requiere
- *    MFA reciente" - no implementado: el codebase no tiene un
- *    mecanismo de step-up/re-challenge de MFA (solo el estado de
- *    enrolamiento `mfaEnrolledAt`). Se documenta aquí en vez de
- *    simular una re-autenticación que no ocurre de verdad. Lo mismo aplica
- *    a crear/renombrar/desactivar roles.
+ *    MFA reciente" - implementado (SEC-F4): POST /admin/permissions responde
+ *    403 MFA_RECENT_REQUIRED si el token no trae MFA de los ultimos 5 min;
+ *    useRolePermissionMatrix abre el reto TR-03 (useMfaStepUp), reautentica
+ *    con Firebase y reintenta una vez. Si se cancela, no se guarda nada.
+ *    Crear/renombrar/desactivar roles NO exigen MFA reciente (el contrato solo
+ *    lo pide para guardar cambios de permisos).
  */
 export function RolePermissionMatrixScreen() {
   const {
-    state, matrix, roles, pendingEntries, context, dirty, newActions, conflicts, saving, saveError,
+    state, matrix, roles, pendingEntries, context, dirty, newActions, conflicts, saving, saveError, mfaChallenge,
     companies, scope, setScope, toggle, save, discard, reloadRoles,
   } = useRolePermissionMatrix();
   const management = useRoleManagement(context, reloadRoles);
@@ -79,8 +81,8 @@ export function RolePermissionMatrixScreen() {
 
       <div className={styles.content}>
         <p className={styles.scopeNote}>
-          Aquí se administran los roles y los permisos que el sistema usa para autorizar cada acción. Guardar cambios no
-          re-solicita un segundo factor (MFA) porque ese mecanismo de re-autenticación aún no existe en el sistema.
+          Aquí se administran los roles y los permisos que el sistema usa para autorizar cada acción. Guardar cambios de permisos
+          exige verificar tu identidad con un código de tu aplicación autenticadora (MFA de los últimos 5 minutos).
         </p>
 
         {state === 'LOADING' && <p className={styles.statusText}>Cargando matriz…</p>}
@@ -217,6 +219,7 @@ export function RolePermissionMatrixScreen() {
           </>
         )}
       </div>
+      <MfaChallengeModal {...mfaChallenge} />
     </main>
   );
 }

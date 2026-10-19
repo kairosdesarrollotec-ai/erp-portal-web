@@ -10,6 +10,7 @@ import {
   uploadFileToGcs,
   recordRentalDocument,
   registerAuthorizedDriver,
+  registerCompanion,
   RentalDocumentType,
   ContractHolderType,
 } from './rentals-client';
@@ -22,9 +23,9 @@ type DriverType = 'TITULAR' | 'ACOMPANANTE' | 'JURIDICA';
 type IdDocType = 'DNI' | 'PASAPORTE_CE';
 
 /**
- * El expediente no expone el tipo de persona del titular. Se infiere del documento: un RUC de 11
- * digitos que empieza con 20 es persona juridica; el resto se trata como natural. El backend es la
- * autoridad (NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED / HOLDER_TYPE_MISMATCH) y su mensaje se muestra.
+ * El expediente no expone el tipo de documento del titular. Se infiere del numero (regla de negocio: RUC ->
+ * persona juridica, DNI -> persona natural): 11 digitos = RUC; el resto se trata como natural. El backend deduce el
+ * tipo desde el tipo de documento del cliente y es la autoridad (NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED / HOLDER_TYPE_MISMATCH) y su mensaje se muestra.
  */
 function inferHolderType(docNumber: string | undefined | null): ContractHolderType {
   return /^20\d{9}$/.test((docNumber ?? '').trim()) ? 'LEGAL' : 'NATURAL';
@@ -61,6 +62,16 @@ export function Stage1DocumentsScreen() {
   const [addendumRef, setAddendumRef] = useState('');
   const driverSearch = useInquiryCustomerSearch(context, (c) => setDriverCustomer(c));
 
+  // Acompanante autorizado de persona natural (DEC-ALQ-COMPANION-006): firma como responsable si el titular no puede.
+  const [companionCustomer, setCompanionCustomer] = useState<Customer | null>(null);
+  const [companionReason, setCompanionReason] = useState('');
+  // Conductor real (parte DRIVER) y checks de licencia vigente verificada (la licencia no se guarda).
+  const [realDriverCustomer, setRealDriverCustomer] = useState<Customer | null>(null);
+  const [companionLicenseOk, setCompanionLicenseOk] = useState(false);
+  const [realDriverLicenseOk, setRealDriverLicenseOk] = useState(false);
+  const companionSearch = useInquiryCustomerSearch(context, (c) => setCompanionCustomer(c));
+  const realDriverSearch = useInquiryCustomerSearch(context, (c) => setRealDriverCustomer(c));
+
   const licenseFileRef = useRef<HTMLInputElement>(null);
   const idDocFileRef = useRef<HTMLInputElement>(null);
   const addressFileRef = useRef<HTMLInputElement>(null);
@@ -71,9 +82,14 @@ export function Stage1DocumentsScreen() {
   const holderType = inferHolderType(rental?.customerDocNumber);
   const isNaturalHolder = holderType === 'NATURAL';
   const registeredDriver = rental?.parties?.find((p) => p.role === 'DRIVER') ?? null;
+  const registeredCompanion = rental?.parties?.find((p) => p.role === 'RESPONSIBLE') ?? null;
   const needsOwnDriver = driverType === 'JURIDICA' && !registeredDriver;
+  const needsCompanion = driverType === 'ACOMPANANTE' && isNaturalHolder && !registeredCompanion;
   const ownDriverReady = !needsOwnDriver || (!!driverCustomer && addendumRef.trim().length > 0);
-  const canContinue = licenseUploaded && idDocUploaded && ownDriverReady;
+  const companionReady =
+    !needsCompanion ||
+    (!!companionCustomer && !!realDriverCustomer && companionLicenseOk && realDriverLicenseOk && companionReason.trim().length >= 10);
+  const canContinue = licenseUploaded && idDocUploaded && ownDriverReady && companionReady;
 
   async function handleFileUpload(file: File, docType: RentalDocumentType) {
     if (!rental || !context) return;
@@ -107,6 +123,14 @@ export function Stage1DocumentsScreen() {
         current = await registerAuthorizedDriver(
           idToken, id, context.companyId, context.branchId, rental.version,
           driverCustomer.id, addendumRef.trim(), holderType,
+        );
+        setRental(current);
+      }
+      if (needsCompanion && companionCustomer && realDriverCustomer) {
+        current = await registerCompanion(
+          idToken, id, context.companyId, context.branchId, current.version,
+          companionCustomer.id, realDriverCustomer.id, companionLicenseOk, realDriverLicenseOk,
+          companionReason.trim(), undefined, holderType,
         );
         setRental(current);
       }
@@ -158,7 +182,7 @@ export function Stage1DocumentsScreen() {
               key={option}
               type="button"
               aria-pressed={driverType === option}
-              disabled={option === 'JURIDICA' && isNaturalHolder}
+              disabled={(option === 'JURIDICA' && isNaturalHolder) || (option === 'ACOMPANANTE' && !isNaturalHolder)}
               className={`${styles.chip} ${driverType === option ? styles.chipActive : ''}`}
               onClick={() => setDriverType(option)}
             >
@@ -175,6 +199,100 @@ export function Stage1DocumentsScreen() {
           <p className={styles.summaryLine} data-testid="registered-driver">
             Conductor autorizado registrado. Adenda: {registeredDriver.addendumDocumentRef ?? 'sin referencia'}
           </p>
+        )}
+        {registeredCompanion && (
+          <p className={styles.summaryLine} data-testid="registered-companion">
+            Acompañante autorizado registrado como responsable del contrato.
+          </p>
+        )}
+        {driverType === 'ACOMPANANTE' && isNaturalHolder && !registeredCompanion && (
+          <div data-testid="companion-form">
+            <p className={styles.fieldHint}>
+              Si el titular no puede firmar (p. ej. su licencia no es válida en Perú), un acompañante con licencia vigente
+              firma como responsable del contrato. El acompañante no queda habilitado para conducir.
+            </p>
+            {companionCustomer ? (
+              <p className={styles.summaryLine}>
+                <strong>Acompañante:</strong> {companionCustomer.fullName} ({companionCustomer.documentNumber}){' '}
+                <button type="button" className={styles.retryButton} onClick={() => setCompanionCustomer(null)}>
+                  Cambiar
+                </button>
+              </p>
+            ) : (
+              <label className={styles.fieldLabel}>
+                Buscar acompañante (nombre o documento)
+                <input
+                  className={styles.input}
+                  type="search"
+                  value={companionSearch.customerSearchQuery}
+                  onChange={(e) => companionSearch.setCustomerSearchQuery(e.target.value)}
+                />
+                {companionSearch.searchingCustomers && <span className={styles.fieldHint}>Buscando…</span>}
+                {companionSearch.customerSearchResults.length > 0 && (
+                  <ul role="listbox" aria-label="Acompañantes encontrados">
+                    {companionSearch.customerSearchResults.map((c) => (
+                      <li key={c.id} role="option" aria-selected={false}>
+                        <button type="button" className={styles.chip} onClick={() => companionSearch.selectCustomer(c)}>
+                          {c.fullName} - {c.documentNumber}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </label>
+            )}
+            <label className={styles.fieldLabel}>
+              Motivo por el que el titular no firma
+              <textarea
+                className={styles.textarea}
+                rows={2}
+                value={companionReason}
+                onChange={(e) => setCompanionReason(e.target.value)}
+              />
+              <span className={styles.fieldHint}>Obligatorio (mínimo 10 caracteres). Queda en la auditoría del expediente.</span>
+            </label>
+            <label className={styles.fieldLabel}>
+              <input type="checkbox" checked={companionLicenseOk} onChange={(e) => setCompanionLicenseOk(e.target.checked)} />{' '}
+              Licencia vigente del acompañante verificada
+            </label>
+            <p className={styles.fieldHint}>
+              Con acompañante firmante se registran también los datos del conductor real. La licencia no se guarda: solo este check.
+            </p>
+            {realDriverCustomer ? (
+              <p className={styles.summaryLine}>
+                <strong>Conductor real:</strong> {realDriverCustomer.fullName} ({realDriverCustomer.documentNumber}){' '}
+                <button type="button" className={styles.retryButton} onClick={() => setRealDriverCustomer(null)}>
+                  Cambiar
+                </button>
+              </p>
+            ) : (
+              <label className={styles.fieldLabel}>
+                Buscar conductor real (nombre o documento)
+                <input
+                  className={styles.input}
+                  type="search"
+                  value={realDriverSearch.customerSearchQuery}
+                  onChange={(e) => realDriverSearch.setCustomerSearchQuery(e.target.value)}
+                />
+                {realDriverSearch.searchingCustomers && <span className={styles.fieldHint}>Buscando…</span>}
+                {realDriverSearch.customerSearchResults.length > 0 && (
+                  <ul role="listbox" aria-label="Conductores reales encontrados">
+                    {realDriverSearch.customerSearchResults.map((c) => (
+                      <li key={c.id} role="option" aria-selected={false}>
+                        <button type="button" className={styles.chip} onClick={() => realDriverSearch.selectCustomer(c)}>
+                          {c.fullName} - {c.documentNumber}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </label>
+            )}
+            <label className={styles.fieldLabel}>
+              <input type="checkbox" checked={realDriverLicenseOk} onChange={(e) => setRealDriverLicenseOk(e.target.checked)} />{' '}
+              Licencia vigente del conductor real verificada
+            </label>
+          </div>
         )}
         {driverType === 'JURIDICA' && !isNaturalHolder && !registeredDriver && (
           <div data-testid="own-driver-form">

@@ -1,5 +1,5 @@
 /**
- * Types generated manually from OpenAPI reporting.yaml v0.3.0 (dateFrom/dateTo inclusivos en America/Lima; errores 400 {statusCode, code, detail}).
+ * Types generated manually from OpenAPI reporting.yaml v0.4.0 (dateFrom/dateTo inclusivos en America/Lima; errores 400 {statusCode, code, detail}).
  * Source: apps/erp-monolithic-api/packages/contracts/openapi/reporting.yaml
  * REP-01 — BDD-REP-001 / SDD-REP-001 / TDD-REP-001.
  */

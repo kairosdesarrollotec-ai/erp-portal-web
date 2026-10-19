@@ -12,6 +12,7 @@ import { listRoles, type AdminRole } from './roles-client';
 import { getOrganizationCompanies, type OrganizationCompany } from './admin-users-client';
 import { useWorkContextForAdmin } from './useWorkContextForAdmin';
 import { isPlatformAdminRole } from '../shared/role-ref';
+import { MfaStepUpCancelledError, useMfaStepUp } from '../auth/useMfaStepUp';
 
 /**
  * ADM-02 - contrato punto 8: "ciertas combinaciones de permisos
@@ -78,6 +79,7 @@ export function useRolePermissionMatrix() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [companies, setCompanies] = useState<OrganizationCompany[]>([]);
   const [scope, setScope] = useState<MatrixScope>(ORGANIZATION_SCOPE);
+  const { request: requestMfaStepUp, challenge: mfaChallenge } = useMfaStepUp();
 
   const reloadRoles = useCallback(async () => {
     if (!context) return;
@@ -205,11 +207,23 @@ export function useRolePermissionMatrix() {
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesion no disponible.');
       const idToken = await user.getIdToken();
-      await saveRolePermissionMatrix(idToken, context.companyId, context.branchId, pendingEntries, scope);
+      try {
+        await saveRolePermissionMatrix(idToken, context.companyId, context.branchId, pendingEntries, scope);
+      } catch (error) {
+        // ADM-02 punto 10 / SEC-F4: el back exige MFA de los ultimos 5 min. Se abre el reto TR-03
+        // y se reintenta UNA vez con el token renovado; si se cancela, no se guarda nada.
+        if (!(error instanceof PermissionCommandError) || error.code !== 'MFA_RECENT_REQUIRED') throw error;
+        const freshToken = await requestMfaStepUp();
+        await saveRolePermissionMatrix(freshToken, context.companyId, context.branchId, pendingEntries, scope);
+      }
       await reload();
       return true;
     } catch (error) {
-      setSaveError(error instanceof PermissionCommandError ? error.message : 'No se pudo guardar el cambio.');
+      setSaveError(
+        error instanceof PermissionCommandError || error instanceof MfaStepUpCancelledError
+          ? error.message
+          : 'No se pudo guardar el cambio.',
+      );
       return false;
     } finally {
       setSaving(false);
@@ -232,6 +246,7 @@ export function useRolePermissionMatrix() {
     conflicts,
     saving,
     saveError,
+    mfaChallenge,
     companies,
     scope,
     setScope,

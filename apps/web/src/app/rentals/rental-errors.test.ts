@@ -12,6 +12,9 @@ describe('describeRentalError', () => {
     ['RENTAL_DRIVER_ALREADY_REGISTERED', /ya tiene un conductor/],
     ['RENTAL_DRIVER_REGISTRATION_CLOSED', /Ya no se puede registrar/],
     ['DRIVER_CUSTOMER_NOT_FOUND', /cliente-conductor/],
+    ['LICENSE_VERIFICATION_REQUIRED', /licencia vigente/],
+    ['COMPANION_DRIVER_MUST_DIFFER', /no conduce/],
+    ['COMPANION_PASSENGER_CAPACITY_EXCEEDED', /máxima de acompañantes/],
   ])('traduce %s', (code, re) => {
     expect(describeRentalError(new RentalCommandError(422, { code, detail: 'raw' }), 'fb')).toMatch(re);
   });

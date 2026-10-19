@@ -1,10 +1,10 @@
 /**
- * REP-01 — Rango de fechas de Reportes (reporting.yaml 0.3.0, BR-REP-005, DEC-TZ-LIMA-001).
+ * REP-01 — Rango de fechas de Reportes (reporting.yaml 0.4.0, BR-REP-005, DEC-TZ-LIMA-001).
  *
  * `dateFrom`/`dateTo` son días de calendario de America/Lima (`YYYY-MM-DD`) y el rango es
  * INCLUSIVO en ambos extremos: "Hasta" incluye el día completo (hasta 23:59:59 Lima).
- * Máximo 90 días entre una fecha y otra (mismo día = 0; +90 aceptado; +91 rechazado), igual
- * que el backend (RANGE_EXCEEDS_MAX).
+ * Máximo 90 días calendario INCLUSIVOS (dateTo - dateFrom <= 89; mismo día = 1 día; +89
+ * aceptado; +90 rechazado), igual que el backend (RANGE_EXCEEDS_MAX).
  */
 import { formatLimaDate } from '../shared/lima-time';
 
@@ -33,8 +33,8 @@ export function validateReportRange(from: string, to: string): string | null {
   const b = dayNumber(to);
   if (a === null || b === null) return 'Fechas inválidas.';
   if (a > b) return 'La fecha de inicio debe ser anterior o igual a la fecha de fin.';
-  if (Math.round((b - a) / DAY_MS) > MAX_RANGE_DAYS) {
-    return `El rango máximo permitido es ${MAX_RANGE_DAYS} días (BR-REP-005).`;
+  if (Math.round((b - a) / DAY_MS) + 1 > MAX_RANGE_DAYS) {
+    return `El rango máximo permitido es ${MAX_RANGE_DAYS} días calendario, contando ambos extremos (BR-REP-005).`;
   }
   return null;
 }

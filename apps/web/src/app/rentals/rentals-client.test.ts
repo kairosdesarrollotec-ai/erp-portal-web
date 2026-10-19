@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { listRentals, getRental, createRental, validateDocuments, getContractTemplate, formalizeContract, registerAuthorizedDriver, RentalApiError, RentalCommandError } from './rentals-client';
+import { listRentals, getRental, createRental, validateDocuments, getContractTemplate, formalizeContract, registerAuthorizedDriver, registerCompanion, RentalApiError, RentalCommandError } from './rentals-client';
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -101,6 +101,25 @@ describe('rentals-client', () => {
     await expect(registerAuthorizedDriver('token', 'r1', 'c1', 'b1', 4, 'd1', 'AD-1')).rejects.toMatchObject({
       status: 422,
       problem: { code: 'NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED' },
+    });
+  });
+
+  it('registerCompanion hace POST con If-Match, conductor real, checks de licencia, motivo y sin adenda si no se indica', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1', parties: [{ id: 'p', customerId: 'a1', role: 'RESPONSIBLE', addendumDocumentRef: null }] }));
+    const r = await registerCompanion('token', 'r1', 'c1', 'b1', 4, 'a1', 'd1', true, true, 'Brevete extranjero no valido', undefined, 'NATURAL');
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.method).toBe('POST');
+    expect(request.url).toContain('/rentals/r1/commands/register-companion');
+    expect(request.headers.get('If-Match')).toBe('"4"');
+    expect(await request.json()).toEqual({ companyId: 'c1', branchId: 'b1', companionCustomerId: 'a1', driverCustomerId: 'd1', companionLicenseVerified: true, driverLicenseVerified: true, reason: 'Brevete extranjero no valido', holderType: 'NATURAL' });
+    expect(r.parties?.[0].role).toBe('RESPONSIBLE');
+  });
+
+  it('registerCompanion expone el codigo del 422', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(422, { code: 'COMPANION_NOT_APPLICABLE_FOR_LEGAL_HOLDER' }));
+    await expect(registerCompanion('token', 'r1', 'c1', 'b1', 4, 'a1', 'd1', true, true, 'motivo valido largo')).rejects.toMatchObject({
+      status: 422,
+      problem: { code: 'COMPANION_NOT_APPLICABLE_FOR_LEGAL_HOLDER' },
     });
   });
 });

@@ -1,5 +1,5 @@
 /**
- * REP-01 — Errores de la API de Reportes (reporting.yaml 0.3.0).
+ * REP-01 — Errores de la API de Reportes (reporting.yaml 0.4.0).
  * Cuerpo de error: `{ statusCode, code, detail }`; códigos de fechas: INVALID_DATE,
  * INVALID_DATE_RANGE, RANGE_EXCEEDS_MAX (HTTP 400).
  */
@@ -8,7 +8,7 @@ import { MAX_RANGE_DAYS } from './reporting-range';
 export const REPORTING_DATE_ERROR_MESSAGES: Record<string, string> = {
   INVALID_DATE: 'Alguna de las fechas no es válida. Revisa el rango e inténtalo de nuevo.',
   INVALID_DATE_RANGE: 'La fecha de inicio debe ser anterior o igual a la fecha de fin.',
-  RANGE_EXCEEDS_MAX: `El rango máximo permitido es ${MAX_RANGE_DAYS} días (BR-REP-005).`,
+  RANGE_EXCEEDS_MAX: `El rango máximo permitido es ${MAX_RANGE_DAYS} días calendario, contando ambos extremos (BR-REP-005).`,
 };
 
 export class ReportingApiError extends Error {

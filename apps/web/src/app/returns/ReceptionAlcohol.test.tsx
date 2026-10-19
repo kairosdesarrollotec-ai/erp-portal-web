@@ -22,6 +22,9 @@ const receiveProvisionalMock = vi.fn();
 const registerAlcoholMock = vi.fn();
 const flowMock = vi.fn();
 const resolveEscalationMock = vi.fn();
+const requestUploadMock = vi.fn();
+const gcsUploadMock = vi.fn();
+const recordEvidenceMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -35,6 +38,15 @@ vi.mock('./useReturnFlow', () => ({ useReturnFlow: () => flowMock() }));
 vi.mock('../rentals/rentals-client', async () => {
   const actual = await vi.importActual<typeof import('../rentals/rentals-client')>('../rentals/rentals-client');
   return { ...actual, getRental: (...args: unknown[]) => getRentalMock(...args) };
+});
+vi.mock('./returns-evidence-client', async () => {
+  const actual = await vi.importActual<typeof import('./returns-evidence-client')>('./returns-evidence-client');
+  return {
+    ...actual,
+    requestReturnEvidenceUploadSession: (...args: unknown[]) => requestUploadMock(...args),
+    uploadReturnEvidenceToGcs: (...args: unknown[]) => gcsUploadMock(...args),
+    recordReturnEvidence: (...args: unknown[]) => recordEvidenceMock(...args),
+  };
 });
 vi.mock('./returns-client', async () => {
   const actual = await vi.importActual<typeof import('./returns-client')>('./returns-client');
@@ -174,10 +186,22 @@ describe('ReceptionScreen (DEV-02)', () => {
   });
 });
 
+function attachAlcoholPhoto(file = new File(['x'], 'prueba.jpg', { type: 'image/jpeg' })) {
+  fireEvent.change(screen.getByLabelText(/Foto de la prueba del alcoholímetro/), { target: { files: [file] } });
+  return file;
+}
+
 describe('AlcoholTestScreen (DEV-03)', () => {
   beforeEach(() => {
     registerAlcoholMock.mockReset();
     resolveEscalationMock.mockReset();
+    requestUploadMock.mockReset().mockResolvedValue({
+      uploadUrl: 'https://upload.test/put',
+      objectUrl: 'https://storage.googleapis.com/b/companies/c1/returns/ret-1/alcohol.jpg',
+      expiresAt: '2026-10-16T00:00:00Z',
+    });
+    gcsUploadMock.mockReset().mockResolvedValue(undefined);
+    recordEvidenceMock.mockReset().mockResolvedValue({});
     flowMock.mockReset();
     useWorkSession.getState().setRole(null);
     setPermissions(RETURN_RECEPTION);
@@ -206,20 +230,75 @@ describe('AlcoholTestScreen (DEV-03)', () => {
     );
     renderAlcohol();
 
-    fireEvent.click(screen.getByLabelText('Desfavorable — no puede continuar normalmente'));
+    fireEvent.click(screen.getByLabelText('Desfavorable — no cumple el rango del alcoholímetro'));
     expect(screen.getByRole('alert')).toHaveTextContent('custodia');
+    attachAlcoholPhoto();
     fireEvent.click(screen.getByRole('button', { name: 'Derivar a Gerencia' }));
 
     await waitFor(() => expect(registerAlcoholMock).toHaveBeenCalled());
     expect(screen.queryByText('pantalla checklist')).not.toBeInTheDocument();
   });
 
-  it('desfavorable no ofrece "Continuar al checklist" (nunca llega a Resultado) y favorable si', () => {
+  it('desfavorable exige la foto de la prueba: sin foto el boton esta deshabilitado y con foto se habilita', () => {
     flowMock.mockReturnValue(makeFlow());
     renderAlcohol();
-    fireEvent.click(screen.getByLabelText('Desfavorable — no puede continuar normalmente'));
-    expect(screen.queryByRole('button', { name: 'Continuar al checklist' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Desfavorable — no cumple el rango del alcoholímetro'));
+    expect(screen.getByRole('button', { name: 'Derivar a Gerencia' })).toBeDisabled();
+    expect(screen.getByLabelText(/Foto de la prueba del alcoholímetro/)).toBeInTheDocument();
+    attachAlcoholPhoto();
     expect(screen.getByRole('button', { name: 'Derivar a Gerencia' })).toBeEnabled();
+  });
+
+  it('desfavorable sube la foto (zona ALCOHOL_TEST) ANTES de registrar el resultado, sin enviar hora', async () => {
+    flowMock.mockReturnValue(makeFlow());
+    registerAlcoholMock.mockResolvedValue(makeReturn({ alcoholTestResult: 'DESFAVORABLE' }));
+    renderAlcohol();
+    fireEvent.click(screen.getByLabelText('Desfavorable — no cumple el rango del alcoholímetro'));
+    const file = attachAlcoholPhoto();
+    fireEvent.click(screen.getByRole('button', { name: 'Derivar a Gerencia' }));
+
+    await waitFor(() => expect(registerAlcoholMock).toHaveBeenCalledTimes(1));
+    expect(requestUploadMock).toHaveBeenCalledWith('tok', 'ret-1', 'c1', 'b1', 'PHOTO', 'ALCOHOL_TEST', 'image/jpeg', file.size);
+    expect(gcsUploadMock).toHaveBeenCalledWith('https://upload.test/put', file);
+    expect(recordEvidenceMock).toHaveBeenCalledWith(
+      'tok', 'ret-1', 'c1', 'b1', 'PHOTO', 'ALCOHOL_TEST',
+      'https://storage.googleapis.com/b/companies/c1/returns/ret-1/alcohol.jpg',
+    );
+    expect(requestUploadMock.mock.invocationCallOrder[0]).toBeLessThan(registerAlcoholMock.mock.invocationCallOrder[0]);
+    expect(registerAlcoholMock).toHaveBeenCalledWith('tok', 'ret-1', 'c1', 'b1', 2, 'DESFAVORABLE', undefined);
+  });
+
+  it('si el registro falla tras subir la foto, el reintento no la vuelve a subir', async () => {
+    flowMock.mockReturnValue(makeFlow());
+    registerAlcoholMock
+      .mockRejectedValueOnce(new ReturnCommandError(422, { code: 'ALCOHOL_TEST_PHOTO_REQUIRED' }))
+      .mockResolvedValueOnce(makeReturn({ alcoholTestResult: 'DESFAVORABLE' }));
+    renderAlcohol();
+    fireEvent.click(screen.getByLabelText('Desfavorable — no cumple el rango del alcoholímetro'));
+    attachAlcoholPhoto();
+    fireEvent.click(screen.getByRole('button', { name: 'Derivar a Gerencia' }));
+    expect(await screen.findByText(/exige la foto de la prueba/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Derivar a Gerencia' }));
+    await waitFor(() => expect(registerAlcoholMock).toHaveBeenCalledTimes(2));
+    expect(requestUploadMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rechazado (se negó) no exige ni muestra la foto', async () => {
+    flowMock.mockReturnValue(makeFlow());
+    registerAlcoholMock.mockResolvedValue(makeReturn({ alcoholTestResult: 'RECHAZADO' }));
+    renderAlcohol();
+    fireEvent.click(screen.getByLabelText('Se negó a realizar la prueba'));
+    expect(screen.queryByLabelText(/Foto de la prueba del alcoholímetro/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Derivar a Gerencia' }));
+    await waitFor(() => expect(registerAlcoholMock).toHaveBeenCalled());
+    expect(requestUploadMock).not.toHaveBeenCalled();
+  });
+
+  it('desfavorable ofrece "Derivar a Gerencia" y no "Continuar al checklist" (nunca llega a Resultado); favorable si', () => {
+    flowMock.mockReturnValue(makeFlow());
+    renderAlcohol();
+    fireEvent.click(screen.getByLabelText('Desfavorable — no cumple el rango del alcoholímetro'));
+    expect(screen.queryByRole('button', { name: 'Continuar al checklist' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Favorable — puede continuar'));
     expect(screen.getByRole('button', { name: 'Continuar al checklist' })).toBeEnabled();
   });

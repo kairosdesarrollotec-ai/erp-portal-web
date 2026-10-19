@@ -1,6 +1,6 @@
 /**
  * REP-01 — Hooks de datos del módulo Reportes.
- * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.3.0.
+ * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.4.0.
  * Permisos: REPORT.READ_OPERATIONAL, REPORT.READ_FINANCIAL, REPORT.EXPORT.
  */
 import { useQuery, useMutation } from '@tanstack/react-query';

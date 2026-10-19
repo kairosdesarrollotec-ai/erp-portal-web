@@ -9,6 +9,13 @@ import {
   type AlcoholEscalationDecision,
   type ReturnAlcoholTestResult,
 } from './returns-client';
+import {
+  recordReturnEvidence,
+  requestReturnEvidenceUploadSession,
+  uploadReturnEvidenceToGcs,
+} from './returns-evidence-client';
+import { ALCOHOL_TEST_EVIDENCE_ZONE, MAX_PHOTO_BYTES, PHOTO_TYPES } from './return-evidence';
+import type { ReturnEvidenceContentType } from './returns-types';
 import { describeReturnError, isStaleReturnError } from './return-errors';
 import { ALCOHOL_RESULT_LABELS } from './return-status';
 import { useReturnPermissions } from './return-permissions';
@@ -30,8 +37,9 @@ const OPTION_COPY: Record<ReturnAlcoholTestResult, { title: string; description:
     description: 'Prueba negativa (0.00 g/l). Habilita el inicio inmediato de la inspección técnica vehicular 360° en patio.',
   },
   DESFAVORABLE: {
-    title: 'Desfavorable — no puede continuar normalmente',
-    description: 'Detección positiva de alcohol. Se bloquea la entrega normal de la unidad y se deriva a Gerencia.',
+    title: 'Desfavorable — no cumple el rango del alcoholímetro',
+    description:
+      'El resultado no cumple el rango. Adjunta la foto de la prueba (obligatoria); no se registra hora ni otros datos. Se bloquea la entrega normal de la unidad y se deriva a Gerencia.',
   },
   RECHAZADO: {
     title: 'Se negó a realizar la prueba',
@@ -64,6 +72,10 @@ export function AlcoholTestScreen() {
   const [markRed, setMarkRed] = useState(true); // sugerido por BR-DEV-005
   const [decisionNotes, setDecisionNotes] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Foto de la prueba (DEV-03, Fiorella 2026-10-16): obligatoria si DESFAVORABLE. `photoUploaded` evita volver a subirla
+  // si el registro del resultado falla y el usuario reintenta.
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoUploaded, setPhotoUploaded] = useState(false);
 
   const guard = returnFlowGuard({ state, hasReturn: Boolean(ret) });
   if (guard || !ret) return guard;
@@ -72,6 +84,8 @@ export function AlcoholTestScreen() {
     ret.status === 'RECEPCION_PROVISIONAL' && (ret.alcoholTestResult === 'DESFAVORABLE' || ret.alcoholTestResult === 'RECHAZADO');
   const unfavorableSelected = result === 'DESFAVORABLE' || result === 'RECHAZADO';
   const wrongState = ret.status !== 'RECEPCION_PROVISIONAL';
+  const needsPhoto = result === 'DESFAVORABLE';
+  const photoReady = !needsPhoto || photoUploaded || photo !== null;
   const canDecide = can('RESOLVE_ALCOHOL_ESCALATION');
   const previous = ret.alcoholEscalation ?? null;
   const decisionValid = decision !== '' && decisionNotes.trim().length >= MIN_DECISION_NOTES;
@@ -82,6 +96,41 @@ export function AlcoholTestScreen() {
     setError(null);
     try {
       const idToken = await getIdToken();
+      if (result === 'DESFAVORABLE' && !photoUploaded) {
+        if (!photo) {
+          setError('Adjunta la foto de la prueba del alcoholímetro (obligatoria).');
+          return;
+        }
+        if (!PHOTO_TYPES.includes(photo.type)) {
+          setError('Solo se admiten imágenes JPEG o WebP.');
+          return;
+        }
+        if (photo.size > MAX_PHOTO_BYTES) {
+          setError(`La foto supera el tamaño máximo de ${Math.round(MAX_PHOTO_BYTES / (1024 * 1024))} MB.`);
+          return;
+        }
+        const session = await requestReturnEvidenceUploadSession(
+          idToken,
+          id,
+          context.companyId,
+          context.branchId,
+          'PHOTO',
+          ALCOHOL_TEST_EVIDENCE_ZONE,
+          photo.type as ReturnEvidenceContentType,
+          photo.size,
+        );
+        await uploadReturnEvidenceToGcs(session.uploadUrl, photo);
+        await recordReturnEvidence(
+          idToken,
+          id,
+          context.companyId,
+          context.branchId,
+          'PHOTO',
+          ALCOHOL_TEST_EVIDENCE_ZONE,
+          session.objectUrl,
+        );
+        setPhotoUploaded(true);
+      }
       const updated = await registerReturnAlcoholTest(
         idToken,
         id,
@@ -150,7 +199,7 @@ export function AlcoholTestScreen() {
               : 'Registrar y continuar'
       }
       continueDisabled={
-        escalatedForManager ? !decisionValid : result === '' || !can('REGISTER_ALCOHOL_TEST') || alreadyEscalated
+        escalatedForManager ? !decisionValid : result === '' || !photoReady || !can('REGISTER_ALCOHOL_TEST') || alreadyEscalated
       }
       continueBusy={busy}
       errorMessage={error}
@@ -283,6 +332,22 @@ export function AlcoholTestScreen() {
               ))}
             </div>
           </fieldset>
+
+          {needsPhoto && (
+            <label className={styles.fieldLabel}>
+              Foto de la prueba del alcoholímetro (obligatoria)
+              <input
+                type="file"
+                accept="image/jpeg,image/webp"
+                capture="environment"
+                onChange={(e) => {
+                  setPhoto(e.target.files?.[0] ?? null);
+                  setPhotoUploaded(false);
+                }}
+              />
+              {photo && <span className={styles.summaryLine}>{photo.name}</span>}
+            </label>
+          )}
 
           <label className={styles.fieldLabel}>
             Observaciones

@@ -2,7 +2,7 @@
  * REP-01 — Dashboard de Reportes Operativos y Financieros.
  *
  * Baseline visual: PROTO-REP-01-DASHBOARD-OPERATIVO-DESKTOP (APPROVED 2026-10-11).
- * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.3.0 (dateFrom/dateTo inclusivos, America/Lima).
+ * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.4.0 (dateFrom/dateTo inclusivos, America/Lima).
  * Permisos: REPORT.READ_OPERATIONAL (tab Operativo), REPORT.READ_FINANCIAL (tab Financiero),
  *           REPORT.EXPORT (botón Exportar CSV).
  *

@@ -76,8 +76,8 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
   const [error, setError] = useState<string | null>(null);
   const evidenceRequired = choice === 'PRESENTE' || choice === 'TARDANZA';
   const hasPhoto = mode === 'FILE' ? !!storageRef : photoRef.trim() !== '';
-  // Obligatoria en PRESENTE/TARDANZA; en otros estados es opcional y, si se empieza a llenar, debe estar completa.
-  const wantsEvidence = evidenceRequired || hasPhoto || capturedAt !== '' || evidenceNote.trim() !== '';
+  // Foto SOLO para PRESENTE/TARDANZA (Fiorella, 16-oct-2026); permisos y faltas llevan solo checklist, sin foto.
+  const wantsEvidence = evidenceRequired;
 
   async function startUpload(selected: File) {
     setUploadState('uploading');
@@ -222,13 +222,11 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
             <textarea id="att-notes" className={styles.input} value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
         )}
-        {choice !== 'FALTA' && (
+        {evidenceRequired && (
           <fieldset className={styles.field}>
-            <legend>{evidenceRequired ? 'Evidencia (obligatoria)' : 'Evidencia (foto del grupo de WhatsApp)'}</legend>
+            <legend>Evidencia (obligatoria)</legend>
             <p className={styles.description}>
-              {evidenceRequired
-                ? 'Foto con reloj, hora y rostro que corrobora la marcación. Es obligatoria para registrar una asistencia o tardanza.'
-                : 'Foto con reloj, hora y rostro que corrobora la marcación. Es opcional para este resultado.'}
+              Foto con reloj, hora y rostro que corrobora la marcación. Es obligatoria para registrar una asistencia o tardanza.
             </p>
             <div role="group" aria-label="Origen de la evidencia">
               <label className={styles.check}>

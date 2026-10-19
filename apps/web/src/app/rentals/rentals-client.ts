@@ -12,6 +12,7 @@ type ApproveNotaryExceptionBody = components['schemas']['ApproveNotaryExceptionR
 type FormalizeContractBody = components['schemas']['FormalizeContractRequest'];
 type CompleteDeliveryBody = components['schemas']['CompleteDeliveryRequest'];
 type RegisterAuthorizedDriverBody = components['schemas']['RegisterAuthorizedDriverRequest'];
+type RegisterCompanionBody = components['schemas']['RegisterCompanionRequest'];
 
 /** Error HTTP de lectura (GET) - mismo patron que ReservationApiError. */
 export class RentalApiError extends Error {
@@ -394,6 +395,48 @@ export async function registerAuthorizedDriver(
       addendumDocumentRef,
       ...(holderType ? { holderType } : {}),
     } as unknown as RegisterAuthorizedDriverBody,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
+}
+
+/**
+ * ENTREGA-01 - registra al acompanante autorizado de una persona NATURAL como responsable del contrato
+ * (DEC-ALQ-COMPANION-006, BR-ALQ-015). Persona juridica -> 422 COMPANION_NOT_APPLICABLE_FOR_LEGAL_HOLDER.
+ * No habilita al acompanante a conducir:
+ * exige registrar al conductor real (party DRIVER) y los checks de licencia vigente verificada (la licencia no se guarda).
+ */
+export async function registerCompanion(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  companionCustomerId: string,
+  driverCustomerId: string,
+  companionLicenseVerified: boolean,
+  driverLicenseVerified: boolean,
+  reason: string,
+  addendumDocumentRef?: string,
+  holderType?: ContractHolderType,
+): Promise<RentalResponse> {
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/register-companion', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: {
+      companyId,
+      branchId,
+      companionCustomerId,
+      driverCustomerId,
+      companionLicenseVerified,
+      driverLicenseVerified,
+      reason,
+      ...(addendumDocumentRef ? { addendumDocumentRef } : {}),
+      ...(holderType ? { holderType } : {}),
+    } as unknown as RegisterCompanionBody,
   });
   if (error || !data) {
     const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;

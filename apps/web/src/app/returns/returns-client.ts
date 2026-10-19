@@ -211,6 +211,27 @@ export async function registerReturnAlcoholTest(
   return data as unknown as ReturnResponse;
 }
 
+/** DEC-DEV-LATE-CHARGE-002 - cargo por retraso MANUAL (monto digitado por usuario autorizado; sin cálculo automático). */
+export async function registerReturnLateCharge(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  amount: number,
+  notes?: string,
+): Promise<ReturnResponse> {
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/register-late-charge', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: { companyId, branchId, amount, ...(notes ? { notes } : {}) } as unknown as never,
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
+}
+
 /** DEV-04/05 - cierra el checklist y categoriza el estado de danos. */
 export async function completeInspection(
   idToken: string,
