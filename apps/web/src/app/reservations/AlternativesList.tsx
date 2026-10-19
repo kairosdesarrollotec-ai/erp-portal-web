@@ -3,7 +3,7 @@ import type { AlternativesState } from './useAlternativeVehicles';
 import styles from './ReservationResolution.module.css';
 import detail from './ReservationDetailScreen.module.css';
 
-export function vehicleLabel(v: FleetVehicle): string {
+function vehicleLabel(v: FleetVehicle): string {
   return `${v.brand} ${v.model} - ${v.plate}`;
 }
 

@@ -26,7 +26,7 @@ type IdDocType = 'DNI' | 'PASAPORTE_CE';
  * digitos que empieza con 20 es persona juridica; el resto se trata como natural. El backend es la
  * autoridad (NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED / HOLDER_TYPE_MISMATCH) y su mensaje se muestra.
  */
-export function inferHolderType(docNumber: string | undefined | null): ContractHolderType {
+function inferHolderType(docNumber: string | undefined | null): ContractHolderType {
   return /^20\d{9}$/.test((docNumber ?? '').trim()) ? 'LEGAL' : 'NATURAL';
 }
 

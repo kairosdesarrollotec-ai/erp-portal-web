@@ -88,7 +88,7 @@ export function useSyncManager(params: SyncManagerParams): SyncManagerResult {
   }, [getPending]);
 
   useEffect(() => {
-    void refreshCounts();
+    void Promise.resolve().then(refreshCounts);
   }, [refreshCounts]);
 
   const triggerSync = useCallback(() => {
