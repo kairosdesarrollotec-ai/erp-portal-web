@@ -36,6 +36,7 @@ export function makeEmployee(overrides: Partial<EmployeeResponse> = {}): Employe
     isFieldTripObserved: false,
     baseSalary: 1500,
     accountLinked: false,
+    version: 3,
     createdAt: '2026-01-10T10:00:00Z',
     ...overrides,
   };

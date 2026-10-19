@@ -18,6 +18,10 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   RENTAL_DRIVER_ALREADY_REGISTERED: 'Este alquiler ya tiene un conductor autorizado registrado.',
   RENTAL_DRIVER_REGISTRATION_CLOSED: 'Ya no se puede registrar conductor: el alquiler pasó de la etapa de entrega.',
   DRIVER_CUSTOMER_NOT_FOUND: 'No encontramos al cliente-conductor en tu empresa. Búscalo o regístralo primero.',
+  COMPANY_DRIVER_RATE_INVALID: 'La tarifa diaria debe ser un monto mayor que 0 con un máximo de 2 decimales.',
+  COMPANY_DRIVER_RATE_CLOSED: 'El alquiler ya está cerrado o cancelado: no se puede digitar la tarifa diaria del conductor.',
+  COMPANY_DRIVER_RATE_NOT_APPLICABLE:
+    'La tarifa diaria solo se digita en un alquiler con conductor de la empresa y con el contrato ya formalizado.',
   CONTRACT_VARIANT_DRIVER_CONFLICT:
     'La variante del contrato es inconsistente: la opción de conductor de la empresa no coincide. Recarga la pantalla e inténtalo de nuevo.',
 };

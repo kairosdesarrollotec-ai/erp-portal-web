@@ -46,7 +46,7 @@ function renderScreen() {
   );
 }
 
-const hired = () => makeCandidate({ decision: 'CONTRATADO', stage: 'DECISION' });
+const hired = () => makeCandidate({ decision: 'CONTRATADO', stage: 'DECISION', processState: 'DECIDIDO' });
 
 describe('OnboardingScreen (REC-07)', () => {
   beforeEach(() => {

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { FleetListScreen } from './FleetListScreen';
+import { axe } from 'jest-axe';
 import { FleetApiError } from './fleet-client';
 
 function createTestQueryClient() {
@@ -17,6 +18,7 @@ function createTestQueryClient() {
 const listVehiclesMock = vi.fn();
 const createVehicleMock = vi.fn();
 const updateVehicleStatusMock = vi.fn();
+const updateVehicleMock = vi.fn();
 const requestPhotoUploadSessionMock = vi.fn();
 const uploadPhotoToGcsMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
@@ -41,6 +43,7 @@ vi.mock('./fleet-client', async () => {
     listVehicles: (...args: unknown[]) => listVehiclesMock(...args),
     createVehicle: (...args: unknown[]) => createVehicleMock(...args),
     updateVehicleStatus: (...args: unknown[]) => updateVehicleStatusMock(...args),
+    updateVehicle: (...args: unknown[]) => updateVehicleMock(...args),
     requestPhotoUploadSession: (...args: unknown[]) => requestPhotoUploadSessionMock(...args),
     uploadPhotoToGcs: (...args: unknown[]) => uploadPhotoToGcsMock(...args),
   };
@@ -78,6 +81,7 @@ describe('FleetListScreen', () => {
     listVehiclesMock.mockReset();
     createVehicleMock.mockReset();
     updateVehicleStatusMock.mockReset();
+    updateVehicleMock.mockReset();
     requestPhotoUploadSessionMock.mockReset();
     uploadPhotoToGcsMock.mockReset();
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
@@ -254,7 +258,7 @@ describe('FleetListScreen', () => {
     });
   });
 
-  it('F-05/G-05: no registra si faltan garantía, capacidad y precio del combustible', async () => {
+  it('DEC-FLT-CAP-001: no registra sin capacidad de pasajeros y explica la regla de negocio', async () => {
     listVehiclesMock.mockResolvedValue({ items: [], total: 0 });
     renderScreen();
 
@@ -262,10 +266,36 @@ describe('FleetListScreen', () => {
     fireEvent.change(screen.getByPlaceholderText('ABC-123'), { target: { value: 'XYZ-789' } });
     fireEvent.change(screen.getByPlaceholderText('Toyota, Hyundai, Nissan...'), { target: { value: 'Hyundai' } });
     fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), { target: { value: 'Tucson' } });
+    expect(screen.getByLabelText(/^Capacidad de pasajeros/)).toBeRequired();
     fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
 
-    expect(await screen.findByText('La garantía es obligatoria.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Indique cuántos pasajeros admite el vehículo (capacidad de pasajeros, de 1 a 60).'),
+    ).toBeInTheDocument();
     expect(createVehicleMock).not.toHaveBeenCalled();
+  });
+
+  it('DEC-FLT-CAP-001: registra solo con capacidad; garantía y precio del combustible son opcionales', async () => {
+    listVehiclesMock.mockResolvedValue({ items: [], total: 0 });
+    createVehicleMock.mockResolvedValue({ id: 'v-new', plate: 'XYZ-789' });
+    renderScreen();
+
+    fireEvent.click(await screen.findByText('+ Nuevo Vehículo'));
+    expect(screen.getByLabelText(/^Garantía/)).not.toBeRequired();
+    expect(screen.getByLabelText(/^Precio del combustible/)).not.toBeRequired();
+    fireEvent.change(screen.getByPlaceholderText('ABC-123'), { target: { value: 'XYZ-789' } });
+    fireEvent.change(screen.getByPlaceholderText('Toyota, Hyundai, Nissan...'), { target: { value: 'Hyundai' } });
+    fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), { target: { value: 'Tucson' } });
+    fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '7' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
+
+    await waitFor(() => {
+      expect(createVehicleMock).toHaveBeenCalledWith(
+        'fake-id-token',
+        expect.objectContaining({ passengerCapacity: 7, depositMinimum: undefined, fuelPrice: undefined }),
+        expect.any(String),
+      );
+    });
   });
 
   it('F-05/G-05: rechaza capacidad fuera de 1..60 con mensaje claro', async () => {
@@ -386,5 +416,135 @@ describe('FleetListScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Quitar foto' }));
     expect(screen.queryByAltText('Vista previa del vehículo')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Adjuntar foto' })).toBeInTheDocument();
+  });
+
+  describe('DEC-FLT-CAP-001: vehículos sin capacidad registrada', () => {
+    const baseVehicle = {
+      organizationId: 'org-1',
+      operatingCompanyId: 'c1',
+      branchId: 'b1',
+      brand: 'Nissan',
+      model: 'Frontier',
+      year: 2023,
+      color: 'Gris',
+      category: 'PICKUP',
+      status: 'AVAILABLE',
+      dailyRate: 280,
+      photoUrl: null,
+      createdAt: '2026-09-28T12:00:00.000Z',
+      updatedAt: '2026-09-28T12:00:00.000Z',
+    };
+
+    it('la lista marca «Falta registrar la capacidad» solo en los vehículos sin capacidad', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [
+          { ...baseVehicle, id: 'v-old', plate: 'OLD-001', passengerCapacity: null },
+          { ...baseVehicle, id: 'v-ok', plate: 'OKK-002', passengerCapacity: 5 },
+        ],
+        total: 2,
+      });
+      renderScreen();
+
+      expect(await screen.findByText('OLD-001')).toBeInTheDocument();
+      expect(screen.getByTestId('missing-capacity-v-old')).toHaveTextContent('Falta registrar la capacidad');
+      expect(screen.queryByTestId('missing-capacity-v-ok')).not.toBeInTheDocument();
+    });
+
+    it('permite completar la capacidad desde la lista reutilizando la edición', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [{ ...baseVehicle, id: 'v-old', plate: 'OLD-001', passengerCapacity: null }],
+        total: 1,
+      });
+      updateVehicleMock.mockResolvedValue({ id: 'v-old' });
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Completar capacidad de OLD-001' }));
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText(/Falta registrar la capacidad de este vehículo/)).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '9' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
+
+      await waitFor(() => {
+        expect(updateVehicleMock).toHaveBeenCalledWith(
+          'fake-id-token',
+          'v-old',
+          expect.objectContaining({ passengerCapacity: 9 }),
+        );
+      });
+    });
+
+    it('permite editar otros datos de un vehículo sin capacidad sin exigirla (no bloquea vehículos existentes)', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [{ ...baseVehicle, id: 'v-old', plate: 'OLD-001', passengerCapacity: null }],
+        total: 1,
+      });
+      updateVehicleMock.mockResolvedValue({ id: 'v-old' });
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar' }));
+      fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), { target: { value: 'Navara' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
+
+      await waitFor(() => {
+        expect(updateVehicleMock).toHaveBeenCalledWith(
+          'fake-id-token',
+          'v-old',
+          expect.objectContaining({ model: 'Navara', passengerCapacity: undefined }),
+        );
+      });
+    });
+
+    it('no permite vaciar la capacidad de un vehículo que ya la tenía', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [{ ...baseVehicle, id: 'v-ok', plate: 'OKK-002', passengerCapacity: 5 }],
+        total: 1,
+      });
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar' }));
+      fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
+
+      expect(
+        await screen.findByText('Indique cuántos pasajeros admite el vehículo (capacidad de pasajeros, de 1 a 60).'),
+      ).toBeInTheDocument();
+      expect(updateVehicleMock).not.toHaveBeenCalled();
+    });
+
+    it('garantía y precio del combustible son editables después del alta', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [{ ...baseVehicle, id: 'v-ok', plate: 'OKK-002', passengerCapacity: 5 }],
+        total: 1,
+      });
+      updateVehicleMock.mockResolvedValue({ id: 'v-ok' });
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar' }));
+      fireEvent.change(screen.getByLabelText(/^Garantía/), { target: { value: '600' } });
+      fireEvent.change(screen.getByLabelText(/^Precio del combustible/), { target: { value: '5.2' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
+
+      await waitFor(() => {
+        expect(updateVehicleMock).toHaveBeenCalledWith(
+          'fake-id-token',
+          'v-ok',
+          expect.objectContaining({ depositMinimum: 600, fuelPrice: 5.2, passengerCapacity: 5 }),
+        );
+      });
+    });
+
+    it('axe: lista con aviso de capacidad y modal de registro sin violaciones', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [{ ...baseVehicle, id: 'v-old', plate: 'OLD-001', passengerCapacity: null }],
+        total: 1,
+      });
+      const { container } = renderScreen();
+      await screen.findByTestId('missing-capacity-v-old');
+      expect(await axe(container)).toHaveNoViolations();
+
+      fireEvent.click(screen.getByText('+ Nuevo Vehículo'));
+      await screen.findByRole('dialog');
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 });

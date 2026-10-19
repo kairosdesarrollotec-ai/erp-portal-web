@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { listRentals, getRental, createRental, validateDocuments, getContractTemplate, formalizeContract, registerAuthorizedDriver, registerCompanion, RentalApiError, RentalCommandError } from './rentals-client';
+import { listRentals, getRental, createRental, validateDocuments, getContractTemplate, formalizeContract, registerAuthorizedDriver, registerCompanion, setCompanyDriverDailyRate, RentalApiError, RentalCommandError } from './rentals-client';
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -83,6 +83,29 @@ describe('rentals-client', () => {
     fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1' }));
     await formalizeContract('token', 'r1', 'c1', 'b1', 3, 'DOC', '500', 'PEN', undefined, undefined, { holderType: 'LEGAL', withCompanyDriver: true });
     expect(await (fetchMock.mock.calls[1][0] as Request).json()).not.toHaveProperty('depositAmount');
+  });
+
+  it('setCompanyDriverDailyRate hace POST con If-Match, Idempotency-Key y body {companyId, branchId, dailyRate}', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, { id: 'r1', companyDriverCharge: { configured: true, source: 'MANUAL', dailyRate: '120.50', currency: 'PEN', days: 2, total: '241.00' } }),
+    );
+    const r = await setCompanyDriverDailyRate('token', 'r1', 'c1', 'b1', 5, '120.50');
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.method).toBe('POST');
+    expect(request.url).toContain('/rentals/r1/commands/set-company-driver-daily-rate');
+    expect(request.headers.get('If-Match')).toBe('"5"');
+    expect(request.headers.get('Idempotency-Key')).toBeTruthy();
+    expect(await request.json()).toEqual({ companyId: 'c1', branchId: 'b1', dailyRate: '120.50' });
+    expect(r.companyDriverCharge?.source).toBe('MANUAL');
+  });
+
+  it.each([
+    [400, 'COMPANY_DRIVER_RATE_INVALID'],
+    [409, 'COMPANY_DRIVER_RATE_CLOSED'],
+    [422, 'COMPANY_DRIVER_RATE_NOT_APPLICABLE'],
+  ])('setCompanyDriverDailyRate expone el codigo del %i', async (status, code) => {
+    fetchMock.mockResolvedValue(jsonResponse(status, { statusCode: status, code, detail: 'x' }));
+    await expect(setCompanyDriverDailyRate('token', 'r1', 'c1', 'b1', 5, '10')).rejects.toMatchObject({ status, problem: { code } });
   });
 
   it('registerAuthorizedDriver hace POST con If-Match y body del conductor', async () => {

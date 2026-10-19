@@ -88,6 +88,34 @@ describe('HiringDecisionScreen (REC-06)', () => {
     expect(await screen.findByText('pantalla de incorporacion')).toBeInTheDocument();
   });
 
+  it('BDD-REC §11.6: sin entrevista registrada (En negociación) no se puede contratar, pero sí no contratar', async () => {
+    getCandidateMock.mockResolvedValue(makeCandidate({ processState: 'EN_NEGOCIACION' }));
+    renderScreen();
+    const hire = await screen.findByRole('button', { name: 'Contratar' });
+    expect(hire).toBeDisabled();
+    expect(screen.getByText(/primero registra el resultado de la entrevista/)).toBeInTheDocument();
+    expect(hire).toHaveAccessibleDescription(/primero registra el resultado de la entrevista/);
+    expect(screen.getByRole('button', { name: 'No contratar' })).toBeEnabled();
+  });
+
+  it('con la entrevista registrada (Entrevistado) se puede contratar y no aparece el aviso', async () => {
+    getCandidateMock.mockResolvedValue(makeCandidate({ processState: 'ENTREVISTADO', interviews }));
+    renderScreen();
+    expect(await screen.findByRole('button', { name: 'Contratar' })).toBeEnabled();
+    expect(screen.queryByText(/primero registra el resultado de la entrevista/)).toBeNull();
+  });
+
+  it('un 422 CANDIDATE_STATE_TRANSITION_INVALID se explica en lenguaje de negocio', async () => {
+    const user = setupUser();
+    getCandidateMock.mockResolvedValue(makeCandidate({ interviews }));
+    decideMock.mockRejectedValue(new RecruitmentCommandError(422, { code: 'CANDIDATE_STATE_TRANSITION_INVALID' }));
+    renderScreen();
+    await user.click(await screen.findByRole('button', { name: 'Contratar' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar contratación' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('primero registra el resultado de la entrevista');
+  });
+
   it('"No contratar" confirma con su propio botón', async () => {
     const user = setupUser();
     getCandidateMock.mockResolvedValue(makeCandidate({ interviews }));
@@ -102,7 +130,7 @@ describe('HiringDecisionScreen (REC-06)', () => {
 
   it('con decisión previa no se puede volver a decidir y se muestra el resultado', async () => {
     getCandidateMock.mockResolvedValue(
-      makeCandidate({ interviews, decision: 'RECHAZADO', decidedAt: '2026-10-06T12:00:00Z' }),
+      makeCandidate({ interviews, decision: 'RECHAZADO', processState: 'DESCARTADO', decidedAt: '2026-10-06T12:00:00Z' }),
     );
     renderScreen();
     expect(await screen.findByText('No contratado')).toBeInTheDocument();

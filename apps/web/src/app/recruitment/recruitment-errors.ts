@@ -9,6 +9,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   CANDIDATE_ALREADY_DECIDED: 'Este candidato ya tiene una decisión de contratación y no se puede cambiar.',
   CANDIDATE_DOCUMENT_DUPLICATE: 'Ya existe un candidato con ese documento en esta vacante.',
   CANDIDATE_STAGE_REGRESSION: 'Un candidato solo avanza de etapa; no puede volver a una anterior.',
+  CANDIDATE_STATE_TRANSITION_INVALID:
+    'Ese paso no corresponde al estado actual del candidato. Para contratar, primero registra el resultado de la entrevista; para incorporar, primero contrata; para evaluar la prueba, primero incorpora.',
   CANDIDATE_NOT_CONTRACTED: 'Primero hay que decidir contratar al candidato para poder incorporarlo.',
   ONBOARDING_CHECKLIST_INCOMPLETE:
     'Completa todo el checklist de incorporación: inducción, dispositivos asignados y responsabilidad firmada.',

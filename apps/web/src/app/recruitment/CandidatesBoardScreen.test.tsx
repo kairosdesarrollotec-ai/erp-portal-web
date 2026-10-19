@@ -38,7 +38,7 @@ const ctx = { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchN
 function cand(o: Partial<CandidateResponse> = {}): CandidateResponse {
   return {
     id: 'cand-1', vacancyId: 'vac-1', fullName: 'Ana Pérez', documentType: 'DNI', documentNumber: '12345678',
-    stage: 'NUEVO', version: 2, createdAt: '2026-10-01T10:00:00Z', ...o,
+    stage: 'NUEVO', processState: 'EN_NEGOCIACION', version: 2, createdAt: '2026-10-01T10:00:00Z', ...o,
   };
 }
 
@@ -61,10 +61,19 @@ describe('CandidatesBoardScreen (REC-03)', () => {
     listCandidatesMock.mockResolvedValue([
       cand(),
       cand({ id: 'cand-2', fullName: 'Luis Rojas', stage: 'ENTREVISTA' }),
-      cand({ id: 'cand-3', fullName: 'Marta Díaz', stage: 'DECISION', decision: 'RECHAZADO' }),
-      cand({ id: 'cand-4', fullName: 'Pedro Sol', stage: 'DECISION' }),
+      cand({ id: 'cand-3', fullName: 'Marta Díaz', stage: 'DECISION', processState: 'DESCARTADO', decision: 'RECHAZADO' }),
+      cand({ id: 'cand-4', fullName: 'Pedro Sol', stage: 'DECISION', processState: 'ENTREVISTADO' }),
     ]);
     setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.REGISTER_CANDIDATE', 'RECRUITMENT.DECIDE_CANDIDATE']);
+  });
+
+  it('BDD-REC §11.6: cada tarjeta muestra el estado de proceso del candidato', async () => {
+    renderScreen();
+    await screen.findByText('Ana Pérez');
+    const cardOf = (name: string) => screen.getByText(name).closest('li') as HTMLElement;
+    expect(within(cardOf('Ana Pérez')).getByText('En negociación')).toBeInTheDocument();
+    expect(within(cardOf('Marta Díaz')).getByText('Descartado')).toBeInTheDocument();
+    expect(within(cardOf('Pedro Sol')).getByText('Entrevistado')).toBeInTheDocument();
   });
 
   it('muestra columnas, título de la vacante y no muestra puntajes ni filtro automático', async () => {

@@ -7,6 +7,7 @@ import {
   approveNotaryException,
   formalizeContract,
   getContractTemplate,
+  setCompanyDriverDailyRate,
   RentalCommandError,
   NotaryEvaluationResponse,
   ContractHolderType,
@@ -17,6 +18,9 @@ import { SignaturePad } from '../shared/SignaturePad';
 import { computeGuaranteeBreakdown, formatPen } from './guarantee-breakdown';
 import { describeRentalError } from './rental-errors';
 import styles from './RentalStageForms.module.css';
+
+/** DEC-ALQ-DRIVERRATE-001: monto > 0, maximo 2 decimales y hasta 8 enteros (DECIMAL(10,2)); mismo patron que el backend. */
+const DAILY_RATE_PATTERN = /^(?!0+(\.0{1,2})?$)\d{1,8}(\.\d{1,2})?$/;
 
 const NOTARY_RESULT_LABELS: Record<string, string> = {
   MANDATORY: 'Notaría obligatoria',
@@ -37,6 +41,8 @@ export function Stage3ContractScreen() {
   // Aprobar la excepcion notarial es un permiso explicito (RENTAL.APPROVE_NOTARY_EXCEPTION), no un rol.
   const { can } = usePermissions();
   const canApproveNotaryException = can('RENTAL', 'APPROVE_NOTARY_EXCEPTION');
+  // La tarifa del conductor de la empresa se digita con el mismo permiso que formaliza el contrato (RENTAL.FORMALIZE_CONTRACT).
+  const canSetDriverRate = can('RENTAL', 'FORMALIZE_CONTRACT');
 
   const [evaluation, setEvaluation] = useState<NotaryEvaluationResponse | null>(rental?.notaryEvaluation ?? null);
   const [justification, setJustification] = useState('');
@@ -50,6 +56,10 @@ export function Stage3ContractScreen() {
   const [evaluating, setEvaluating] = useState(false);
   const [holderType, setHolderType] = useState<ContractHolderType>('NATURAL');
   const [withCompanyDriver, setWithCompanyDriver] = useState(false);
+  const [driverRate, setDriverRate] = useState('');
+  const [rateBusy, setRateBusy] = useState(false);
+  const [rateError, setRateError] = useState<string | null>(null);
+  const [rateSaved, setRateSaved] = useState(false);
   const [templateSel, setTemplateSel] = useState<ContractTemplateSelectionResponse | null>(null);
   const [templateState, setTemplateState] = useState<'LOADING' | 'READY' | 'ERROR'>('LOADING');
 
@@ -71,6 +81,14 @@ export function Stage3ContractScreen() {
     void runEvaluation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rental?.id]);
+
+  // Si el alquiler ya tiene una tarifa manual, se muestra en el campo.
+  const manualRate = rental?.companyDriverCharge?.source === 'MANUAL' ? rental.companyDriverCharge.dailyRate : null;
+  const [syncedManualRate, setSyncedManualRate] = useState<string | null>(null);
+  if (manualRate && manualRate !== syncedManualRate) {
+    setSyncedManualRate(manualRate);
+    setDriverRate(manualRate);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -110,7 +128,15 @@ export function Stage3ContractScreen() {
   const noDeposit = withCompanyDriver;
   const appliedCredit = rental?.reservationCredit?.applied ? parseFloat(rental.reservationCredit.creditAmount) || 0 : 0;
   const companyDriverCreditBalance = noDeposit ? appliedCredit : 0;
+  // DEC-ALQ-DRIVERRATE-001 (F-02): tarifa diaria del conductor de la empresa. La variante solo se conoce en el contrato
+  // formalizado; antes de formalizar vale lo marcado en el checkbox y la tarifa digitada se guarda justo despues.
+  const contractIsCompanyDriver = !!rental?.contract?.contractVariant?.endsWith('_WITH_DRIVER');
+  const showDriverRate = withCompanyDriver || contractIsCompanyDriver;
+  const driverRateTrim = driverRate.trim();
+  const driverRateValid = driverRateTrim === '' || DAILY_RATE_PATTERN.test(driverRateTrim);
+  const driverCharge = rental?.companyDriverCharge ?? null;
   const canFormalize =
+    (!withCompanyDriver || driverRateValid) &&
     exceptionResolved &&
     !!signatureData &&
     (noDeposit || (!!paymentAmount && !depositBelowMinimum)) &&
@@ -162,7 +188,30 @@ export function Stage3ContractScreen() {
         signatureData ?? undefined,
         { holderType, withCompanyDriver },
       );
-      setRental(updated);
+      // La tarifa digitada se guarda tras formalizar (antes no existe contrato con la variante del conductor).
+      if (withCompanyDriver && driverRateTrim && canSetDriverRate) {
+        try {
+          const withRate = await setCompanyDriverDailyRate(
+            idToken,
+            id,
+            context.companyId,
+            context.branchId,
+            updated.version,
+            driverRateTrim,
+          );
+          setRental(withRate);
+        } catch (rateErr) {
+          setRental(updated);
+          setConfirmOpen(false);
+          setRateError(
+            `El contrato quedó formalizado, pero no pudimos guardar la tarifa diaria: ${describeRentalError(rateErr, 'intenta de nuevo')} ` +
+              'Digítala en «Servicio de conductor de la empresa» y pulsa «Guardar tarifa».',
+          );
+          return;
+        }
+      } else {
+        setRental(updated);
+      }
       setConfirmOpen(false);
       navigate(`/alquileres/${id}/entrega-04`, { state: context });
     } catch (err) {
@@ -172,6 +221,30 @@ export function Stage3ContractScreen() {
       setConfirmOpen(false);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleSaveDriverRate() {
+    if (!rental || !context || !driverRateValid || !driverRateTrim) return;
+    setRateBusy(true);
+    setRateError(null);
+    setRateSaved(false);
+    try {
+      const idToken = await getIdToken();
+      const updated = await setCompanyDriverDailyRate(
+        idToken,
+        id,
+        context.companyId,
+        context.branchId,
+        rental.version,
+        driverRateTrim,
+      );
+      setRental(updated);
+      setRateSaved(true);
+    } catch (err) {
+      setRateError(describeRentalError(err, 'No pudimos guardar la tarifa diaria.'));
+    } finally {
+      setRateBusy(false);
     }
   }
 
@@ -278,6 +351,102 @@ export function Stage3ContractScreen() {
         )}
       </fieldset>
 
+      {showDriverRate && (
+        <fieldset className={styles.fieldset} data-testid="company-driver-rate">
+          <legend>Servicio de conductor de la empresa</legend>
+          <p className={styles.summaryLine}>Servicio de conductor: tarifa diaria × días (sin garantía).</p>
+          <label className={styles.fieldLabel} htmlFor="company-driver-daily-rate">
+            Tarifa diaria del conductor (S/)
+          </label>
+          <input
+            id="company-driver-daily-rate"
+            className={styles.input}
+            type="number"
+            min="0.01"
+            step="0.01"
+            inputMode="decimal"
+            value={driverRate}
+            onChange={(e) => {
+              setDriverRate(e.target.value);
+              setRateSaved(false);
+            }}
+            disabled={!canSetDriverRate || rateBusy}
+            aria-invalid={!driverRateValid}
+            aria-describedby="company-driver-rate-hint"
+          />
+          <span id="company-driver-rate-hint" className={styles.fieldHint}>
+            Monto mayor que 0 con máximo 2 decimales. Si lo digitas, tiene prioridad sobre la tarifa del sistema en este alquiler.
+          </span>
+          {!driverRateValid && (
+            <span className={styles.evidenceError} role="alert">
+              La tarifa diaria debe ser mayor que 0 y tener como máximo 2 decimales.
+            </span>
+          )}
+          {!canSetDriverRate && (
+            <p className={styles.blockedNotice}>No tienes permiso para digitar la tarifa diaria del conductor.</p>
+          )}
+          {contractIsCompanyDriver && driverCharge?.source === 'NOT_DEFINED' && (
+            <p className={styles.blockedNotice} role="status" data-testid="driver-rate-not-defined">
+              Tarifa diaria no definida: el cobro del servicio de conductor queda pendiente de digitar.
+            </p>
+          )}
+          {contractIsCompanyDriver && driverCharge?.source === 'ENV' && (
+            <p className={styles.fieldHint} role="status" data-testid="driver-rate-env">
+              Se usa la tarifa del sistema: {formatPen(parseFloat(driverCharge.dailyRate))} por día × {driverCharge.days} día(s) ={' '}
+              {formatPen(parseFloat(driverCharge.total))}. Digita un monto para sobrescribirla en este alquiler.
+            </p>
+          )}
+          {contractIsCompanyDriver && driverCharge?.source === 'MANUAL' && (
+            <p className={styles.summaryLine} role="status" data-testid="driver-rate-manual">
+              Tarifa digitada en este alquiler: {formatPen(parseFloat(driverCharge.dailyRate))} por día × {driverCharge.days} día(s) ={' '}
+              {formatPen(parseFloat(driverCharge.total))}.
+            </p>
+          )}
+          {!contractIsCompanyDriver && !driverRateTrim && (
+            <p className={styles.fieldHint} role="status" data-testid="driver-rate-pending">
+              Tarifa diaria sin digitar: si el sistema tampoco tiene una tarifa, el cobro del servicio de conductor queda pendiente
+              de digitar. Puedes formalizar el contrato y digitarla después.
+            </p>
+          )}
+          {!contractIsCompanyDriver && driverRateTrim && driverRateValid && (
+            <p className={styles.fieldHint} role="status">
+              La tarifa se guardará al formalizar el contrato.
+            </p>
+          )}
+          {contractIsCompanyDriver && canSetDriverRate && (
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.retryButton}
+                onClick={handleSaveDriverRate}
+                disabled={rateBusy || !driverRateTrim || !driverRateValid}
+              >
+                Guardar tarifa
+              </button>
+              {rateSaved && (
+                <span role="status" className={styles.fieldHint}>
+                  Tarifa guardada.
+                </span>
+              )}
+            </div>
+          )}
+          {rateError && (
+            <p className={styles.blockedNotice} role="alert">
+              {rateError}
+            </p>
+          )}
+          {contractIsCompanyDriver && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => navigate(`/alquileres/${id}/entrega-04`, { state: context })}
+            >
+              Continuar a la entrega
+            </button>
+          )}
+        </fieldset>
+      )}
+
       {noDeposit && (
         <fieldset className={styles.fieldset} data-testid="no-deposit-company-driver">
           <legend>Garantía</legend>
@@ -366,7 +535,14 @@ export function Stage3ContractScreen() {
             <p className={styles.modalTitle}>¿Formalizar el contrato?</p>
             <p className={styles.summaryLine}>Esta acción es irreversible y no se puede deshacer.</p>
             {noDeposit ? (
-              <p className={styles.summaryLine}>Con conductor de la empresa no se cobra garantía.</p>
+              <>
+                <p className={styles.summaryLine}>Con conductor de la empresa no se cobra garantía.</p>
+                <p className={styles.summaryLine} data-testid="confirm-driver-rate">
+                  {driverRateTrim && canSetDriverRate
+                    ? `Servicio de conductor: tarifa diaria ${formatPen(parseFloat(driverRateTrim))} (se guarda al formalizar).`
+                    : 'Servicio de conductor: tarifa diaria sin digitar; si el sistema tampoco tiene una tarifa, el cobro queda pendiente de digitar.'}
+                </p>
+              </>
             ) : (
               <p className={styles.summaryLine}>
                 Garantía total {formatPen(breakdown.total)}; reserva aplicada {formatPen(breakdown.credit)}; a cobrar ahora{' '}

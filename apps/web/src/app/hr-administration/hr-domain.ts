@@ -225,7 +225,10 @@ export function noticeDaysBetween(noticeDate: string, lastDay: string): number {
   return Math.max(0, Math.round(diff));
 }
 
-/** El contrato no tiene catalogo de areas: un area nueva recibe un id estable derivado de su nombre. */
+/** Valor de la opcion «Otra (texto libre)» en los selectores de area (H-02: compatibilidad con el texto libre). */
+export const OTHER_AREA = '__OTHER__';
+
+/** Un area nueva fuera del catalogo recibe un id estable derivado de su nombre (el servidor aplica la misma normalizacion). */
 export function areaIdFromName(name: string): string {
   return name
     .trim()

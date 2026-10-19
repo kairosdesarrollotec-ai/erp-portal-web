@@ -1,14 +1,84 @@
 import { kairosDb, type EvidenceQueueItem } from '../database/kairos-db';
+import { getDeviceId } from '../database/device-id';
+import { computeContentHash } from '../synchronization/content-hash';
+import { ensureSyncDraft } from './sync-draft-store';
 
-/** Agrega un item de evidencia a la cola local offline. `status` y `createdAt` son opcionales y se auto-rellenan. */
-export async function addEvidenceToQueue(
-  item: Omit<EvidenceQueueItem, 'id' | 'status' | 'createdAt'> & Partial<Pick<EvidenceQueueItem, 'status' | 'createdAt'>>,
-): Promise<number> {
+type NewQueueItem = Omit<EvidenceQueueItem, 'id' | 'status' | 'createdAt'> & Partial<Pick<EvidenceQueueItem, 'status' | 'createdAt'>>;
+
+function newCaptureId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 14)}`;
+}
+
+/**
+ * Agrega un item de evidencia a la cola local offline. `status` y `createdAt` son opcionales y se auto-rellenan.
+ * Ademas completa los metadatos de sync.yaml: clientCaptureId, slot (siguiente toma de la zona en el expediente),
+ * contentHash (SHA-256), baseRev 0, draftCreatedAt (ancla del borrador, TTL 72 h) y deviceId.
+ */
+export async function addEvidenceToQueue(item: NewQueueItem): Promise<number> {
+  const checklistType = item.rentalId ? 'ENTREGA' : item.returnId ? 'RECEPCION' : null;
+  const sourceId = item.rentalId ?? item.returnId;
+  const createdAt = item.createdAt ?? Date.now();
+
+  let draftCreatedAt = item.draftCreatedAt;
+  if (!draftCreatedAt && checklistType && sourceId) {
+    draftCreatedAt = (await ensureSyncDraft(checklistType, sourceId, new Date(createdAt))).draftCreatedAt;
+  }
+
+  let slot = item.slot;
+  if (slot === undefined && sourceId) {
+    const sameScope = await kairosDb.evidence_queue
+      .where(item.rentalId ? 'rentalId' : 'returnId')
+      .equals(sourceId)
+      .filter((q) => q.zone === item.zone)
+      .toArray();
+    slot = sameScope.reduce((max, q) => Math.max(max, q.slot ?? 0), 0) + 1;
+  }
+
+  let contentHash = item.contentHash;
+  if (!contentHash) {
+    try {
+      contentHash = await computeContentHash(item.blob);
+    } catch {
+      contentHash = undefined; // se reintenta al sincronizar
+    }
+  }
+
   return kairosDb.evidence_queue.add({
     ...item,
     status: item.status ?? 'pending',
-    createdAt: item.createdAt ?? Date.now(),
+    createdAt,
+    clientCaptureId: item.clientCaptureId ?? newCaptureId(),
+    slot: slot ?? 1,
+    contentHash,
+    baseRev: item.baseRev ?? 0,
+    draftCreatedAt: draftCreatedAt ?? new Date(createdAt).toISOString(),
+    deviceId: item.deviceId ?? getDeviceId(),
   });
+}
+
+/** Completa y persiste el contentHash de un item que se encolo sin el (p.ej. migrado de v1). */
+export async function ensureEvidenceHash(item: EvidenceQueueItem): Promise<string> {
+  if (item.contentHash) return item.contentHash;
+  const hash = await computeContentHash(item.blob);
+  if (item.id !== undefined) await kairosDb.evidence_queue.update(item.id, { contentHash: hash });
+  return hash;
+}
+
+/** Items ya subidos (synced) cuyos metadatos aun no recibio el servidor via /sync. */
+export async function getUnreportedEvidence(scope: { rentalId?: string | null; returnId?: string | null }): Promise<EvidenceQueueItem[]> {
+  const index = scope.rentalId ? 'rentalId' : scope.returnId ? 'returnId' : null;
+  const value = scope.rentalId ?? scope.returnId;
+  if (!index || !value) return [];
+  return kairosDb.evidence_queue
+    .where(index)
+    .equals(value)
+    .filter((q) => q.status === 'synced' && !q.reportedAt)
+    .toArray();
+}
+
+/** Marca como reportados al servidor (evita reenviarlos). */
+export async function markEvidenceReported(ids: readonly number[], now: Date = new Date()): Promise<void> {
+  await Promise.all(ids.map((id) => kairosDb.evidence_queue.update(id, { reportedAt: now.toISOString() })));
 }
 
 /** Obtiene items pendientes (pending/error) para un alquiler. */

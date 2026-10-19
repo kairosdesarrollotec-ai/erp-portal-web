@@ -41,7 +41,7 @@ const ALL = ['VIEW_CANDIDATE', 'VIEW_CANDIDATE_SENSITIVE_DATA', 'REGISTER_CANDID
 function detail(o: Partial<CandidateDetail> = {}): CandidateDetail {
   return {
     id: 'cand-1', vacancyId: 'vac-1', fullName: 'Ana Pérez', documentType: 'DNI', documentNumber: '12345678',
-    stage: 'NUEVO', version: 4, createdAt: '2026-10-01T10:00:00Z',
+    stage: 'NUEVO', processState: 'EN_NEGOCIACION', version: 4, createdAt: '2026-10-01T10:00:00Z',
     email: 'ana@correo.pe', phone: '999111222', cvDocumentId: 'abcdef12-0000-0000-0000-000000000000',
     salaryExpectation: 2500, isRestrictedView: false, interviews: [],
     ...o,

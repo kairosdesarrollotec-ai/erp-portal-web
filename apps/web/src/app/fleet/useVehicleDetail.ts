@@ -103,6 +103,10 @@ export function useVehicleDetail() {
           color: formData.color?.trim() || undefined,
           category: formData.category?.trim() || undefined,
           dailyRate: formData.dailyRate || undefined,
+          // Antes se omitían: la edición desde el detalle no guardaba garantía, capacidad ni combustible.
+          depositMinimum: formData.depositMinimum,
+          passengerCapacity: formData.passengerCapacity,
+          fuelPrice: formData.fuelPrice,
           photoUrl,
         });
       },

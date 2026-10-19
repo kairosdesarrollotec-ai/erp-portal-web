@@ -40,6 +40,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   EMPLOYEE_EMAIL_REQUIRED: 'La ficha no tiene correo registrado: agrégalo antes de vincular la cuenta.',
   USER_ACCOUNT_NOT_FOUND: 'No existe una cuenta de usuario con el correo de esta ficha.',
   EMPLOYEE_ACCOUNT_ALREADY_LINKED: 'Este correo ya está vinculado a otra ficha de personal.',
+  // 412 (If-Match): la ficha cambio desde que se abrio la edicion.
+  EMPLOYEE_VERSION_CONFLICT: 'Otra persona modificó esta ficha mientras la editabas. No se guardó ningún cambio.',
   INVALID_ATTENDANCE_RECORD: 'El registro de asistencia no es válido: una tardanza necesita los minutos de tardanza.',
   DEDUCTIONS_BEFORE_MONTH_END: 'Los descuentos se aplican al cerrar el mes: todavía no se puede aplicar.',
   // 400
@@ -57,6 +59,7 @@ const STATUS_MESSAGES: Record<number, string> = {
   400: 'Revisa los datos ingresados: alguno no es válido.',
   403: 'No tienes permiso para realizar esta acción en esta empresa o sede.',
   404: 'No encontramos el registro en tu empresa y sede.',
+  412: 'Este registro cambió mientras lo editabas. No se guardó ningún cambio; recarga los datos y vuelve a intentar.',
   409: 'Este registro cambió mientras lo editabas. Recargamos los datos; revisa y vuelve a intentar.',
   422: 'La operación no cumple las reglas de negocio vigentes.',
 };
@@ -77,4 +80,9 @@ export function describeHrError(error: unknown, fallback: string): string {
     if (STATUS_MESSAGES[error.status]) return STATUS_MESSAGES[error.status];
   }
   return fallback;
+}
+
+/** 412 EMPLOYEE_VERSION_CONFLICT (If-Match): la ficha cambio en el servidor; hay que recargarla y reaplicar los cambios. */
+export function isVersionConflict(error: unknown): boolean {
+  return error instanceof HrCommandError && error.status === 412;
 }

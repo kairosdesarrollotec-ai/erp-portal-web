@@ -5,7 +5,8 @@ import { getFirebaseAuth } from '../providers/firebase';
 import { getCandidate } from '../recruitment/recruitment-client';
 import { HrFrame } from './HrFrame';
 import { createEmployee, listEmployees } from './hr-client';
-import { areaIdFromName, limaToday } from './hr-domain';
+import { OTHER_AREA, areaIdFromName, limaToday } from './hr-domain';
+import { useHrAreaCatalog } from './useHrAreaCatalog';
 import { useHrPermissions } from './hr-permissions';
 import { useHrCommand } from './useHrCommand';
 import { useHrResource } from './useHrResource';
@@ -28,6 +29,10 @@ function NewEmployee() {
     return Object.fromEntries(items.map((e) => [e.areaId, e.areaName]));
   }, 'nuevo-colaborador');
   const command = useHrCommand({ context, reload });
+  const catalog = useHrAreaCatalog(context?.companyId, context?.branchId);
+  // H-02: con catalogo se elige un area (areaCode) o «Otra (texto libre)»; sin catalogo queda el texto libre de siempre.
+  const catalogReady = catalog.state === 'READY' && catalog.areas.length > 0;
+  const [areaChoice, setAreaChoice] = useState('');
   const nameRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState('');
   const [documentType, setDocumentType] = useState('DNI');
@@ -73,14 +78,16 @@ function NewEmployee() {
     if (state === 'READY') nameRef.current?.focus();
   }, [state]);
 
-  const areas = data ?? {};
+  const catalogCodes = new Set(catalog.areas.map((a) => a.code));
+  const areas = Object.fromEntries(Object.entries(data ?? {}).filter(([id]) => !catalogCodes.has(id)));
+  const usingCatalogArea = catalogReady && areaChoice !== '' && areaChoice !== OTHER_AREA;
   const matchedAreaId = Object.entries(areas).find(([, name]) => name.toLowerCase() === areaName.trim().toLowerCase())?.[0];
   const areaId = matchedAreaId ?? areaIdFromName(areaName);
   const salary = baseSalary.trim() === '' ? null : Number(baseSalary);
   const invalid = {
     fullName: !fullName.trim(),
     documentNumber: !documentNumber.trim(),
-    areaName: !areaId,
+    areaName: catalogReady ? areaChoice === '' || (areaChoice === OTHER_AREA && !areaName.trim()) : !areaId,
     jobTitle: !jobTitle.trim(),
     hireDate: !hireDate,
     baseSalary: salary !== null && (!Number.isFinite(salary) || salary < 0),
@@ -97,8 +104,7 @@ function NewEmployee() {
           fullName: fullName.trim(),
           documentType: documentType.trim() || 'DNI',
           documentNumber: documentNumber.trim(),
-          areaId,
-          areaName: areaName.trim(),
+          ...(usingCatalogArea ? { areaCode: areaChoice } : { areaId, areaName: areaName.trim() }),
           jobTitle: jobTitle.trim(),
           hireDate,
           ...(email.trim() ? { email: email.trim() } : {}),
@@ -154,7 +160,32 @@ function NewEmployee() {
         <label className={styles.fieldLabel} htmlFor="emp-area">
           Área
         </label>
-        <input id="emp-area" className={styles.input} list="emp-areas" value={areaName} onChange={(e) => setAreaName(e.target.value)} aria-invalid={submitted && invalid.areaName} required />
+        {catalogReady ? (
+          <>
+            <select id="emp-area" className={styles.input} value={areaChoice} onChange={(e) => setAreaChoice(e.target.value)} aria-invalid={submitted && invalid.areaName} aria-describedby="emp-area-hint" required>
+              <option value="">Selecciona un área</option>
+              {catalog.areas.map((a) => (
+                <option key={a.code} value={a.code}>
+                  {a.name}
+                </option>
+              ))}
+              <option value={OTHER_AREA}>Otra (texto libre)</option>
+            </select>
+            <p id="emp-area-hint" className={styles.hint}>
+              El área define el cupo de vacaciones: solo 1 persona del área puede estar de vacaciones a la vez.
+            </p>
+            {areaChoice === OTHER_AREA && (
+              <>
+                <label className={styles.fieldLabel} htmlFor="emp-area-otra">
+                  Nombre del área (texto libre)
+                </label>
+                <input id="emp-area-otra" className={styles.input} list="emp-areas" value={areaName} onChange={(e) => setAreaName(e.target.value)} aria-invalid={submitted && invalid.areaName} required />
+              </>
+            )}
+          </>
+        ) : (
+          <input id="emp-area" className={styles.input} list="emp-areas" value={areaName} onChange={(e) => setAreaName(e.target.value)} aria-invalid={submitted && invalid.areaName} required />
+        )}
         <datalist id="emp-areas">
           {Object.entries(areas).map(([id, name]) => (
             <option key={id} value={name} />
@@ -162,7 +193,7 @@ function NewEmployee() {
         </datalist>
         {submitted && invalid.areaName && (
           <p className={styles.fieldError} role="alert">
-            Indica el área.
+            {catalogReady && areaChoice === '' ? 'Elige el área.' : 'Indica el área.'}
           </p>
         )}
 

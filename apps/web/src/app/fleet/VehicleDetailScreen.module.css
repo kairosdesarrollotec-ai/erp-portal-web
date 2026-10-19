@@ -340,3 +340,14 @@
   gap: 1rem;
   justify-content: center;
 }
+
+.missingCapacity {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--color-warning-bg, #fef3c7);
+  color: var(--color-warning-text, #92400e);
+  font-size: 12px;
+  font-weight: 600;
+}

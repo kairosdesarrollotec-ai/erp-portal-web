@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { HrCommandError } from './hr-client';
-import { VACATION_CONFLICT_MESSAGE, describeHrError, isStaleHrError } from './hr-errors';
+import { VACATION_CONFLICT_MESSAGE, describeHrError, isStaleHrError, isVersionConflict } from './hr-errors';
 
 describe('hr-errors', () => {
   it('traduce los codigos reales del servidor a lenguaje de negocio', () => {
@@ -19,5 +19,14 @@ describe('hr-errors', () => {
   it('un 409 pide recargar', () => {
     expect(isStaleHrError(new HrCommandError(409, null))).toBe(true);
     expect(isStaleHrError(new HrCommandError(422, null))).toBe(false);
+  });
+
+  it('412 EMPLOYEE_VERSION_CONFLICT (If-Match) se reconoce y se explica sin ser un 409', () => {
+    const err = new HrCommandError(412, { code: 'EMPLOYEE_VERSION_CONFLICT' });
+    expect(isVersionConflict(err)).toBe(true);
+    expect(isStaleHrError(err)).toBe(false);
+    expect(describeHrError(err, 'x')).toMatch(/Otra persona modificó esta ficha/);
+    expect(describeHrError(new HrCommandError(412, null), 'x')).toMatch(/No se guardó ningún cambio/);
+    expect(isVersionConflict(new HrCommandError(409, null))).toBe(false);
   });
 });

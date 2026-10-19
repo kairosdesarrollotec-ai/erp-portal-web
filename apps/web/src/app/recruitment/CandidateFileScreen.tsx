@@ -9,6 +9,7 @@ import {
   CANDIDATE_DECISION_LABEL,
   CANDIDATE_STAGES,
   CANDIDATE_STAGE_LABEL,
+  PROCESS_STATE_LABEL,
   INTERVIEW_RESULT_LABEL,
   NEGOTIATION_OUTCOME_LABEL,
   validateCvFile,
@@ -25,6 +26,7 @@ import {
 import { NegotiationDialog } from './NegotiationDialog';
 import { describeRecruitmentError, isStaleRecruitmentError } from './recruitment-errors';
 import { DiscardCandidateDialog } from './DiscardCandidateDialog';
+import { ProcessStateTracker } from './ProcessStateTracker';
 import styles from './CandidateFileScreen.module.css';
 import { formatLimaDate, formatLimaDateTime } from '../shared/lima-time';
 
@@ -254,8 +256,13 @@ export function CandidateFileScreen() {
 
         <section className={styles.section} aria-labelledby="sec-general">
           <h2 id="sec-general" className={styles.sectionTitle}>Datos generales</h2>
+          <ProcessStateTracker
+            state={c.processState}
+            hadInterview={(c.interviews ?? []).some((i) => i.result !== 'PENDIENTE')}
+          />
           <dl className={styles.fields}>
             <Field label="Documento">{c.documentType} {c.documentNumber}</Field>
+            <Field label="Estado del proceso">{PROCESS_STATE_LABEL[c.processState]}</Field>
             <Field label="Etapa">{CANDIDATE_STAGE_LABEL[c.stage]}</Field>
             {c.decision && <Field label="Decisión">{CANDIDATE_DECISION_LABEL[c.decision]}</Field>}
           </dl>

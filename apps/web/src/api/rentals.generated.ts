@@ -187,6 +187,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rentals/{id}/commands/set-company-driver-daily-rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Digitar la tarifa diaria del conductor de la empresa en el alquiler (DEC-ALQ-DRIVERRATE-001, F-02)
+         * @description El monto de la tarifa diaria aún no está definido por negocio: un usuario autorizado lo digita a mano en el expediente cuando se requiera (cuando no hay tarifa de entorno, o para sobrescribirla en este alquiler). Prioridad: valor manual > env COMPANY_DRIVER_DAILY_RATE > «tarifa no definida». `dailyRate` es en PEN, > 0, máximo 2 decimales (hasta 99999999.99). Solo aplica a alquileres con contrato formalizado «con conductor de la empresa» (la variante se conoce al formalizar) y en estados PENDING_DELIVERY, ACTIVE, EXTENSION_PENDING o RETURN_IN_PROGRESS. Volver a enviarlo corrige el valor (queda en auditoría el valor anterior). Incrementa la versión (If-Match) y publica el evento TarifaConductorEmpresaDefinida.v1. La respuesta trae `companyDriverCharge` (tarifa × días, con `source`). Permiso: RENTAL.FORMALIZE_CONTRACT.
+         */
+        post: operations["setCompanyDriverDailyRate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rentals/{id}/commands/formalize-contract": {
         parameters: {
             query?: never;
@@ -508,6 +528,20 @@ export interface components {
             addendumDocumentRef?: string;
             holderType?: components["schemas"]["ContractHolderType"];
         };
+        /** @description Forma de los errores de dominio del módulo. */
+        RentalErrorResponse: {
+            statusCode: number;
+            code: string;
+            detail: string;
+        };
+        SetCompanyDriverDailyRateRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @description Tarifa diaria del conductor de la empresa en PEN; > 0, máximo 2 decimales. Ej. "120" o "120.50". */
+            dailyRate: string;
+        };
         /** @description `depositAmount` y `depositCurrency` son obligatorios SALVO con conductor de la empresa (`withCompanyDriver=true`), donde no hay garantía y se omiten (DEC-ALQ-COMPANY-DRIVER-004). */
         FormalizeContractRequest: {
             /** Format: uuid */
@@ -721,10 +755,15 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
-        /** @description Servicio de conductor de la empresa: TARIFA DIARIA × días del alquiler, sin garantía (Fiorella, 16-oct-2026). Vista calculada; la tarifa es un parámetro del sistema (COMPANY_DRIVER_DAILY_RATE) aún sin definir por negocio. */
+        /** @description Servicio de conductor de la empresa: TARIFA DIARIA × días del alquiler, sin garantía (Fiorella, 16-oct-2026). Vista calculada (el total no se persiste). Tarifa diaria: valor manual del alquiler (set-company-driver-daily-rate) > parámetro COMPANY_DRIVER_DAILY_RATE > no definida (DEC-ALQ-DRIVERRATE-001; el monto aún no lo define negocio y nunca se inventa). */
         CompanyDriverChargeResponse: {
-            /** @description false = la tarifa diaria aún no está configurada (importes en "0.00"). */
+            /** @description false = la tarifa diaria no está definida (source NOT_DEFINED; importes en "0.00"; el cobro queda pendiente de digitar). */
             configured: boolean;
+            /**
+             * @description Origen de la tarifa aplicada (MANUAL = digitada en el alquiler; ENV = parámetro del sistema; NOT_DEFINED = sin tarifa).
+             * @enum {string}
+             */
+            source: "MANUAL" | "ENV" | "NOT_DEFINED";
             dailyRate: string;
             /** @enum {string} */
             currency: "PEN" | "USD";
@@ -1631,6 +1670,103 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setCompanyDriverDailyRate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCompanyDriverDailyRateRequest"];
+            };
+        };
+        responses: {
+            /** @description Tarifa registrada; el alquiler trae `companyDriverCharge` con `source=MANUAL` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalResponse"];
+                };
+            };
+            /** @description COMPANY_DRIVER_RATE_INVALID o datos inválidos (monto <= 0, más de 2 decimales) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalErrorResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin permiso o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description COMPANY_DRIVER_RATE_CLOSED (alquiler CLOSED o CANCELLED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalErrorResponse"];
+                };
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description COMPANY_DRIVER_RATE_NOT_APPLICABLE (el alquiler no es con conductor de la empresa o aún no tiene contrato formalizado) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalErrorResponse"];
+                };
             };
             /** @description Falta header If-Match */
             428: {

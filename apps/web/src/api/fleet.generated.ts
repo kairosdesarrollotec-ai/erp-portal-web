@@ -147,12 +147,12 @@ export interface components {
             status?: components["schemas"]["VehicleStatus"];
             /** @description Tarifa diaria de alquiler en moneda local. */
             dailyRate?: number | null;
-            /** @description Monto mínimo de garantía para este vehículo (PEN). Obligatorio en el alta (F-05). */
-            depositMinimum: number;
-            /** @description Cantidad de pasajeros que admite el vehículo; es el máximo de acompañantes de un alquiler (G-05). Obligatorio en el alta. */
+            /** @description Monto mínimo de garantía para este vehículo (PEN). Opcional; se puede completar después con PATCH. */
+            depositMinimum?: number;
+            /** @description Cantidad de pasajeros que admite el vehículo; es el máximo de acompañantes de un alquiler (G-05). Obligatorio en el alta (G-05); si falta o es null responde 400 PASSENGER_CAPACITY_REQUIRED. */
             passengerCapacity: number;
-            /** @description Precio del combustible por unidad para este vehículo (PEN). Insumo de la multa por combustible (aún no calculada). Obligatorio en el alta (F-05). */
-            fuelPrice: number;
+            /** @description Precio del combustible por unidad para este vehículo (PEN). Insumo de la multa por combustible (aún no calculada). Opcional; se completa cuando exista la tarifa. */
+            fuelPrice?: number;
             /**
              * Format: uri
              * @description URL HTTPS de Google Cloud Storage del objeto ya cargado. Obtener previamente via POST /fleet/vehicles/photo-upload-sessions. No se acepta data: URI ni URL de otro proveedor.
@@ -177,7 +177,7 @@ export interface components {
             dailyRate?: number | null;
             /** @description Monto mínimo de garantía (PEN). Si se omite, el valor existente no cambia. */
             depositMinimum?: number | null;
-            /** @description Capacidad de pasajeros (1..60). Si se omite, el valor existente no cambia. */
+            /** @description Capacidad de pasajeros (1..60). Si se omite, el valor existente no cambia. No puede vaciarse (enviar null responde 400 PASSENGER_CAPACITY_REQUIRED). */
             passengerCapacity?: number;
             /** @description Precio del combustible por unidad (PEN). Si se omite, el valor existente no cambia. */
             fuelPrice?: number;
@@ -223,7 +223,7 @@ export interface components {
             dailyRate?: number | null;
             /** @description Monto mínimo de garantía configurado para este vehículo (PEN). */
             depositMinimum?: number | null;
-            /** @description Pasajeros que admite el vehículo (1..60). null en vehículos anteriores a 0.5.0 (sin tope de acompañantes). */
+            /** @description Pasajeros que admite el vehículo (1..60). null en vehículos anteriores a 0.5.0 (sin tope de acompañantes); la UI indica «Falta registrar la capacidad» y permite completarla con PATCH. */
             passengerCapacity?: number | null;
             /** @description Precio del combustible por unidad (PEN). null en vehículos anteriores a 0.5.0. */
             fuelPrice?: number | null;
@@ -273,7 +273,7 @@ export interface components {
         /** @description Formato de error de negocio del ERP KAIROS. Usado por los handlers para errores de dominio con código identificable. */
         KairosErrorResponse: {
             /**
-             * @description Código de error de negocio. Valores posibles en este módulo: VEHICLE_NOT_FOUND, VEHICLE_PLATE_ALREADY_EXISTS, FLEET_WRITE_NOT_ALLOWED, FLEET_READ_NOT_ALLOWED, CROSS_BRANCH_NOT_ALLOWED.
+             * @description Código de error de negocio. Valores posibles en este módulo: VEHICLE_NOT_FOUND, VEHICLE_PLATE_ALREADY_EXISTS, PASSENGER_CAPACITY_REQUIRED, FLEET_WRITE_NOT_ALLOWED, FLEET_READ_NOT_ALLOWED, CROSS_BRANCH_NOT_ALLOWED.
              * @example VEHICLE_NOT_FOUND
              */
             code: string;

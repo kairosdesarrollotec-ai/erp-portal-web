@@ -5,7 +5,7 @@ import { ConfirmDecisionDialog } from './ConfirmDecisionDialog';
 import { FlowFrame } from './FlowFrame';
 import { formatDateTime } from './flow-format';
 import { decideCandidate } from './recruitment-client';
-import { CANDIDATE_DECISION_LABEL, type CandidateDecision } from './recruitment-domain';
+import { CANDIDATE_DECISION_LABEL, canHire, type CandidateDecision } from './recruitment-domain';
 import { useRecruitmentPermissions } from './recruitment-permissions';
 import { useRecruitmentCommand } from './useRecruitmentCommand';
 import { useCandidateDetail } from './useCandidateDetail';
@@ -26,6 +26,9 @@ export function HiringDecisionScreen() {
 
   const decided = candidate?.decision != null;
   const mayDecide = can('DECIDE_CANDIDATE') && !decided;
+  // BDD-REC §11.6: solo se puede contratar a quien ya fue entrevistado (Decidido se alcanza desde Entrevistado).
+  const mayHire = mayDecide && !!candidate && canHire(candidate.processState);
+  const hireBlocked = mayDecide && !!candidate && !canHire(candidate.processState);
 
   async function confirm(decision: CandidateDecision, notes: string) {
     if (!candidate || !id) return;
@@ -96,12 +99,17 @@ export function HiringDecisionScreen() {
                 </p>
               )}
               <p className={styles.hint}>La decisión es definitiva y no se puede deshacer.</p>
+              {hireBlocked && (
+                <p id="dec-hire-blocked" className={styles.warning}>
+                  Para contratar, primero registra el resultado de la entrevista. Mientras tanto solo puedes no contratar.
+                </p>
+              )}
               <div className={styles.bigActions}>
                 <button
                   type="button"
                   className={styles.primaryButton}
-                  disabled={!mayDecide || saving}
-                  aria-describedby={!can('DECIDE_CANDIDATE') ? 'dec-readonly' : undefined}
+                  disabled={!mayHire || saving}
+                  aria-describedby={!can('DECIDE_CANDIDATE') ? 'dec-readonly' : hireBlocked ? 'dec-hire-blocked' : undefined}
                   onClick={() => {
                     clearError();
                     setPending('CONTRATADO');

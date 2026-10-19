@@ -6,10 +6,17 @@ import { areaIdFromName } from './hr-domain';
 import { HrCommandError } from './hr-client';
 import { baseContext, makeEmployee } from './hr-test-utils';
 import { setPermissions } from '../../test/permissions';
+import { axe } from 'jest-axe';
 
 const listEmployeesMock = vi.fn();
 const createMock = vi.fn();
 const getCandidateMock = vi.fn();
+const listAreasMock = vi.fn();
+const CATALOG = [
+  { code: 'ADMINISTRACION', name: 'Administración', description: null, sortOrder: 10 },
+  { code: 'ATENCION_AL_CLIENTE', name: 'Atención al cliente', description: null, sortOrder: 50 },
+  { code: 'OPERACIONES', name: 'Operaciones', description: 'Órgano de línea', sortOrder: 70 },
+];
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
@@ -28,6 +35,7 @@ vi.mock('./hr-client', async () => {
     ...actual,
     listEmployees: (...a: unknown[]) => listEmployeesMock(...a),
     createEmployee: (...a: unknown[]) => createMock(...a),
+    listHrAreas: (...a: unknown[]) => listAreasMock(...a),
   };
 });
 
@@ -44,6 +52,12 @@ function renderScreen(search = '') {
   );
 }
 
+/** El input con `list` tambien tiene rol combobox: se espera a que aparezca el selector del catalogo. */
+async function areaSelect() {
+  await screen.findByRole('option', { name: 'Otra (texto libre)' });
+  return screen.getByRole('combobox', { name: 'Área' });
+}
+
 function fill() {
   fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: ' Ana Torres ' } });
   fireEvent.change(screen.getByLabelText('Número de documento'), { target: { value: '70123456' } });
@@ -55,6 +69,7 @@ describe('NewEmployeeScreen (alta de personal)', () => {
   beforeEach(() => {
     listEmployeesMock.mockReset().mockResolvedValue({ items: [makeEmployee()], total: 1 });
     createMock.mockReset();
+    listAreasMock.mockReset().mockResolvedValue([]);
     getCandidateMock.mockReset().mockResolvedValue({ fullName: 'Ana Torres', documentType: 'CE', documentNumber: '70123456', email: 'ana@correo.pe', phone: '999111222' });
     setPermissions(['HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.VIEW_EMPLOYEES']);
   });
@@ -137,5 +152,70 @@ describe('NewEmployeeScreen (alta de personal)', () => {
     renderScreen();
     expect(screen.getByRole('alert')).toHaveTextContent(/No tienes permiso para registrar personal/);
     expect(listEmployeesMock).not.toHaveBeenCalled();
+  });
+
+  describe('catalogo de areas (H-02)', () => {
+    beforeEach(() => {
+      listAreasMock.mockResolvedValue(CATALOG);
+    });
+
+    it('ofrece el catalogo en un selector accesible y envia areaCode (sin areaId/areaName)', async () => {
+      createMock.mockResolvedValue(makeEmployee({ id: 'emp-9' }));
+      const { container } = renderScreen();
+      const select = await areaSelect();
+      expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+        'Selecciona un área', 'Administración', 'Atención al cliente', 'Operaciones', 'Otra (texto libre)',
+      ]);
+      expect(await axe(container)).toHaveNoViolations();
+      fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: 'Ana Torres' } });
+      fireEvent.change(screen.getByLabelText('Número de documento'), { target: { value: '70123456' } });
+      fireEvent.change(screen.getByLabelText('Cargo'), { target: { value: 'Asesora' } });
+      fireEvent.change(select, { target: { value: 'ATENCION_AL_CLIENTE' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar persona' }));
+      await waitFor(() => expect(createMock).toHaveBeenCalled());
+      const body = createMock.mock.calls[0][1];
+      expect(body).toEqual(expect.objectContaining({ areaCode: 'ATENCION_AL_CLIENTE', jobTitle: 'Asesora' }));
+      expect(body).not.toHaveProperty('areaId');
+      expect(body).not.toHaveProperty('areaName');
+    });
+
+    it('exige elegir un area antes de registrar', async () => {
+      renderScreen();
+      await areaSelect();
+      fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: 'Ana Torres' } });
+      fireEvent.change(screen.getByLabelText('Número de documento'), { target: { value: '70123456' } });
+      fireEvent.change(screen.getByLabelText('Cargo'), { target: { value: 'Asesora' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar persona' }));
+      expect(await screen.findByText('Elige el área.')).toBeInTheDocument();
+      expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it('«Otra (texto libre)» pide el nombre y mantiene la compatibilidad (areaId derivado + areaName)', async () => {
+      createMock.mockResolvedValue(makeEmployee({ id: 'emp-9' }));
+      const { container } = renderScreen();
+      const select = await areaSelect();
+      fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: 'Ana Torres' } });
+      fireEvent.change(screen.getByLabelText('Número de documento'), { target: { value: '70123456' } });
+      fireEvent.change(screen.getByLabelText('Cargo'), { target: { value: 'Mecánica' } });
+      fireEvent.change(select, { target: { value: '__OTHER__' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar persona' }));
+      expect(await screen.findByText('Indica el área.')).toBeInTheDocument();
+      expect(createMock).not.toHaveBeenCalled();
+      expect(await axe(container)).toHaveNoViolations();
+      fireEvent.change(screen.getByLabelText('Nombre del área (texto libre)'), { target: { value: 'Taller Mecánico' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar persona' }));
+      await waitFor(() => expect(createMock).toHaveBeenCalled());
+      expect(createMock.mock.calls[0][1]).toEqual(expect.objectContaining({ areaId: 'TALLER_MECANICO', areaName: 'Taller Mecánico' }));
+      expect(createMock.mock.calls[0][1]).not.toHaveProperty('areaCode');
+    });
+
+    it('si el catalogo no carga, el alta sigue con el area como texto libre', async () => {
+      listAreasMock.mockRejectedValue(new Error('boom'));
+      renderScreen();
+      await screen.findByLabelText('Nombre completo');
+      await waitFor(() => expect(listAreasMock).toHaveBeenCalled());
+      expect(screen.queryByRole('option', { name: 'Otra (texto libre)' })).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Área').tagName).toBe('INPUT');
+    });
   });
 });

@@ -13,6 +13,7 @@ type FormalizeContractBody = components['schemas']['FormalizeContractRequest'];
 type CompleteDeliveryBody = components['schemas']['CompleteDeliveryRequest'];
 type RegisterAuthorizedDriverBody = components['schemas']['RegisterAuthorizedDriverRequest'];
 type RegisterCompanionBody = components['schemas']['RegisterCompanionRequest'];
+type SetCompanyDriverDailyRateBody = components['schemas']['SetCompanyDriverDailyRateRequest'];
 
 /** Error HTTP de lectura (GET) - mismo patron que ReservationApiError. */
 export class RentalApiError extends Error {
@@ -108,6 +109,19 @@ export interface RentalDepositResponse {
   createdAt: string;
 }
 
+/**
+ * Servicio de conductor de la empresa: tarifa diaria x dias (DEC-ALQ-DRIVERRATE-001, F-02). `source` indica el origen de la
+ * tarifa: MANUAL (digitada en el alquiler) > ENV (parametro del sistema) > NOT_DEFINED (sin tarifa: cobro pendiente de digitar).
+ */
+export interface CompanyDriverChargeResponse {
+  configured: boolean;
+  source: 'MANUAL' | 'ENV' | 'NOT_DEFINED';
+  dailyRate: string;
+  currency: string;
+  days: number;
+  total: string;
+}
+
 export interface RentalResponse {
   id: string;
   organizationId: string;
@@ -144,6 +158,8 @@ export interface RentalResponse {
   /** Saldo a favor del credito de reserva ("0.00" si no hay). Sin reembolso automatico. */
   reservationCreditExcess?: string;
   reservationCredit?: ReservationCreditResponse | null;
+  /** Solo con conductor de la empresa (GET detalle y tras set-company-driver-daily-rate); null/ausente en otro caso. */
+  companyDriverCharge?: CompanyDriverChargeResponse | null;
   extensions?: RentalExtensionResponse[];
 }
 
@@ -363,6 +379,32 @@ export async function formalizeContract(
       ...(signatureData ? { signatureData } : {}),
       ...(variant ? { holderType: variant.holderType, withCompanyDriver: variant.withCompanyDriver } : {}),
     } as unknown as FormalizeContractBody,
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
+}
+
+/**
+ * ENTREGA-03 - digita la tarifa diaria del conductor de la empresa en el alquiler (DEC-ALQ-DRIVERRATE-001, F-02).
+ * Solo con contrato "con conductor de la empresa" (422 COMPANY_DRIVER_RATE_NOT_APPLICABLE), alquiler no cerrado
+ * (409 COMPANY_DRIVER_RATE_CLOSED) y monto > 0 con maximo 2 decimales (400 COMPANY_DRIVER_RATE_INVALID).
+ * La respuesta trae `companyDriverCharge` con source MANUAL.
+ */
+export async function setCompanyDriverDailyRate(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  dailyRate: string,
+): Promise<RentalResponse> {
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/set-company-driver-daily-rate', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, dailyRate } as SetCompanyDriverDailyRateBody,
   });
   if (error || !data) {
     const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;

@@ -183,9 +183,24 @@ export function VehicleDetailScreen() {
               )}
               <div className={styles.vehicleMetaItem}>
                 <span className={styles.vehicleMetaLabel}>Capacidad de pasajeros</span>
-                <span className={styles.vehicleMetaValue}>
-                  {vehicle.passengerCapacity != null ? vehicle.passengerCapacity : 'Sin registrar'}
-                </span>
+                {vehicle.passengerCapacity != null ? (
+                  <span className={styles.vehicleMetaValue}>{vehicle.passengerCapacity}</span>
+                ) : (
+                  <span className={styles.vehicleMetaValue} data-testid="missing-capacity">
+                    <span className={styles.missingCapacity} role="status">
+                      Falta registrar la capacidad
+                    </span>
+                    {canWrite && (
+                      <button
+                        type="button"
+                        className={styles.linkButton}
+                        onClick={() => setEditModalOpen(true)}
+                      >
+                        Completar capacidad
+                      </button>
+                    )}
+                  </span>
+                )}
               </div>
               <div className={styles.vehicleMetaItem}>
                 <span className={styles.vehicleMetaLabel}>Precio del combustible</span>

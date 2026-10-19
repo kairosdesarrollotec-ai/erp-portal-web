@@ -7,7 +7,17 @@ vi.mock('../queue/evidence-upload-queue', () => ({
   getPendingEvidenceForReturn: vi.fn(async () => q.items),
   markEvidenceSynced: vi.fn(async () => undefined),
   markEvidenceFailed: vi.fn(async () => undefined),
+  getUnreportedEvidence: vi.fn(async () => []),
+  markEvidenceReported: vi.fn(async () => undefined),
+  ensureEvidenceHash: vi.fn(async () => 'a'.repeat(64)),
 }));
+vi.mock('../queue/sync-draft-store', () => ({
+  clearSyncedDraft: vi.fn(async () => undefined),
+  getSyncDraft: vi.fn(async () => undefined),
+  getUnsentFieldEdits: vi.fn(async () => []),
+  markFieldEditsSent: vi.fn(async () => undefined),
+}));
+vi.mock('../../app/sync/sync-client', () => ({ syncChecklist: vi.fn() }));
 const rental = vi.hoisted(() => ({
   req: vi.fn(async () => ({ uploadUrl: 'u', objectUrl: 'o' })),
   put: vi.fn(async () => undefined),

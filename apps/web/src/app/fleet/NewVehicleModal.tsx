@@ -41,6 +41,9 @@ const STATUSES: { value: VehicleStatus; label: string }[] = [
   { value: 'OUT_OF_SERVICE', label: 'Fuera de Servicio' },
 ];
 
+const PASSENGER_CAPACITY_REQUIRED_MESSAGE =
+  'Indique cuántos pasajeros admite el vehículo (capacidad de pasajeros, de 1 a 60).';
+
 const vehicleSchema = z.object({
   plate: z.string(),
   brand: z.string().min(1, 'La marca es obligatoria.'),
@@ -214,22 +217,12 @@ export function NewVehicleModal({
 
     const parsedYear = values.year ? parseInt(values.year, 10) : undefined;
     const parsedRate = values.dailyRate ? parseFloat(values.dailyRate) : undefined;
-    // Obligatorios al registrar (F-05/G-05): Fleet los rechaza si faltan.
-    if (!isEditMode) {
-      let missing = false;
-      if (!values.depositMinimum) {
-        setError('depositMinimum', { message: 'La garantía es obligatoria.' });
-        missing = true;
-      }
-      if (!values.passengerCapacity) {
-        setError('passengerCapacity', { message: 'La capacidad de pasajeros es obligatoria.' });
-        missing = true;
-      }
-      if (!values.fuelPrice) {
-        setError('fuelPrice', { message: 'El precio del combustible es obligatorio.' });
-        missing = true;
-      }
-      if (missing) return;
+    // DEC-FLT-CAP-001 (G-05): la capacidad de pasajeros se pide siempre al registrar. Al editar, un vehículo
+    // anterior sin capacidad puede seguir guardándose en blanco; si ya tenía una, no se puede vaciar.
+    // Garantía y precio del combustible son opcionales (se completan cuando se requieran).
+    if (!(values.passengerCapacity ?? '').trim() && (!isEditMode || vehicle?.passengerCapacity != null)) {
+      setError('passengerCapacity', { message: PASSENGER_CAPACITY_REQUIRED_MESSAGE });
+      return;
     }
 
     // "0" es válido (garantía/combustible >= 0): solo el vacío se omite.
@@ -400,7 +393,7 @@ export function NewVehicleModal({
 
           <div className={styles.gridThree}>
             <label className={styles.field}>
-              Garantía (S/) {isEditMode ? '' : '*'}
+              Garantía (S/) (opcional)
               <input
                 type="number"
                 step="0.01"
@@ -414,7 +407,7 @@ export function NewVehicleModal({
             </label>
 
             <label className={styles.field}>
-              Capacidad de pasajeros {isEditMode ? '' : '*'}
+              Capacidad de pasajeros {isEditMode && vehicle?.passengerCapacity == null ? '' : '*'}
               <input
                 type="number"
                 step="1"
@@ -424,12 +417,18 @@ export function NewVehicleModal({
                 {...register('passengerCapacity')}
                 placeholder="5"
                 disabled={isSubmitting}
+                required={!isEditMode || vehicle?.passengerCapacity != null}
                 aria-invalid={!!errors.passengerCapacity}
               />
+              {isEditMode && vehicle?.passengerCapacity == null && (
+                <span className={styles.fieldHint} role="note">
+                  Falta registrar la capacidad de este vehículo. Indique cuántos pasajeros admite.
+                </span>
+              )}
             </label>
 
             <label className={styles.field}>
-              Precio del combustible (S/ por unidad) {isEditMode ? '' : '*'}
+              Precio del combustible (S/ por unidad) (opcional)
               <input
                 type="number"
                 step="0.01"

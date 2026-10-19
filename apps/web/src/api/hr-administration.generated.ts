@@ -22,6 +22,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hr-areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catálogo de áreas de RR.HH. de la empresa (dato de referencia, solo lectura) */
+        get: operations["listHrAreas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/employees/{id}": {
         parameters: {
             query?: never;
@@ -36,7 +53,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Actualizar datos laborales del colaborador (área, puesto, salario, sede) */
+        /** Actualizar datos laborales del colaborador (área, puesto, salario, sede, correo). Si cambia el correo de una ficha vinculada, se re-vincula a la cuenta del correo nuevo (o queda sin vincular si no existe) */
         patch: operations["updateEmployee"];
         trace?: never;
     };
@@ -477,6 +494,21 @@ export interface components {
         VacationStatus: "SOLICITADA" | "PROGRAMADA" | "REPROGRAMADA" | "CANCELADA" | "COMPLETADA";
         /** @enum {string} */
         FieldTripStatus: "PENDIENTE_NIVEL_1" | "PENDIENTE_NIVEL_2" | "PENDIENTE_NIVEL_3" | "AUTORIZADA" | "NO_AUTORIZADA" | "CERRADA_NORMAL" | "OBSERVADA";
+        HrArea: {
+            /**
+             * @description Código estable; es el valor de Employee.areaId cuando el área viene del catálogo.
+             * @example ATENCION_AL_CLIENTE
+             */
+            code: string;
+            /** @example Atención al cliente */
+            name: string;
+            description: string | null;
+            sortOrder: number;
+        };
+        HrAreaList: {
+            items: components["schemas"]["HrArea"][];
+        };
+        /** @description Área obligatoria aunque ninguno de sus campos lo sea por separado (para no romper clientes): envía `areaCode` (catálogo) o, por compatibilidad, `areaName` (texto libre; `areaId` opcional). 400 AREA_REQUIRED (o 400 de validación) si falta ambos. */
         CreateEmployeeRequest: {
             /** Format: uuid */
             companyId: string;
@@ -496,10 +528,21 @@ export interface components {
             /** Format: email */
             email?: string | null;
             phone?: string | null;
-            /** @example OPERACIONES */
-            areaId: string;
-            /** @example Operaciones y Logística */
-            areaName: string;
+            /**
+             * @description Código del catálogo (GET /hr-areas). Manda sobre areaId/areaName; 422 HR_AREA_NOT_FOUND si no existe.
+             * @example OPERACIONES
+             */
+            areaCode?: string;
+            /**
+             * @description Compatibilidad (texto libre): opcional; se normaliza. Se ignora si viene areaCode.
+             * @example OPERACIONES
+             */
+            areaId?: string;
+            /**
+             * @description Compatibilidad (texto libre). Si coincide con un área del catálogo se guarda como esa área.
+             * @example Operaciones
+             */
+            areaName?: string;
             /** @example Conductor / Auxiliar de Campo */
             jobTitle: string;
             /** Format: date */
@@ -513,6 +556,8 @@ export interface components {
             /** Format: email */
             email?: string | null;
             phone?: string | null;
+            /** @description Código del catálogo de áreas (GET /hr-areas); manda sobre areaId/areaName; 422 HR_AREA_NOT_FOUND si no existe. */
+            areaCode?: string;
             areaId?: string;
             areaName?: string;
             jobTitle?: string;
@@ -556,10 +601,27 @@ export interface components {
             baseSalary?: number | null;
             /** @description La ficha está vinculada a una cuenta de usuario por correo (DEC-ADP-LINK-EMAIL-001) */
             accountLinked: boolean;
+            /** @description Versión optimista de la ficha (DEC-ADP-EDIT-ETAG-001); mismo valor que el header ETag */
+            version?: number;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        AccountRelinkNotice: {
+            /**
+             * @description RELINKED = la ficha pasó a la cuenta del correo nuevo; UNLINKED = no existe cuenta con el correo nuevo y la ficha quedó sin vincular
+             * @enum {string}
+             */
+            action: "RELINKED" | "UNLINKED";
+            /** @enum {string} */
+            reason: "EMAIL_CHANGED";
+            previousEmail?: string | null;
+            newEmail?: string | null;
+        };
+        UpdateEmployeeResponse: components["schemas"]["EmployeeResponse"] & {
+            /** @description Solo presente si la edición cambió el vínculo con la cuenta de acceso (DEC-ADP-RELINK-001) */
+            accountRelink?: components["schemas"]["AccountRelinkNotice"];
         };
         EmployeeDetailResponse: components["schemas"]["EmployeeResponse"] & {
             attendanceSummary?: {
@@ -1003,6 +1065,8 @@ export interface operations {
                 branchId: string;
                 status?: components["schemas"]["EmployeeStatus"];
                 areaId?: string;
+                /** @description Código del catálogo de áreas (alias de areaId; se normaliza). Si vienen ambos manda areaCode. */
+                areaCode?: string;
                 search?: string;
                 limit?: number;
                 offset?: number;
@@ -1102,6 +1166,51 @@ export interface operations {
             };
         };
     };
+    listHrAreas: {
+        parameters: {
+            query: {
+                companyId: string;
+                /** @description Sede del contexto de trabajo (el catálogo es de la empresa) */
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Áreas activas de la empresa, ordenadas por sortOrder y nombre (lista vacía si la empresa aún no tiene catálogo) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrAreaList"];
+                };
+            };
+            /** @description Parámetros inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES, MANAGE_EMPLOYEES o SCHEDULE_VACATION, o contexto no vigente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     getEmployee: {
         parameters: {
             query?: never;
@@ -1116,6 +1225,8 @@ export interface operations {
             /** @description Detalle completo del colaborador */
             200: {
                 headers: {
+                    /** @description Versión de la ficha */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1148,7 +1259,10 @@ export interface operations {
     updateEmployee: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description ETag fuerte con la versión de la ficha que el cliente leyó (ej. "3"). Opcional; si se envía y no coincide, 412 EMPLOYEE_VERSION_CONFLICT. */
+                "If-Match"?: string;
+            };
             path: {
                 id: string;
             };
@@ -1160,16 +1274,18 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Colaborador actualizado */
+            /** @description Colaborador actualizado (incluye `accountRelink` si cambió el vínculo con la cuenta) */
             200: {
                 headers: {
+                    /** @description Versión nueva de la ficha */
+                    ETag?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmployeeResponse"];
+                    "application/json": components["schemas"]["UpdateEmployeeResponse"];
                 };
             };
-            /** @description Datos inválidos */
+            /** @description Datos inválidos o If-Match mal formado (IF_MATCH_INVALID) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1197,8 +1313,15 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description El colaborador ya está terminado (EMPLOYEE_TERMINATED) */
+            /** @description El colaborador ya está terminado (EMPLOYEE_TERMINATED) o el correo nuevo pertenece a una cuenta ya vinculada a otro colaborador (EMPLOYEE_ACCOUNT_ALREADY_LINKED) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La ficha cambió desde que se leyó - recargar (EMPLOYEE_VERSION_CONFLICT) */
+            412: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1779,6 +1902,8 @@ export interface operations {
                 /** @description Sede del contexto de trabajo (el calendario es de toda la empresa) */
                 branchId: string;
                 areaId?: string;
+                /** @description Código del catálogo de áreas (alias de areaId; se normaliza). Si vienen ambos manda areaCode. */
+                areaCode?: string;
                 year: number;
                 month?: number;
             };

@@ -4,6 +4,7 @@ import { addDaysToDateOnly, limaDateToInstant, limaToday } from '../shared/lima-
 export type VacancySource = components['schemas']['VacancySource'];
 export type VacancyStatus = components['schemas']['VacancyStatus'];
 export type CandidateStage = components['schemas']['CandidateStage'];
+export type CandidateProcessState = components['schemas']['CandidateProcessState'];
 export type CandidateDecision = components['schemas']['CandidateDecision'];
 export type InterviewResult = components['schemas']['InterviewResult'];
 export type NegotiationOutcome = components['schemas']['NegotiationOutcome'];
@@ -33,10 +34,57 @@ export const VACANCY_STATUS_LABEL: Record<VacancyStatus, string> = {
   NECESIDAD_REGISTRADA: 'Necesidad registrada',
   PUBLICADA: 'Publicada',
   EN_NEGOCIACION: 'En negociación',
+  ENTREVISTADA: 'Entrevistada',
   DECIDIDA: 'Decidida',
   CANCELADA: 'Cancelada',
   PAUSADA: 'Pausada',
 };
+
+/** BDD-REC §11.6 - estado normativo del candidato (distinto de la etapa Kanban). */
+export const PROCESS_STATE_LABEL: Record<CandidateProcessState, string> = {
+  EN_NEGOCIACION: 'En negociación',
+  ENTREVISTADO: 'Entrevistado',
+  DECIDIDO: 'Decidido',
+  DESCARTADO: 'Descartado',
+  INGRESADO: 'Ingresado',
+  PERIODO_PRUEBA: 'Periodo de prueba',
+  PLANILLA: 'Planilla',
+  TERMINADO: 'Terminado',
+};
+
+/**
+ * Pasos del flujo BDD-REC §11.6, en orden. Los dos primeros son de la vacante (Necesidad registrada, Publicado):
+ * un candidato siempre nace con la vacante ya publicada, así que se muestran como completados.
+ */
+export const PROCESS_FLOW_STEPS: readonly { key: string; label: string }[] = [
+  { key: 'NECESIDAD', label: 'Necesidad registrada' },
+  { key: 'PUBLICADO', label: 'Publicado' },
+  { key: 'EN_NEGOCIACION', label: 'En negociación' },
+  { key: 'ENTREVISTADO', label: 'Entrevistado' },
+  { key: 'DECIDIDO', label: 'Decidido' },
+  { key: 'INGRESADO', label: 'Ingresado' },
+  { key: 'PERIODO_PRUEBA', label: 'Periodo de prueba' },
+  { key: 'PLANILLA', label: 'Planilla' },
+];
+
+const FLOW_INDEX: Record<string, number> = Object.fromEntries(PROCESS_FLOW_STEPS.map((step, index) => [step.key, index]));
+
+/**
+ * Índice del último paso alcanzado. Los estados que salen del camino principal (Descartado, Terminado) se
+ * ubican donde ocurrió la salida: Terminado sale de Periodo de prueba; Descartado sale de En negociación o, si
+ * ya hubo una entrevista registrada, de Decidido (BDD-REC §11.6: "Decidido -> Descartado").
+ */
+export function processFlowPosition(state: CandidateProcessState, hadInterview = false): number {
+  if (state === 'TERMINADO') return FLOW_INDEX.PERIODO_PRUEBA;
+  if (state === 'DESCARTADO') return hadInterview ? FLOW_INDEX.DECIDIDO : FLOW_INDEX.EN_NEGOCIACION;
+  return FLOW_INDEX[state];
+}
+
+/**
+ * BDD-REC §11.6: "Decidido" solo se alcanza desde "Entrevistado", así que contratar exige haber registrado la
+ * entrevista. Descartar (no contratar) sí es posible también desde "En negociación".
+ */
+export const canHire = (state: CandidateProcessState) => state === 'ENTREVISTADO';
 
 /** Columnas del tablero REC-03, en orden. Las etapas avanzan, nunca retroceden. */
 export const CANDIDATE_STAGES: readonly CandidateStage[] = ['NUEVO', 'CONTACTADO', 'ENTREVISTA', 'DECISION'];

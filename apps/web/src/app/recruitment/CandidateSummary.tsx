@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { CandidateDetail } from './recruitment-client';
-import { CANDIDATE_STAGE_LABEL, INTERVIEW_RESULT_LABEL } from './recruitment-domain';
+import { CANDIDATE_STAGE_LABEL, INTERVIEW_RESULT_LABEL, PROCESS_STATE_LABEL } from './recruitment-domain';
+import { ProcessStateTracker } from './ProcessStateTracker';
 import { formatDateTime } from './flow-format';
 import styles from './RecruitmentFlow.module.css';
 
@@ -42,12 +43,20 @@ export function CandidateSummary({ candidate, showInterviews = false, collapsibl
         )}
       </div>
       <div id="cand-summary-body" hidden={!open}>
+        <ProcessStateTracker
+          state={candidate.processState}
+          hadInterview={(candidate.interviews ?? []).some((i) => i.result !== 'PENDIENTE')}
+        />
         <dl className={styles.dataGrid}>
           <div>
             <dt>Documento</dt>
             <dd>
               {candidate.documentType} {candidate.documentNumber}
             </dd>
+          </div>
+          <div>
+            <dt>Estado del proceso</dt>
+            <dd>{PROCESS_STATE_LABEL[candidate.processState]}</dd>
           </div>
           <div>
             <dt>Etapa</dt>
