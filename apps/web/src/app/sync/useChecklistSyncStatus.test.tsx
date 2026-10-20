@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const h = vi.hoisted(() => ({ status: vi.fn(), apply: vi.fn(async () => undefined) }));
+const h = vi.hoisted(() => ({ status: vi.fn(), apply: vi.fn(async (..._a: unknown[]) => undefined) }));
 vi.mock('./sync-client', () => ({ getChecklistSyncStatus: (...a: unknown[]) => h.status(...a) }));
 vi.mock('../../offline/queue/sync-draft-store', () => ({ applyServerFieldRevisions: (...a: unknown[]) => h.apply(...a) }));
 

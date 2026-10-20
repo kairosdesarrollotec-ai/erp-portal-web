@@ -6,7 +6,7 @@ export function syncedStatus(
   sourceId: string,
   overrides: Partial<SyncChecklistStatusResponse> = {},
 ): SyncChecklistStatusResponse {
-  return { checklistType, sourceId, status: 'SYNCED', serverConfirmedAt: null, stateVersion: null, openConflicts: [], ...overrides };
+  return { checklistType, sourceId, status: 'SYNCED', serverConfirmedAt: null, stateVersion: null, openConflicts: [], fieldRevisions: [], ...overrides };
 }
 
 export function makeConflict(overrides: Partial<SyncConflict> = {}): SyncConflict {
