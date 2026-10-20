@@ -22,7 +22,6 @@ import { CustomerDetailScreen } from '../customers/CustomerDetailScreen';
 import { AdminUsersScreen } from '../admin/AdminUsersScreen';
 import { AuditEventsScreen } from '../admin/AuditEventsScreen';
 import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
-import { RolePermissionMatrixScreen } from '../admin/RolePermissionMatrixScreen';
 import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
 import { DocumentTemplatesScreen } from '../admin/DocumentTemplatesScreen';
 import { ModuleHubScreen } from '../modules/ModuleHubScreen';
@@ -38,7 +37,6 @@ import { Stage4ChecklistScreen } from '../rentals/Stage4ChecklistScreen';
 import { Stage5ConfirmationScreen } from '../rentals/Stage5ConfirmationScreen';
 import { IncidentsListScreen } from '../incidents/IncidentsListScreen';
 import { IncidentDetailScreen } from '../incidents/IncidentDetailScreen';
-import { ReportsDashboardScreen } from '../reporting/ReportsDashboardScreen';
 import { DepositsListScreen } from '../payments/DepositsListScreen';
 import { DepositDetailScreen } from '../payments/DepositDetailScreen';
 import { UserProfileScreen } from '../profile/UserProfileScreen';
@@ -82,6 +80,8 @@ const ReturnFollowUpScreen = lazyNamed(() => import('../hr-administration/Return
 const TerminationScreen = lazyNamed(() => import('../hr-administration/TerminationScreen'), 'TerminationScreen');
 const TrainingScreen = lazyNamed(() => import('../hr-administration/TrainingScreen'), 'TrainingScreen');
 const NewEmployeeScreen = lazyNamed(() => import('../hr-administration/NewEmployeeScreen'), 'NewEmployeeScreen');
+const RolePermissionMatrixScreen = lazyNamed(() => import('../admin/RolePermissionMatrixScreen'), 'RolePermissionMatrixScreen');
+const ReportsDashboardScreen = lazyNamed(() => import('../reporting/ReportsDashboardScreen'), 'ReportsDashboardScreen');
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
