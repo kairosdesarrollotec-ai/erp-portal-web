@@ -2,7 +2,7 @@ import { syncApiClient } from '../../api/sync-api-client';
 import type { components } from '../../api/sync.generated';
 
 /**
- * Cliente de sync.yaml 1.0.0 (TR-08 / ENTREGA-04 / DEV-04): sincronizacion offline de checklists y conflictos.
+ * Cliente de sync.yaml 1.1.0 (TR-08 / ENTREGA-04 / DEV-04): sincronizacion offline de checklists y conflictos.
  * Todos los comandos llevan Idempotency-Key; resolver exige If-Match con la `etag` del conflicto.
  */
 export type SyncChecklistType = components['schemas']['SyncChecklistType'];
@@ -16,6 +16,7 @@ export type SyncResolution = components['schemas']['SyncResolution'];
 export type ResolveSyncConflictRequest = components['schemas']['ResolveSyncConflictRequest'];
 export type ResolveSyncConflictResponse = components['schemas']['ResolveSyncConflictResponse'];
 export type SyncFieldInput = components['schemas']['SyncFieldInput'];
+export type SyncFieldRevision = components['schemas']['SyncFieldRevision'];
 export type SyncEvidenceInput = components['schemas']['SyncEvidenceInput'];
 
 /** Cuerpo `{ statusCode, code, detail }` que el backend devuelve en 4xx. */

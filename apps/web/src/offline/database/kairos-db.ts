@@ -12,11 +12,16 @@ export interface EvidenceQueueItem {
   status: 'pending' | 'syncing' | 'synced' | 'error';
   errorMsg?: string;
   createdAt: number;
-  // ── v2 (sync.yaml 1.0.0): metadatos que exige POST /sync/checklists/.../commands/sync ──
+  // ── v2 (sync.yaml 1.0.0+): metadatos que exige POST /sync/checklists/.../commands/sync ──
   /** Idempotencia por captura (UUID generado offline). */
   clientCaptureId?: string;
-  /** N.o de toma dentro de la zona (>= 1). */
+  /**
+   * N.o de toma LOCAL dentro de la zona (>= 1): solo ordena/muestra en el dispositivo. Desde sync.yaml 1.1.0 NO se envia
+   * al servidor (DEC-SYNC-11): el servidor asigna el slot y el dispositivo lo guarda en `serverSlot`.
+   */
   slot?: number;
+  /** Slot definitivo que asigno (o ya tenia) el servidor para esta toma (respuesta `evidenceSlots`). */
+  serverSlot?: number;
   /** SHA-256 hexadecimal del archivo; si falta al encolar se calcula antes de sincronizar. */
   contentHash?: string;
   /** Revision base que el dispositivo vio por ultima vez (0 = nunca sincronizado). */

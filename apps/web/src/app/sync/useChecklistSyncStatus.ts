@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getChecklistSyncStatus, type SyncChecklistStatusResponse, type SyncChecklistType } from './sync-client';
 import { describeSyncError } from './sync-errors';
+import { applyServerFieldRevisions } from '../../offline/queue/sync-draft-store';
 
 export interface UseChecklistSyncStatusParams {
   checklistType: SyncChecklistType;
@@ -43,6 +44,14 @@ export function useChecklistSyncStatus(params: UseChecklistSyncStatusParams): Ch
       if (mine !== seq.current) return;
       setData(result);
       setError(null);
+      // 1.1.0: la revision vigente por campo alimenta el baseRev local (best effort: Dexie puede no estar disponible).
+      try {
+        await applyServerFieldRevisions(checklistType, sourceId, result.fieldRevisions, {
+          openConflictKeys: (result.openConflicts ?? []).filter((c) => c.kind === 'FIELD').map((c) => c.key),
+        });
+      } catch {
+        /* sin almacenamiento local: el baseRev se actualizara en el proximo sync */
+      }
     } catch (err) {
       if (mine !== seq.current) return;
       setData(null);

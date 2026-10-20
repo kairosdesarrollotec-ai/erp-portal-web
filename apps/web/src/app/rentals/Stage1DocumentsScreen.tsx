@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
@@ -17,6 +17,7 @@ import {
 import { describeRentalError } from './rental-errors';
 import { useInquiryCustomerSearch } from '../inquiries/useInquiryCustomerSearch';
 import type { Customer } from '../customers/customers-client';
+import { usePermissions } from '../shared/usePermissions';
 import styles from './RentalStageForms.module.css';
 
 type DriverType = 'TITULAR' | 'ACOMPANANTE' | 'JURIDICA';
@@ -44,6 +45,7 @@ function inferHolderType(docNumber: string | undefined | null): ContractHolderTy
 export function Stage1DocumentsScreen() {
   const { id, state, rental, context, getIdToken, setRental } = useRentalWizard();
   const navigate = useNavigate();
+  const { can } = usePermissions();
 
   const [driverType, setDriverType] = useState<DriverType>('TITULAR');
   const [idDocType, setIdDocType] = useState<IdDocType>('DNI');
@@ -82,6 +84,10 @@ export function Stage1DocumentsScreen() {
   const holderType = inferHolderType(rental?.customerDocNumber);
   const isNaturalHolder = holderType === 'NATURAL';
   const registeredDriver = rental?.parties?.find((p) => p.role === 'DRIVER') ?? null;
+  // DEC-ALQ-CAPWARN-001/002: capacidad del vehiculo (null = sin registrar, sin tope) y acompanantes ya registrados.
+  const capacity = rental?.vehiclePassengerCapacity ?? null;
+  const companionsRegistered =
+    rental?.companionsCount ?? rental?.parties?.filter((p) => p.role === 'RESPONSIBLE').length ?? 0;
   const registeredCompanion = rental?.parties?.find((p) => p.role === 'RESPONSIBLE') ?? null;
   const needsOwnDriver = driverType === 'JURIDICA' && !registeredDriver;
   const needsCompanion = driverType === 'ACOMPANANTE' && isNaturalHolder && !registeredCompanion;
@@ -143,7 +149,9 @@ export function Stage1DocumentsScreen() {
       setRental(updated);
       navigate(`/alquileres/${id}/entrega-02`, { state: context });
     } catch (err) {
-      if (err instanceof RentalCommandError) setError(describeRentalError(err, err.message));
+      if (err instanceof RentalCommandError) {
+        setError(describeRentalError(err, err.message, { passengerCapacity: rental.vehiclePassengerCapacity }));
+      }
       else setError('No pudimos guardar los documentos. Intenta de nuevo.');
     } finally {
       setBusy(false);
@@ -199,6 +207,25 @@ export function Stage1DocumentsScreen() {
           <p className={styles.summaryLine} data-testid="registered-driver">
             Conductor autorizado registrado. Adenda: {registeredDriver.addendumDocumentRef ?? 'sin referencia'}
           </p>
+        )}
+        {isNaturalHolder && (driverType === 'ACOMPANANTE' || companionsRegistered > 0) && (
+          <div data-testid="companion-capacity">
+            {capacity != null ? (
+              <p className={styles.summaryLine} data-testid="companion-capacity-count">
+                <strong>Acompañantes:</strong> {companionsRegistered} de {capacity}
+              </p>
+            ) : (
+              <p className={styles.fieldHint} role="status" data-testid="companion-capacity-missing">
+                Este vehículo no tiene registrada su capacidad de pasajeros; no se puede validar el máximo de acompañantes.
+                Puedes continuar con el alquiler.{' '}
+                {can('FLEET', 'WRITE') && (
+                  <Link to={`/flota/${rental.vehicleId}`} state={context ?? undefined}>
+                    Completar la capacidad en Flota
+                  </Link>
+                )}
+              </p>
+            )}
+          </div>
         )}
         {registeredCompanion && (
           <p className={styles.summaryLine} data-testid="registered-companion">

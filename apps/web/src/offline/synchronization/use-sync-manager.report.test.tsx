@@ -10,6 +10,7 @@ vi.mock('../queue/evidence-upload-queue', () => ({
   getUnreportedEvidence: vi.fn(async () => q.unreported),
   markEvidenceReported: vi.fn(async () => undefined),
   ensureEvidenceHash: vi.fn(async (i: { contentHash?: string }) => i.contentHash ?? 'f'.repeat(64)),
+  markEvidenceSlots: vi.fn(async () => undefined),
 }));
 const d = vi.hoisted(() => ({ edits: [] as unknown[], draft: undefined as unknown }));
 vi.mock('../queue/sync-draft-store', () => ({
@@ -17,6 +18,7 @@ vi.mock('../queue/sync-draft-store', () => ({
   getSyncDraft: vi.fn(async () => d.draft),
   getUnsentFieldEdits: vi.fn(async () => d.edits),
   markFieldEditsSent: vi.fn(async () => undefined),
+  applyServerFieldRevisions: vi.fn(async () => undefined),
 }));
 vi.mock('../../app/rentals/rentals-documents-client', () => ({
   requestEvidenceUploadSession: vi.fn(async () => ({ uploadUrl: 'u', objectUrl: 'o' })),
@@ -36,8 +38,8 @@ vi.mock('../../app/sync/sync-client', async (orig) => ({
 
 import { SyncCommandError } from '../../app/sync/sync-client';
 import { useSyncManager } from './use-sync-manager';
-import { clearSyncedDraft, markFieldEditsSent } from '../queue/sync-draft-store';
-import { markEvidenceReported } from '../queue/evidence-upload-queue';
+import { applyServerFieldRevisions, clearSyncedDraft, markFieldEditsSent } from '../queue/sync-draft-store';
+import { markEvidenceReported, markEvidenceSlots } from '../queue/evidence-upload-queue';
 
 const getIdToken = async () => 'tok';
 const blob = new File(['x'], 'a.jpg', { type: 'image/jpeg' });
@@ -50,6 +52,7 @@ const uploaded = (over: Record<string, unknown> = {}) => ({
 const ok = (status: 'SYNCED' | 'SYNC_CONFLICT' = 'SYNCED') => ({
   checklistType: 'ENTREGA', sourceId: 'r-1', status, serverConfirmedAt: status === 'SYNCED' ? '2026-10-19T16:00:00Z' : null,
   stateVersion: 1, openConflicts: [], appliedFields: [], unchangedFields: [], discardedFields: [], addedEvidence: [], duplicateEvidence: [],
+  evidenceSlots: [], fieldRevisions: [],
 });
 
 function run(onServerSync?: (r: unknown) => void, params: Record<string, unknown> = { rentalId: 'r-1' }) {
@@ -68,7 +71,7 @@ beforeEach(() => {
 });
 
 describe('useSyncManager -> POST /sync (sync.yaml)', () => {
-  it('envia clientCaptureId, slot, contentHash, draftCreatedAt, deviceId y campos con baseRev', async () => {
+  it('envia clientCaptureId, contentHash, draftCreatedAt, deviceId y campos con baseRev', async () => {
     q.unreported = [uploaded()];
     d.edits = [{ key: 'notes', value: 'abc', baseRev: 0, editedAt: '2026-10-19T14:30:00.000Z' }];
     const onServerSync = vi.fn();
@@ -82,15 +85,44 @@ describe('useSyncManager -> POST /sync (sync.yaml)', () => {
       companyId: 'c', branchId: 'b', draftCreatedAt: '2026-10-19T14:00:00.000Z', deviceId: expect.any(String),
       fields: [{ key: 'notes', value: 'abc', baseRev: 0, editedAt: '2026-10-19T14:30:00.000Z' }],
       evidence: [{
-        clientCaptureId: '33333333-3333-4333-8333-333333333333', zone: 'FRONTAL', slot: 2, type: 'PHOTO', contentHash: HASH,
+        clientCaptureId: '33333333-3333-4333-8333-333333333333', zone: 'FRONTAL', type: 'PHOTO', contentHash: HASH,
         sizeBytes: 1, capturedAt: '2026-10-19T15:00:00.000Z', deviceId: 'dev-1',
       }],
     });
+    // 1.1.0 (DEC-SYNC-11): el dispositivo NO envia slot; lo asigna el servidor.
+    expect(body.evidence[0]).not.toHaveProperty('slot');
     expect(key).toMatch(/^sync-[0-9a-f]{40}$/);
     await waitFor(() => expect(onServerSync).toHaveBeenCalledWith(expect.objectContaining({ status: 'SYNCED' })));
     expect(markEvidenceReported).toHaveBeenCalledWith([5]);
     expect(markFieldEditsSent).toHaveBeenCalledWith('ENTREGA', 'r-1', ['notes']);
     expect(clearSyncedDraft).toHaveBeenCalledWith('ENTREGA', 'r-1');
+  });
+
+  it('1.1.0: guarda el slot asignado por el servidor y la revision por campo como baseRev de la proxima edicion', async () => {
+    q.unreported = [uploaded()];
+    d.edits = [{ key: 'notes', value: 'abc', baseRev: 0, editedAt: '2026-10-19T14:30:00.000Z' }];
+    const evidenceSlots = [{ clientCaptureId: '33333333-3333-4333-8333-333333333333', zone: 'FRONTAL', slot: 4, outcome: 'ADDED', assignedByServer: true }];
+    const fieldRevisions = [{ key: 'notes', rev: 3, value: 'abc' }];
+    sync.fn.mockResolvedValue({ ...ok(), evidenceSlots, fieldRevisions });
+    run();
+    await waitFor(() => expect(applyServerFieldRevisions).toHaveBeenCalled());
+    expect(markEvidenceSlots).toHaveBeenCalledWith({ rentalId: 'r-1' }, evidenceSlots);
+    expect(applyServerFieldRevisions).toHaveBeenCalledWith('ENTREGA', 'r-1', fieldRevisions, {
+      openConflictKeys: [],
+      onlyEditedAt: { notes: '2026-10-19T14:30:00.000Z' },
+    });
+  });
+
+  it('1.1.0: no adopta la revision de un campo con conflicto abierto', async () => {
+    d.edits = [{ key: 'notes', value: 'abc', baseRev: 0, editedAt: '2026-10-19T14:30:00.000Z' }];
+    sync.fn.mockResolvedValue({
+      ...ok('SYNC_CONFLICT'),
+      openConflicts: [{ kind: 'FIELD', key: 'notes' }],
+      fieldRevisions: [{ key: 'notes', rev: 2, value: 'otro' }],
+    });
+    run();
+    await waitFor(() => expect(applyServerFieldRevisions).toHaveBeenCalled());
+    expect((applyServerFieldRevisions as unknown as { mock: { calls: unknown[][] } }).mock.calls[0][3]).toMatchObject({ openConflictKeys: ['notes'] });
   });
 
   it('DEV-04 usa RECEPCION con el returnId', async () => {

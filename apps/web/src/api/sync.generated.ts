@@ -130,8 +130,8 @@ export interface components {
              */
             clientCaptureId: string;
             zone: string;
-            /** @description N.o de toma dentro de la zona */
-            slot: number;
+            /** @description OPCIONAL (1.1.0). N.o de toma dentro de la zona. Ausente = el servidor asigna el siguiente slot libre y lo devuelve en `evidenceSlots`. Presente = pedido explicito: si esta ocupado por una toma PRIMARY con otro contentHash es conflicto (kind EVIDENCE); si el archivo ya esta registrado (mismo contentHash/clientCaptureId) es duplicado idempotente con el slot existente. */
+            slot?: number;
             /** @enum {string} */
             type: "PHOTO" | "VIDEO";
             /** @description SHA-256 hexadecimal del archivo */
@@ -223,6 +223,14 @@ export interface components {
             serverConfirmedAt: string | null;
             stateVersion: number | null;
             openConflicts: components["schemas"]["SyncConflict"][];
+            /** @description 1.1.0. Revision vigente de cada campo del checklist en el servidor (vacio sin estado previo). El dispositivo la usa como `baseRev` de la siguiente edicion del mismo campo (solo si no tiene una edicion local sin enviar ni un conflicto abierto sobre ese campo). */
+            fieldRevisions: components["schemas"]["SyncFieldRevision"][];
+        };
+        SyncFieldRevision: {
+            key: string;
+            /** @description Revision vigente del campo en el servidor */
+            rev: number;
+            value: components["schemas"]["SyncScalar"];
         };
         SyncChecklistResult: components["schemas"]["SyncChecklistStatusResponse"] & {
             appliedFields: string[];
@@ -242,6 +250,18 @@ export interface components {
                 /** @enum {string} */
                 reason: "SAME_CAPTURE" | "SAME_CONTENT_HASH";
                 existingClientCaptureId: string;
+                /** @description Slot de la toma ya registrada (1.1.0); el dispositivo lo adopta */
+                existingSlot?: number;
+            }[];
+            /** @description 1.1.0. Slot definitivo de CADA toma del lote, en el orden recibido. */
+            evidenceSlots: {
+                clientCaptureId: string;
+                zone: string;
+                slot: number;
+                /** @enum {string} */
+                outcome: "ADDED" | "DUPLICATE" | "CONFLICT";
+                /** @description true si el cliente no envio slot y el servidor lo eligio */
+                assignedByServer: boolean;
             }[];
         };
         ResolveSyncConflictRequest: {

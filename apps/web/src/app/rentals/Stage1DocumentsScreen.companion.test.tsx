@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { axe } from 'jest-axe';
 import { Stage1DocumentsScreen } from './Stage1DocumentsScreen';
 
 vi.mock('../shared/AppHeader', () => ({ AppHeader: () => <header>cabecera</header> }));
@@ -12,6 +13,11 @@ const uploadFileToGcsMock = vi.fn();
 const recordRentalDocumentMock = vi.fn();
 const registerCompanionMock = vi.fn();
 const listCustomersMock = vi.fn();
+const canMock = vi.fn();
+
+vi.mock('../shared/usePermissions', () => ({
+  usePermissions: () => ({ can: (m: string, a: string) => canMock(m, a) }),
+}));
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -83,6 +89,8 @@ async function fillCompanionForm() {
 
 describe('Stage1DocumentsScreen - acompanante autorizado (DEC-ALQ-COMPANION-006)', () => {
   beforeEach(() => {
+    canMock.mockReset();
+    canMock.mockReturnValue(false);
     [getRentalMock, validateDocumentsMock, registerCompanionMock, listCustomersMock, recordRentalDocumentMock].forEach((m) => m.mockReset());
     requestUploadSessionMock.mockResolvedValue({ uploadUrl: 'https://gcs.example/upload', objectUrl: 'https://gcs.example/obj' });
     uploadFileToGcsMock.mockResolvedValue(undefined);
@@ -153,5 +161,64 @@ describe('Stage1DocumentsScreen - acompanante autorizado (DEC-ALQ-COMPANION-006)
     fireEvent.click(screen.getByRole('button', { name: 'Acompañante' }));
     expect(screen.getByTestId('registered-companion')).toBeInTheDocument();
     expect(screen.queryByTestId('companion-form')).not.toBeInTheDocument();
+  });
+
+  describe('capacidad de pasajeros (DEC-ALQ-CAPWARN-001/002)', () => {
+    it('con capacidad muestra "Acompañantes: X de N" y no muestra el aviso', async () => {
+      getRentalMock.mockResolvedValue({
+        ...naturalRental, vehiclePassengerCapacity: 4, companionsCount: 1,
+        parties: [{ id: 'p1', customerId: 'c', role: 'RESPONSIBLE', addendumDocumentRef: null, createdAt: '' }],
+      });
+      const { container } = renderScreen();
+      await screen.findByText(/Maria Quispe/);
+      fireEvent.click(screen.getByRole('button', { name: 'Acompañante' }));
+      expect(screen.getByTestId('companion-capacity-count')).toHaveTextContent('Acompañantes: 1 de 4');
+      expect(screen.queryByTestId('companion-capacity-missing')).not.toBeInTheDocument();
+      expect(await axe(container)).toHaveNoViolations();
+    });
+
+    it('sin capacidad (NULL) muestra aviso no bloqueante; el enlace a Flota solo con permiso FLEET.WRITE', async () => {
+      getRentalMock.mockResolvedValue({ ...naturalRental, vehicleId: 'veh-9', vehiclePassengerCapacity: null, companionsCount: 0 });
+      const { container, unmount } = renderScreen();
+      await screen.findByText(/Maria Quispe/);
+      fireEvent.click(screen.getByRole('button', { name: 'Acompañante' }));
+      const notice = screen.getByTestId('companion-capacity-missing');
+      expect(notice).toHaveTextContent(
+        'Este vehículo no tiene registrada su capacidad de pasajeros; no se puede validar el máximo de acompañantes',
+      );
+      expect(screen.queryByRole('link', { name: /Completar la capacidad en Flota/ })).not.toBeInTheDocument();
+      expect(screen.getByTestId('companion-form')).toBeInTheDocument(); // no bloquea el flujo
+      expect(await axe(container)).toHaveNoViolations();
+      unmount();
+
+      canMock.mockImplementation((m: string, a: string) => m === 'FLEET' && a === 'WRITE');
+      const second = renderScreen();
+      await screen.findByText(/Maria Quispe/);
+      fireEvent.click(screen.getByRole('button', { name: 'Acompañante' }));
+      expect(screen.getByRole('link', { name: /Completar la capacidad en Flota/ })).toHaveAttribute('href', '/flota/veh-9');
+      expect(await axe(second.container)).toHaveNoViolations();
+    });
+
+    it('al superar el maximo muestra el error de dominio con el numero concreto y no valida', async () => {
+      getRentalMock.mockResolvedValue({ ...naturalRental, vehiclePassengerCapacity: 2, companionsCount: 0 });
+      listCustomersMock.mockImplementation(async (...args: unknown[]) => {
+        const q = JSON.stringify(args);
+        return { items: q.includes('Luis') ? [{ id: 'cust-6', fullName: 'Luis Rojas', documentNumber: '40404040' }] : [{ id: 'cust-5', fullName: 'Rosa Diaz', documentNumber: '30303030' }] };
+      });
+      const { RentalCommandError } = await import('./rentals-client');
+      registerCompanionMock.mockRejectedValue(new RentalCommandError(422, { code: 'COMPANION_PASSENGER_CAPACITY_EXCEEDED', detail: 'raw' }));
+      const { container } = renderScreen();
+      await screen.findByText(/Maria Quispe/);
+      fireEvent.click(screen.getByRole('button', { name: 'Acompañante' }));
+      await uploadRequiredDocs(container);
+      await fillCompanionForm();
+      fireEvent.click(screen.getByLabelText(/Licencia vigente del acompañante verificada/));
+      fireEvent.click(screen.getByLabelText(/Licencia vigente del conductor real verificada/));
+      const continueButton = screen.getByRole('button', { name: 'Continuar' });
+      await waitFor(() => expect(continueButton).toBeEnabled());
+      fireEvent.click(continueButton);
+      expect(await screen.findByRole('alert')).toHaveTextContent(/máximo 2 acompañante\(s\)/);
+      expect(validateDocumentsMock).not.toHaveBeenCalled();
+    });
   });
 });
