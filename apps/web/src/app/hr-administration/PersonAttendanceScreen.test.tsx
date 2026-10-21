@@ -105,6 +105,34 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
     expect(await screen.findByText('Marcación registrada.')).toBeInTheDocument();
   });
 
+  async function registerPresent() {
+    logAttendanceMock.mockResolvedValue(makeRecord({ date: '2026-09-04' }));
+    renderScreen();
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar marcación del 4' }));
+    const dialog = await screen.findByRole('dialog');
+    await attachPhoto(dialog);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+    await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
+  }
+
+  function mockGeolocation(impl: (ok: (p: unknown) => void, ko: (e: unknown) => void) => void) {
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: vi.fn(impl) } });
+  }
+
+  it('HU-29: envía la ubicación automática (latitud, longitud, precisión) al registrar la marcación', async () => {
+    mockGeolocation((ok) => ok({ coords: { latitude: -13.16, longitude: -74.22, accuracy: 12 } }));
+    await registerPresent();
+    expect(logAttendanceMock.mock.calls[0][2].location).toEqual({ latitude: -13.16, longitude: -74.22, accuracy: 12 });
+  });
+
+  it('HU-29: si la persona niega el permiso de ubicación, la marcación se registra igual sin ubicación', async () => {
+    mockGeolocation((_ok, ko) => ko({ code: 1 }));
+    await registerPresent();
+    expect(logAttendanceMock.mock.calls[0][2].location).toBeNull();
+    expect(await screen.findByText('Marcación registrada.')).toBeInTheDocument();
+  });
+
   it('elegir Falta continua en ADP-03 sin guardar', async () => {
     renderScreen();
     await screen.findByRole('table');

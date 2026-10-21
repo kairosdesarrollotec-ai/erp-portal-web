@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 
-const flag = vi.hoisted(() => ({ enabled: false }));
+const flag = vi.hoisted(() => ({ enabled: true }));
 vi.mock('./attendance-location', async (orig) => {
   const actual = await orig<typeof import('./attendance-location')>();
   return {
@@ -37,8 +37,8 @@ async function send(location: { latitude: number; longitude: number; accuracy?: 
   return body ?? {};
 }
 
-describe('hr-client.logAttendance - ubicación automática (HU-29, pendiente de back)', () => {
-  it('con el envío apagado (contrato sin latitude/longitude) NO manda la ubicación', async () => {
+describe('hr-client.logAttendance - ubicación automática (HU-29, hr-administration 0.8.0)', () => {
+  it('con el envío apagado (interruptor) NO manda la ubicación', async () => {
     flag.enabled = false;
     const body = await send({ latitude: -13.16, longitude: -74.22, accuracy: 9 });
     expect(body).not.toHaveProperty('latitude');

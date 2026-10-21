@@ -3,11 +3,11 @@
  * geolocalización del navegador SIN bloquear el registro: con permiso, con tiempo máximo corto y devolviendo `null` si
  * el usuario la niega, el navegador no la soporta o se agota el tiempo.
  *
- * PENDIENTE DE BACK: el contrato hr-administration actual (LogAttendanceRequest) todavía NO tiene latitude / longitude /
- * accuracy. Mientras no existan, el envío queda apagado con esta constante (tampoco se pide el permiso al navegador).
- * Cuando el back los publique: pasar a `true`, regenerar tipos y ajustar `hr-client.logAttendance`.
+ * hr-administration 0.8.0 ya acepta `latitude` / `longitude` / `accuracy` opcionales en LogAttendanceRequest (422
+ * INVALID_ATTENDANCE_RECORD si vienen fuera de rango o solo una coordenada), por eso el envío está ENCENDIDO. Si la persona
+ * niega el permiso del navegador, no hay soporte o se agota el tiempo, la asistencia se registra igual, sin ubicación.
  */
-export const ATTENDANCE_LOCATION_SENDING_ENABLED = false;
+export const ATTENDANCE_LOCATION_SENDING_ENABLED = true;
 
 /** Tiempo máximo de espera de la ubicación (ms): corto para no demorar el registro. */
 export const ATTENDANCE_LOCATION_TIMEOUT_MS = 4000;

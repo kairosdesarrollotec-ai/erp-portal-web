@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { LoginScreen } from './LoginScreen';
+import { recordLoginAttempt } from './audit-client';
 
 const signInMock = vi.fn();
 const resolveSignInMock = vi.fn();
@@ -72,6 +73,7 @@ function renderScreen() {
 describe('LoginScreen (TR-01)', () => {
   beforeEach(() => {
     signInMock.mockReset();
+    vi.mocked(recordLoginAttempt).mockClear();
     resolveSignInMock.mockReset();
     assertionForSignInMock.mockClear();
     getActivationStatusMock.mockReset();
@@ -125,6 +127,54 @@ describe('LoginScreen (TR-01)', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Correo o contraseña incorrectos');
     expect(screen.getByLabelText('Correo o usuario')).toHaveValue('user@veloxrent.pe');
+  });
+
+  // D6 - TR-01 punto 11: CADA intento de login (fallo y exito, con o sin MFA) se reporta a POST /audit/login-attempts.
+  function fillAndSubmit() {
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), { target: { value: 'user@veloxrent.pe' } });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'x' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+  }
+
+  it('auditoria: un login con contraseña correcta registra SUCCESS (sin contraseña)', async () => {
+    mockSuccessfulSignIn();
+    renderScreen();
+    fillAndSubmit();
+    await waitFor(() => expect(recordLoginAttempt).toHaveBeenCalledWith('user@veloxrent.pe', 'SUCCESS', null));
+    expect(recordLoginAttempt).toHaveBeenCalledTimes(1);
+  });
+
+  it('auditoria: un login con contraseña incorrecta registra FAILURE con el código del error', async () => {
+    signInMock.mockRejectedValue({ code: 'auth/invalid-credential' });
+    renderScreen();
+    fillAndSubmit();
+    await screen.findByRole('alert');
+    expect(recordLoginAttempt).toHaveBeenCalledWith('user@veloxrent.pe', 'FAILURE', 'auth/invalid-credential');
+  });
+
+  it('auditoria: el login no espera ni se rompe si el registro de auditoría se cuelga o falla', async () => {
+    vi.mocked(recordLoginAttempt).mockReturnValue(new Promise(() => undefined));
+    mockSuccessfulSignIn();
+    renderScreen();
+    fillAndSubmit();
+    await waitFor(() => expect(getActivationStatusMock).toHaveBeenCalled());
+    await waitFor(() => expect(navigateMock).toHaveBeenCalled());
+    vi.mocked(recordLoginAttempt).mockResolvedValue(undefined);
+  });
+
+  it('auditoria MFA: el segundo factor correcto registra SUCCESS y el código inválido registra FAILURE', async () => {
+    await openMfaChallenge();
+    resolveSignInMock.mockRejectedValueOnce({ code: 'auth/invalid-verification-code' });
+    typeCode('000000');
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar/ }));
+    await waitFor(() =>
+      expect(recordLoginAttempt).toHaveBeenCalledWith('user@veloxrent.pe', 'FAILURE', 'auth/invalid-verification-code'),
+    );
+
+    resolveSignInMock.mockResolvedValue({ user: { email: 'user@veloxrent.pe', getIdToken: vi.fn().mockResolvedValue('t') } });
+    typeCode('123456');
+    fireEvent.click(screen.getByRole('button', { name: /Confirmar/ }));
+    await waitFor(() => expect(recordLoginAttempt).toHaveBeenCalledWith('user@veloxrent.pe', 'SUCCESS', null));
   });
 
   it('reemplaza el formulario por la pantalla completa de cuenta bloqueada (BLOCKING_ERROR)', async () => {

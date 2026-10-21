@@ -82,6 +82,7 @@ const ReturnFollowUpScreen = lazyNamed(() => import('../hr-administration/Return
 const TerminationScreen = lazyNamed(() => import('../hr-administration/TerminationScreen'), 'TerminationScreen');
 const TrainingScreen = lazyNamed(() => import('../hr-administration/TrainingScreen'), 'TrainingScreen');
 const SyncCenterScreen = lazyNamed(() => import('../sync/SyncCenterScreen'), 'SyncCenterScreen');
+const AreasScreen = lazyNamed(() => import('../hr-administration/AreasScreen'), 'AreasScreen');
 const NewEmployeeScreen = lazyNamed(() => import('../hr-administration/NewEmployeeScreen'), 'NewEmployeeScreen');
 const RolePermissionMatrixScreen = lazyNamed(() => import('../admin/RolePermissionMatrixScreen'), 'RolePermissionMatrixScreen');
 const ReportsDashboardScreen = lazyNamed(() => import('../reporting/ReportsDashboardScreen'), 'ReportsDashboardScreen');
@@ -177,6 +178,11 @@ export const router = createBrowserRouter([
               { path: '/personal/:id/vacaciones', element: <VacationScreen /> },
               { path: '/personal/:id/salida-a-campo', element: <FieldTripRequestScreen /> },
               { path: '/personal/:id/termino', element: <TerminationScreen /> },
+              // Gestión de áreas de RR.HH.: solo Gerencia General (HR_ADMINISTRATION.MANAGE_AREAS).
+              {
+                element: <RequirePermission anyOf={[{ module: 'HR_ADMINISTRATION', action: 'MANAGE_AREAS' }]} />,
+                children: [{ path: '/personal/areas', element: <AreasScreen /> }],
+              },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },

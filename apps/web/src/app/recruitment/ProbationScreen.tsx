@@ -208,13 +208,18 @@ export function ProbationScreen() {
                       aria-required="true"
                     />
                     <div className={styles.rowActions}>
-                      <button type="button" className={styles.dangerButton} disabled={!trimmed || saving} onClick={() => open(false)}>
-                        Registrar evaluación negativa
-                      </button>
+                      {can('TERMINATE_PROBATION') && (
+                        <button type="button" className={styles.dangerButton} disabled={!trimmed || saving} onClick={() => open(false)}>
+                          Registrar término por prueba negativa
+                        </button>
+                      )}
                       <button type="button" className={styles.primaryButton} disabled={!trimmed || saving} onClick={() => open(true)}>
                         Registrar evaluación positiva
                       </button>
                     </div>
+                    {!can('TERMINATE_PROBATION') && (
+                      <p className={styles.hint}>El término por prueba negativa lo registra Gerencia General.</p>
+                    )}
                     {!trimmed && <p className={styles.hint}>Escribe la evaluación para habilitar los botones.</p>}
                   </div>
                 </section>

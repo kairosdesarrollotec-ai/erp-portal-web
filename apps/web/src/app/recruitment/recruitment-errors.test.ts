@@ -15,4 +15,12 @@ describe('describeRecruitmentError (BDD-REC §11.6)', () => {
       'La operación no cumple las reglas de negocio vigentes.',
     );
   });
+
+  it.each([
+    [409, 'ONBOARDING_ALREADY_COMPLETED', /ya fue incorporada/],
+    [422, 'DECISION_REASON_REQUIRED', /motivo del descarte/],
+    [403, 'GERENCIA_DECISION_REQUIRED', /solo la toma Gerencia General/],
+  ])('recruitment 0.4.0: %i %s se explica en lenguaje de negocio', (status, code, expected) => {
+    expect(describeRecruitmentError(new RecruitmentCommandError(status, { code }), 'fallback')).toMatch(expected);
+  });
 });

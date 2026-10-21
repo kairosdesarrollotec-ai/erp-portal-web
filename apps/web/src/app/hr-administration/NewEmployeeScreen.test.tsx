@@ -71,7 +71,7 @@ describe('NewEmployeeScreen (alta de personal)', () => {
     createMock.mockReset();
     listAreasMock.mockReset().mockResolvedValue([]);
     getCandidateMock.mockReset().mockResolvedValue({ fullName: 'Ana Torres', documentType: 'CE', documentNumber: '70123456', email: 'ana@correo.pe', phone: '999111222' });
-    setPermissions(['HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.VIEW_EMPLOYEES']);
+    setPermissions(['HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_SALARY']);
   });
 
   it('deriva un id estable para un area nueva', () => {
@@ -102,6 +102,19 @@ describe('NewEmployeeScreen (alta de personal)', () => {
     );
     expect(createMock.mock.calls[0][1]).not.toHaveProperty('candidateId');
     expect(await screen.findByText('ficha creada')).toBeInTheDocument();
+  });
+
+  it('sin MANAGE_SALARY el sueldo base queda deshabilitado con nota y no se envía', async () => {
+    setPermissions(['HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.VIEW_EMPLOYEES']);
+    createMock.mockResolvedValue(makeEmployee({ id: 'emp-9' }));
+    renderScreen();
+    await screen.findByLabelText('Nombre completo');
+    expect(screen.getByLabelText('Sueldo base (opcional)')).toBeDisabled();
+    expect(screen.getByText('El sueldo base solo lo define Gerencia.')).toBeInTheDocument();
+    fill();
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar persona' }));
+    await waitFor(() => expect(createMock).toHaveBeenCalled());
+    expect(createMock.mock.calls[0][1]).not.toHaveProperty('baseSalary');
   });
 
   it('desde un candidato contratado envia candidateId como referencia', async () => {

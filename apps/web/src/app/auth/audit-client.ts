@@ -14,11 +14,13 @@ export async function recordLoginAttempt(
   outcome: 'SUCCESS' | 'FAILURE',
   reason: string | null,
 ): Promise<void> {
+  // El contrato exige un correo válido: sin él (p. ej. el reto MFA perdió el dato) no se envía nada.
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 3000);
   try {
     await transversalApiClient.POST('/audit/login-attempts', {
-      body: { email, outcome, reason: reason ?? undefined },
+      body: { email, outcome, reason: reason ? reason.slice(0, 200) : undefined },
       signal: controller.signal,
     });
   } catch {

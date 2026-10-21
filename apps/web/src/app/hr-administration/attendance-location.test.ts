@@ -20,8 +20,8 @@ describe('captureAttendanceLocation (HU-29, ubicación automática)', () => {
     mockGeolocation(null);
   });
 
-  it('el envío al servidor sigue apagado hasta que el back publique latitude/longitude/accuracy', () => {
-    expect(ATTENDANCE_LOCATION_SENDING_ENABLED).toBe(false);
+  it('el envío al servidor está encendido (hr-administration 0.8.0 acepta latitude/longitude/accuracy)', () => {
+    expect(ATTENDANCE_LOCATION_SENDING_ENABLED).toBe(true);
   });
 
   it('con permiso devuelve latitud, longitud y precisión, pidiendo un tiempo máximo corto', async () => {

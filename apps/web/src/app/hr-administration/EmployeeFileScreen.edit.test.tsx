@@ -11,9 +11,10 @@ const getEmployeeMock = vi.fn();
 const updateMock = vi.fn();
 const listAreasMock = vi.fn();
 const CATALOG = [
-  { code: 'ADMINISTRACION', name: 'Administración', description: null, sortOrder: 10 },
-  { code: 'ATENCION_AL_CLIENTE', name: 'Atención al cliente', description: null, sortOrder: 50 },
-  { code: 'OPERACIONES', name: 'Operaciones', description: 'Órgano de línea', sortOrder: 70 },
+  { code: 'ADMINISTRACION', name: 'Administración', description: null, sortOrder: 10, isActive: true },
+  { code: 'LOGISTICA_VIEJA', name: 'Logística vieja', description: null, sortOrder: 20, isActive: false },
+  { code: 'ATENCION_AL_CLIENTE', name: 'Atención al cliente', description: null, sortOrder: 50, isActive: true },
+  { code: 'OPERACIONES', name: 'Operaciones', description: 'Órgano de línea', sortOrder: 70, isActive: true },
 ];
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
@@ -38,7 +39,8 @@ function renderScreen() {
   );
 }
 
-const MANAGE = ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES'];
+const MANAGE = ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_SALARY'];
+const MANAGE_NO_SALARY = ['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EMPLOYEES'];
 const linked = () => makeDetail({ accountLinked: true, email: 'carlos@veloxrent.pe', version: 3 });
 
 /** Mientras carga el catalogo el area es un input de solo lectura (tambien con rol combobox): se espera al selector. */
@@ -101,6 +103,51 @@ describe('EmployeeFileScreen - edicion de ficha (contrato 0.6.0)', () => {
     expect(within(dialog).getByText('Indica un correo válido.')).toBeInTheDocument();
     expect(within(dialog).getByText(/mayor o igual a 0/)).toBeInTheDocument();
     expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('el selector de área ofrece solo las áreas activas (isActive)', async () => {
+    getEmployeeMock.mockResolvedValue(makeDetail());
+    renderScreen();
+    const dialog = await openDialog();
+    await areaSelect(dialog);
+    expect(within(dialog).getByRole('option', { name: 'Administración' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('option', { name: 'Logística vieja' })).toBeNull();
+  });
+
+  it('sin MANAGE_SALARY el sueldo base se muestra deshabilitado con nota y no viaja en el PATCH', async () => {
+    setPermissions(MANAGE_NO_SALARY);
+    getEmployeeMock.mockResolvedValueOnce(makeDetail({ version: 3 })).mockResolvedValue(makeDetail({ version: 4 }));
+    updateMock.mockResolvedValue(makeDetail({ version: 4 }));
+    renderScreen();
+    const dialog = await openDialog();
+    const salary = within(dialog).getByLabelText('Sueldo base');
+    expect(salary).toBeDisabled();
+    expect(salary).toHaveValue('1500');
+    expect(within(dialog).getByText('El sueldo base solo lo modifica Gerencia.')).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText('Cargo'), { target: { value: 'Jefe de flota' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }));
+    await waitFor(() => expect(updateMock).toHaveBeenCalledWith('tok', 'emp-1', { jobTitle: 'Jefe de flota' }, 3));
+  });
+
+  it('con MANAGE_SALARY (Gerencia) el sueldo es editable y viaja en el PATCH', async () => {
+    getEmployeeMock.mockResolvedValue(makeDetail({ version: 3 }));
+    updateMock.mockResolvedValue(makeDetail({ version: 4 }));
+    renderScreen();
+    const dialog = await openDialog();
+    expect(within(dialog).getByLabelText('Sueldo base')).toBeEnabled();
+    fireEvent.change(within(dialog).getByLabelText('Sueldo base'), { target: { value: '1800' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }));
+    await waitFor(() => expect(updateMock).toHaveBeenCalledWith('tok', 'emp-1', { baseSalary: 1800 }, 3));
+  });
+
+  it('mapea 403 EMPLOYEE_SALARY_GERENCIA_ONLY a un mensaje de negocio', async () => {
+    getEmployeeMock.mockResolvedValue(makeDetail({ version: 3 }));
+    updateMock.mockRejectedValue(new HrCommandError(403, { code: 'EMPLOYEE_SALARY_GERENCIA_ONLY' }));
+    renderScreen();
+    const dialog = await openDialog();
+    fireEvent.change(within(dialog).getByLabelText('Sueldo base'), { target: { value: '1800' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }));
+    expect(await within(dialog).findByTestId('edit-error')).toHaveTextContent('El sueldo base solo lo cambia Gerencia');
   });
 
   it('avisa ANTES de guardar que cambiar el correo de una ficha vinculada la re-vincula', async () => {

@@ -39,6 +39,8 @@ export function makeEmployee(overrides: Partial<EmployeeResponse> = {}): Employe
     version: 3,
     createdAt: '2026-01-10T10:00:00Z',
     ...overrides,
+    // 0.8.0: `areaCode` es alias de `areaId`; si el test cambia el area, el alias la sigue.
+    areaCode: overrides.areaCode ?? overrides.areaId ?? 'OPERACIONES',
   };
 }
 
@@ -51,6 +53,7 @@ export function makeDetail(overrides: Partial<EmployeeDetail> = {}): EmployeeDet
     recentFieldTrips: [],
     termination: null,
     ...overrides,
+    areaCode: overrides.areaCode ?? overrides.areaId ?? 'OPERACIONES',
   } as EmployeeDetail;
 }
 

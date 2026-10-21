@@ -11,6 +11,8 @@ import { can, usePermissions } from '../shared/usePermissions';
  *  - ADP-07: AUTHORIZE_FIELD_TRIP. ADP-08: EVALUATE_FIELD_TRIP_RETURN.
  *  - ADP-09: TERMINATE_EMPLOYMENT.
  *  - ADP-10: REGISTER_TRAINING (registrar talleres internos).
+ *  - hr-administration 0.8.0: MANAGE_AREAS (alta y activar/desactivar áreas; solo Gerencia General) y MANAGE_SALARY
+ *    (cambiar el sueldo base de una ficha; solo Gerencia).
  * Mientras los permisos cargan (o si fallan) no se muestra ninguna accion.
  */
 export type HrAction =
@@ -23,7 +25,9 @@ export type HrAction =
   | 'AUTHORIZE_FIELD_TRIP'
   | 'EVALUATE_FIELD_TRIP_RETURN'
   | 'TERMINATE_EMPLOYMENT'
-  | 'REGISTER_TRAINING';
+  | 'REGISTER_TRAINING'
+  | 'MANAGE_AREAS'
+  | 'MANAGE_SALARY';
 
 export const HR_MODULE = 'HR_ADMINISTRATION';
 

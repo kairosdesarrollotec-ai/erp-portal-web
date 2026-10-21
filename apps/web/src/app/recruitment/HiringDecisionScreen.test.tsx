@@ -116,9 +116,9 @@ describe('HiringDecisionScreen (REC-06)', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('primero registra el resultado de la entrevista');
   });
 
-  it('"No contratar" confirma con su propio botón', async () => {
+  it('"No contratar" (sin entrevista previa) confirma con su propio botón, sin motivo obligatorio', async () => {
     const user = setupUser();
-    getCandidateMock.mockResolvedValue(makeCandidate({ interviews }));
+    getCandidateMock.mockResolvedValue(makeCandidate({ interviews, processState: 'EN_NEGOCIACION' }));
     decideMock.mockResolvedValue(makeCandidate({ decision: 'RECHAZADO' }));
     renderScreen();
     await user.click(await screen.findByRole('button', { name: 'No contratar' }));
@@ -126,6 +126,35 @@ describe('HiringDecisionScreen (REC-06)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Confirmar que no se contrata' }));
     await waitFor(() => expect(decideMock).toHaveBeenCalled());
     expect(decideMock.mock.calls[0][4]).toBe('RECHAZADO');
+  });
+
+  it('tras la entrevista, rechazar exige el motivo del descarte (campo obligatorio) y lo envía', async () => {
+    const user = setupUser();
+    getCandidateMock.mockResolvedValue(makeCandidate({ processState: 'ENTREVISTADO', interviews }));
+    decideMock.mockResolvedValue(makeCandidate({ decision: 'RECHAZADO', processState: 'DESCARTADO' }));
+    renderScreen();
+    await user.click(await screen.findByRole('button', { name: 'No contratar' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Motivo del descarte (obligatorio)')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar que no se contrata' }));
+    expect(await within(dialog).findByText('Indica el motivo del descarte.')).toBeInTheDocument();
+    expect(decideMock).not.toHaveBeenCalled();
+    await user.type(within(dialog).getByLabelText('Motivo del descarte (obligatorio)'), 'No aceptó el horario');
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar que no se contrata' }));
+    await waitFor(() => expect(decideMock).toHaveBeenCalled());
+    expect(decideMock.mock.calls[0][4]).toBe('RECHAZADO');
+    expect(decideMock.mock.calls[0][5]).toBe('No aceptó el horario');
+  });
+
+  it('mapea 422 DECISION_REASON_REQUIRED del servidor a un mensaje de negocio', async () => {
+    const user = setupUser();
+    getCandidateMock.mockResolvedValue(makeCandidate({ processState: 'EN_NEGOCIACION' }));
+    decideMock.mockRejectedValueOnce(new RecruitmentCommandError(422, { code: 'DECISION_REASON_REQUIRED' }));
+    renderScreen();
+    await user.click(await screen.findByRole('button', { name: 'No contratar' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar que no se contrata' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Indica el motivo del descarte');
   });
 
   it('con decisión previa no se puede volver a decidir y se muestra el resultado', async () => {
