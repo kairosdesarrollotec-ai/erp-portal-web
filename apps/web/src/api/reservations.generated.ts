@@ -311,6 +311,14 @@ export interface components {
             /** Format: date-time */
             resolvedAt: string | null;
         };
+        /** @description DEC-ALQ-VEHDATA-001 (reservations.yaml 0.9.0). Aviso por cada dato del vehiculo que falta en Flota; no bloquea. */
+        VehicleDataWarning: {
+            /** @enum {string} */
+            code: "VEHICLE_PASSENGER_CAPACITY_MISSING" | "VEHICLE_DEPOSIT_MINIMUM_MISSING" | "VEHICLE_FUEL_PRICE_MISSING";
+            /** @enum {string} */
+            field: "passengerCapacity" | "depositMinimum" | "fuelPrice";
+            message: string;
+        };
         ReservationResponse: {
             /** Format: uuid */
             id: string;
@@ -328,6 +336,8 @@ export interface components {
                 plate: string;
                 label: string;
             };
+            /** @description Un aviso por cada dato del vehiculo que falta (capacidad, garantia, combustible). Vacio si esta completo. No bloquea. */
+            vehicleWarnings: components["schemas"]["VehicleDataWarning"][];
             /** Format: date-time */
             startAt: string;
             /** Format: date-time */

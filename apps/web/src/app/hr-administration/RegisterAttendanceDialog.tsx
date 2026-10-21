@@ -9,6 +9,7 @@ import {
   type AttendanceRecord,
 } from './hr-client';
 import { describeHrError } from './hr-errors';
+import { ATTENDANCE_LOCATION_SENDING_ENABLED, captureAttendanceLocation } from './attendance-location';
 import { ATTENDANCE_STATUS_LABEL, MANUAL_ATTENDANCE_OPTIONS, localToIso, type AttendanceStatus, limaToday } from './hr-domain';
 import { getFirebaseAuth } from '../providers/firebase';
 import { limaNowInputValue } from '../shared/lima-time';
@@ -138,7 +139,10 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesión no disponible');
       const idToken = await user.getIdToken();
+      // HU-29: ubicación automática (con permiso del navegador, tiempo corto, nunca bloquea si se niega).
+      const location = ATTENDANCE_LOCATION_SENDING_ENABLED && wantsEvidence ? await captureAttendanceLocation() : null;
       const saved = await logAttendance(idToken, employeeId, {
+        location,
         date,
         status: choice,
         minutesLate: choice === 'TARDANZA' ? minutes : undefined,

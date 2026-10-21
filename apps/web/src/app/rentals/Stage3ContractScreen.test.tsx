@@ -23,6 +23,7 @@ const evaluateNotaryMock = vi.fn();
 const approveNotaryExceptionMock = vi.fn();
 const formalizeContractMock = vi.fn();
 const getContractTemplateMock = vi.fn();
+const setCompanyDriverDailyRateMock = vi.fn();
 
 vi.mock('./rentals-client', async () => {
   const actual = await vi.importActual<typeof import('./rentals-client')>('./rentals-client');
@@ -32,6 +33,7 @@ vi.mock('./rentals-client', async () => {
     approveNotaryException: (...args: unknown[]) => approveNotaryExceptionMock(...args),
     formalizeContract: (...args: unknown[]) => formalizeContractMock(...args),
     getContractTemplate: (...args: unknown[]) => getContractTemplateMock(...args),
+    setCompanyDriverDailyRate: (...args: unknown[]) => setCompanyDriverDailyRateMock(...args),
   };
 });
 
@@ -389,6 +391,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
   });
 
   it('envia holderType y withCompanyDriver elegidos a formalize-contract', async () => {
+    setCompanyDriverDailyRateMock.mockResolvedValue({ ...baseRental, status: 'PENDING_DELIVERY', version: 5 });
     useRentalWizardMock.mockReturnValue(makeWizard());
     getContractTemplateMock.mockResolvedValue(
       templateSelection({ template: { id: 't2', type: 'RENTAL_CONTRACT_LEGAL_DRIVER', name: 'Contrato persona jurídica con conductor' } }),
@@ -397,6 +400,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     renderScreen();
     fireEvent.click(screen.getByRole('button', { name: 'Persona jurídica' }));
     fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
+    fireEvent.change(screen.getByLabelText('Tarifa diaria del conductor (S/)'), { target: { value: '100' } });
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     await screen.findByText(/Contrato persona jurídica con conductor/);
     await waitFor(() =>
@@ -418,6 +422,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
     expect(screen.queryByLabelText(/Garantía total \(PEN\)/)).not.toBeInTheDocument();
     expect(screen.getByTestId('no-deposit-company-driver')).toHaveTextContent('Con conductor de la empresa no se cobra garantía');
+    fireEvent.change(screen.getByLabelText('Tarifa diaria del conductor (S/)'), { target: { value: '100' } });
     // formalizar solo exige la firma
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
@@ -444,6 +449,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     );
     renderScreen();
     fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
+    fireEvent.change(screen.getByLabelText('Tarifa diaria del conductor (S/)'), { target: { value: '100' } });
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));

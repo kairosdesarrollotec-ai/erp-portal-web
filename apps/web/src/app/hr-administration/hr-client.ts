@@ -1,5 +1,6 @@
 import { hrAdministrationApiClient } from '../../api/hr-administration-api-client';
 import type { components } from '../../api/hr-administration.generated';
+import { ATTENDANCE_LOCATION_SENDING_ENABLED, type AttendanceLocation } from './attendance-location';
 import type { AttendanceStatus, EmployeeStatus, FieldTripStatus, LeaveType, TerminationReason } from './hr-domain';
 
 export type EmployeeResponse = components['schemas']['EmployeeResponse'];
@@ -123,6 +124,8 @@ export interface AttendanceEvidenceInput {
 }
 
 export interface LogAttendanceInput {
+  /** HU-29: ubicación automática; solo viaja si ATTENDANCE_LOCATION_SENDING_ENABLED (pendiente de back). */
+  location?: AttendanceLocation | null;
   date: string;
   status: AttendanceStatus;
   /** Obligatorio (> 0) solo para TARDANZA; para el resto no se envia. */
@@ -149,6 +152,8 @@ export async function logAttendance(idToken: string, employeeId: string, input: 
     ...(input.checkOutTime ? { checkOutTime: input.checkOutTime } : {}),
     ...(input.notes ? { notes: input.notes } : {}),
     ...(input.evidence ? { evidence: input.evidence } : {}),
+    // PENDIENTE DE BACK: LogAttendanceRequest aún no define latitude/longitude/accuracy.
+    ...(ATTENDANCE_LOCATION_SENDING_ENABLED && input.location ? { ...input.location } : {}),
   } as unknown as components['schemas']['LogAttendanceRequest'];
   const { data, error, response } = await hrAdministrationApiClient.POST('/employees/{id}/attendance', {
     params: { path: { id: employeeId } },

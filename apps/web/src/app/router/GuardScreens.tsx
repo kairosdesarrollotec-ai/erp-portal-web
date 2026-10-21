@@ -1,4 +1,5 @@
-import { Loader2, WifiOff } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Loader2, Lock, WifiOff } from 'lucide-react';
 import styles from './GuardScreens.module.css';
 
 /**
@@ -38,6 +39,28 @@ export function GuardBlockingScreen({ onRetry }: { onRetry: () => void }) {
           <button type="button" className={styles.noticeAction} onClick={onRetry}>
             Reintentar
           </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/**
+ * TR-10 variante FORBIDDEN (PANTALLAS-V2-B-TRANSVERSAL): el motivo se explica en términos generales, sin revelar qué
+ * información específica no se puede ver. Acción primaria: «Volver al inicio».
+ */
+export function AccessDeniedScreen() {
+  return (
+    <main className={styles.wrapper}>
+      <div className={styles.card}>
+        <p className={styles.brand}>Kairos Corporation</p>
+        <div className={styles.notice} role="alert">
+          <Lock className={styles.noticeIcon} size={40} aria-hidden="true" />
+          <h1 className={styles.noticeTitle}>No tienes acceso a esta sección</h1>
+          <p className={styles.noticeSubtitle}>Si crees que esto es un error, contacta a tu administrador.</p>
+          <Link to="/tablero" className={styles.noticeAction}>
+            Volver al inicio
+          </Link>
         </div>
       </div>
     </main>

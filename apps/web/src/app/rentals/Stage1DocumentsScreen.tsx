@@ -18,6 +18,7 @@ import { describeRentalError } from './rental-errors';
 import { useInquiryCustomerSearch } from '../inquiries/useInquiryCustomerSearch';
 import type { Customer } from '../customers/customers-client';
 import { usePermissions } from '../shared/usePermissions';
+import { VehicleDataWarnings } from '../shared/VehicleDataWarnings';
 import styles from './RentalStageForms.module.css';
 
 type DriverType = 'TITULAR' | 'ACOMPANANTE' | 'JURIDICA';
@@ -88,6 +89,8 @@ export function Stage1DocumentsScreen() {
   const capacity = rental?.vehiclePassengerCapacity ?? null;
   const companionsRegistered =
     rental?.companionsCount ?? rental?.parties?.filter((p) => p.role === 'RESPONSIBLE').length ?? 0;
+  // DEC-ALQ-VEHDATA-001: con vehicleWarnings en la respuesta, el aviso de capacidad lo da la caja general (sin duplicarlo).
+  const capacityWarned = rental?.vehicleWarnings?.some((w) => w.code === 'VEHICLE_PASSENGER_CAPACITY_MISSING') ?? false;
   const registeredCompanion = rental?.parties?.find((p) => p.role === 'RESPONSIBLE') ?? null;
   const needsOwnDriver = driverType === 'JURIDICA' && !registeredDriver;
   const needsCompanion = driverType === 'ACOMPANANTE' && isNaturalHolder && !registeredCompanion;
@@ -180,6 +183,7 @@ export function Stage1DocumentsScreen() {
         <p className={styles.summaryLine}>
           <strong>Vehículo:</strong> {rental.vehicleBrand} {rental.vehicleModel} - {rental.vehiclePlate}
         </p>
+        <VehicleDataWarnings warnings={rental.vehicleWarnings} vehicleId={rental.vehicleId} context={context} />
       </section>
 
       <fieldset className={styles.fieldset}>
@@ -213,6 +217,10 @@ export function Stage1DocumentsScreen() {
             {capacity != null ? (
               <p className={styles.summaryLine} data-testid="companion-capacity-count">
                 <strong>Acompañantes:</strong> {companionsRegistered} de {capacity}
+              </p>
+            ) : capacityWarned ? (
+              <p className={styles.fieldHint} data-testid="companion-capacity-see-warning">
+                Acompañantes registrados: {companionsRegistered} (sin tope hasta completar la capacidad del vehículo).
               </p>
             ) : (
               <p className={styles.fieldHint} role="status" data-testid="companion-capacity-missing">

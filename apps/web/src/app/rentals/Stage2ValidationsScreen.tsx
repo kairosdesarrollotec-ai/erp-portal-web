@@ -2,12 +2,27 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
-import { registerAlcoholTest, RentalCommandError, AlcoholTestResult } from './rentals-client';
+import {
+  registerAlcoholTest,
+  requestEvidenceUploadSession,
+  uploadEvidenceToGcs,
+  recordEvidence,
+  RentalCommandError,
+  AlcoholTestResult,
+  type RentalEvidenceContentType,
+} from './rentals-client';
+import { describeRentalError } from './rental-errors';
 import styles from './RentalStageForms.module.css';
+
+/** Mismo límite que la foto de DEV-03 (return-evidence.MAX_PHOTO_BYTES). */
+const MAX_ALCOHOL_PHOTO_BYTES = 12 * 1024 * 1024;
+const ALCOHOL_PHOTO_TYPES = ['image/jpeg', 'image/webp'];
 
 /**
  * ENTREGA-02 / ALQ-04 - Validaciones y alcoholímetro
  * (mapea a POST .../commands/register-alcohol-test).
+ * Respuestas 2026-10-20 #10 (rentals.yaml 1.12.0): igual que DEV-03, con resultado DESFAVORABLE o RECHAZADO la FOTO de la prueba es
+ * obligatoria (zona ALCOHOL_TEST, sin hora, no cuenta para las 35 fotos) y el alquiler queda cancelado.
  * RENIEC y MTC se muestran como verificados estáticamente; la integración
  * con proveedores externos no está incluida en esta versión del MVP.
  */
@@ -23,14 +38,40 @@ export function Stage2ValidationsScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canContinue = result === 'FAVORABLE' && !!testDateTime;
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [photoUploaded, setPhotoUploaded] = useState(false);
+
+  const unfavorable = result === 'DESFAVORABLE' || result === 'RECHAZADO';
+  const canContinue =
+    (result === 'FAVORABLE' && !!testDateTime) || (unfavorable && (photoUploaded || photo !== null));
 
   async function handleContinue() {
-    if (!rental || !context || result !== 'FAVORABLE') return;
+    if (!rental || !context || result === null) return;
     setBusy(true);
     setError(null);
     try {
       const idToken = await getIdToken();
+      if (unfavorable && !photoUploaded) {
+        if (!photo) {
+          setError('Adjunta la foto de la prueba del alcoholímetro (obligatoria).');
+          return;
+        }
+        if (!ALCOHOL_PHOTO_TYPES.includes(photo.type)) {
+          setError('Solo se admiten imágenes JPEG o WebP.');
+          return;
+        }
+        if (photo.size > MAX_ALCOHOL_PHOTO_BYTES) {
+          setError('La foto supera el tamaño máximo de 12 MB.');
+          return;
+        }
+        const session = await requestEvidenceUploadSession(
+          idToken, id, context.companyId, context.branchId, 'PHOTO', 'ALCOHOL_TEST',
+          photo.type as RentalEvidenceContentType, photo.size,
+        );
+        await uploadEvidenceToGcs(session.uploadUrl, photo);
+        await recordEvidence(idToken, id, context.companyId, context.branchId, 'PHOTO', 'ALCOHOL_TEST', session.objectUrl);
+        setPhotoUploaded(true);
+      }
       const updated = await registerAlcoholTest(
         idToken,
         id,
@@ -38,12 +79,15 @@ export function Stage2ValidationsScreen() {
         context.branchId,
         rental.version,
         result,
-        notes ? `${notes} (fecha/hora: ${testDateTime})` : `fecha/hora: ${testDateTime}`,
+        unfavorable
+          ? notes.trim() || undefined
+          : notes ? `${notes} (fecha/hora: ${testDateTime})` : `fecha/hora: ${testDateTime}`,
       );
       setRental(updated);
-      navigate(`/alquileres/${id}/entrega-03`, { state: context });
+      if (unfavorable) navigate('/alquileres', { state: context });
+      else navigate(`/alquileres/${id}/entrega-03`, { state: context });
     } catch (err) {
-      if (err instanceof RentalCommandError) setError(err.message);
+      if (err instanceof RentalCommandError) setError(describeRentalError(err, err.message));
       else setError('No pudimos registrar la validación. Intenta de nuevo.');
     } finally {
       setBusy(false);
@@ -60,6 +104,7 @@ export function Stage2ValidationsScreen() {
       stage={2}
       title="Validaciones y alcoholímetro"
       onContinue={handleContinue}
+      continueLabel={unfavorable ? 'Registrar y cancelar el alquiler' : 'Continuar'}
       continueDisabled={!canContinue}
       continueBusy={busy}
       errorMessage={error}
@@ -103,16 +148,36 @@ export function Stage2ValidationsScreen() {
             </label>
           ))}
         </div>
-        <label className={styles.fieldLabel}>
-          Fecha y hora de la prueba
-          <input type="datetime-local" className={styles.input} value={testDateTime} onChange={(e) => setTestDateTime(e.target.value)} />
-        </label>
+        {!unfavorable && (
+          <label className={styles.fieldLabel}>
+            Fecha y hora de la prueba
+            <input type="datetime-local" className={styles.input} value={testDateTime} onChange={(e) => setTestDateTime(e.target.value)} />
+          </label>
+        )}
+        {unfavorable && (
+          <label className={styles.fieldLabel}>
+            Foto de la prueba del alcoholímetro (obligatoria)
+            <input
+              type="file"
+              accept="image/jpeg,image/webp"
+              capture="environment"
+              onChange={(e) => {
+                setPhoto(e.target.files?.[0] ?? null);
+                setPhotoUploaded(false);
+              }}
+            />
+            {photo && <span className={styles.fieldHint}>{photo.name}</span>}
+            <span className={styles.fieldHint}>No se registra hora ni otros datos; la foto queda como evidencia de la prueba.</span>
+          </label>
+        )}
         <label className={styles.fieldLabel}>
           Evidencia / notas
           <textarea className={styles.textarea} value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
         </label>
-        {result && result !== 'FAVORABLE' && (
-          <p className={styles.blockedNotice}>Solo se puede continuar con resultado Favorable.</p>
+        {unfavorable && (
+          <p className={styles.blockedNotice} role="status">
+            Con este resultado el alquiler no puede continuar: al registrarlo con la foto, el alquiler queda cancelado.
+          </p>
         )}
       </fieldset>
     </RentalWizardShell>

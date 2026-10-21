@@ -15,6 +15,10 @@ describe('describeRentalError', () => {
     ['LICENSE_VERIFICATION_REQUIRED', /licencia vigente/],
     ['COMPANION_DRIVER_MUST_DIFFER', /no conduce/],
     ['COMPANION_PASSENGER_CAPACITY_EXCEEDED', /máximo de acompañantes/],
+    ['COMPANY_DRIVER_RATE_REQUIRED', /tarifa diaria del conductor de la empresa.*obligatoria/],
+    ['COMPANY_DRIVER_RATE_CLOSED', /ya no se puede cambiar.*hasta completar la entrega/],
+    ['ALCOHOL_TEST_PHOTO_REQUIRED', /foto de la prueba del alcoholímetro/],
+    ['PASSENGER_CAPACITY_REQUIRED', /capacidad de pasajeros.*de 1 a 60/],
   ])('traduce %s', (code, re) => {
     expect(describeRentalError(new RentalCommandError(422, { code, detail: 'raw' }), 'fb')).toMatch(re);
   });

@@ -141,7 +141,8 @@ export function Stage4ChecklistScreen() {
     });
   }
 
-  const photosCount = evidence.filter((item) => item.type === 'PHOTO').length;
+  // La foto del alcoholímetro (zona ALCOHOL_TEST, ENTREGA-02) NO cuenta para las 35 fotos del checklist (rentals.yaml 1.12.0).
+  const photosCount = evidence.filter((item) => item.type === 'PHOTO' && item.zone !== 'ALCOHOL_TEST').length;
   const videosCount = evidence.filter((item) => item.type === 'VIDEO').length;
 
   // El checklist está completo solo cuando el servidor confirma las evidencias

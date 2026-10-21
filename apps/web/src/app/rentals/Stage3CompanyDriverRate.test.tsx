@@ -81,8 +81,9 @@ function renderScreen() {
 
 const rateInput = () => screen.getByLabelText('Tarifa diaria del conductor (S/)');
 
-async function formalizeWithDriver() {
+async function formalizeWithDriver(rate = '100') {
   fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
+  fireEvent.change(rateInput(), { target: { value: rate } });
   fireEvent.click(screen.getByLabelText(/Área de firma digital/));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
 }
@@ -102,19 +103,19 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
     expect(screen.queryByLabelText('Tarifa diaria del conductor (S/)')).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
     expect(rateInput()).toBeEnabled();
-    expect(screen.getByTestId('driver-rate-pending')).toHaveTextContent(/queda pendiente de digitar/);
+    expect(screen.getByTestId('driver-rate-pending')).toHaveTextContent(/obligatoria para formalizar/);
   });
 
-  it('formalizar sin tarifa avisa en el resumen y no envia tarifa', async () => {
+  it('Respuestas 2026-10-20 #2: sin tarifa digitada NO se puede formalizar (campo obligatorio)', async () => {
     useRentalWizardMock.mockReturnValue(wizard(baseRental));
-    formalizeContractMock.mockResolvedValue(formalizedRental({ configured: false, source: 'NOT_DEFINED', dailyRate: '0.00', currency: 'PEN', days: 3, total: '0.00' }));
     renderScreen();
-    await formalizeWithDriver();
-    fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
-    expect(screen.getByTestId('confirm-driver-rate')).toHaveTextContent(/tarifa diaria sin digitar.*pendiente de digitar/);
-    fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
-    await screen.findByText('etapa 4');
-    expect(setRateMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    await waitFor(() => expect(screen.getByLabelText(/Área de firma digital/)).toBeInTheDocument());
+    expect(rateInput()).toBeRequired();
+    expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeDisabled();
+    fireEvent.change(rateInput(), { target: { value: '100' } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
   });
 
   it('tarifa digitada antes de formalizar: se guarda justo despues con la version nueva y navega a ENTREGA-04', async () => {
@@ -175,7 +176,7 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
     );
     setRateMock.mockResolvedValue(formalizedRental({ configured: true, source: 'MANUAL', dailyRate: '100.00', currency: 'PEN', days: 3, total: '300.00' }));
     renderScreen();
-    expect(screen.getByTestId('driver-rate-not-defined')).toHaveTextContent('Tarifa diaria no definida: el cobro del servicio de conductor queda pendiente de digitar.');
+    expect(screen.getByTestId('driver-rate-not-defined')).toHaveTextContent(/Tarifa diaria no definida: digítala y pulsa «Guardar tarifa»/);
     expect(screen.getByRole('button', { name: 'Guardar tarifa' })).toBeDisabled();
     fireEvent.change(rateInput(), { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar tarifa' }));
@@ -189,7 +190,7 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
       wizard(formalizedRental({ configured: true, source: 'ENV', dailyRate: '80.00', currency: 'PEN', days: 2, total: '160.00' })),
     );
     const { unmount } = renderScreen();
-    expect(screen.getByTestId('driver-rate-env')).toHaveTextContent(/tarifa del sistema: S\/ 80\.00 por día × 2 día\(s\) = S\/ 160\.00/);
+    expect(screen.getByTestId('driver-rate-env')).toHaveTextContent(/Referencia del sistema: S\/ 80\.00 por día/);
     unmount();
     useRentalWizardMock.mockReturnValue(
       wizard(formalizedRental({ configured: true, source: 'MANUAL', dailyRate: '120.50', currency: 'PEN', days: 2, total: '241.00' })),
@@ -207,7 +208,53 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
     renderScreen();
     fireEvent.change(rateInput(), { target: { value: '100' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar tarifa' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('El alquiler ya está cerrado o cancelado');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/ya no se puede cambiar: solo se edita hasta completar la entrega/);
+  });
+
+  it('con el contrato formalizado, «Continuar a la entrega» queda bloqueado hasta que la tarifa esté definida (MANUAL)', () => {
+    useRentalWizardMock.mockReturnValue(
+      wizard(formalizedRental({ configured: false, source: 'NOT_DEFINED', dailyRate: '0.00', currency: 'PEN', days: 3, total: '0.00' })),
+    );
+    const { unmount } = renderScreen();
+    expect(screen.getByRole('button', { name: 'Continuar a la entrega' })).toBeDisabled();
+    unmount();
+    // La tarifa del sistema (ENV) es solo referencia: tampoco habilita.
+    useRentalWizardMock.mockReturnValue(
+      wizard(formalizedRental({ configured: true, source: 'ENV', dailyRate: '80.00', currency: 'PEN', days: 2, total: '160.00' })),
+    );
+    const second = renderScreen();
+    expect(screen.getByRole('button', { name: 'Continuar a la entrega' })).toBeDisabled();
+    second.unmount();
+    useRentalWizardMock.mockReturnValue(
+      wizard(formalizedRental({ configured: true, source: 'MANUAL', dailyRate: '90.00', currency: 'PEN', days: 2, total: '180.00' })),
+    );
+    renderScreen();
+    expect(screen.getByRole('button', { name: 'Continuar a la entrega' })).toBeEnabled();
+  });
+
+  it.each(['ACTIVE', 'EXTENSION_PENDING', 'RETURN_IN_PROGRESS', 'CLOSED', 'CANCELLED'])(
+    'con el alquiler en %s la tarifa ya no se edita (solo PENDING_DELIVERY)',
+    (status) => {
+      useRentalWizardMock.mockReturnValue(
+        wizard({
+          ...formalizedRental({ configured: true, source: 'MANUAL', dailyRate: '90.00', currency: 'PEN', days: 2, total: '180.00' }),
+          status,
+        }),
+      );
+      renderScreen();
+      expect(rateInput()).toBeDisabled();
+      expect(screen.getByTestId('driver-rate-closed')).toHaveTextContent(/ya no se puede cambiar/);
+      expect(screen.queryByRole('button', { name: 'Guardar tarifa' })).not.toBeInTheDocument();
+    },
+  );
+
+  it('con el alquiler en PENDING_DELIVERY la tarifa sigue editable', () => {
+    useRentalWizardMock.mockReturnValue(
+      wizard(formalizedRental({ configured: true, source: 'MANUAL', dailyRate: '90.00', currency: 'PEN', days: 2, total: '180.00' })),
+    );
+    renderScreen();
+    expect(rateInput()).toBeEnabled();
+    expect(screen.queryByTestId('driver-rate-closed')).not.toBeInTheDocument();
   });
 
   it('accesibilidad (axe): campo de tarifa con aviso de tarifa no definida', async () => {

@@ -13,6 +13,7 @@ import {
 import { getFirebaseAuth } from '../providers/firebase';
 import styles from './ReservationDetailScreen.module.css';
 import { formatLimaDate } from '../shared/lima-time';
+import { VehicleDataWarnings } from '../shared/VehicleDataWarnings';
 
 /**
  * RES-04/RES-05 consolidadas en una sola pantalla (misma URL, el
@@ -157,6 +158,7 @@ export function ReservationDetailScreen() {
 
         <div className={styles.summaryPanel}>
           <p className={styles.vehicleLabel}>{reservation.vehicle.label}</p>
+          <VehicleDataWarnings warnings={reservation.vehicleWarnings} vehicleId={reservation.vehicle.id} context={context} />
           <dl className={styles.summaryList}>
             <div>
               <dt>Cliente</dt>

@@ -183,6 +183,9 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
       await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
       expect(logAttendanceMock.mock.calls[0][2].evidence).toBeUndefined();
+      // Aviso «sin evidencia fotográfica» eliminado (código muerto): el permiso no lleva foto y el back exige la de PRESENTE/TARDANZA.
+      expect(await screen.findByText('Marcación registrada.')).toBeInTheDocument();
+      expect(screen.queryByText(/sin evidencia fotográfica/)).not.toBeInTheDocument();
     });
 
     it('sube la foto con URL firmada y envia storageRef + hora de Lima + nota', async () => {

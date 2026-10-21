@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowLeftRight, LogOut, X } from 'lucide-react';
+import { ArrowLeftRight, LogOut, RefreshCw, X } from 'lucide-react';
 import { MODULE_ITEMS } from '../modules/module-definitions';
 import { isModuleVisible } from '../modules/module-visibility';
 import { useWorkSession } from './useWorkSession';
 import { usePermissions } from './usePermissions';
 import { useSignOut } from './useSignOut';
+import { canSuperviseSync } from '../sync/useSyncCenter';
 import styles from './AppSidebar.module.css';
 
 function isModuleActive(modulePath: string | null, currentPath: string): boolean {
@@ -84,6 +85,19 @@ export function AppSidebar() {
         </ul>
 
         <div className={styles.sidebarFooter}>
+          {/* TR-08: fuera del menú de 12 módulos; solo supervisores (Administración y Gerencia). */}
+          {canSuperviseSync(can) && (
+            <Link
+              to="/sincronizacion"
+              state={location.state}
+              className={styles.footerLink}
+              onClick={() => setSidebarOpen(false)}
+              title="Ver los conflictos de sincronización pendientes"
+            >
+              <RefreshCw size={16} />
+              <span>Sincronización</span>
+            </Link>
+          )}
           <Link
             to="/seleccion-empresa-sede"
             className={styles.footerLink}

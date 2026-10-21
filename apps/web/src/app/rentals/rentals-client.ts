@@ -122,6 +122,9 @@ export interface CompanyDriverChargeResponse {
   total: string;
 }
 
+/** DEC-ALQ-VEHDATA-001 (rentals.yaml 1.12.0): aviso por cada dato del vehículo que falta en Flota; no bloquea. */
+export type VehicleDataWarning = components['schemas']['VehicleDataWarning'];
+
 export interface RentalResponse {
   id: string;
   organizationId: string;
@@ -139,6 +142,10 @@ export interface RentalResponse {
   vehicleDepositMinimum: number | null;
   /** rentals.yaml 1.11.0: null = vehiculo sin capacidad registrada (sin tope). Opcional por compatibilidad con respuestas cacheadas. */
   vehiclePassengerCapacity?: number | null;
+  /** rentals.yaml 1.12.0: precio del combustible del vehículo (PEN); null = no registrado en Flota. */
+  vehicleFuelPrice?: number | null;
+  /** rentals.yaml 1.12.0: un aviso por cada dato faltante del vehículo (capacidad, garantía, combustible). Opcional por compatibilidad con respuestas cacheadas. */
+  vehicleWarnings?: VehicleDataWarning[];
   /** rentals.yaml 1.11.0: acompanantes registrados (parties RESPONSIBLE). */
   companionsCount?: number;
   planCode: string;
