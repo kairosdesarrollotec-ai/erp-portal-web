@@ -15,6 +15,7 @@ import {
   getPendingEvidence,
   getUnreportedEvidence,
   markEvidenceReported,
+  markEvidenceSlots,
   markEvidenceSynced,
 } from './evidence-upload-queue';
 import { SHA256_HEX } from '../synchronization/content-hash';
@@ -93,5 +94,20 @@ describe('evidence-upload-queue (sync.yaml)', () => {
     const hash = await ensureEvidenceHash(row);
     expect(hash).toMatch(SHA256_HEX);
     expect(((await db().evidence_queue.get(id)) as { contentHash: string }).contentHash).toBe(hash);
+  });
+
+  it('markEvidenceSlots guarda el slot del servidor (serverSlot) sin tocar el slot local y no marca los CONFLICT', async () => {
+    const a = await addEvidenceToQueue({ ...base, rentalId: 'r-1', returnId: null, zone: 'FRONTAL', blob: file('a') });
+    const b = await addEvidenceToQueue({ ...base, rentalId: 'r-1', returnId: null, zone: 'FRONTAL', blob: file('b') });
+    const items = db().evidence_queue.all() as { id: number; clientCaptureId: string }[];
+    await markEvidenceSlots({ rentalId: 'r-1' }, [
+      { clientCaptureId: items.find((i) => i.id === a)!.clientCaptureId, slot: 4, outcome: 'ADDED' },
+      { clientCaptureId: items.find((i) => i.id === b)!.clientCaptureId, slot: 1, outcome: 'CONFLICT' },
+      { clientCaptureId: 'desconocida', slot: 9, outcome: 'ADDED' },
+    ]);
+    const saved = db().evidence_queue.all() as { id: number; slot: number; serverSlot?: number }[];
+    expect(saved.find((i) => i.id === a)).toMatchObject({ slot: 1, serverSlot: 4 });
+    expect(saved.find((i) => i.id === b)?.serverSlot).toBeUndefined();
+    await markEvidenceSlots({}, [{ clientCaptureId: 'x', slot: 1 }]);
   });
 });

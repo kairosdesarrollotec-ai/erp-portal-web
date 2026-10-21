@@ -137,6 +137,10 @@ export interface RentalResponse {
   vehicleBrand: string;
   vehicleModel: string;
   vehicleDepositMinimum: number | null;
+  /** rentals.yaml 1.11.0: null = vehiculo sin capacidad registrada (sin tope). Opcional por compatibilidad con respuestas cacheadas. */
+  vehiclePassengerCapacity?: number | null;
+  /** rentals.yaml 1.11.0: acompanantes registrados (parties RESPONSIBLE). */
+  companionsCount?: number;
   planCode: string;
   status: RentalStatus;
   startAt: string | null;

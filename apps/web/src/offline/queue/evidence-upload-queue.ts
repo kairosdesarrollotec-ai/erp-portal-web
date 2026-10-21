@@ -76,6 +76,25 @@ export async function getUnreportedEvidence(scope: { rentalId?: string | null; r
     .toArray();
 }
 
+/** Guarda el slot definitivo que informo el servidor (`evidenceSlots`) para cada captura; ignora las desconocidas. */
+export async function markEvidenceSlots(
+  scope: { rentalId?: string | null; returnId?: string | null },
+  slots: readonly { clientCaptureId: string; slot: number; outcome?: string }[],
+): Promise<void> {
+  const index = scope.rentalId ? 'rentalId' : scope.returnId ? 'returnId' : null;
+  const value = scope.rentalId ?? scope.returnId;
+  if (!index || !value || slots.length === 0) return;
+  const items = await kairosDb.evidence_queue.where(index).equals(value).toArray();
+  await Promise.all(
+    slots
+      .filter((s) => s.outcome !== 'CONFLICT')
+      .map((s) => {
+        const item = items.find((i) => i.clientCaptureId === s.clientCaptureId);
+        return item?.id !== undefined ? kairosDb.evidence_queue.update(item.id, { serverSlot: s.slot }) : undefined;
+      }),
+  );
+}
+
 /** Marca como reportados al servidor (evita reenviarlos). */
 export async function markEvidenceReported(ids: readonly number[], now: Date = new Date()): Promise<void> {
   await Promise.all(ids.map((id) => kairosDb.evidence_queue.update(id, { reportedAt: now.toISOString() })));

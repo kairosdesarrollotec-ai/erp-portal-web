@@ -61,9 +61,41 @@ export async function markFieldEditsSent(
 }
 
 /**
+ * sync.yaml 1.1.0 (DEC-SYNC-10): adopta la revision vigente que informa el servidor (respuesta de `sync` o GET status)
+ * como `baseRev` de la SIGUIENTE edicion de cada campo, para que reeditar un campo ya sincronizado no choque contra
+ * la propia edicion. Reglas de seguridad (nunca oculta un cambio ajeno ni pisa trabajo local):
+ *  - solo toca campos que el dispositivo ya trackea y cuya edicion YA se envio (`sentAt`): una edicion local sin
+ *    enviar conserva su `baseRev` (si no, se aplicaria por encima de un cambio ajeno que el usuario nunca vio);
+ *  - no toca campos con conflicto abierto (`openConflictKeys`): los resuelve el supervisor;
+ *  - `onlyEditedAt` (opcional) limita a las ediciones exactamente enviadas (evita pisar una reedicion hecha durante el POST);
+ *  - si el valor del servidor difiere del enviado (p. ej. conflicto resuelto con "Conservar del servidor"), el registro
+ *    pasa a reflejar el valor del servidor, siempre marcado como enviado.
+ */
+export async function applyServerFieldRevisions(
+  checklistType: SyncChecklistKind,
+  sourceId: string,
+  revisions: readonly { key: string; rev: number; value: SyncFieldEditRow['value'] }[] | null | undefined,
+  options: { openConflictKeys?: readonly string[]; onlyEditedAt?: Readonly<Record<string, string>> } = {},
+): Promise<void> {
+  if (!revisions || revisions.length === 0) return;
+  const blocked = new Set(options.openConflictKeys ?? []);
+  for (const revision of revisions) {
+    if (blocked.has(revision.key)) continue;
+    const row = await kairosDb.sync_field_edits.get([checklistType, sourceId, revision.key]);
+    if (!row || !row.sentAt) continue;
+    if (options.onlyEditedAt && options.onlyEditedAt[revision.key] !== row.editedAt) continue;
+    if (row.baseRev === revision.rev && row.value === revision.value) continue;
+    await kairosDb.sync_field_edits.update([checklistType, sourceId, revision.key], {
+      baseRev: revision.rev,
+      value: revision.value,
+    });
+  }
+}
+
+/**
  * Olvida el ancla del borrador cuando el servidor confirmo SYNCED (la proxima captura abre un borrador nuevo con su
- * propio TTL). Las ediciones de campos se conservan con su `baseRev`: el contrato no entrega la revision nueva del
- * campo, por eso no se inventa (ver pregunta de negocio/contrato en el reporte).
+ * propio TTL). Las ediciones de campos se conservan; su `baseRev` se actualiza con la revision que entrega el servidor
+ * (`applyServerFieldRevisions`, sync.yaml 1.1.0).
  */
 export async function clearSyncedDraft(checklistType: SyncChecklistKind, sourceId: string): Promise<void> {
   await kairosDb.sync_drafts.delete([checklistType, sourceId]);

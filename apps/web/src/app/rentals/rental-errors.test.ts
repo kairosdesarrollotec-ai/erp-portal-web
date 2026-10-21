@@ -14,9 +14,14 @@ describe('describeRentalError', () => {
     ['DRIVER_CUSTOMER_NOT_FOUND', /cliente-conductor/],
     ['LICENSE_VERIFICATION_REQUIRED', /licencia vigente/],
     ['COMPANION_DRIVER_MUST_DIFFER', /no conduce/],
-    ['COMPANION_PASSENGER_CAPACITY_EXCEEDED', /máxima de acompañantes/],
+    ['COMPANION_PASSENGER_CAPACITY_EXCEEDED', /máximo de acompañantes/],
   ])('traduce %s', (code, re) => {
     expect(describeRentalError(new RentalCommandError(422, { code, detail: 'raw' }), 'fb')).toMatch(re);
+  });
+  it('DEC-ALQ-CAPWARN-003: con la capacidad conocida el mensaje indica el maximo concreto; sin ella usa el generico', () => {
+    const err = new RentalCommandError(422, { code: 'COMPANION_PASSENGER_CAPACITY_EXCEEDED', detail: 'raw' });
+    expect(describeRentalError(err, 'fb', { passengerCapacity: 4 })).toMatch(/máximo 4 acompañante\(s\)/);
+    expect(describeRentalError(err, 'fb', { passengerCapacity: null })).toMatch(/máximo de acompañantes/);
   });
   it('usa el detalle si no hay traduccion y el fallback si no es RentalCommandError', () => {
     expect(describeRentalError(new RentalCommandError(409, { code: 'OTHER', detail: 'detalle' }), 'fb')).toBe('detalle');

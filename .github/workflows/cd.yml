@@ -39,7 +39,7 @@ jobs:
        || github.ref_name == 'uat'  && 'uat'
        || github.ref_name == 'qa'   && 'qa'
        || 'development' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     # La resolucion del ambiente activa la cola de aprobacion para uat y production.
     environment: >-

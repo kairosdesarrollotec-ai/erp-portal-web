@@ -9,6 +9,7 @@ vi.mock('../database/kairos-db', async () => {
 
 import type { createFakeKairosDb } from '../database/fake-kairos-db.test-utils';
 import {
+  applyServerFieldRevisions,
   clearSyncedDraft,
   ensureSyncDraft,
   getSyncDraft,
@@ -55,5 +56,64 @@ describe('sync-draft-store', () => {
     await clearSyncedDraft('ENTREGA', 'a');
     expect(await getSyncDraft('ENTREGA', 'a')).toBeUndefined();
     expect(await getUnsentFieldEdits('ENTREGA', 'a')).toHaveLength(1);
+  });
+
+  describe('applyServerFieldRevisions (1.1.0, DEC-SYNC-10)', () => {
+    const baseRevOf = async (key: string) =>
+      (db().sync_field_edits.all().find((r) => r.key === key) as { baseRev: number; value: unknown } | undefined);
+
+    it('tras un sync exitoso, la siguiente edicion del mismo campo usa la revision nueva como baseRev', async () => {
+      await saveFieldEdit('ENTREGA', 'a', { key: 'fuel', value: 'HALF' });
+      await markFieldEditsSent('ENTREGA', 'a', ['fuel']);
+      await applyServerFieldRevisions('ENTREGA', 'a', [{ key: 'fuel', rev: 1, value: 'HALF' }]);
+      await saveFieldEdit('ENTREGA', 'a', { key: 'fuel', value: 'FULL' });
+      const [edit] = await getUnsentFieldEdits('ENTREGA', 'a');
+      expect(edit).toMatchObject({ key: 'fuel', value: 'FULL', baseRev: 1 });
+      expect(edit.sentAt).toBeUndefined();
+    });
+
+    it('no toca una edicion local sin enviar (no oculta un cambio ajeno que el usuario nunca vio)', async () => {
+      await saveFieldEdit('ENTREGA', 'a', { key: 'fuel', value: 'HALF' });
+      await applyServerFieldRevisions('ENTREGA', 'a', [{ key: 'fuel', rev: 5, value: 'EMPTY' }]);
+      expect(await baseRevOf('fuel')).toMatchObject({ baseRev: 0, value: 'HALF' });
+    });
+
+    it('no toca campos con conflicto abierto ni campos que el dispositivo no trackea', async () => {
+      await saveFieldEdit('ENTREGA', 'a', { key: 'fuel', value: 'HALF' });
+      await markFieldEditsSent('ENTREGA', 'a', ['fuel']);
+      await applyServerFieldRevisions(
+        'ENTREGA',
+        'a',
+        [{ key: 'fuel', rev: 2, value: 'EMPTY' }, { key: 'otro', rev: 1, value: 1 }],
+        { openConflictKeys: ['fuel'] },
+      );
+      expect(await baseRevOf('fuel')).toMatchObject({ baseRev: 0, value: 'HALF' });
+      expect(await baseRevOf('otro')).toBeUndefined();
+    });
+
+    it('conflicto resuelto con el valor del servidor: el espejo local adopta valor y revision', async () => {
+      await saveFieldEdit('ENTREGA', 'a', { key: 'fuel', value: 'FULL' });
+      await markFieldEditsSent('ENTREGA', 'a', ['fuel']);
+      await applyServerFieldRevisions('ENTREGA', 'a', [{ key: 'fuel', rev: 3, value: 'HALF' }]);
+      expect(await baseRevOf('fuel')).toMatchObject({ baseRev: 3, value: 'HALF' });
+      expect(await getUnsentFieldEdits('ENTREGA', 'a')).toHaveLength(0);
+    });
+
+    it('onlyEditedAt: una reedicion hecha durante el POST no se pisa', async () => {
+      await saveFieldEdit('ENTREGA', 'a', { key: 'fuel', value: 'HALF' }, new Date('2026-10-19T10:00:00Z'));
+      await markFieldEditsSent('ENTREGA', 'a', ['fuel']);
+      await saveFieldEdit('ENTREGA', 'a', { key: 'fuel', value: 'FULL' }, new Date('2026-10-19T10:05:00Z'));
+      await applyServerFieldRevisions('ENTREGA', 'a', [{ key: 'fuel', rev: 1, value: 'HALF' }], {
+        onlyEditedAt: { fuel: '2026-10-19T10:00:00.000Z' },
+      });
+      expect(await baseRevOf('fuel')).toMatchObject({ baseRev: 0, value: 'FULL' });
+    });
+
+    it('sin revisiones (servidor 1.0.0) no hace nada', async () => {
+      await saveFieldEdit('ENTREGA', 'a', { key: 'fuel', value: 'HALF' });
+      await applyServerFieldRevisions('ENTREGA', 'a', undefined);
+      await applyServerFieldRevisions('ENTREGA', 'a', []);
+      expect(await baseRevOf('fuel')).toMatchObject({ baseRev: 0 });
+    });
   });
 });

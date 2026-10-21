@@ -827,6 +827,10 @@ export interface components {
             vehicleModel: string;
             /** @description Monto mínimo de garantía configurado para el vehículo (PEN). */
             vehicleDepositMinimum?: number | null;
+            /** @description Capacidad de pasajeros del vehículo (máximo de acompañantes). Null = sin capacidad registrada en Flota (DEC-FLT-CAP-002); en ese caso el máximo no se valida. */
+            vehiclePassengerCapacity: number | null;
+            /** @description Acompañantes registrados en el alquiler (parties con rol RESPONSIBLE). Se compara contra vehiclePassengerCapacity. */
+            companionsCount: number;
             planCode: string;
             status: components["schemas"]["RentalStatus"];
             /** Format: date-time */

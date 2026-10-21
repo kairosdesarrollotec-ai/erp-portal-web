@@ -7,8 +7,10 @@ import {
   getUnreportedEvidence,
   markEvidenceReported,
   ensureEvidenceHash,
+  markEvidenceSlots,
 } from '../queue/evidence-upload-queue';
 import {
+  applyServerFieldRevisions,
   clearSyncedDraft,
   getSyncDraft,
   getUnsentFieldEdits,
@@ -138,7 +140,7 @@ export function useSyncManager(params: SyncManagerParams): SyncManagerResult {
       evidence.push({
         clientCaptureId: item.clientCaptureId as string,
         zone: item.zone,
-        slot: item.slot ?? 1,
+        // sync.yaml 1.1.0 (DEC-SYNC-11): el slot lo asigna el servidor; `item.slot` es solo un orden local.
         type: item.type,
         contentHash: await ensureEvidenceHash(item),
         sizeBytes: item.blob.size,
@@ -154,6 +156,8 @@ export function useSyncManager(params: SyncManagerParams): SyncManagerResult {
       editedAt: e.editedAt,
     }));
 
+    let lastResult: SyncChecklistResult | null = null;
+    const openConflictKeys = new Set<string>();
     try {
       const idToken = await getIdToken();
       // El contrato limita 100 evidencias por llamada: los campos viajan en la primera.
@@ -170,10 +174,20 @@ export function useSyncManager(params: SyncManagerParams): SyncManagerResult {
         const key = `sync-${(await computeContentHash(new Blob([JSON.stringify(body)]))).slice(0, 40)}`;
         const result = await syncChecklist(idToken, checklistType, sourceId, body, key);
         onServerSync?.(result);
+        lastResult = result;
+        for (const c of result.openConflicts ?? []) if (c.kind === 'FIELD') openConflictKeys.add(c.key);
+        await markEvidenceSlots(rentalId ? { rentalId } : { returnId }, result.evidenceSlots ?? []);
         if (result.status === 'SYNCED') await clearSyncedDraft(checklistType, sourceId);
       }
       await markEvidenceReported(unreported.map((i) => i.id as number));
       await markFieldEditsSent(checklistType, sourceId, edits.map((e) => e.key));
+      // 1.1.0: la revision vigente del servidor pasa a ser el baseRev de la proxima edicion de cada campo.
+      if (lastResult) {
+        await applyServerFieldRevisions(checklistType, sourceId, lastResult.fieldRevisions, {
+          openConflictKeys: [...openConflictKeys],
+          onlyEditedAt: Object.fromEntries(edits.map((e) => [e.key, e.editedAt])),
+        });
+      }
       setSyncError(null);
       return true;
     } catch (err) {

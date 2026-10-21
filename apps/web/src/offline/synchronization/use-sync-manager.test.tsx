@@ -10,12 +10,14 @@ vi.mock('../queue/evidence-upload-queue', () => ({
   getUnreportedEvidence: vi.fn(async () => []),
   markEvidenceReported: vi.fn(async () => undefined),
   ensureEvidenceHash: vi.fn(async () => 'a'.repeat(64)),
+  markEvidenceSlots: vi.fn(async () => undefined),
 }));
 vi.mock('../queue/sync-draft-store', () => ({
   clearSyncedDraft: vi.fn(async () => undefined),
   getSyncDraft: vi.fn(async () => undefined),
   getUnsentFieldEdits: vi.fn(async () => []),
   markFieldEditsSent: vi.fn(async () => undefined),
+  applyServerFieldRevisions: vi.fn(async () => undefined),
 }));
 vi.mock('../../app/sync/sync-client', () => ({ syncChecklist: vi.fn() }));
 const rental = vi.hoisted(() => ({

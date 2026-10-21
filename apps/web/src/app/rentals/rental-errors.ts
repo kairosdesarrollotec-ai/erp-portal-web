@@ -12,7 +12,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   COMPANION_CUSTOMER_NOT_FOUND: 'No encontramos al acompañante en tu empresa. Búscalo o regístralo primero.',
   LICENSE_VERIFICATION_REQUIRED: 'Confirma que verificaste la licencia vigente del acompañante y del conductor.',
   COMPANION_DRIVER_MUST_DIFFER: 'El acompañante firma como responsable y no conduce: elige a otra persona como conductor.',
-  COMPANION_PASSENGER_CAPACITY_EXCEEDED: 'Se superó la cantidad máxima de acompañantes (capacidad de pasajeros del vehículo).',
+  COMPANION_PASSENGER_CAPACITY_EXCEEDED:
+    'Este vehículo ya tiene el máximo de acompañantes permitido por su capacidad de pasajeros. No se puede registrar a otro acompañante.',
   HOLDER_TYPE_REQUIRED: 'Indica si el titular es persona natural o jurídica.',
   HOLDER_TYPE_MISMATCH: 'El tipo de titular indicado no coincide con el del cliente del alquiler.',
   RENTAL_DRIVER_ALREADY_REGISTERED: 'Este alquiler ya tiene un conductor autorizado registrado.',
@@ -27,9 +28,17 @@ const DOMAIN_MESSAGES: Record<string, string> = {
 };
 
 /** Mensaje de negocio para un error de comando de alquiler; si no hay traduccion usa el detalle o el fallback. */
-export function describeRentalError(error: unknown, fallback: string): string {
+export function describeRentalError(
+  error: unknown,
+  fallback: string,
+  context?: { passengerCapacity?: number | null },
+): string {
   if (error instanceof RentalCommandError) {
     const code = error.problem?.code;
+    // DEC-ALQ-CAPWARN-003: con la capacidad conocida el mensaje indica el maximo concreto.
+    if (code === 'COMPANION_PASSENGER_CAPACITY_EXCEEDED' && context?.passengerCapacity != null) {
+      return `Este vehículo admite como máximo ${context.passengerCapacity} acompañante(s) (su capacidad de pasajeros) y ya se alcanzó ese número. No se puede registrar a otro acompañante.`;
+    }
     if (code && DOMAIN_MESSAGES[code]) return DOMAIN_MESSAGES[code];
     return error.message || fallback;
   }
