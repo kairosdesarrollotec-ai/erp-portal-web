@@ -18,6 +18,8 @@ interface Props {
   canOperational: boolean;
   isPending: boolean;
   isError: boolean;
+  /** Mensaje específico (p. ej. error de fechas del backend); si falta se usa el texto genérico. */
+  errorMessage?: string | null;
   opKpis: OperationalKpis | undefined;
 }
 
@@ -41,7 +43,7 @@ function timeAgo(dateStr: string): string {
   }
 }
 
-export function OperationalTabPanel({ canOperational, isPending, isError, opKpis }: Props) {
+export function OperationalTabPanel({ canOperational, isPending, isError, errorMessage, opKpis }: Props) {
   if (!canOperational) {
     return (
       <div className={styles.accessDenied} role="status">
@@ -54,7 +56,7 @@ export function OperationalTabPanel({ canOperational, isPending, isError, opKpis
   }
 
   if (isPending) return <p className={styles.statusText} aria-live="polite">Cargando KPIs operativos…</p>;
-  if (isError) return <p className={styles.statusText} role="alert">No pudimos cargar los KPIs operativos. Intenta ajustar el rango de fechas.</p>;
+  if (isError) return <p className={styles.statusText} role="alert">{errorMessage ?? 'No pudimos cargar los KPIs operativos. Intenta ajustar el rango de fechas.'}</p>;
   if (!opKpis) return null;
 
   const dailyRentals = opKpis.dailyRentals ?? [];

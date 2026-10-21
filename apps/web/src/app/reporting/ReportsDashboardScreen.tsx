@@ -2,7 +2,7 @@
  * REP-01 — Dashboard de Reportes Operativos y Financieros.
  *
  * Baseline visual: PROTO-REP-01-DASHBOARD-OPERATIVO-DESKTOP (APPROVED 2026-10-11).
- * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.1.0.
+ * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.4.0 (dateFrom/dateTo inclusivos, America/Lima).
  * Permisos: REPORT.READ_OPERATIONAL (tab Operativo), REPORT.READ_FINANCIAL (tab Financiero),
  *           REPORT.EXPORT (botón Exportar CSV).
  *
@@ -20,10 +20,10 @@ import { OperationalTabPanel } from './OperationalTabPanel';
 import { FinancialTabPanel } from './FinancialTabPanel';
 import styles from './ReportsDashboardScreen.module.css';
 import { addDaysToDateOnly, limaToday } from '../shared/lima-time';
+import { formatPeriodLabel, validateReportRange } from './reporting-range';
+import { reportingDateErrorMessage } from './reporting-errors';
 
 type Tab = 'operativo' | 'financiero';
-
-const MAX_RANGE_DAYS = 90;
 
 function todayStr(): string {
   return limaToday();
@@ -31,16 +31,6 @@ function todayStr(): string {
 
 function defaultDateFrom(): string {
   return addDaysToDateOnly(limaToday(), -30) ?? limaToday();
-}
-
-function validateRange(from: string, to: string): string | null {
-  const d1 = new Date(from);
-  const d2 = new Date(to);
-  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 'Fechas inválidas.';
-  if (d1 > d2) return 'La fecha de inicio debe ser anterior a la fecha de fin.';
-  const diffDays = (d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24);
-  if (diffDays > MAX_RANGE_DAYS) return `El rango máximo permitido es ${MAX_RANGE_DAYS} días (BR-REP-005).`;
-  return null;
 }
 
 export function ReportsDashboardScreen() {
@@ -62,7 +52,7 @@ export function ReportsDashboardScreen() {
     const nextTo = field === 'to' ? value : dateTo;
     if (field === 'from') setDateFrom(value);
     else setDateTo(value);
-    setRangeError(validateRange(nextFrom, nextTo));
+    setRangeError(validateReportRange(nextFrom, nextTo));
   }
 
   const rangeValid = !rangeError && !!dateFrom && !!dateTo;
@@ -187,11 +177,24 @@ export function ReportsDashboardScreen() {
               <p className={styles.dateError} role="alert">{rangeError}</p>
             )}
 
+            {rangeValid && (
+              <p className={styles.periodHint}>
+                Período: {formatPeriodLabel(dateFrom, dateTo)} · ambos días incluidos (hora de Lima)
+              </p>
+            )}
+
+            {exportMutation.isError && (
+              <p className={styles.dateError} role="alert">
+                {reportingDateErrorMessage(exportMutation.error) ?? 'No pudimos exportar el reporte. Inténtalo de nuevo.'}
+              </p>
+            )}
+
             <div id="panel-operativo" role="tabpanel" aria-labelledby="tab-operativo" hidden={activeTab !== 'operativo'}>
               <OperationalTabPanel
                 canOperational={canOperational}
                 isPending={operationalQuery.isPending}
                 isError={operationalQuery.isError}
+                errorMessage={reportingDateErrorMessage(operationalQuery.error)}
                 opKpis={operationalQuery.data?.kpis}
               />
             </div>
@@ -201,6 +204,7 @@ export function ReportsDashboardScreen() {
                 canFinancial={canFinancial}
                 isPending={financialQuery.isPending}
                 isError={financialQuery.isError}
+                errorMessage={reportingDateErrorMessage(financialQuery.error)}
                 finKpis={financialQuery.data?.kpis}
               />
             </div>

@@ -1,12 +1,13 @@
 /**
  * REP-01 — Hooks de datos del módulo Reportes.
- * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.1.0.
+ * Fuentes: BDD-REP-001, SDD-REP-001, TDD-REP-001, reporting.yaml v0.4.0.
  * Permisos: REPORT.READ_OPERATIONAL, REPORT.READ_FINANCIAL, REPORT.EXPORT.
  */
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { getFirebaseAuth } from '../../providers/firebase';
 import { reportingApiClient } from '../../../api/reporting-api-client';
 import type { components } from '../../../api/reporting.generated';
+import { toReportingApiError } from '../reporting-errors';
 
 export type OperationalKpisResponse = components['schemas']['OperationalKpisResponse'];
 export type FinancialKpisResponse = components['schemas']['FinancialKpisResponse'];
@@ -60,7 +61,7 @@ export function useOperationalKpis(params: ReportingParams | null) {
         },
         headers: { Authorization: `Bearer ${idToken}` },
       });
-      if (error || !data) throw Object.assign(new Error('Error al cargar KPIs operativos'), { status: response.status });
+      if (error || !data) throw toReportingApiError('Error al cargar KPIs operativos', response.status, error);
       return data;
     },
     enabled: !!params,
@@ -90,7 +91,7 @@ export function useFinancialKpis(params: FinancialReportingParams | null) {
         },
         headers: { Authorization: `Bearer ${idToken}` },
       });
-      if (error || !data) throw Object.assign(new Error('Error al cargar KPIs financieros'), { status: response.status });
+      if (error || !data) throw toReportingApiError('Error al cargar KPIs financieros', response.status, error);
       return data;
     },
     enabled: !!params,
@@ -122,7 +123,8 @@ export function useExportReport() {
       });
 
       if (!response.ok) {
-        throw Object.assign(new Error('Error al exportar reporte'), { status: response.status });
+        const body: unknown = await response.json().catch(() => undefined);
+        throw toReportingApiError('Error al exportar reporte', response.status, body);
       }
 
       const blob = await response.blob();

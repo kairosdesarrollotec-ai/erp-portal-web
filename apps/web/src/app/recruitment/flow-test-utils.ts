@@ -59,6 +59,7 @@ export function makeCandidate(overrides: Partial<CandidateDetail> = {}): Candida
     documentType: 'DNI',
     documentNumber: '12345678',
     stage: 'ENTREVISTA',
+    processState: 'ENTREVISTADO',
     decision: undefined,
     version: 4,
     createdAt: '2026-10-01T10:00:00Z',

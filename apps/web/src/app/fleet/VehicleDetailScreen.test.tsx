@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { VehicleDetailScreen } from './VehicleDetailScreen';
+import { axe } from 'jest-axe';
 import { FleetApiError, FleetCommandError } from './fleet-client';
 
 function createTestQueryClient() {
@@ -63,6 +64,9 @@ const sampleVehicle = {
   category: 'PICK-UP 4X4',
   status: 'AVAILABLE',
   dailyRate: 350,
+  depositMinimum: 800,
+  passengerCapacity: 5,
+  fuelPrice: 4.5,
   photoUrl: null,
   createdAt: '2026-01-01T00:00:00Z',
   updatedAt: '2026-01-01T00:00:00Z',
@@ -109,6 +113,48 @@ describe('VehicleDetailScreen', () => {
     expect(screen.getByText(/S\/ 350\.00 \/ día/)).toBeInTheDocument();
     expect(screen.getByText('PICK-UP 4X4')).toBeInTheDocument();
     expect(screen.getByText('Año: 2024')).toBeInTheDocument();
+    expect(screen.getByText('S/ 800.00')).toBeInTheDocument();
+    expect(screen.getByText('Capacidad de pasajeros')).toBeInTheDocument();
+    expect(screen.getByText('5')).toBeInTheDocument();
+    expect(screen.getByText('S/ 4.50 / unidad')).toBeInTheDocument();
+  });
+
+  it('indica «Falta registrar la capacidad» y "Sin registrar" el combustible cuando el vehículo no tiene esos datos', async () => {
+    getVehicleMock.mockResolvedValue({ ...sampleVehicle, passengerCapacity: null, fuelPrice: null, depositMinimum: null });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
+    expect(screen.getByText('Falta registrar la capacidad')).toBeInTheDocument();
+    expect(screen.getAllByText('Sin registrar')).toHaveLength(1);
+  });
+
+  it('no muestra el aviso cuando el vehículo ya tiene capacidad', async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
+    expect(screen.queryByText('Falta registrar la capacidad')).not.toBeInTheDocument();
+  });
+
+  it('«Completar capacidad» abre la edición y guarda la capacidad', async () => {
+    getVehicleMock.mockResolvedValue({ ...sampleVehicle, passengerCapacity: null });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Completar capacidad' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '5' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
+    await waitFor(() =>
+      expect(updateVehicleMock).toHaveBeenCalledWith(
+        'fake-id-token',
+        'veh-1',
+        expect.objectContaining({ passengerCapacity: 5 }),
+      ),
+    );
+  });
+
+  it('axe: detalle con aviso de capacidad faltante sin violaciones', async () => {
+    getVehicleMock.mockResolvedValue({ ...sampleVehicle, passengerCapacity: null });
+    const { container } = renderScreen();
+    await screen.findByText('Falta registrar la capacidad');
+    expect(await axe(container)).toHaveNoViolations();
   });
 
   it('muestra el estado operativo actual', async () => {

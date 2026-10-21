@@ -161,6 +161,14 @@ export interface components {
             /** Format: uuid */
             branchId: string;
             resolutionSummary: string;
+            decision?: components["schemas"]["ManagementDecisionOutcome"];
+        };
+        /** @description Resultado estructurado de la decisión de Gerencia sobre una incidencia UNAUTHORIZED_DRIVER (obligatorio en close y refer-legal para ese tipo; no aplica a los demás). Ambos en false = ninguna consecuencia. Solo se registra: queda como encabezado de la entrada del historial, en la auditoría y en el payload del evento (`decision`) para Finanzas/Legal. */
+        ManagementDecisionOutcome: {
+            /** @description La garantía del alquiler se retiene */
+            retainGuarantee: boolean;
+            /** @description El contrato se resuelve */
+            terminateContract: boolean;
         };
         ReferLegalRequest: {
             /** Format: uuid */
@@ -168,6 +176,7 @@ export interface components {
             /** Format: uuid */
             branchId: string;
             reason: string;
+            decision?: components["schemas"]["ManagementDecisionOutcome"];
         };
         IncidentActionEntry: {
             /** Format: uuid */
@@ -638,6 +647,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Falta `decision` en UNAUTHORIZED_DRIVER (MANAGEMENT_DECISION_OUTCOME_REQUIRED) o se envió en otro tipo (MANAGEMENT_DECISION_OUTCOME_NOT_APPLICABLE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Falta If-Match */
             428: {
                 headers: {
@@ -711,6 +727,13 @@ export interface operations {
             };
             /** @description VERSION_CONFLICT o INCIDENT_NOT_OPEN */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta `decision` en UNAUTHORIZED_DRIVER (MANAGEMENT_DECISION_OUTCOME_REQUIRED) o se envió en otro tipo (MANAGEMENT_DECISION_OUTCOME_NOT_APPLICABLE) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { listRentals, getRental, createRental, validateDocuments, getContractTemplate, formalizeContract, registerAuthorizedDriver, RentalApiError, RentalCommandError } from './rentals-client';
+import { listRentals, getRental, createRental, validateDocuments, getContractTemplate, formalizeContract, registerAuthorizedDriver, registerCompanion, setCompanyDriverDailyRate, RentalApiError, RentalCommandError } from './rentals-client';
 
 function jsonResponse(status: number, body: unknown) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -85,6 +85,29 @@ describe('rentals-client', () => {
     expect(await (fetchMock.mock.calls[1][0] as Request).json()).not.toHaveProperty('depositAmount');
   });
 
+  it('setCompanyDriverDailyRate hace POST con If-Match, Idempotency-Key y body {companyId, branchId, dailyRate}', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(200, { id: 'r1', companyDriverCharge: { configured: true, source: 'MANUAL', dailyRate: '120.50', currency: 'PEN', days: 2, total: '241.00' } }),
+    );
+    const r = await setCompanyDriverDailyRate('token', 'r1', 'c1', 'b1', 5, '120.50');
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.method).toBe('POST');
+    expect(request.url).toContain('/rentals/r1/commands/set-company-driver-daily-rate');
+    expect(request.headers.get('If-Match')).toBe('"5"');
+    expect(request.headers.get('Idempotency-Key')).toBeTruthy();
+    expect(await request.json()).toEqual({ companyId: 'c1', branchId: 'b1', dailyRate: '120.50' });
+    expect(r.companyDriverCharge?.source).toBe('MANUAL');
+  });
+
+  it.each([
+    [400, 'COMPANY_DRIVER_RATE_INVALID'],
+    [409, 'COMPANY_DRIVER_RATE_CLOSED'],
+    [422, 'COMPANY_DRIVER_RATE_NOT_APPLICABLE'],
+  ])('setCompanyDriverDailyRate expone el codigo del %i', async (status, code) => {
+    fetchMock.mockResolvedValue(jsonResponse(status, { statusCode: status, code, detail: 'x' }));
+    await expect(setCompanyDriverDailyRate('token', 'r1', 'c1', 'b1', 5, '10')).rejects.toMatchObject({ status, problem: { code } });
+  });
+
   it('registerAuthorizedDriver hace POST con If-Match y body del conductor', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1', parties: [{ id: 'p', customerId: 'd1', role: 'DRIVER', addendumDocumentRef: 'AD-1' }] }));
     const r = await registerAuthorizedDriver('token', 'r1', 'c1', 'b1', 4, 'd1', 'AD-1', 'LEGAL');
@@ -101,6 +124,25 @@ describe('rentals-client', () => {
     await expect(registerAuthorizedDriver('token', 'r1', 'c1', 'b1', 4, 'd1', 'AD-1')).rejects.toMatchObject({
       status: 422,
       problem: { code: 'NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED' },
+    });
+  });
+
+  it('registerCompanion hace POST con If-Match, conductor real, checks de licencia, motivo y sin adenda si no se indica', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1', parties: [{ id: 'p', customerId: 'a1', role: 'RESPONSIBLE', addendumDocumentRef: null }] }));
+    const r = await registerCompanion('token', 'r1', 'c1', 'b1', 4, 'a1', 'd1', true, true, 'Brevete extranjero no valido', undefined, 'NATURAL');
+    const request = fetchMock.mock.calls[0][0] as Request;
+    expect(request.method).toBe('POST');
+    expect(request.url).toContain('/rentals/r1/commands/register-companion');
+    expect(request.headers.get('If-Match')).toBe('"4"');
+    expect(await request.json()).toEqual({ companyId: 'c1', branchId: 'b1', companionCustomerId: 'a1', driverCustomerId: 'd1', companionLicenseVerified: true, driverLicenseVerified: true, reason: 'Brevete extranjero no valido', holderType: 'NATURAL' });
+    expect(r.parties?.[0].role).toBe('RESPONSIBLE');
+  });
+
+  it('registerCompanion expone el codigo del 422', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(422, { code: 'COMPANION_NOT_APPLICABLE_FOR_LEGAL_HOLDER' }));
+    await expect(registerCompanion('token', 'r1', 'c1', 'b1', 4, 'a1', 'd1', true, true, 'motivo valido largo')).rejects.toMatchObject({
+      status: 422,
+      problem: { code: 'COMPANION_NOT_APPLICABLE_FOR_LEGAL_HOLDER' },
     });
   });
 });

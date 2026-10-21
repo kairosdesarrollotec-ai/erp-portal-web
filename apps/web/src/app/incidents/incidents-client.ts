@@ -12,6 +12,8 @@ type CreateBody = components['schemas']['CreateIncidentRequest'];
 type AddActionBody = components['schemas']['AddIncidentActionRequest'];
 type CloseBody = components['schemas']['CloseIncidentRequest'];
 type ReferLegalBody = components['schemas']['ReferLegalRequest'];
+/** Resultado estructurado de la decision de Gerencia (obligatorio al cerrar/derivar UNAUTHORIZED_DRIVER). */
+export type ManagementDecisionOutcome = components['schemas']['ManagementDecisionOutcome'];
 
 /** Error HTTP de lectura (GET) - mismo patron que ReturnApiError / InquiryApiError. */
 export class IncidentApiError extends Error {
@@ -177,8 +179,9 @@ export async function closeIncident(
   companyId: string,
   branchId: string,
   resolutionSummary: string,
+  decision?: ManagementDecisionOutcome,
 ): Promise<IncidentDetail> {
-  const body: CloseBody = { companyId, branchId, resolutionSummary };
+  const body: CloseBody = { companyId, branchId, resolutionSummary, ...(decision ? { decision } : {}) };
   const { data, error, response } = await incidentsApiClient.POST('/incidents/{id}/commands/close', {
     params: { path: { id }, header: { 'If-Match': ifMatch(version), 'Idempotency-Key': crypto.randomUUID() } },
     headers: authHeaders(idToken),
@@ -196,8 +199,9 @@ export async function referIncidentToLegal(
   companyId: string,
   branchId: string,
   reason: string,
+  decision?: ManagementDecisionOutcome,
 ): Promise<IncidentDetail> {
-  const body: ReferLegalBody = { companyId, branchId, reason };
+  const body: ReferLegalBody = { companyId, branchId, reason, ...(decision ? { decision } : {}) };
   const { data, error, response } = await incidentsApiClient.POST('/incidents/{id}/commands/refer-legal', {
     params: { path: { id }, header: { 'If-Match': ifMatch(version), 'Idempotency-Key': crypto.randomUUID() } },
     headers: authHeaders(idToken),

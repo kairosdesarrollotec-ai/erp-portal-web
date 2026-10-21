@@ -19,7 +19,12 @@ import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
 import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
 import { useOnlineStatus } from '../shared/useOnlineStatus';
 import { EvidenceDeleteButton } from '../shared/EvidenceDeleteButton';
-import { isServerConfirmed } from '../shared/evidence-sync-state';
+import { deriveEvidenceSyncState, type EvidenceSyncInput } from '../shared/evidence-sync-state';
+import { usePermissions } from '../shared/usePermissions';
+import { saveFieldEdit } from '../../offline/queue/sync-draft-store';
+import { SyncConflictPanel } from '../sync/SyncConflictPanel';
+import { useChecklistSyncStatus } from '../sync/useChecklistSyncStatus';
+import { canSyncAction } from '../sync/sync-permissions';
 import styles from './ReturnForms.module.css';
 
 /**
@@ -51,6 +56,7 @@ export function ChecklistScreen() {
   const navigate = useNavigate();
   const { can } = useReturnPermissions();
   const online = useOnlineStatus();
+  const { can: canPermission } = usePermissions();
   const { evidence, loaded, uploading, error, upload, remove: removeEvidence, reload } = useReturnEvidence(id, context, getIdToken);
   const [zone, setZone] = useState(RETURN_ZONES[0].value);
   const [draft, setDraft] = useState<ReturnChecklistDraft>(() => loadReturnChecklist(id));
@@ -63,12 +69,23 @@ export function ChecklistScreen() {
   /** Error al encolar en Dexie (p.ej. almacenamiento lleno). */
   const [queueError, setQueueError] = useState<string | null>(null);
 
+  // sync.yaml: SYNCED / SYNC_CONFLICT lo confirma el SERVIDOR (GET /sync/checklists/RECEPCION/{id}).
+  const serverSync = useChecklistSyncStatus({
+    checklistType: 'RECEPCION',
+    sourceId: id,
+    companyId: context?.companyId,
+    branchId: context?.branchId,
+    getIdToken,
+    enabled: !!context && online,
+  });
+
   const {
     syncing: syncerSyncing,
     pendingCount: syncerPending,
     failedCount: syncerFailed,
     triggerSync,
     refreshCounts,
+    syncError,
   } = useSyncManager({
     returnId: id,
     companyId: context?.companyId ?? '',
@@ -76,6 +93,7 @@ export function ChecklistScreen() {
     getIdToken,
     onSyncComplete: () => {
       void reload();
+      void serverSync.reload();
     },
   });
 
@@ -105,7 +123,24 @@ export function ChecklistScreen() {
 
   const photosCount = evidence.filter((e) => e.type === 'PHOTO').length;
   const videosCount = evidence.filter((e) => e.type === 'VIDEO').length;
-  const synced = isServerConfirmed({ serverLoaded: loaded, photosCount, videosCount });
+  const syncInput: EvidenceSyncInput = {
+    isOnline: online,
+    syncing: syncerSyncing || uploading,
+    serverLoaded: loaded,
+    photosCount,
+    videosCount,
+    pendingCount: syncerPending,
+    serverSync: {
+      loaded: serverSync.loaded,
+      status: serverSync.data?.status,
+      serverConfirmedAt: serverSync.data?.serverConfirmedAt ?? null,
+    },
+  };
+  const conflictState = deriveEvidenceSyncState({ ...syncInput, syncing: false }) === 'SYNC_CONFLICT';
+  // Conteos del listado + confirmacion /sync del servidor (sin uso offline el servidor responde SYNCED y rige el conteo).
+  const synced =
+    !conflictState &&
+    deriveEvidenceSyncState({ ...syncInput, syncing: false, pendingCount: 0 }) === 'SYNCED';
   const signedDoc = ret.responsibilityDocument;
   const doc = draft.responsibilityDocument;
   const docComplete = Boolean(signedDoc) || isResponsibilityDocumentComplete(doc);
@@ -129,6 +164,13 @@ export function ChecklistScreen() {
   const continueDisabled = !online || syncerSyncing || hasPending || !synced || !docComplete;
 
   function update(patch: Partial<ReturnChecklistDraft>) {
+    // Sin conexion los campos escalares del checklist tambien quedan en el borrador Dexie para /sync.
+    if (id && !online) {
+      for (const key of ['fivDone', 'fckeDone', 'notes'] as const) {
+        const value = patch[key];
+        if (value !== undefined) void saveFieldEdit('RECEPCION', id, { key, value }).catch(() => undefined);
+      }
+    }
     setDraft((prev) => {
       const next = { ...prev, ...patch };
       saveReturnChecklist(id, next);
@@ -210,6 +252,35 @@ export function ChecklistScreen() {
       {online && !syncerSyncing && uploading && (
         <p className={`${styles.banner} ${styles.banner_info}`} role="status">
           Sincronizando archivos con el servidor…
+        </p>
+      )}
+      {conflictState && (
+        <p className={`${styles.banner} ${styles.banner_error}`} role="alert">
+          Hay conflictos de sincronización. «Continuar a Resultado» queda deshabilitado hasta que un supervisor los resuelva.
+        </p>
+      )}
+      {serverSync.data && context && (
+        <SyncConflictPanel
+          checklistType="RECEPCION"
+          companyId={context.companyId}
+          branchId={context.branchId}
+          getIdToken={getIdToken}
+          conflicts={serverSync.data.openConflicts}
+          canResolve={canSyncAction(canPermission, 'RECEPCION', 'RESOLVE')}
+          onChanged={async () => {
+            await serverSync.reload();
+            await reload();
+          }}
+        />
+      )}
+      {online && !serverSync.loaded && serverSync.error && (
+        <p className={`${styles.banner} ${styles.banner_warning}`} role="alert">
+          {serverSync.error} «Continuar a Resultado» se habilita cuando el servidor confirme la sincronización.
+        </p>
+      )}
+      {syncError && (
+        <p className={`${styles.banner} ${styles.banner_warning}`} role="alert">
+          {syncError}
         </p>
       )}
       {online && !syncerSyncing && !uploading && synced && !hasPending && (

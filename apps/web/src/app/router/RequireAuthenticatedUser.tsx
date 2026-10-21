@@ -3,6 +3,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
 import { GuardLoadingScreen } from './GuardScreens';
+import { useSessionTimeout } from '../shared/useSessionTimeout';
 
 type AuthGuardState = 'CHECKING' | 'AUTHENTICATED' | 'UNAUTHENTICATED';
 
@@ -18,6 +19,12 @@ type AuthGuardState = 'CHECKING' | 'AUTHENTICATED' | 'UNAUTHENTICATED';
  * expulsaria de forma incorrecta a un usuario ya autenticado que solo
  * recargo la pagina.
  */
+/** SEC-F3: vigila inactividad/duracion de la sesion mientras hay un usuario autenticado. */
+function SessionTimeoutWatcher() {
+  useSessionTimeout();
+  return null;
+}
+
 export function RequireAuthenticatedUser() {
   const [state, setState] = useState<AuthGuardState>('CHECKING');
 
@@ -36,5 +43,10 @@ export function RequireAuthenticatedUser() {
     return <Navigate to="/" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <SessionTimeoutWatcher />
+      <Outlet />
+    </>
+  );
 }

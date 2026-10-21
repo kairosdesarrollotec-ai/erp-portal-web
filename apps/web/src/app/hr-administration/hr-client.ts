@@ -16,7 +16,13 @@ export type Training = components['schemas']['TrainingResponse'];
 export type LeaveEvidence = components['schemas']['LeaveEvidenceResponse'];
 export type MyEmployee = components['schemas']['MyEmployeeResponse'];
 export type AttendanceEvidence = components['schemas']['AttendanceEvidenceResponse'];
+/** H-02: area del catalogo de RR.HH. de la empresa (`code` = `Employee.areaId` cuando el area viene del catalogo). */
+export type HrArea = components['schemas']['HrArea'];
 export type CreateEmployeeInput = components['schemas']['CreateEmployeeRequest'];
+export type UpdateEmployeeInput = components['schemas']['UpdateEmployeeRequest'];
+/** Respuesta del PATCH: la ficha + `accountRelink` solo si la edicion cambio el vinculo con la cuenta (DEC-ADP-RELINK-001). */
+export type UpdateEmployeeResult = components['schemas']['UpdateEmployeeResponse'];
+export type AccountRelinkNotice = components['schemas']['AccountRelinkNotice'];
 
 /** Error HTTP de lectura (GET) - mismo patron que RecruitmentApiError. */
 export class HrApiError extends Error {
@@ -82,6 +88,17 @@ export async function listEmployees(
   });
   if (error || !data) throw new HrApiError(response.status);
   return data;
+}
+
+/** Catalogo de areas de RR.HH. de la empresa (H-02). Lista vacia si la empresa aun no tiene catalogo. */
+export async function listHrAreas(idToken: string, scope: HrScope, signal?: AbortSignal): Promise<HrArea[]> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/hr-areas', {
+    params: { query: { ...scope } },
+    headers: authHeaders(idToken),
+    signal,
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data.items;
 }
 
 export async function getEmployee(idToken: string, id: string): Promise<EmployeeDetail> {
@@ -573,6 +590,27 @@ export async function listTrainings(idToken: string, scope: HrScope, limit?: num
 export async function createEmployee(idToken: string, input: CreateEmployeeInput): Promise<EmployeeResponse> {
   const { data, error, response } = await hrAdministrationApiClient.POST('/employees', {
     headers: { ...authHeaders(idToken), 'Idempotency-Key': crypto.randomUUID() },
+    body: input,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/**
+ * Edita la ficha (MANAGE_EMPLOYEES). `expectedVersion` viaja como `If-Match: "<version>"` (DEC-ADP-EDIT-ETAG-001): si la ficha
+ * cambio desde que se leyo el servidor responde 412 EMPLOYEE_VERSION_CONFLICT sin aplicar nada. Si el correo cambia en una
+ * ficha vinculada, la respuesta trae `accountRelink` (RELINKED / UNLINKED); 409 EMPLOYEE_ACCOUNT_ALREADY_LINKED si la cuenta
+ * del correo nuevo ya pertenece a otra ficha.
+ */
+export async function updateEmployee(
+  idToken: string,
+  employeeId: string,
+  input: UpdateEmployeeInput,
+  expectedVersion?: number,
+): Promise<UpdateEmployeeResult> {
+  const { data, error, response } = await hrAdministrationApiClient.PATCH('/employees/{id}', {
+    params: { path: { id: employeeId }, header: expectedVersion === undefined ? {} : { 'If-Match': `"${expectedVersion}"` } },
+    headers: authHeaders(idToken),
     body: input,
   });
   if (error || !data) throw toCommandError(error, response.status);

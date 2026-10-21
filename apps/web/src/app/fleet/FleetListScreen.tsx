@@ -171,7 +171,9 @@ export function FleetListScreen() {
                   <th>Tarifa diaria</th>
                   <th>Estado</th>
                   <th>Acción</th>
-                  <th></th>
+                  <th>
+                    <span className={styles.srOnly}>Acciones del vehículo</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -188,6 +190,23 @@ export function FleetListScreen() {
                         {v.year ? `${v.year} • ` : ''}
                         {v.color || 'Color no especificado'}
                       </div>
+                      {v.passengerCapacity == null && (
+                        <div>
+                          <span className={styles.missingCapacity} data-testid={`missing-capacity-${v.id}`}>
+                            Falta registrar la capacidad
+                          </span>
+                          {canWrite && v.status !== 'OUT_OF_SERVICE' && (
+                            <button
+                              type="button"
+                              className={styles.linkButton}
+                              onClick={() => openEditModal(v)}
+                              aria-label={`Completar capacidad de ${v.plate}`}
+                            >
+                              Completar
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <span className={styles.categoryBadge}>{v.category}</span>

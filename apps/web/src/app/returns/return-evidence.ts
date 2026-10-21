@@ -27,3 +27,6 @@ export function zoneLabel(value: string): string {
 
 export const PHOTO_TYPES = ['image/jpeg', 'image/webp'];
 export const VIDEO_TYPES = ['video/mp4', 'video/webm'];
+
+/** DEV-03 - zona fija de la foto de la prueba de alcoholímetro desfavorable (la exige el backend). */
+export const ALCOHOL_TEST_EVIDENCE_ZONE = 'ALCOHOL_TEST';

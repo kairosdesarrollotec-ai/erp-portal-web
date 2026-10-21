@@ -41,6 +41,9 @@ const STATUSES: { value: VehicleStatus; label: string }[] = [
   { value: 'OUT_OF_SERVICE', label: 'Fuera de Servicio' },
 ];
 
+const PASSENGER_CAPACITY_REQUIRED_MESSAGE =
+  'Indique cuántos pasajeros admite el vehículo (capacidad de pasajeros, de 1 a 60).';
+
 const vehicleSchema = z.object({
   plate: z.string(),
   brand: z.string().min(1, 'La marca es obligatoria.'),
@@ -56,7 +59,14 @@ const vehicleSchema = z.object({
     message: 'La tarifa diaria debe ser mayor a 0.',
   }),
   depositMinimum: z.string().refine((v) => v === '' || (Number(v) >= 0 && !isNaN(Number(v))), {
-    message: 'El monto mínimo de garantía debe ser mayor o igual a 0.',
+    message: 'La garantía debe ser un monto mayor o igual a 0.',
+  }),
+  passengerCapacity: z.string().refine(
+    (v) => v === '' || (Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 60),
+    { message: 'La capacidad de pasajeros debe ser un entero entre 1 y 60.' },
+  ),
+  fuelPrice: z.string().refine((v) => v === '' || (Number(v) >= 0 && !isNaN(Number(v))), {
+    message: 'El precio del combustible debe ser un monto mayor o igual a 0.',
   }),
 });
 
@@ -91,6 +101,8 @@ export function NewVehicleModal({
       status: 'AVAILABLE',
       dailyRate: undefined,
       depositMinimum: undefined,
+      passengerCapacity: undefined,
+      fuelPrice: undefined,
     },
   });
 
@@ -112,6 +124,8 @@ export function NewVehicleModal({
         status: 'AVAILABLE',
         dailyRate: undefined,
         depositMinimum: undefined,
+        passengerCapacity: undefined,
+        fuelPrice: undefined,
       });
       // Las siguientes llamadas setState se batchean en una sola re-render (React 18).
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -137,6 +151,8 @@ export function NewVehicleModal({
         status: vehicle.status,
         dailyRate: vehicle.dailyRate != null ? String(vehicle.dailyRate) : '',
         depositMinimum: vehicle.depositMinimum != null ? String(vehicle.depositMinimum) : '',
+        passengerCapacity: vehicle.passengerCapacity != null ? String(vehicle.passengerCapacity) : '',
+        fuelPrice: vehicle.fuelPrice != null ? String(vehicle.fuelPrice) : '',
       });
       setPendingPhotoFile(null);
       setPhotoPreviewUrl('');
@@ -201,7 +217,18 @@ export function NewVehicleModal({
 
     const parsedYear = values.year ? parseInt(values.year, 10) : undefined;
     const parsedRate = values.dailyRate ? parseFloat(values.dailyRate) : undefined;
+    // DEC-FLT-CAP-001 (G-05): la capacidad de pasajeros se pide siempre al registrar. Al editar, un vehículo
+    // anterior sin capacidad puede seguir guardándose en blanco; si ya tenía una, no se puede vaciar.
+    // Garantía y precio del combustible son opcionales (se completan cuando se requieran).
+    if (!(values.passengerCapacity ?? '').trim() && (!isEditMode || vehicle?.passengerCapacity != null)) {
+      setError('passengerCapacity', { message: PASSENGER_CAPACITY_REQUIRED_MESSAGE });
+      return;
+    }
+
+    // "0" es válido (garantía/combustible >= 0): solo el vacío se omite.
     const parsedDepositMinimum = values.depositMinimum ? parseFloat(values.depositMinimum) : undefined;
+    const parsedCapacity = values.passengerCapacity ? parseInt(values.passengerCapacity, 10) : undefined;
+    const parsedFuelPrice = values.fuelPrice ? parseFloat(values.fuelPrice) : undefined;
 
     void onSubmit({
       plate: values.plate.trim().toUpperCase(),
@@ -213,6 +240,8 @@ export function NewVehicleModal({
       status: values.status as VehicleStatus,
       dailyRate: parsedRate,
       depositMinimum: parsedDepositMinimum,
+      passengerCapacity: parsedCapacity,
+      fuelPrice: parsedFuelPrice,
       photoFile: pendingPhotoFile ?? undefined,
       photoUrl: pendingPhotoFile ? undefined : (existingPhotoUrl.trim() || undefined),
     }).then((success) => {
@@ -226,7 +255,9 @@ export function NewVehicleModal({
     errors.model?.message ??
     errors.year?.message ??
     errors.dailyRate?.message ??
-    errors.depositMinimum?.message;
+    errors.depositMinimum?.message ??
+    errors.passengerCapacity?.message ??
+    errors.fuelPrice?.message;
 
   const activeError = photoError ?? firstFieldError ?? errorMessage;
 
@@ -259,7 +290,7 @@ export function NewVehicleModal({
 
         {activeError && <div className={styles.errorText}>{activeError}</div>}
 
-        <form onSubmit={onFormSubmit} className={styles.form}>
+        <form onSubmit={onFormSubmit} className={styles.form} noValidate>
           <div className={styles.gridTwo}>
             <label className={styles.field}>
               Placa {isEditMode ? '' : '*'}
@@ -360,19 +391,56 @@ export function NewVehicleModal({
             </label>
           </div>
 
-          <label className={styles.field}>
-            Garantía mínima (S/)
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className={styles.input}
-              {...register('depositMinimum')}
-              placeholder="500.00"
-              disabled={isSubmitting}
-              aria-invalid={!!errors.depositMinimum}
-            />
-          </label>
+          <div className={styles.gridThree}>
+            <label className={styles.field}>
+              Garantía (S/) (opcional)
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={styles.input}
+                {...register('depositMinimum')}
+                placeholder="500.00"
+                disabled={isSubmitting}
+                aria-invalid={!!errors.depositMinimum}
+              />
+            </label>
+
+            <label className={styles.field}>
+              Capacidad de pasajeros {isEditMode && vehicle?.passengerCapacity == null ? '' : '*'}
+              <input
+                type="number"
+                step="1"
+                min="1"
+                max="60"
+                className={styles.input}
+                {...register('passengerCapacity')}
+                placeholder="5"
+                disabled={isSubmitting}
+                required={!isEditMode || vehicle?.passengerCapacity != null}
+                aria-invalid={!!errors.passengerCapacity}
+              />
+              {isEditMode && vehicle?.passengerCapacity == null && (
+                <span className={styles.fieldHint} role="note">
+                  Falta registrar la capacidad de este vehículo. Indique cuántos pasajeros admite.
+                </span>
+              )}
+            </label>
+
+            <label className={styles.field}>
+              Precio del combustible (S/ por unidad) (opcional)
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={styles.input}
+                {...register('fuelPrice')}
+                placeholder="4.50"
+                disabled={isSubmitting}
+                aria-invalid={!!errors.fuelPrice}
+              />
+            </label>
+          </div>
 
           {!isEditMode && (
             <label className={styles.field}>

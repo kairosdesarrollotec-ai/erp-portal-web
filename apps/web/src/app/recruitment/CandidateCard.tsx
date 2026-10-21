@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   CANDIDATE_DECISION_LABEL,
   CANDIDATE_STAGE_LABEL,
+  PROCESS_STATE_LABEL,
   nextStages,
   type CandidateStage,
 } from './recruitment-domain';
@@ -32,6 +33,7 @@ export function CandidateCard({ candidate, canMove, canDecide, busy, onOpen, onD
       <p className={styles.cardMeta}>
         {candidate.documentType} {candidate.documentNumber}
       </p>
+      <p className={styles.cardMeta}>{PROCESS_STATE_LABEL[candidate.processState]}</p>
       {decided && candidate.decision && (
         <p className={styles.decisionBadge}>{CANDIDATE_DECISION_LABEL[candidate.decision]}</p>
       )}

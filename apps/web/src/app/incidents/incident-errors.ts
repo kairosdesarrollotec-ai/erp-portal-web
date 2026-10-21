@@ -10,6 +10,10 @@ const DOMAIN_MESSAGES: Record<string, string> = {
     'La severidad elegida no es válida para este tipo de incidencia. Conductor no autorizado solo admite severidad Grave.',
   MANAGEMENT_DECISION_REQUIRED:
     'Esta decisión (resolver, cerrar o derivar a vía legal una incidencia de conductor no autorizado) la toma solo Gerencia.',
+  MANAGEMENT_DECISION_OUTCOME_REQUIRED:
+    'Indica el resultado de la decisión de Gerencia: si se retiene la garantía y si se resuelve el contrato.',
+  MANAGEMENT_DECISION_OUTCOME_NOT_APPLICABLE:
+    'Este tipo de incidencia no registra un resultado de decisión de Gerencia. Recarga la pantalla e intenta de nuevo.',
 };
 
 const STATUS_MESSAGES: Record<number, string> = {

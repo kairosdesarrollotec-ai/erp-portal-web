@@ -4,7 +4,20 @@ import {
   getPendingEvidenceForReturn,
   markEvidenceSynced,
   markEvidenceFailed,
+  getUnreportedEvidence,
+  markEvidenceReported,
+  ensureEvidenceHash,
 } from '../queue/evidence-upload-queue';
+import {
+  clearSyncedDraft,
+  getSyncDraft,
+  getUnsentFieldEdits,
+  markFieldEditsSent,
+} from '../queue/sync-draft-store';
+import { syncChecklist, type SyncChecklistRequest, type SyncChecklistResult } from '../../app/sync/sync-client';
+import { describeSyncError } from '../../app/sync/sync-errors';
+import { computeContentHash } from './content-hash';
+import { getDeviceId } from '../database/device-id';
 import {
   requestEvidenceUploadSession,
   uploadEvidenceToGcs,
@@ -29,6 +42,8 @@ interface SyncManagerParamsRental {
   onSyncComplete?: () => void;
   /** Alias para onSyncComplete (compatibilidad). */
   onSynced?: () => void;
+  /** Llamado tras cada POST /sync (SYNCED o SYNC_CONFLICT confirmado por el servidor). */
+  onServerSync?: (result: SyncChecklistResult) => void;
 }
 
 /** Parámetros para DEV-04 (devolución) */
@@ -42,6 +57,8 @@ interface SyncManagerParamsReturn {
   onSyncComplete?: () => void;
   /** Alias para onSyncComplete (compatibilidad). */
   onSynced?: () => void;
+  /** Llamado tras cada POST /sync (SYNCED o SYNC_CONFLICT confirmado por el servidor). */
+  onServerSync?: (result: SyncChecklistResult) => void;
 }
 
 export type SyncManagerParams = SyncManagerParamsRental | SyncManagerParamsReturn;
@@ -52,6 +69,8 @@ export interface SyncManagerResult {
   failedCount: number;
   triggerSync: () => void;
   refreshCounts: () => Promise<void>;
+  /** Mensaje de negocio del ultimo fallo de POST /sync (null si no hubo). Los metadatos se reintentan solos. */
+  syncError?: string | null;
 }
 
 /** Alias para compatibilidad con tests existentes. */
@@ -69,10 +88,12 @@ export function useSyncManager(params: SyncManagerParams): SyncManagerResult {
   const rentalId = 'rentalId' in params ? (params.rentalId ?? null) : null;
   const returnId = 'returnId' in params ? (params.returnId ?? null) : null;
   const onComplete = params.onSyncComplete ?? params.onSynced;
+  const onServerSync = params.onServerSync;
 
   const [syncing, setSyncing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const syncingRef = useRef(false);
 
   const getPending = useCallback((): Promise<EvidenceQueueItem[]> => {
@@ -90,6 +111,76 @@ export function useSyncManager(params: SyncManagerParams): SyncManagerResult {
   useEffect(() => {
     void Promise.resolve().then(refreshCounts);
   }, [refreshCounts]);
+
+  /**
+   * sync.yaml: tras subir los archivos, informa al servidor los metadatos (clientCaptureId, slot, contentHash...) y
+   * las ediciones de campos del borrador. El SERVIDOR decide SYNCED o SYNC_CONFLICT; aqui no se resuelve nada.
+   * Devuelve true si el servidor respondio.
+   */
+  const reportToServer = useCallback(async (): Promise<boolean> => {
+    const sourceId = rentalId ?? returnId;
+    if (!sourceId || !companyId || !branchId) return false;
+    const checklistType = rentalId ? 'ENTREGA' : 'RECEPCION';
+    const unreported = (await getUnreportedEvidence(rentalId ? { rentalId } : { returnId })).filter(
+      (i) => i.id !== undefined && i.clientCaptureId,
+    );
+    const edits = await getUnsentFieldEdits(checklistType, sourceId);
+    if (unreported.length === 0 && edits.length === 0) return false;
+
+    const draft = await getSyncDraft(checklistType, sourceId);
+    const candidates = [draft?.draftCreatedAt, ...unreported.map((i) => i.draftCreatedAt)].filter(
+      (v): v is string => Boolean(v),
+    );
+    const draftCreatedAt = candidates.sort()[0] ?? new Date().toISOString();
+
+    const evidence: SyncChecklistRequest['evidence'] = [];
+    for (const item of unreported) {
+      evidence.push({
+        clientCaptureId: item.clientCaptureId as string,
+        zone: item.zone,
+        slot: item.slot ?? 1,
+        type: item.type,
+        contentHash: await ensureEvidenceHash(item),
+        sizeBytes: item.blob.size,
+        capturedAt: new Date(item.createdAt).toISOString(),
+        deviceId: item.deviceId,
+      });
+    }
+    const fields: SyncChecklistRequest['fields'] = edits.map((e) => ({
+      key: e.key,
+      ...(e.dataType ? { dataType: e.dataType } : {}),
+      value: e.value,
+      baseRev: e.baseRev,
+      editedAt: e.editedAt,
+    }));
+
+    try {
+      const idToken = await getIdToken();
+      // El contrato limita 100 evidencias por llamada: los campos viajan en la primera.
+      for (let from = 0; from === 0 || from < evidence.length; from += 100) {
+        const body: SyncChecklistRequest = {
+          companyId,
+          branchId,
+          deviceId: getDeviceId(),
+          draftCreatedAt,
+          fields: from === 0 ? fields : [],
+          evidence: evidence.slice(from, from + 100),
+        };
+        // Misma carga => misma Idempotency-Key: un reintento no duplica conflictos ni evidencia.
+        const key = `sync-${(await computeContentHash(new Blob([JSON.stringify(body)]))).slice(0, 40)}`;
+        const result = await syncChecklist(idToken, checklistType, sourceId, body, key);
+        onServerSync?.(result);
+        if (result.status === 'SYNCED') await clearSyncedDraft(checklistType, sourceId);
+      }
+      await markEvidenceReported(unreported.map((i) => i.id as number));
+      await markFieldEditsSent(checklistType, sourceId, edits.map((e) => e.key));
+      setSyncError(null);
+      return true;
+    } catch (err) {
+      setSyncError(describeSyncError(err, 'No pudimos informar la sincronización al servidor. Se reintentará al volver la conexión.'));
+      return false;
+    }
+  }, [rentalId, returnId, companyId, branchId, getIdToken, onServerSync]);
 
   const triggerSync = useCallback(() => {
     if (syncingRef.current) return;
@@ -164,14 +255,15 @@ export function useSyncManager(params: SyncManagerParams): SyncManagerResult {
           }
         }
 
+        const reported = await reportToServer();
         await refreshCounts();
-        if (syncedCount > 0) onComplete?.();
+        if (syncedCount > 0 || reported) onComplete?.();
       } finally {
         syncingRef.current = false;
         setSyncing(false);
       }
     })();
-  }, [rentalId, returnId, companyId, branchId, getIdToken, getPending, refreshCounts, onComplete]);
+  }, [rentalId, returnId, companyId, branchId, getIdToken, getPending, refreshCounts, onComplete, reportToServer]);
 
   useEffect(() => {
     const handleOnline = () => triggerSync();
@@ -179,5 +271,5 @@ export function useSyncManager(params: SyncManagerParams): SyncManagerResult {
     return () => window.removeEventListener('online', handleOnline);
   }, [triggerSync]);
 
-  return { syncing, pendingCount, failedCount, triggerSync, refreshCounts };
+  return { syncing, pendingCount, failedCount, triggerSync, refreshCounts, syncError };
 }

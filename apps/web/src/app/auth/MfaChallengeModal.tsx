@@ -64,19 +64,29 @@ export type MfaChallengeState =
   | 'RECOVERABLE_ERROR'
   | 'VERIFICATION_UNAVAILABLE'
   | 'SESSION_EXPIRED'
-  | 'UNSUPPORTED_FACTOR';
+  | 'UNSUPPORTED_FACTOR'
+  // Solo con requirePassword (reautenticacion SEC-F4): la contrasena no coincide.
+  | 'INVALID_CREDENTIALS';
 
 interface MfaChallengeModalProps {
   isOpen: boolean;
   state: MfaChallengeState;
-  onConfirm: (code: string) => void | Promise<void>;
+  /**
+   * Reautenticacion para operaciones criticas (SEC-F4): Firebase exige la
+   * contrasena para reautenticar a un usuario con MFA, asi que el reto pide
+   * tambien la contrasena y la entrega como segundo argumento de onConfirm.
+   * En el login (TR-01) no se usa: el usuario ya la escribio.
+   */
+  requirePassword?: boolean;
+  onConfirm: (code: string, password?: string) => void | Promise<void>;
   onCancel: () => void;
 }
 
 const ERROR_MESSAGE_ID = 'mfa-challenge-error';
 
-export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaChallengeModalProps) {
+export function MfaChallengeModal({ isOpen, state, requirePassword = false, onConfirm, onCancel }: MfaChallengeModalProps) {
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''));
+  const [password, setPassword] = useState('');
   const refs = useRef<Array<HTMLInputElement | null>>([]);
   const isMobile = useMediaQuery('(max-width: 480px)');
   // Elemento que tenia el foco justo antes de abrirse (normalmente el
@@ -96,7 +106,8 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
   // codigo, asi que ambas muestran las casillas en rojo. SESSION_EXPIRED y
   // UNSUPPORTED_FACTOR son bloqueantes - ningun codigo puede resolverlos,
   // asi que ni siquiera se muestran las casillas (ver `isBlocked` abajo).
-  const hasRetryableError = state === 'RECOVERABLE_ERROR' || state === 'VERIFICATION_UNAVAILABLE';
+  const hasRetryableError =
+    state === 'RECOVERABLE_ERROR' || state === 'VERIFICATION_UNAVAILABLE' || state === 'INVALID_CREDENTIALS';
   const isBlocked = state === 'SESSION_EXPIRED' || state === 'UNSUPPORTED_FACTOR';
 
   // Hallazgo de lint (react-hooks/set-state-in-effect, PR#4 Bloque 2):
@@ -110,6 +121,7 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
     setWasOpen(isOpen);
     if (isOpen) {
       setDigits(Array(6).fill(''));
+      setPassword('');
     }
   }
 
@@ -149,11 +161,11 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
   }
 
   const code = digits.join('');
-  const isComplete = code.length === 6;
+  const isComplete = code.length === 6 && (!requirePassword || password.length > 0);
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (isComplete) void onConfirm(code);
+    if (isComplete) void onConfirm(code, requirePassword ? password : undefined);
   }
 
   function handleOpenChange(open: boolean) {
@@ -165,7 +177,26 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
       ? 'Código incorrecto o expirado — genera uno nuevo en tu app e intenta de nuevo'
       : state === 'VERIFICATION_UNAVAILABLE'
         ? 'No pudimos verificar el código por un problema de conexión. Intenta de nuevo.'
-        : null;
+        : state === 'INVALID_CREDENTIALS'
+          ? 'Contraseña incorrecta. Verifica e intenta de nuevo.'
+          : null;
+
+  const passwordField = requirePassword ? (
+    <label className={styles.passwordLabel}>
+      <span className={styles.passwordLabelText}>Contraseña</span>
+      <input
+        type="password"
+        autoComplete="current-password"
+        className={`${styles.passwordInput} ${state === 'INVALID_CREDENTIALS' ? styles.digitBoxError : ''}`}
+        aria-invalid={state === 'INVALID_CREDENTIALS'}
+        aria-describedby={state === 'INVALID_CREDENTIALS' ? ERROR_MESSAGE_ID : undefined}
+        data-testid="mfa-password"
+        value={password}
+        disabled={isValidating}
+        onChange={(event) => setPassword(event.target.value)}
+      />
+    </label>
+  ) : null;
 
   const digitInputs = (
     <div className={styles.digitInputs}>
@@ -274,6 +305,7 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
                             </span>
                           </div>
 
+                          {passwordField}
                           {digitInputs}
 
                           {errorMessage ? (
@@ -336,6 +368,7 @@ export function MfaChallengeModal({ isOpen, state, onConfirm, onCancel }: MfaCha
                       <p className={styles.subtitle}>Esta acción requiere verificación adicional</p>
 
                       <form onSubmit={handleSubmit} noValidate>
+                        {passwordField}
                         <div className={styles.field}>{digitInputs}</div>
 
                         {errorMessage && (

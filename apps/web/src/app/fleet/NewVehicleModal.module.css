@@ -256,3 +256,9 @@
     grid-template-columns: 1fr;
   }
 }
+
+.fieldHint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-warning-text, #92400e);
+}

@@ -104,6 +104,11 @@ test.describe('DEV-02 / DEV-03 Recepción y alcoholímetro', () => {
 
     await page.getByRole('radio', { name: /^Desfavorable/i }).check();
     await expect(page.getByRole('alert').filter({ hasText: 'custodia' })).toBeVisible();
+    await page.getByLabel(/Foto de la prueba del alcoholímetro/).setInputFiles({
+      name: 'alcoholimetro.jpg',
+      mimeType: 'image/jpeg',
+      buffer: Buffer.from('foto de prueba'),
+    });
     await page.getByRole('button', { name: 'Derivar a Gerencia' }).click();
 
     await expect(page).toHaveURL(/\/alcoholimetro/);

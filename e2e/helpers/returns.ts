@@ -146,6 +146,21 @@ export async function interceptReturns(page: Page, options: InterceptReturnsOpti
     return ret;
   };
 
+  // DEV-04 requiere confirmacion del servidor mediante sync.yaml, incluso
+  // cuando la evidencia ya viene persistida en el fixture E2E.
+  await page.route(/\/sync\/checklists\/RECEPCION\/[^/?]+(\?.*)?$/, (route) =>
+    route.fulfill(
+      json({
+        checklistType: 'RECEPCION',
+        sourceId: route.request().url().match(/\/RECEPCION\/([^/?]+)/)?.[1] ?? ret.id,
+        status: 'SYNCED',
+        serverConfirmedAt: '2026-10-05T09:00:00Z',
+        stateVersion: ret.version,
+        openConflicts: [],
+      }),
+    ),
+  );
+
   // Alquileres activos y detalle del alquiler de origen (DEV-01 / DEV-02 / DEV-09).
   await page.route(/\/rentals(\?.*)?$/, (route) =>
     route.fulfill(json(options.rentals ?? [ACTIVE_RENTAL_FIXTURE])),

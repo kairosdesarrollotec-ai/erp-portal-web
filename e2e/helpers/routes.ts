@@ -143,6 +143,24 @@ export async function interceptRentals(
   const detail = options.detail ?? EF.RENTAL_FIXTURE;
   const evidence = options.evidence ?? [];
 
+  // ENTREGA-04 consulta el estado confirmado por el servidor antes de habilitar
+  // el avance. El fixture ya representa evidencia persistida, por lo que el
+  // contrato sync.yaml responde SYNCED sin conflictos abiertos.
+  await page.route(/\/sync\/checklists\/ENTREGA\/[^/?]+(\?.*)?$/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        checklistType: 'ENTREGA',
+        sourceId: route.request().url().match(/\/ENTREGA\/([^/?]+)/)?.[1] ?? EF.RENTAL_FIXTURE.id,
+        status: 'SYNCED',
+        serverConfirmedAt: '2026-10-01T09:00:00Z',
+        stateVersion: 1,
+        openConflicts: [],
+      }),
+    }),
+  );
+
   // GET /rentals/:id/evidence - ALQ-09, lista de evidencia real (foto/video).
   await page.route(/\/rentals\/[^/]+\/evidence(\?.*)?$/, (route) => {
     if (route.request().method() !== 'GET') return route.continue();

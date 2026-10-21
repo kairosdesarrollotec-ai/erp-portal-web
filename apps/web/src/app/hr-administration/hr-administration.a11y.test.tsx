@@ -14,6 +14,7 @@ const listEmployeesMock = vi.fn();
 const getTripMock = vi.fn();
 const getEmployeeMock = vi.fn();
 const listTrainingsMock = vi.fn();
+const listAreasMock = vi.fn().mockResolvedValue([]);
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
@@ -30,6 +31,7 @@ vi.mock('./hr-client', async () => {
     getFieldTrip: (...a: unknown[]) => getTripMock(...a),
     getEmployee: (...a: unknown[]) => getEmployeeMock(...a),
     listTrainings: (...a: unknown[]) => listTrainingsMock(...a),
+    listHrAreas: (...a: unknown[]) => listAreasMock(...a),
   };
 });
 
@@ -94,6 +96,16 @@ describe('Administración de Personal - accesibilidad (axe)', () => {
     listEmployeesMock.mockResolvedValue({ items: [makeEmployee()], total: 1 });
     const { container } = renderAt('/personal/nuevo', <NewEmployeeScreen />, '/personal/nuevo');
     await screen.findByLabelText('Nombre completo');
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('alta de personal con catalogo de areas (H-02) sin violaciones, incluida la opcion de texto libre', async () => {
+    listEmployeesMock.mockResolvedValue({ items: [makeEmployee()], total: 1 });
+    listAreasMock.mockResolvedValueOnce([{ code: 'OPERACIONES', name: 'Operaciones', description: null, sortOrder: 70 }]);
+    const { container } = renderAt('/personal/nuevo', <NewEmployeeScreen />, '/personal/nuevo');
+    const select = await screen.findByRole('combobox', { name: 'Área' });
+    expect(await axe(container)).toHaveNoViolations();
+    fireEvent.change(select, { target: { value: '__OTHER__' } });
     expect(await axe(container)).toHaveNoViolations();
   });
 });

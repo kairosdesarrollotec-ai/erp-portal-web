@@ -4,7 +4,8 @@ import { HrFrame } from './HrFrame';
 import { useState } from 'react';
 import { getFirebaseAuth } from '../providers/firebase';
 import { describeHrError } from './hr-errors';
-import { getEmployee, linkEmployeeAccount, type EmployeeDetail } from './hr-client';
+import { getEmployee, linkEmployeeAccount, type EmployeeDetail, type UpdateEmployeeResult } from './hr-client';
+import { EditEmployeeDialog } from './EditEmployeeDialog';
 import {
   FIELD_TRIP_STATUS_LABEL,
   LEAVE_STATUS_LABEL,
@@ -32,6 +33,14 @@ export function EmployeeFileScreen() {
 
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [saved, setSaved] = useState<UpdateEmployeeResult | null>(null);
+
+  async function handleSaved(result: UpdateEmployeeResult) {
+    setSaved(result);
+    setEditing(false);
+    await reload();
+  }
 
   async function handleLink() {
     if (!employee) return;
@@ -65,12 +74,37 @@ export function EmployeeFileScreen() {
     >
       {employee && (
         <>
+          {saved && (
+            <div className={saved.accountRelink?.action === 'UNLINKED' ? styles.warning : styles.notice} role="status" data-testid="edit-saved-notice">
+              <p>Ficha actualizada.</p>
+              {saved.accountRelink?.action === 'RELINKED' && (
+                <p data-testid="relink-notice">
+                  El correo cambió{saved.accountRelink.previousEmail ? ` de ${saved.accountRelink.previousEmail}` : ''}
+                  {saved.accountRelink.newEmail ? ` a ${saved.accountRelink.newEmail}` : ''}: la ficha se re-vinculó a la cuenta del correo nuevo.
+                  La cuenta anterior ya no está vinculada a esta ficha. El cambio quedó registrado en auditoría.
+                </p>
+              )}
+              {saved.accountRelink?.action === 'UNLINKED' && (
+                <p data-testid="relink-notice">
+                  El correo cambió{saved.accountRelink.previousEmail ? ` de ${saved.accountRelink.previousEmail}` : ''}
+                  {saved.accountRelink.newEmail ? ` a ${saved.accountRelink.newEmail}` : ''}, pero no existe una cuenta con ese correo: la ficha quedó{' '}
+                  <strong>sin vincular</strong>. Cuando esa cuenta exista, usa «Vincular cuenta». El cambio quedó registrado en auditoría.
+                </p>
+              )}
+            </div>
+          )}
+
           <section className={styles.card} aria-labelledby="emp-datos">
             <div className={styles.cardHeader}>
               <h2 id="emp-datos" className={styles.sectionTitle}>
                 Datos laborales
               </h2>
               <EmployeeStatusBadge status={employee.status} />
+              {can('MANAGE_EMPLOYEES') && !terminated && (
+                <button type="button" className={styles.secondaryButton} onClick={() => setEditing(true)}>
+                  Editar ficha
+                </button>
+              )}
             </div>
             <dl className={styles.dataGrid}>
               <div>
@@ -285,6 +319,7 @@ export function EmployeeFileScreen() {
               </ul>
             </section>
           )}
+          {editing && <EditEmployeeDialog employee={employee} onReload={reload} onSaved={(r) => void handleSaved(r)} onCancel={() => setEditing(false)} />}
         </>
       )}
     </HrFrame>

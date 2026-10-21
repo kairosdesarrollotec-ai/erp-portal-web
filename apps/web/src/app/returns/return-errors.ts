@@ -10,6 +10,10 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   // si llegara este codigo se explica igual en lenguaje de negocio.
   ALCOHOL_TEST_DISAPPROVAL:
     'La prueba de alcohol no fue favorable. El vehículo queda en recepción provisional bajo custodia de VeloxRent y se deriva a Gerencia.',
+  ALCOHOL_TEST_PHOTO_REQUIRED:
+    'Un alcoholímetro desfavorable exige la foto de la prueba. Adjúntala y vuelve a registrar el resultado.',
+  INVALID_LATE_CHARGE:
+    'No se pudo registrar el cargo por retraso: el monto debe ser mayor que cero y la devolución debe haber superado la tolerancia de 30 minutos.',
   MISSING_RESPONSIBILITY_DOCUMENT:
     'Falta el documento de responsabilidad firmado. Complétalo en el checklist de recepción antes de cerrar la inspección.',
   MISSING_REQUIRED_EVIDENCE: 'Falta evidencia obligatoria (fotos o videos). Completa el checklist antes de continuar.',

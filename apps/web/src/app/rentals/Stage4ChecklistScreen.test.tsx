@@ -115,6 +115,17 @@ function evidenceItem(type: 'PHOTO' | 'VIDEO', i: number) {
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+// sync.yaml: el estado /sync lo confirma el servidor; por defecto el expediente no uso el flujo offline.
+const syncStatusMock = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock('../sync/sync-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../sync/sync-client')>()),
+  getChecklistSyncStatus: (...args: unknown[]) => syncStatusMock.get(...args),
+}));
+beforeEach(() => {
+  syncStatusMock.get.mockResolvedValue({ checklistType: 'ENTREGA', sourceId: 'rent-1', status: 'SYNCED', serverConfirmedAt: null, stateVersion: null, openConflicts: [] });
+});
+
+
 const CHECKLIST_KEY = 'kairos.alquiler.rent-1.checklist';
 
 function renderScreen() {

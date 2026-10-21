@@ -349,3 +349,33 @@
     cursor: pointer;
   }
 }
+
+.passwordLabel {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.passwordLabelText {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
+.passwordInput {
+  width: 100%;
+  height: 48px;
+  padding: 0 12px;
+  border: 1.5px solid var(--color-surface-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: 16px;
+  color: var(--color-ink);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.passwordInput:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(158, 76, 8, 0.15);
+}

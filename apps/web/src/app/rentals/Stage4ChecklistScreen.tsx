@@ -17,6 +17,11 @@ import {
 import { EvidenceDeleteButton } from '../shared/EvidenceDeleteButton';
 import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
 import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
+import { saveFieldEdit } from '../../offline/queue/sync-draft-store';
+import { SyncConflictPanel } from '../sync/SyncConflictPanel';
+import { useChecklistSyncStatus } from '../sync/useChecklistSyncStatus';
+import { canSyncAction } from '../sync/sync-permissions';
+import { usePermissions } from '../shared/usePermissions';
 import styles from './RentalStageForms.module.css';
 import { formatLimaTime } from '../shared/lima-time';
 import { useOnlineStatus } from '../shared/useOnlineStatus';
@@ -62,6 +67,17 @@ export function Stage4ChecklistScreen() {
   const [zone, setZone] = useState<RentalEvidenceZone>('FRONTAL');
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
+  const { can } = usePermissions();
+
+  // sync.yaml: el estado SYNCED/SYNC_CONFLICT lo confirma el SERVIDOR (GET /sync/checklists/ENTREGA/{id}).
+  const serverSync = useChecklistSyncStatus({
+    checklistType: 'ENTREGA',
+    sourceId: id,
+    companyId: context?.companyId,
+    branchId: context?.branchId,
+    getIdToken,
+    enabled: !!context && isOnline,
+  });
 
   const { data: evidence = [], isSuccess: evidenceLoaded } = useQuery({
     queryKey: ['rental', id, 'evidence'] as const,
@@ -72,13 +88,14 @@ export function Stage4ChecklistScreen() {
     enabled: !!context && isOnline,
   });
 
-  const { syncing, pendingCount, failedCount, refreshCounts } = useSyncManager({
+  const { syncing, pendingCount, failedCount, refreshCounts, syncError } = useSyncManager({
     rentalId: id ?? null,
     getIdToken,
     companyId: context?.companyId ?? '',
     branchId: context?.branchId ?? '',
     onSyncComplete: () => {
       void queryClient.invalidateQueries({ queryKey: ['rental', id, 'evidence'] });
+      void serverSync.reload();
     },
   });
 
@@ -109,6 +126,14 @@ export function Stage4ChecklistScreen() {
   }
 
   function update(patch: Partial<RentalChecklistDraft>) {
+    // Sin conexion cada campo editado tambien queda en el borrador Dexie (con su revision base) para /sync.
+    if (id && !isOnline) {
+      for (const [key, value] of Object.entries(patch)) {
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          void saveFieldEdit('ENTREGA', id, { key, value }).catch(() => undefined);
+        }
+      }
+    }
     setDraft((prev) => {
       const next = { ...prev, ...patch };
       if (id) saveChecklistDraft(id, next);
@@ -128,6 +153,11 @@ export function Stage4ChecklistScreen() {
     photosCount,
     videosCount,
     pendingCount,
+    serverSync: {
+      loaded: serverSync.loaded,
+      status: serverSync.data?.status,
+      serverConfirmedAt: serverSync.data?.serverConfirmedAt ?? null,
+    },
   };
   const syncState = deriveEvidenceSyncState(syncInput);
   const checklistComplete = syncState === 'SYNCED';
@@ -246,6 +276,39 @@ export function Stage4ChecklistScreen() {
             )}
           </span>
         </div>
+      )}
+
+      {syncState === 'SYNC_CONFLICT' && (
+        <div className={styles.offlineBanner} role="alert">
+          <span>Hay conflictos de sincronización. «Continuar» queda deshabilitado hasta que un supervisor los resuelva.</span>
+        </div>
+      )}
+
+      {serverSync.data && context && (
+        <SyncConflictPanel
+          checklistType="ENTREGA"
+          companyId={context.companyId}
+          branchId={context.branchId}
+          getIdToken={getIdToken}
+          conflicts={serverSync.data.openConflicts}
+          canResolve={canSyncAction(can, 'ENTREGA', 'RESOLVE')}
+          onChanged={async () => {
+            await serverSync.reload();
+            await queryClient.invalidateQueries({ queryKey: ['rental', id, 'evidence'] });
+          }}
+        />
+      )}
+
+      {isOnline && !serverSync.loaded && serverSync.error && (
+        <p className={styles.evidenceError} role="alert">
+          {serverSync.error} «Continuar» se habilita cuando el servidor confirme la sincronización.
+        </p>
+      )}
+
+      {syncError && (
+        <p className={styles.evidenceError} role="alert">
+          {syncError}
+        </p>
       )}
 
       {syncState === 'SYNCING' && (

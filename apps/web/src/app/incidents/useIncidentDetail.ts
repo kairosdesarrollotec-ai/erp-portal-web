@@ -8,6 +8,7 @@ import {
   getIncident,
   referIncidentToLegal,
   type IncidentDetail,
+  type ManagementDecisionOutcome,
 } from './incidents-client';
 import { describeIncidentError, isStaleIncidentError } from './incident-errors';
 import { useWorkContextForIncidents } from './useWorkContextForIncidents';
@@ -105,9 +106,12 @@ export function useIncidentDetail() {
   );
 
   const close = useCallback(
-    (resolutionSummary: string) =>
+    (resolutionSummary: string, decision?: ManagementDecisionOutcome) =>
       run(
-        (token, cur, c, b) => closeIncident(token, cur.id, cur.version, c, b, resolutionSummary),
+        (token, cur, c, b) =>
+          decision
+            ? closeIncident(token, cur.id, cur.version, c, b, resolutionSummary, decision)
+            : closeIncident(token, cur.id, cur.version, c, b, resolutionSummary),
         'No pudimos cerrar la incidencia. Intenta de nuevo.',
         'Incidencia cerrada.',
       ),
@@ -115,9 +119,12 @@ export function useIncidentDetail() {
   );
 
   const referLegal = useCallback(
-    (reason: string) =>
+    (reason: string, decision?: ManagementDecisionOutcome) =>
       run(
-        (token, cur, c, b) => referIncidentToLegal(token, cur.id, cur.version, c, b, reason),
+        (token, cur, c, b) =>
+          decision
+            ? referIncidentToLegal(token, cur.id, cur.version, c, b, reason, decision)
+            : referIncidentToLegal(token, cur.id, cur.version, c, b, reason),
         'No pudimos derivar la incidencia a vía legal. Intenta de nuevo.',
         'Incidencia derivada a vía legal.',
       ),

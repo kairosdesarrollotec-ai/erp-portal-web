@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertCircle, Eye, EyeOff, Lock, WifiOff } from 'lucide-react';
@@ -34,6 +35,9 @@ import styles from './LoginScreen.module.css';
  */
 export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
+  // SEC-F3 / TR-10 SESSION_EXPIRED: useSessionTimeout redirige aqui con ?motivo=sesion-expirada.
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('motivo') === 'sesion-expirada';
   const { state, submit, retryActivationCheck, mfaChallenge } = useLogin();
   const {
     register,
@@ -112,6 +116,12 @@ export function LoginScreen() {
         <p className={`${styles.subtitle} ${styles.mobileOnly}`}>
           Acceso al sistema interno de gestión operativa
         </p>
+
+        {sessionExpired && (
+          <p role="status" className={styles.sessionExpiredNotice}>
+            Tu sesión expiró. Vuelve a iniciar sesión para continuar.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit(submit)} noValidate>
           <div className={styles.field}>

@@ -10,6 +10,7 @@ import {
   INCIDENT_TYPE_LABELS,
   MAX_TEXT_LENGTH,
   UNAUTHORIZED_DRIVER_NOTICE,
+  describeDecisionOutcome,
   requiresManagementDecision,
   rentalLabel,
   shortUserId,
@@ -40,6 +41,9 @@ export function IncidentDetailScreen() {
   const [actionText, setActionText] = useState('');
   const [summary, setSummary] = useState('');
   const [legalOpen, setLegalOpen] = useState(false);
+  // DEC-ALQ-UNAUTH-DRIVER-003: resultado estructurado de la decision de Gerencia (UNAUTHORIZED_DRIVER).
+  const [retainGuarantee, setRetainGuarantee] = useState(false);
+  const [terminateContract, setTerminateContract] = useState(false);
   const [timelineExpanded, setTimelineExpanded] = useState<boolean | null>(null);
   const actionRef = useRef<HTMLTextAreaElement>(null);
   const focusedFor = useRef<string | null>(null);
@@ -47,6 +51,8 @@ export function IncidentDetailScreen() {
   const saving = state === 'SAVING';
   const isOpen = incident?.status === 'ABIERTA';
   const timelineOpen = timelineExpanded ?? !isMobile;
+  const managedDecision = incident ? requiresManagementDecision(incident.type) : false;
+  const decisionOutcome = managedDecision ? { retainGuarantee, terminateContract } : undefined;
 
   // Foco inicial en "Agregar nueva acción" (una vez por incidencia cargada).
   // El formulario solo existe con el permiso ADD_ACTION (que puede llegar despues de la incidencia).
@@ -75,11 +81,11 @@ export function IncidentDetailScreen() {
   async function submitClose() {
     const text = summary.trim();
     if (!text || saving) return;
-    if (await close(text)) setSummary('');
+    if (await close(text, decisionOutcome)) setSummary('');
   }
 
   async function confirmLegal(reason: string) {
-    if (await referLegal(reason)) setLegalOpen(false);
+    if (await referLegal(reason, decisionOutcome)) setLegalOpen(false);
   }
 
   return (
@@ -239,6 +245,23 @@ export function IncidentDetailScreen() {
                 <h2 id="inc-close-title" className={styles.sectionTitle}>
                   Resolución final
                 </h2>
+                {managedDecision && (
+                  <fieldset className={styles.decisionFieldset} disabled={saving}>
+                    <legend>Decisión de Gerencia</legend>
+                    <label className={styles.checkboxRow}>
+                      <input type="checkbox" checked={retainGuarantee} onChange={(e) => setRetainGuarantee(e.target.checked)} />
+                      Retener la garantía del alquiler
+                    </label>
+                    <label className={styles.checkboxRow}>
+                      <input type="checkbox" checked={terminateContract} onChange={(e) => setTerminateContract(e.target.checked)} />
+                      Resolver el contrato
+                    </label>
+                    <p className={styles.hint} data-testid="decision-outcome-summary">
+                      Se registrará: {describeDecisionOutcome({ retainGuarantee, terminateContract })}. Sin marcar ninguna, la
+                      decisión queda sin consecuencias; el registro no ejecuta cobros ni acciones legales.
+                    </p>
+                  </fieldset>
+                )}
                 {can('CLOSE') && (
                   <>
                     <label className={styles.fieldLabel} htmlFor="inc-summary">

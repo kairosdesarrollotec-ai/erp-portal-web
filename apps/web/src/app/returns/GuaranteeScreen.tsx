@@ -4,6 +4,7 @@ import { ReturnFlowShell } from './ReturnFlowShell';
 import { returnFlowGuard } from './ReturnGuards';
 import { useReturnFlow } from './useReturnFlow';
 import { DamageLog } from './DamageLog';
+import { ManualLateChargePanel } from './ManualLateChargePanel';
 import { useCosmeticTariff } from './useCosmeticTariff';
 import { damagesWithoutAmount, formatPen, hasGraveDamage, totalCharges } from './return-financial';
 import { closeFinancial } from './returns-client';
@@ -134,6 +135,8 @@ export function GuaranteeScreen() {
       latenessCharge={ret.latenessCharge}
     >
       <h1 className={styles.pageHeading}>Resolución de garantía — {ret.vehiclePlate ?? 'Vehículo'}</h1>
+
+      <ManualLateChargePanel ret={ret} context={context} getIdToken={getIdToken} setRet={setRet} reload={reload} />
 
       {blocked && (
         <p className={`${styles.banner} ${styles.banner_error}`} role="alert">

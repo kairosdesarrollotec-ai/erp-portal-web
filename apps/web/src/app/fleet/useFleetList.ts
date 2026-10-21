@@ -30,7 +30,12 @@ export interface VehicleFormData {
   category?: string;
   status?: VehicleStatus;
   dailyRate?: number;
+  /** Garantía (PEN). Opcional (se puede completar después). */
   depositMinimum?: number;
+  /** Pasajeros que admiten el vehículo (1..60); tope de acompañantes (G-05). Obligatoria al registrar (DEC-FLT-CAP-001); en edición solo se envía si se informa. */
+  passengerCapacity?: number;
+  /** Precio del combustible por unidad (PEN). Opcional hasta que exista la tarifa. */
+  fuelPrice?: number;
   photoUrl?: string;
   photoFile?: File;
 }
@@ -43,6 +48,8 @@ export interface VehicleEditFormData {
   category?: string;
   dailyRate?: number;
   depositMinimum?: number;
+  passengerCapacity?: number;
+  fuelPrice?: number;
   photoUrl?: string;
   photoFile?: File;
 }
@@ -154,6 +161,10 @@ export function useFleetList() {
       if (!user) throw new Error('No hay sesión activa.');
       const idToken = await user.getIdToken();
       const idempotencyKey = crypto.randomUUID();
+      // DEC-FLT-CAP-001 (G-05): solo la capacidad de pasajeros es obligatoria al registrar.
+      if (formData.passengerCapacity === undefined) {
+        throw new Error('La capacidad de pasajeros es obligatoria.');
+      }
       const photoUrl = await resolvePhotoUrl(idToken, context, formData.photoFile, formData.photoUrl);
       await createVehicle(
         idToken,
@@ -168,7 +179,9 @@ export function useFleetList() {
           category: formData.category?.trim() || 'SEDAN',
           status: formData.status ?? 'AVAILABLE',
           dailyRate: formData.dailyRate || undefined,
-          depositMinimum: formData.depositMinimum || undefined,
+          depositMinimum: formData.depositMinimum,
+          passengerCapacity: formData.passengerCapacity,
+          fuelPrice: formData.fuelPrice,
           photoUrl,
         },
         idempotencyKey,
@@ -227,7 +240,9 @@ export function useFleetList() {
         color: formData.color?.trim() || undefined,
         category: formData.category?.trim() || undefined,
         dailyRate: formData.dailyRate || undefined,
-        depositMinimum: formData.depositMinimum || undefined,
+        depositMinimum: formData.depositMinimum,
+        passengerCapacity: formData.passengerCapacity,
+        fuelPrice: formData.fuelPrice,
         photoUrl,
       });
     },

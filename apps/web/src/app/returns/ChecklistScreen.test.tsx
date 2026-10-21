@@ -19,6 +19,17 @@ import { setPermissions } from '../../test/permissions';
 import { EMPTY_RETURN_CHECKLIST, saveReturnChecklist } from './return-session-draft';
 import type { SyncManagerResult } from '../../offline/synchronization/use-sync-manager';
 
+// sync.yaml: el estado /sync lo confirma el servidor; por defecto el expediente no uso el flujo offline.
+const syncStatusMock = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock('../sync/sync-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../sync/sync-client')>()),
+  getChecklistSyncStatus: (...args: unknown[]) => syncStatusMock.get(...args),
+}));
+beforeEach(() => {
+  syncStatusMock.get.mockResolvedValue({ checklistType: 'RECEPCION', sourceId: 'ret-1', status: 'SYNCED', serverConfirmedAt: null, stateVersion: null, openConflicts: [] });
+});
+
+
 // AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 

@@ -371,8 +371,11 @@ export interface components {
             /** @enum {string} */
             currency: "PEN" | "USD";
         };
-        /** @enum {string} */
-        PermissionModule: "RESERVATION" | "INQUIRY" | "ADMIN" | "RENTAL" | "INCIDENT" | "RECRUITMENT";
+        /**
+         * @description Modulos cuyas acciones administra la matriz ADM-02 (PERMISSION_MODULES del dominio). 0.3.0: se declaran RETURN, FLEET, CUSTOMER, TEMPLATE, PAYMENT y REPORT, que el backend ya devolvia en el catalogo. Acciones de Reserva incluidas en el catalogo: READ_LIST, READ_DETAIL, CREATE, REGISTER_PAYMENT, REGISTER_DOCUMENTS, CONFIRM, CANCEL_CUSTOMER_REQUESTED_CHANGE, CANCEL_NO_SHOW, FLAG_SALE, RESOLVE_SALE y CHANGE_VEHICLE. Una version ya guardada que no incluya una accion nueva la deniega hasta que se guarde la matriz (deny-by-default).
+         * @enum {string}
+         */
+        PermissionModule: "RESERVATION" | "INQUIRY" | "ADMIN" | "RENTAL" | "INCIDENT" | "RETURN" | "FLEET" | "CUSTOMER" | "RECRUITMENT" | "TEMPLATE" | "HR_ADMINISTRATION" | "PAYMENT" | "REPORT";
         RolePermissionEntry: {
             /** Format: uuid */
             roleId: string;
@@ -786,7 +789,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Sin contexto vigente, o rol sin MANAGE_PERMISSIONS */
+            /** @description Token invalido, expirado o revocado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description MFA_RECENT_REQUIRED - el token no trae segundo factor o su `auth_time` supera 5 minutos (SEC-F4, TDD-00 8.4; 0.4.0). El cliente debe reautenticar con MFA (TR-03), obtener un token nuevo y reintentar. Tambien: sin contexto vigente, o rol sin MANAGE_PERMISSIONS. Cuerpo `{statusCode, code, detail, maxAgeSeconds}`. */
             403: {
                 headers: {
                     [name: string]: unknown;

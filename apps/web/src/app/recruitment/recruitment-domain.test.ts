@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { canRecruitmentAction } from './recruitment-permissions';
 import {
   CV_MAX_BYTES,
+  PROCESS_FLOW_STEPS,
+  PROCESS_STATE_LABEL,
   VACANCY_STATUS_LABEL,
+  canHire,
   defaultStartDate,
   nextStages,
   probationDaysRemaining,
+  processFlowPosition,
   validateCvFile,
 } from './recruitment-domain';
 
@@ -49,5 +53,45 @@ describe('recruitment-permissions', () => {
     const granted = new Set(['RECRUITMENT.VIEW_VACANCY', 'RECRUITMENT.DECIDE_CANDIDATE']);
     expect(canRecruitmentAction(granted, 'DECIDE_CANDIDATE')).toBe(true);
     expect(canRecruitmentAction(granted, 'PUBLISH_VACANCY')).toBe(false);
+  });
+
+  describe('flujo de estados BDD-REC §11.6', () => {
+    it('los 8 pasos del flujo van en el orden del BDD', () => {
+      expect(PROCESS_FLOW_STEPS.map((s) => s.label)).toEqual([
+        'Necesidad registrada',
+        'Publicado',
+        'En negociación',
+        'Entrevistado',
+        'Decidido',
+        'Ingresado',
+        'Periodo de prueba',
+        'Planilla',
+      ]);
+    });
+
+    it('cada estado de proceso tiene etiqueta y la vacante etiqueta ENTREVISTADA', () => {
+      expect(Object.keys(PROCESS_STATE_LABEL).sort()).toEqual(
+        ['DECIDIDO', 'DESCARTADO', 'EN_NEGOCIACION', 'ENTREVISTADO', 'INGRESADO', 'PERIODO_PRUEBA', 'PLANILLA', 'TERMINADO'].sort(),
+      );
+      expect(VACANCY_STATUS_LABEL.ENTREVISTADA).toBe('Entrevistada');
+    });
+
+    it('ubica cada estado en su paso; Terminado sale de Periodo de prueba y Descartado de En negociación o Decidido', () => {
+      expect(processFlowPosition('EN_NEGOCIACION')).toBe(2);
+      expect(processFlowPosition('ENTREVISTADO')).toBe(3);
+      expect(processFlowPosition('DECIDIDO')).toBe(4);
+      expect(processFlowPosition('INGRESADO')).toBe(5);
+      expect(processFlowPosition('PERIODO_PRUEBA')).toBe(6);
+      expect(processFlowPosition('PLANILLA')).toBe(7);
+      expect(processFlowPosition('TERMINADO')).toBe(6);
+      expect(processFlowPosition('DESCARTADO')).toBe(2);
+      expect(processFlowPosition('DESCARTADO', true)).toBe(4);
+    });
+
+    it('solo se puede contratar a quien ya está Entrevistado', () => {
+      expect(canHire('ENTREVISTADO')).toBe(true);
+      expect(canHire('EN_NEGOCIACION')).toBe(false);
+      expect(canHire('DECIDIDO')).toBe(false);
+    });
   });
 });

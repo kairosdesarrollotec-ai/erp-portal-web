@@ -76,5 +76,12 @@ export function requiresManagementDecision(type: IncidentType | ''): boolean {
   return type === 'UNAUTHORIZED_DRIVER';
 }
 
+/** Texto del resultado estructurado de la decision (mismo criterio que el historial del backend). */
+export function describeDecisionOutcome(outcome: { retainGuarantee: boolean; terminateContract: boolean }): string {
+  const guarantee = outcome.retainGuarantee ? 'se retiene la garantía' : 'no se retiene la garantía';
+  const contract = outcome.terminateContract ? 'se resuelve el contrato' : 'se mantiene el contrato';
+  return `${guarantee}; ${contract}`;
+}
+
 export const UNAUTHORIZED_DRIVER_NOTICE =
   'La decisión (retener garantía, resolver el contrato o ninguna) la toma Gerencia caso por caso. Registrarla no tiene consecuencias automáticas.';

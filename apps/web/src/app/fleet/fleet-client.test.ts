@@ -116,14 +116,20 @@ describe('fleet-client', () => {
 
       const res = await createVehicle(
         'token-123',
-        { companyId: 'comp-1', branchId: 'branch-1', plate: 'XYZ-789', brand: 'Hyundai', model: 'Tucson' },
+        {
+          companyId: 'comp-1', branchId: 'branch-1', plate: 'XYZ-789', brand: 'Hyundai', model: 'Tucson',
+          depositMinimum: 500, passengerCapacity: 5, fuelPrice: 4.5,
+        },
         'key-abc',
       );
 
       expect(capturedRequest?.headers.get('Authorization')).toBe('Bearer token-123');
       expect(capturedRequest?.headers.get('Idempotency-Key')).toBe('key-abc');
       const body = await capturedRequest?.json();
-      expect(body).toMatchObject({ companyId: 'comp-1', branchId: 'branch-1', plate: 'XYZ-789' });
+      expect(body).toMatchObject({
+        companyId: 'comp-1', branchId: 'branch-1', plate: 'XYZ-789',
+        depositMinimum: 500, passengerCapacity: 5, fuelPrice: 4.5,
+      });
       expect(res).toEqual(mockVehicle);
     });
 
@@ -144,6 +150,9 @@ describe('fleet-client', () => {
           plate: 'XYZ-789',
           brand: 'Hyundai',
           model: 'Tucson',
+          depositMinimum: 500,
+          passengerCapacity: 5,
+          fuelPrice: 4.5,
         }),
       ).rejects.toThrow(FleetCommandError);
     });

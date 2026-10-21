@@ -174,11 +174,12 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       expect(logAttendanceMock).not.toHaveBeenCalled();
     });
 
-    it('PERMISO no exige evidencia', async () => {
+    it('PERMISO no lleva foto: no se muestra evidencia ni se envia', async () => {
       logAttendanceMock.mockResolvedValue(makeRecord({ date: '2026-09-04', evidence: null, evidenceMissing: true }));
       const dialog = await openDialog();
       fireEvent.click(within(dialog).getByLabelText('Permiso'));
-      expect(within(dialog).getByText('Evidencia (foto del grupo de WhatsApp)')).toBeInTheDocument();
+      expect(within(dialog).queryByText(/^Evidencia/)).not.toBeInTheDocument();
+      expect(within(dialog).queryByLabelText(/^Foto \(JPG/)).not.toBeInTheDocument();
       fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
       await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
       expect(logAttendanceMock.mock.calls[0][2].evidence).toBeUndefined();

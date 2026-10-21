@@ -360,9 +360,14 @@ export interface components {
         /** @enum {string} */
         VacancySource: "RENUNCIA" | "CRECIMIENTO" | "NUEVA_AREA";
         /** @enum {string} */
-        VacancyStatus: "NECESIDAD_REGISTRADA" | "PUBLICADA" | "EN_NEGOCIACION" | "DECIDIDA" | "CANCELADA" | "PAUSADA";
+        VacancyStatus: "NECESIDAD_REGISTRADA" | "PUBLICADA" | "EN_NEGOCIACION" | "ENTREVISTADA" | "DECIDIDA" | "CANCELADA" | "PAUSADA";
         /** @enum {string} */
         CandidateStage: "NUEVO" | "CONTACTADO" | "ENTREVISTA" | "DECISION";
+        /**
+         * @description Estado normativo del candidato (BDD-REC-001 §11.6). Distinto de `stage` (columna del tablero Kanban de REC-03). Salidas permitidas: EN_NEGOCIACION -> ENTREVISTADO | DESCARTADO; ENTREVISTADO -> DECIDIDO; DECIDIDO -> INGRESADO | DESCARTADO; INGRESADO -> PERIODO_PRUEBA; PERIODO_PRUEBA -> PLANILLA | TERMINADO. DESCARTADO, PLANILLA y TERMINADO no tienen salidas.
+         * @enum {string}
+         */
+        CandidateProcessState: "EN_NEGOCIACION" | "ENTREVISTADO" | "DECIDIDO" | "DESCARTADO" | "INGRESADO" | "PERIODO_PRUEBA" | "PLANILLA" | "TERMINADO";
         /** @enum {string} */
         CandidateDecision: "CONTRATADO" | "RECHAZADO";
         /** @enum {string} */
@@ -589,6 +594,13 @@ export interface components {
             passed: boolean;
             qualitativeEvaluation: string;
         };
+        /** @description Cuerpo de error de dominio. `code` es estable y apto para que el front decida el mensaje (p. ej. CANDIDATE_STATE_TRANSITION_INVALID, CANDIDATE_ALREADY_DECIDED, VERSION_CONFLICT). */
+        ProblemDetail: {
+            statusCode: number;
+            /** @example CANDIDATE_STATE_TRANSITION_INVALID */
+            code: string;
+            detail: string;
+        };
         VacancyResponse: {
             /** Format: uuid */
             id: string;
@@ -625,6 +637,12 @@ export interface components {
             documentType: string;
             documentNumber: string;
             stage: components["schemas"]["CandidateStage"];
+            processState: components["schemas"]["CandidateProcessState"];
+            /**
+             * Format: date-time
+             * @description Último cambio del estado de proceso; null en candidatos anteriores a v0.3.0 (migrados sin fecha).
+             */
+            processStateChangedAt?: string | null;
             decision?: components["schemas"]["CandidateDecision"];
             version: number;
             /** Format: date-time */
@@ -1198,7 +1216,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Postulante registrado en etapa NUEVO */
+            /** @description Postulante registrado en etapa NUEVO y estado de proceso EN_NEGOCIACION; si la vacante estaba PUBLICADA pasa a EN_NEGOCIACION (BDD-REC §11.6) */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -1887,7 +1905,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Resultado de entrevista registrado */
+            /** @description Resultado de entrevista registrado. Si es la primera entrevista realizada, el candidato pasa a ENTREVISTADO y la vacante a ENTREVISTADA (BDD-REC §11.6); NO_AVANZA no descarta ni decide */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1924,6 +1942,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Candidato ya decidido (CANDIDATE_ALREADY_DECIDED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description Error interno */
             500: {
                 headers: {
@@ -1950,7 +1977,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Decisión procesada (emite evento CandidatoSeleccionado.v1 en outbox si es CONTRATADO) */
+            /** @description Decisión procesada. CONTRATADO: candidato DECIDIDO, vacante DECIDIDA y evento CandidatoSeleccionado.v1 en outbox. RECHAZADO: candidato DESCARTADO (tras la entrevista recorre DECIDIDO -> DESCARTADO). */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1992,7 +2019,18 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Transición no permitida por BDD-REC §11.6 (CANDIDATE_STATE_TRANSITION_INVALID): CONTRATADO exige que el candidato esté ENTREVISTADO; RECHAZADO exige EN_NEGOCIACION o ENTREVISTADO. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetail"];
+                };
             };
             /** @description Error interno */
             500: {
@@ -2018,7 +2056,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Incorporación completada (emite PersonalIncorporado.v1 hacia ADP) */
+            /** @description Incorporación completada. El candidato recorre DECIDIDO -> INGRESADO -> PERIODO_PRUEBA en la misma operación (SDD UC-REC-004) y se emite PersonalIncorporado.v1 hacia ADP */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2062,6 +2100,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Candidato no contratado (CANDIDATE_NOT_CONTRACTED), checklist incompleto, falta contrato notariado de mecánico, o el candidato no está DECIDIDO (CANDIDATE_STATE_TRANSITION_INVALID, p. ej. incorporación repetida). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description Error interno */
             500: {
                 headers: {
@@ -2086,7 +2133,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Evaluación registrada (si es aprobada, emite PasoAPlanilla.v1) */
+            /** @description Evaluación registrada. Aprobada -> candidato PLANILLA y evento PasoAPlanilla.v1; no aprobada -> candidato TERMINADO (sin evento nuevo, ver preguntas abiertas del BDD) */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -2129,6 +2176,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description El candidato no está en PERIODO_PRUEBA (CANDIDATE_STATE_TRANSITION_INVALID) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetail"];
+                };
             };
             /** @description Error interno */
             500: {

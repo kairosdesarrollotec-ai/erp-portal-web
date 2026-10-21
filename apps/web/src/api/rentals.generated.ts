@@ -167,6 +167,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rentals/{id}/commands/register-companion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar acompañante autorizado de persona natural como responsable del contrato (DEC-ALQ-COMPANION-006, BR-ALQ-015)
+         * @description Excepción de conductor (BDD ALQ-P03; Ficha AS-IS): si el titular persona NATURAL no puede firmar (p. ej. su brevete extranjero no es válido), un acompañante con licencia vigente firma como RESPONSABLE del contrato. Se registra como party con role RESPONSIBLE y se EXIGE registrar también al conductor real (`driverCustomerId`, party DRIVER); el responsable legal es quien firma. La licencia no se guarda: solo los checks `companionLicenseVerified` y `driverLicenseVerified`. NO habilita al acompañante a conducir: el conductor propio distinto del titular sigue sin permitirse en persona natural (register-authorized-driver responde 422 NATURAL_PERSON_OWN_DRIVER_NOT_ALLOWED). En persona JURÍDICA no aplica (422 COMPANION_NOT_APPLICABLE_FOR_LEGAL_HOLDER): ahí se usa register-authorized-driver. `reason` es obligatorio y queda en auditoría y en el evento AcompananteAutorizadoRegistrado.v1 (no se persiste en columna). El tipo de titular se toma del contrato formalizado o, si no hay, del tipo de documento del titular (RUC → LEGAL, DNI → NATURAL); `holderType` es solo respaldo. Estados admitidos: VALIDATION, NOTARY_EVALUATION, CONTRACTING, PENDING_DELIVERY. Incrementa la versión (If-Match). Permiso: RENTAL.FORMALIZE_CONTRACT.
+         */
+        post: operations["registerCompanion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rentals/{id}/commands/set-company-driver-daily-rate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Digitar la tarifa diaria del conductor de la empresa en el alquiler (DEC-ALQ-DRIVERRATE-001, F-02)
+         * @description El monto de la tarifa diaria aún no está definido por negocio: un usuario autorizado lo digita a mano en el expediente cuando se requiera (cuando no hay tarifa de entorno, o para sobrescribirla en este alquiler). Prioridad: valor manual > env COMPANY_DRIVER_DAILY_RATE > «tarifa no definida». `dailyRate` es en PEN, > 0, máximo 2 decimales (hasta 99999999.99). Solo aplica a alquileres con contrato formalizado «con conductor de la empresa» (la variante se conoce al formalizar) y en estados PENDING_DELIVERY, ACTIVE, EXTENSION_PENDING o RETURN_IN_PROGRESS. Volver a enviarlo corrige el valor (queda en auditoría el valor anterior). Incrementa la versión (If-Match) y publica el evento TarifaConductorEmpresaDefinida.v1. La respuesta trae `companyDriverCharge` (tarifa × días, con `source`). Permiso: RENTAL.FORMALIZE_CONTRACT.
+         */
+        post: operations["setCompanyDriverDailyRate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rentals/{id}/commands/formalize-contract": {
         parameters: {
             query?: never;
@@ -463,6 +503,45 @@ export interface components {
             addendumDocumentRef: string;
             holderType?: components["schemas"]["ContractHolderType"];
         };
+        RegisterCompanionRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /**
+             * Format: uuid
+             * @description Cliente (persona) con licencia vigente que firma como responsable.
+             */
+            companionCustomerId: string;
+            /**
+             * Format: uuid
+             * @description Conductor real del alquiler (party DRIVER); distinto del acompañante.
+             */
+            driverCustomerId: string;
+            /** @description Check del checklist "licencia vigente verificada" del acompañante (debe ser true; la licencia no se guarda). */
+            companionLicenseVerified: boolean;
+            /** @description Check del checklist "licencia vigente verificada" del conductor real (debe ser true; la licencia no se guarda). */
+            driverLicenseVerified: boolean;
+            /** @description Motivo por el que el titular no puede firmar. */
+            reason: string;
+            /** @description Referencia documental opcional (la autorización del acompañante es la del firmante; no se exige documento aparte). */
+            addendumDocumentRef?: string;
+            holderType?: components["schemas"]["ContractHolderType"];
+        };
+        /** @description Forma de los errores de dominio del módulo. */
+        RentalErrorResponse: {
+            statusCode: number;
+            code: string;
+            detail: string;
+        };
+        SetCompanyDriverDailyRateRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @description Tarifa diaria del conductor de la empresa en PEN; > 0, máximo 2 decimales. Ej. "120" o "120.50". */
+            dailyRate: string;
+        };
         /** @description `depositAmount` y `depositCurrency` son obligatorios SALVO con conductor de la empresa (`withCompanyDriver=true`), donde no hay garantía y se omiten (DEC-ALQ-COMPANY-DRIVER-004). */
         FormalizeContractRequest: {
             /** Format: uuid */
@@ -676,6 +755,21 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /** @description Servicio de conductor de la empresa: TARIFA DIARIA × días del alquiler, sin garantía (Fiorella, 16-oct-2026). Vista calculada (el total no se persiste). Tarifa diaria: valor manual del alquiler (set-company-driver-daily-rate) > parámetro COMPANY_DRIVER_DAILY_RATE > no definida (DEC-ALQ-DRIVERRATE-001; el monto aún no lo define negocio y nunca se inventa). */
+        CompanyDriverChargeResponse: {
+            /** @description false = la tarifa diaria no está definida (source NOT_DEFINED; importes en "0.00"; el cobro queda pendiente de digitar). */
+            configured: boolean;
+            /**
+             * @description Origen de la tarifa aplicada (MANUAL = digitada en el alquiler; ENV = parámetro del sistema; NOT_DEFINED = sin tarifa).
+             * @enum {string}
+             */
+            source: "MANUAL" | "ENV" | "NOT_DEFINED";
+            dailyRate: string;
+            /** @enum {string} */
+            currency: "PEN" | "USD";
+            days: number;
+            total: string;
+        };
         /** @description P0-03 (a) - vista previa del traslado del monto de la reserva a la garantía (solo GET detalle, solo alquileres de origen Reserva). */
         ReservationCreditResponse: {
             applicable: boolean;
@@ -759,6 +853,8 @@ export interface components {
             reservationCreditExcess?: string;
             /** @description Solo en GET /rentals/{id}. Null = alquiler sin reserva de origen. */
             reservationCredit?: components["schemas"]["ReservationCreditResponse"] | null;
+            /** @description Solo en GET /rentals/{id}. Cargo del servicio de conductor de la empresa (tarifa diaria × días); null si el alquiler no es con conductor de la empresa. No se persiste. */
+            companyDriverCharge?: components["schemas"]["CompanyDriverChargeResponse"] | null;
             /** @description Solo en GET /rentals/{id}. Ampliaciones, la más reciente primero. */
             extensions?: components["schemas"]["RentalExtensionResponse"][];
         };
@@ -1483,6 +1579,194 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    registerCompanion: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterCompanionRequest"];
+            };
+        };
+        responses: {
+            /** @description Acompañante registrado; el alquiler trae la nueva party con role RESPONSIBLE */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalResponse"];
+                };
+            };
+            /** @description COMPANION_REASON_REQUIRED o datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin permiso o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RENTAL_DRIVER_ALREADY_REGISTERED (el cliente ya es interviniente) o RENTAL_DRIVER_REGISTRATION_CLOSED (estado posterior a la entrega) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description COMPANION_NOT_APPLICABLE_FOR_LEGAL_HOLDER, HOLDER_TYPE_REQUIRED, HOLDER_TYPE_MISMATCH, COMPANION_CUSTOMER_NOT_FOUND, DRIVER_CUSTOMER_NOT_FOUND, LICENSE_VERIFICATION_REQUIRED, COMPANION_DRIVER_MUST_DIFFER o COMPANION_PASSENGER_CAPACITY_EXCEEDED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setCompanyDriverDailyRate: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCompanyDriverDailyRateRequest"];
+            };
+        };
+        responses: {
+            /** @description Tarifa registrada; el alquiler trae `companyDriverCharge` con `source=MANUAL` */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalResponse"];
+                };
+            };
+            /** @description COMPANY_DRIVER_RATE_INVALID o datos inválidos (monto <= 0, más de 2 decimales) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalErrorResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin permiso o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description COMPANY_DRIVER_RATE_CLOSED (alquiler CLOSED o CANCELLED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalErrorResponse"];
+                };
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description COMPANY_DRIVER_RATE_NOT_APPLICABLE (el alquiler no es con conductor de la empresa o aún no tiene contrato formalizado) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalErrorResponse"];
+                };
             };
             /** @description Falta header If-Match */
             428: {

@@ -170,6 +170,46 @@ describe('RolePermissionMatrixScreen (ADM-02)', () => {
     expect(scope).toEqual({ companyId: null, branchId: null });
   });
 
+  it('avisa de las acciones nuevas que la version guardada no contiene y permite guardar sin ediciones (se persisten denegadas)', async () => {
+    getRolePermissionMatrixMock.mockResolvedValue({
+      ...baseMatrix(),
+      actionCatalog: [
+        ...CATALOG,
+        { module: 'RESERVATION' as const, action: 'FLAG_SALE', label: 'Reserva: registrar venta del vehículo reservado' },
+        { module: 'RESERVATION' as const, action: 'CHANGE_VEHICLE', label: 'Reserva: cambiar vehículo (borrador)' },
+      ],
+    });
+    saveRolePermissionMatrixMock.mockResolvedValue({ version: 3, entries: [], actionCatalog: CATALOG });
+    renderScreen();
+
+    const notice = await screen.findByRole('status');
+    expect(notice).toHaveTextContent('Reserva: registrar venta del vehículo reservado');
+    expect(notice).toHaveTextContent('Reserva: cambiar vehículo (borrador)');
+    expect(notice).not.toHaveTextContent('Reserva: confirmar');
+
+    const save = screen.getByRole('button', { name: 'Guardar cambios' });
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+
+    await waitFor(() => expect(saveRolePermissionMatrixMock).toHaveBeenCalledTimes(1));
+    const entries = saveRolePermissionMatrixMock.mock.calls[0][3] as { roleId: string; action: string; allowed: boolean }[];
+    // 3 roles activos x 4 acciones; las nuevas viajan denegadas.
+    expect(entries).toHaveLength(12);
+    expect(entries.filter((e) => e.action === 'FLAG_SALE' || e.action === 'CHANGE_VEHICLE').every((e) => !e.allowed)).toBe(true);
+  });
+
+  it('sin acciones nuevas no muestra el aviso y Guardar sigue deshabilitado hasta editar', async () => {
+    renderScreen();
+    await screen.findByRole('table');
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
+  });
+
+  it('traduce INCOMPATIBLE_PERMISSIONS (codigo real del back) a la explicacion de segregacion de funciones', () => {
+    const error = new PermissionCommandError(409, { code: 'INCOMPATIBLE_PERMISSIONS', detail: 'x' });
+    expect(error.message).toContain('segregación de funciones');
+  });
+
   it('volver a marcar la celda al valor vigente deja de contar como cambio', async () => {
     renderScreen();
     const cell = await screen.findByRole('checkbox', { name: 'Supervisor de flota: Reserva: confirmar' });

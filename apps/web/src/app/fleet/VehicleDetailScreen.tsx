@@ -173,6 +173,43 @@ export function VehicleDetailScreen() {
                   </span>
                 </div>
               )}
+              {vehicle.depositMinimum != null && (
+                <div className={styles.vehicleMetaItem}>
+                  <span className={styles.vehicleMetaLabel}>Garantía</span>
+                  <span className={styles.vehicleMetaValue}>
+                    S/ {Number(vehicle.depositMinimum).toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className={styles.vehicleMetaItem}>
+                <span className={styles.vehicleMetaLabel}>Capacidad de pasajeros</span>
+                {vehicle.passengerCapacity != null ? (
+                  <span className={styles.vehicleMetaValue}>{vehicle.passengerCapacity}</span>
+                ) : (
+                  <span className={styles.vehicleMetaValue} data-testid="missing-capacity">
+                    <span className={styles.missingCapacity} role="status">
+                      Falta registrar la capacidad
+                    </span>
+                    {canWrite && (
+                      <button
+                        type="button"
+                        className={styles.linkButton}
+                        onClick={() => setEditModalOpen(true)}
+                      >
+                        Completar capacidad
+                      </button>
+                    )}
+                  </span>
+                )}
+              </div>
+              <div className={styles.vehicleMetaItem}>
+                <span className={styles.vehicleMetaLabel}>Precio del combustible</span>
+                <span className={styles.vehicleMetaValue}>
+                  {vehicle.fuelPrice != null
+                    ? `S/ ${Number(vehicle.fuelPrice).toFixed(2)} / unidad`
+                    : 'Sin registrar'}
+                </span>
+              </div>
             </div>
           </div>
 

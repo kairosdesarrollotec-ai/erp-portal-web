@@ -150,7 +150,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Registrar resultado de prueba de alcolímetro de salida (DEV-04 / BR-DEV-005) */
+        /**
+         * Registrar resultado de prueba de alcolímetro de salida (DEV-04 / BR-DEV-005)
+         * @description DESFAVORABLE = check "no cumple el rango del alcoholímetro" + foto de la prueba OBLIGATORIA: antes de registrar, subir la foto como evidencia PHOTO con zona ALCOHOL_TEST (upload-url -> PUT -> POST evidence). Sin foto -> 422 ALCOHOL_TEST_PHOTO_REQUIRED. No se registra hora ni más campos. RECHAZADO no exige foto.
+         */
         post: operations["registerAlcoholTest"];
         delete?: never;
         options?: never;
@@ -232,6 +235,26 @@ export interface paths {
          * @description La tarifa diaria NO se envía: se toma del dailyRate vigente del vehículo del alquiler (TDD §9.3) y se devuelve en ImmobilizationChargeResponse.dailyRate. Si el vehículo no tiene dailyRate -> 422 INVALID_IMMOBILIZATION_CHARGE.
          */
         post: operations["chargeImmobilization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/returns/{id}/commands/register-late-charge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar el cargo por retraso en la devolución, MANUAL (DEC-DEV-LATE-CHARGE-002)
+         * @description Pasada la tolerancia de 30 min sobre la hora pactada SÍ hay cargo; por ahora el monto lo digita un usuario autorizado (Administración, Gerencia o Finanzas) y NO se calcula automáticamente (el cargo sugerido de latenessCharge sigue siendo informativo). Volver a registrar corrige el monto (queda el último; cada registro se audita y emite CargoRetrasoRegistrado.v1). No ajusta la garantía por sí mismo.
+         */
+        post: operations["registerReturnLateCharge"];
         delete?: never;
         options?: never;
         head?: never;
@@ -587,6 +610,23 @@ export interface components {
             result: components["schemas"]["AlcoholTestResult"];
             notes?: string;
         };
+        /** @description Cargo por retraso MANUAL (DEC-DEV-LATE-CHARGE-002); el monto lo digita el usuario autorizado, sin cálculo automático. */
+        RegisterReturnLateChargeRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @description Monto en la moneda del negocio (máx. 2 decimales) */
+            amount: number;
+            notes?: string;
+        };
+        ManualLateChargeResponse: {
+            amount: number;
+            notes: string | null;
+            registeredById: string;
+            /** Format: date-time */
+            registeredAt: string;
+        };
         ResolveAlcoholEscalationRequest: {
             /** Format: uuid */
             companyId: string;
@@ -789,6 +829,8 @@ export interface components {
             fuelLevelAtReturn?: components["schemas"]["ReturnFuelLevel"];
             alcoholTestResult?: components["schemas"]["AlcoholTestResult"];
             alcoholTestNotes?: string | null;
+            /** @description Cargo por retraso registrado manualmente (DEC-DEV-LATE-CHARGE-002); null si no hay */
+            manualLateCharge?: components["schemas"]["ManualLateChargeResponse"] | null;
             /** @description Última decisión de Gerencia ante alcolímetro desfavorable (null si no hubo) */
             alcoholEscalation: components["schemas"]["AlcoholEscalationResponse"] | null;
             /** @description Documento de responsabilidad firmado en la inspección (null antes de completarla); sin signatureData */
@@ -1347,6 +1389,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Resultado DESFAVORABLE sin la foto de la prueba (evidencia PHOTO con zona ALCOHOL_TEST) -> ALCOHOL_TEST_PHOTO_REQUIRED */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Falta header If-Match */
             428: {
                 headers: {
@@ -1678,6 +1727,90 @@ export interface operations {
                 content?: never;
             };
             /** @description No han transcurrido 24 horas naturales desde la recepción (IMMOBILIZATION_PERIOD_NOT_ELAPSED), no hay daño técnico, el vehículo no tiene dailyRate o los días exceden los pendientes de cobro (INVALID_IMMOBILIZATION_CHARGE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno del servidor */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    registerReturnLateCharge: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterReturnLateChargeRequest"];
+            };
+        };
+        responses: {
+            /** @description Cargo por retraso registrado (ReturnResponse.manualLateCharge) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnResponse"];
+                };
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución no encontrada en la empresa/sede */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Estado incompatible (el vehículo debe estar recibido y la devolución no cerrada/cancelada) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La devolución no superó la tolerancia de 30 minutos o el monto no es válido (INVALID_LATE_CHARGE) */
             422: {
                 headers: {
                     [name: string]: unknown;
