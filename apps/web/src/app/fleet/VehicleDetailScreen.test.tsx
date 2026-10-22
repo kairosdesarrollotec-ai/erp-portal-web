@@ -72,14 +72,14 @@ const sampleVehicle = {
   updatedAt: '2026-01-01T00:00:00Z',
 };
 
-function renderScreen(vehicleId = 'veh-1') {
+function renderScreen(vehicleId = 'veh-1', extraState: Record<string, unknown> = {}) {
   return render(
     <QueryClientProvider client={createTestQueryClient()}>
       <MemoryRouter
         initialEntries={[
           {
             pathname: `/flota/${vehicleId}`,
-            state: { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' },
+            state: { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central', ...extraState },
           },
         ]}
       >
@@ -100,6 +100,17 @@ beforeEach(() => {
 });
 
 describe('VehicleDetailScreen', () => {
+  it('abre el editor al llegar desde el aviso de datos faltantes (openEdit)', async () => {
+    renderScreen('veh-1', { openEdit: true });
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Editar Vehículo');
+  });
+
+  it('no abre el editor si no llega openEdit', async () => {
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('muestra estado LOADING mientras carga', () => {
     getVehicleMock.mockReturnValue(new Promise(() => { /* never resolves */ }));
     renderScreen();

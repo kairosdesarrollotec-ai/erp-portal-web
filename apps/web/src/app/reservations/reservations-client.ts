@@ -16,6 +16,8 @@ export interface ReservationSummary {
   version: number;
   customer: { id: string; name: string };
   vehicle: { id: string; plate: string; label: string };
+  /** reservations.yaml 0.9.0 (DEC-ALQ-VEHDATA-001): un aviso por dato faltante del vehículo (capacidad, garantía, combustible). No bloquea. */
+  vehicleWarnings?: { code: string; field?: string; message?: string }[];
   startAt: string;
   endAt: string;
   requiredPayment: { amount: string; currency: string };

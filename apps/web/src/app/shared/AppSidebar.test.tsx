@@ -50,6 +50,24 @@ describe('AppSidebar', () => {
     expect(screen.getByRole('button', { name: /Cerrar sesión/i })).toBeInTheDocument();
   });
 
+  it('TR-08: el enlace «Sincronización» solo aparece para supervisores (resolver conflictos)', () => {
+    const { unmount } = render(
+      <MemoryRouter>
+        <AppSidebar />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('link', { name: /Sincronización/ })).not.toBeInTheDocument();
+    unmount();
+
+    setPermissions(['RETURN.CLOSE']);
+    render(
+      <MemoryRouter>
+        <AppSidebar />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('link', { name: /Sincronización/ })).toHaveAttribute('href', '/sincronizacion');
+  });
+
   it('al hacer clic en cerrar sesión en el sidebar, ejecuta signOut, limpia sesión y redirige a /', async () => {
     render(
       <MemoryRouter>

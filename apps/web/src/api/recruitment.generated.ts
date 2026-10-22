@@ -1928,7 +1928,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso RECRUITMENT.MANAGE_INTERVIEW o contexto no autorizado */
+            /** @description Rol sin permiso RECRUITMENT.MANAGE_INTERVIEW o contexto no autorizado; o result=NO_AVANZA sin permiso RECRUITMENT.DECIDE_NO_ADVANCE (solo Gerencia General) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -2023,7 +2023,7 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemDetail"];
                 };
             };
-            /** @description Transición no permitida por BDD-REC §11.6 (CANDIDATE_STATE_TRANSITION_INVALID): CONTRATADO exige que el candidato esté ENTREVISTADO; RECHAZADO exige EN_NEGOCIACION o ENTREVISTADO. */
+            /** @description Transición no permitida por BDD-REC §11.6 (CANDIDATE_STATE_TRANSITION_INVALID): CONTRATADO exige que el candidato esté ENTREVISTADO; RECHAZADO exige EN_NEGOCIACION o ENTREVISTADO. RECHAZADO sobre un candidato ENTREVISTADO sin decisionNotes -> DECISION_REASON_REQUIRED (el motivo es obligatorio). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2093,14 +2093,14 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Onboarding ya completado previamente */
+            /** @description Incorporación repetida: el candidato ya está INGRESADO / PERIODO_PRUEBA / PLANILLA / TERMINADO (ONBOARDING_ALREADY_COMPLETED) */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Candidato no contratado (CANDIDATE_NOT_CONTRACTED), checklist incompleto, falta contrato notariado de mecánico, o el candidato no está DECIDIDO (CANDIDATE_STATE_TRANSITION_INVALID, p. ej. incorporación repetida). */
+            /** @description Candidato no contratado (CANDIDATE_NOT_CONTRACTED), checklist incompleto, falta contrato notariado de mecánico, o el candidato no está DECIDIDO (CANDIDATE_STATE_TRANSITION_INVALID, p. ej. aún ENTREVISTADO). La incorporación repetida es 409. */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2156,7 +2156,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso RECRUITMENT.EVALUATE_PROBATION o contexto no autorizado */
+            /** @description Rol sin permiso RECRUITMENT.EVALUATE_PROBATION o contexto no autorizado; o passed=false sin permiso RECRUITMENT.TERMINATE_PROBATION (solo Gerencia General) */
             403: {
                 headers: {
                     [name: string]: unknown;

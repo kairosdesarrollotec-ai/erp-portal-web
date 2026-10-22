@@ -199,6 +199,25 @@ describe('Stage1DocumentsScreen - acompanante autorizado (DEC-ALQ-COMPANION-006)
       expect(await axe(second.container)).toHaveNoViolations();
     });
 
+    it('DEC-ALQ-VEHDATA-001: con vehicleWarnings muestra la caja de avisos y no duplica el aviso de capacidad', async () => {
+      canMock.mockImplementation((m: string, a: string) => m === 'FLEET' && a === 'WRITE');
+      getRentalMock.mockResolvedValue({
+        ...naturalRental, vehicleId: 'veh-9', vehiclePassengerCapacity: null, companionsCount: 0,
+        vehicleWarnings: [
+          { code: 'VEHICLE_PASSENGER_CAPACITY_MISSING', field: 'passengerCapacity', message: 'x' },
+          { code: 'VEHICLE_FUEL_PRICE_MISSING', field: 'fuelPrice', message: 'x' },
+        ],
+      });
+      renderScreen();
+      await screen.findByText(/Maria Quispe/);
+      expect(screen.getByTestId('vehicle-warning-VEHICLE_PASSENGER_CAPACITY_MISSING')).toBeInTheDocument();
+      expect(screen.getByTestId('vehicle-warning-VEHICLE_FUEL_PRICE_MISSING')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Acompañante' }));
+      expect(screen.queryByTestId('companion-capacity-missing')).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /Completar la capacidad en Flota/ })).not.toBeInTheDocument();
+      expect(screen.getAllByRole('link', { name: 'Editar vehículo' })).toHaveLength(1);
+    });
+
     it('al superar el maximo muestra el error de dominio con el numero concreto y no valida', async () => {
       getRentalMock.mockResolvedValue({ ...naturalRental, vehiclePassengerCapacity: 2, companionsCount: 0 });
       listCustomersMock.mockImplementation(async (...args: unknown[]) => {

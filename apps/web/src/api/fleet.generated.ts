@@ -149,7 +149,7 @@ export interface components {
             dailyRate?: number | null;
             /** @description Monto mínimo de garantía para este vehículo (PEN). Opcional; se puede completar después con PATCH. */
             depositMinimum?: number;
-            /** @description Cantidad de pasajeros que admite el vehículo; es el máximo de acompañantes de un alquiler (G-05). Obligatorio en el alta (G-05); si falta o es null responde 400 PASSENGER_CAPACITY_REQUIRED. */
+            /** @description Cantidad de pasajeros que admite el vehículo; es el máximo de acompañantes de un alquiler (G-05). Obligatorio en el alta (G-05); si falta, es null, 0, negativa, no entera o > 60 responde 400 PASSENGER_CAPACITY_REQUIRED (fleet.yaml 0.7.0). */
             passengerCapacity: number;
             /** @description Precio del combustible por unidad para este vehículo (PEN). Insumo de la multa por combustible (aún no calculada). Opcional; se completa cuando exista la tarifa. */
             fuelPrice?: number;
@@ -177,7 +177,7 @@ export interface components {
             dailyRate?: number | null;
             /** @description Monto mínimo de garantía (PEN). Si se omite, el valor existente no cambia. */
             depositMinimum?: number | null;
-            /** @description Capacidad de pasajeros (1..60). Si se omite, el valor existente no cambia. No puede vaciarse (enviar null responde 400 PASSENGER_CAPACITY_REQUIRED). */
+            /** @description Capacidad de pasajeros (1..60). Si se omite, el valor existente no cambia. No puede vaciarse (enviar null, 0, negativa, no entera o > 60 responde 400 PASSENGER_CAPACITY_REQUIRED; fleet.yaml 0.7.0). */
             passengerCapacity?: number;
             /** @description Precio del combustible por unidad (PEN). Si se omite, el valor existente no cambia. */
             fuelPrice?: number;

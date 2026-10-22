@@ -46,6 +46,11 @@ function EmployeesList() {
               Solicitar mi salida a campo
             </Link>
           )}
+          {can('MANAGE_AREAS') && (
+            <Link className={styles.smallButton} to="/personal/areas" state={context ?? undefined}>
+              Áreas de RR.HH.
+            </Link>
+          )}
           {can('MANAGE_EMPLOYEES') && (
             <Link className={styles.smallButton} to="/personal/nuevo" state={context ?? undefined}>
               Nueva persona

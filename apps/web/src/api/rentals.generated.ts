@@ -582,7 +582,15 @@ export interface components {
             notes?: string;
         };
         /** @enum {string} */
-        RentalEvidenceZone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR";
+        RentalEvidenceZone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR" | "ALCOHOL_TEST";
+        /** @description DEC-ALQ-VEHDATA-001 (rentals.yaml 1.12.0). Aviso por cada dato del vehiculo que falta en Flota; no bloquea. */
+        VehicleDataWarning: {
+            /** @enum {string} */
+            code: "VEHICLE_PASSENGER_CAPACITY_MISSING" | "VEHICLE_DEPOSIT_MINIMUM_MISSING" | "VEHICLE_FUEL_PRICE_MISSING";
+            /** @enum {string} */
+            field: "passengerCapacity" | "depositMinimum" | "fuelPrice";
+            message: string;
+        };
         RequestEvidenceUploadSessionRequest: {
             /** Format: uuid */
             companyId: string;
@@ -829,6 +837,10 @@ export interface components {
             vehicleDepositMinimum?: number | null;
             /** @description Capacidad de pasajeros del vehículo (máximo de acompañantes). Null = sin capacidad registrada en Flota (DEC-FLT-CAP-002); en ese caso el máximo no se valida. */
             vehiclePassengerCapacity: number | null;
+            /** @description Precio del combustible del vehiculo (PEN). Null = no registrado en Flota (aviso VEHICLE_FUEL_PRICE_MISSING). */
+            vehicleFuelPrice: number | null;
+            /** @description Un aviso por cada dato del vehiculo que falta (capacidad, garantia, combustible). Vacio si esta completo. No bloquea. */
+            vehicleWarnings: components["schemas"]["VehicleDataWarning"][];
             /** @description Acompañantes registrados en el alquiler (parties con rol RESPONSIBLE). Se compara contra vehiclePassengerCapacity. */
             companionsCount: number;
             planCode: string;

@@ -6,7 +6,14 @@ type RequestEvidenceUploadSessionBody = components['schemas']['RequestEvidenceUp
 type RecordEvidenceBody = components['schemas']['RecordEvidenceRequest'];
 
 export type RentalEvidenceType = 'PHOTO' | 'VIDEO';
-export type RentalEvidenceZone = 'FRONTAL' | 'LATERAL_IZQUIERDO' | 'LATERAL_DERECHO' | 'POSTERIOR' | 'INTERIOR';
+/** rentals.yaml 1.12.0: ALCOHOL_TEST = foto de la prueba de alcoholímetro (ENTREGA-02; solo en VALIDATION; no cuenta para las 35 fotos). */
+export type RentalEvidenceZone =
+  | 'FRONTAL'
+  | 'LATERAL_IZQUIERDO'
+  | 'LATERAL_DERECHO'
+  | 'POSTERIOR'
+  | 'INTERIOR'
+  | 'ALCOHOL_TEST';
 export type RentalEvidenceContentType = 'image/jpeg' | 'image/webp' | 'video/mp4' | 'video/webm';
 
 export interface EvidenceUploadSessionResponse {

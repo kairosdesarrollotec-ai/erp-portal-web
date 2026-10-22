@@ -23,6 +23,9 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   CANDIDATE_CV_NOT_FOUND: 'Este candidato todavía no tiene CV cargado.',
   CV_UPLOAD_FAILED: 'No se pudo subir el archivo. Revisa tu conexión e inténtalo de nuevo.',
   NEGOTIATION_INVALID: 'Revisa la negociación: el acuerdo requiere sueldo acordado y el cierre sin acuerdo requiere motivo.',
+  ONBOARDING_ALREADY_COMPLETED: 'Esta persona ya fue incorporada: el ingreso no se puede registrar de nuevo. Recargamos los datos.',
+  DECISION_REASON_REQUIRED: 'Indica el motivo del descarte: es obligatorio cuando se rechaza a un candidato que ya fue entrevistado.',
+  GERENCIA_DECISION_REQUIRED: 'Esta decisión solo la toma Gerencia General («No avanza» tras la entrevista o término por prueba negativa).',
   ROLE_NOT_ALLOWED: 'Tu rol no puede ver o registrar este dato.',
   PROBATION_ALREADY_EVALUATED: 'El periodo de prueba ya fue evaluado.',
 };

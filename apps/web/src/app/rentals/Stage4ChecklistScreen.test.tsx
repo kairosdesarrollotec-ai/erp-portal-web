@@ -223,6 +223,23 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled());
   });
 
+  it('la foto del alcoholímetro (zona ALCOHOL_TEST) no cuenta para las 35 fotos', async () => {
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 34 }, (_, i) => evidenceItem('PHOTO', i)),
+      { ...evidenceItem('PHOTO', 99), zone: 'ALCOHOL_TEST' },
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
+    sessionStorage.setItem(
+      CHECKLIST_KEY,
+      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+    );
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    await waitFor(() => expect(screen.getByText(/34\/35/)).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+  });
+
   // ── guardado: navegación a etapa 5 ───────────────────────────────────────
 
   it('navega a etapa 5 al hacer clic en Continuar cuando el checklist está completo', async () => {

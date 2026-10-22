@@ -7,6 +7,8 @@ import { DashboardScreen } from '../dashboard/DashboardScreen';
 import { HealthCheckScreen } from './HealthCheckScreen';
 import { RequireAuthenticatedUser } from './RequireAuthenticatedUser';
 import { RequireCompletedActivation } from './RequireCompletedActivation';
+import { RequirePermission } from './RequirePermission';
+import { canSuperviseSync } from '../sync/useSyncCenter';
 import { AuthenticatedLayout } from './AuthenticatedLayout';
 import { ReservationsListScreen } from '../reservations/ReservationsListScreen';
 import { ReservationDetailScreen } from '../reservations/ReservationDetailScreen';
@@ -79,6 +81,8 @@ const FieldTripAuthorizationScreen = lazyNamed(() => import('../hr-administratio
 const ReturnFollowUpScreen = lazyNamed(() => import('../hr-administration/ReturnFollowUpScreen'), 'ReturnFollowUpScreen');
 const TerminationScreen = lazyNamed(() => import('../hr-administration/TerminationScreen'), 'TerminationScreen');
 const TrainingScreen = lazyNamed(() => import('../hr-administration/TrainingScreen'), 'TrainingScreen');
+const SyncCenterScreen = lazyNamed(() => import('../sync/SyncCenterScreen'), 'SyncCenterScreen');
+const AreasScreen = lazyNamed(() => import('../hr-administration/AreasScreen'), 'AreasScreen');
 const NewEmployeeScreen = lazyNamed(() => import('../hr-administration/NewEmployeeScreen'), 'NewEmployeeScreen');
 const RolePermissionMatrixScreen = lazyNamed(() => import('../admin/RolePermissionMatrixScreen'), 'RolePermissionMatrixScreen');
 const ReportsDashboardScreen = lazyNamed(() => import('../reporting/ReportsDashboardScreen'), 'ReportsDashboardScreen');
@@ -174,11 +178,24 @@ export const router = createBrowserRouter([
               { path: '/personal/:id/vacaciones', element: <VacationScreen /> },
               { path: '/personal/:id/salida-a-campo', element: <FieldTripRequestScreen /> },
               { path: '/personal/:id/termino', element: <TerminationScreen /> },
+              // Gestión de áreas de RR.HH.: solo Gerencia General (HR_ADMINISTRATION.MANAGE_AREAS).
+              {
+                element: <RequirePermission anyOf={[{ module: 'HR_ADMINISTRATION', action: 'MANAGE_AREAS' }]} />,
+                children: [{ path: '/personal/areas', element: <AreasScreen /> }],
+              },
               { path: '/admin/usuarios', element: <AdminUsersScreen /> },
               { path: '/admin/auditoria', element: <AuditEventsScreen /> },
               { path: '/admin/parametros', element: <ReservationDepositPolicyScreen /> },
-              // guard: el backend valida ADMIN.MANAGE_PERMISSIONS — la UI maneja el 403 con estado de error. Guard proactivo pendiente de TR-10.
-              { path: '/admin/permisos', element: <RolePermissionMatrixScreen /> },
+              // TR-10: guard proactivo por el permiso que la pantalla ya usa (el backend valida ADMIN.MANAGE_PERMISSIONS).
+              {
+                element: <RequirePermission anyOf={[{ module: 'ADMIN', action: 'MANAGE_PERMISSIONS' }]} />,
+                children: [{ path: '/admin/permisos', element: <RolePermissionMatrixScreen /> }],
+              },
+              // TR-08 Centro de sincronización: solo supervisores (mismo criterio que SyncConflictPanel: resolver conflictos).
+              {
+                element: <RequirePermission allow={canSuperviseSync} />,
+                children: [{ path: '/sincronizacion', element: <SyncCenterScreen /> }],
+              },
               { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
               { path: '/admin/plantillas', element: <DocumentTemplatesScreen /> },
               { path: '/modulos', element: <ModuleHubScreen /> },

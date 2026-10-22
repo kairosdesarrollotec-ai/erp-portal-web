@@ -20,7 +20,14 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   RENTAL_DRIVER_REGISTRATION_CLOSED: 'Ya no se puede registrar conductor: el alquiler pasó de la etapa de entrega.',
   DRIVER_CUSTOMER_NOT_FOUND: 'No encontramos al cliente-conductor en tu empresa. Búscalo o regístralo primero.',
   COMPANY_DRIVER_RATE_INVALID: 'La tarifa diaria debe ser un monto mayor que 0 con un máximo de 2 decimales.',
-  COMPANY_DRIVER_RATE_CLOSED: 'El alquiler ya está cerrado o cancelado: no se puede digitar la tarifa diaria del conductor.',
+  COMPANY_DRIVER_RATE_REQUIRED:
+    'Falta digitar la tarifa diaria del conductor de la empresa. Es obligatoria para terminar el alquiler: digítala en «Garantía y contrato» y vuelve a intentar.',
+  COMPANY_DRIVER_RATE_CLOSED:
+    'La tarifa diaria del conductor ya no se puede cambiar: solo se edita hasta completar la entrega (el alquiler ya terminó su proceso o está cerrado o cancelado).',
+  ALCOHOL_TEST_PHOTO_REQUIRED:
+    'Falta la foto de la prueba del alcoholímetro. Con resultado desfavorable o si se negó, la foto es obligatoria (sin hora). Adjúntala y vuelve a intentar.',
+  PASSENGER_CAPACITY_REQUIRED:
+    'La capacidad de pasajeros del vehículo es obligatoria: indica un número entero de 1 a 60 (edítala en Flota).',
   COMPANY_DRIVER_RATE_NOT_APPLICABLE:
     'La tarifa diaria solo se digita en un alquiler con conductor de la empresa y con el contrato ya formalizado.',
   CONTRACT_VARIANT_DRIVER_CONFLICT:

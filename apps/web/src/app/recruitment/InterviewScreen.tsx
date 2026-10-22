@@ -32,11 +32,13 @@ interface ResultFormProps {
   interview: InterviewResponse;
   focusOnMount: boolean;
   saving: boolean;
+  /** RECRUITMENT.DECIDE_NO_ADVANCE (solo Gerencia General): sin él no se ofrece «No avanza». */
+  canDecideNoAdvance: boolean;
   onSubmit: (interviewId: string, result: Exclude<InterviewResult, 'PENDIENTE'>, notes: string) => Promise<boolean>;
 }
 
 /** Notas libres + Avanza / No avanza. Sin escala numérica de puntaje. */
-function ResultForm({ interview, focusOnMount, saving, onSubmit }: ResultFormProps) {
+function ResultForm({ interview, focusOnMount, saving, canDecideNoAdvance, onSubmit }: ResultFormProps) {
   const [notes, setNotes] = useState('');
   const [result, setResult] = useState<'AVANZA' | 'NO_AVANZA' | ''>('');
   const notesRef = useRef<HTMLTextAreaElement>(null);
@@ -81,16 +83,20 @@ function ResultForm({ interview, focusOnMount, saving, onSubmit }: ResultFormPro
           />
           Avanza
         </label>
-        <label className={styles.radioRow}>
-          <input
-            type="radio"
-            name={`result-${interview.id}`}
-            checked={result === 'NO_AVANZA'}
-            onChange={() => setResult('NO_AVANZA')}
-            disabled={saving}
-          />
-          No avanza
-        </label>
+        {canDecideNoAdvance ? (
+          <label className={styles.radioRow}>
+            <input
+              type="radio"
+              name={`result-${interview.id}`}
+              checked={result === 'NO_AVANZA'}
+              onChange={() => setResult('NO_AVANZA')}
+              disabled={saving}
+            />
+            No avanza
+          </label>
+        ) : (
+          <p className={styles.hint}>«No avanza» lo decide Gerencia General.</p>
+        )}
       </fieldset>
       <div className={styles.rowActions}>
         <button type="submit" className={styles.primaryButton} disabled={!valid || saving}>
@@ -228,6 +234,7 @@ export function InterviewScreen() {
                         interview={interview}
                         focusOnMount={interview.id === firstPendingId}
                         saving={saving}
+                        canDecideNoAdvance={can('DECIDE_NO_ADVANCE')}
                         onSubmit={submitResult}
                       />
                     )}

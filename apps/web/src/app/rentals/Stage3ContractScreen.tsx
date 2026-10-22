@@ -135,8 +135,13 @@ export function Stage3ContractScreen() {
   const driverRateTrim = driverRate.trim();
   const driverRateValid = driverRateTrim === '' || DAILY_RATE_PATTERN.test(driverRateTrim);
   const driverCharge = rental?.companyDriverCharge ?? null;
+  // Respuestas 2026-10-20 #2 (rentals.yaml 1.12.0): con conductor de la empresa la tarifa diaria es OBLIGATORIA (se digita a mano)
+  // y solo se puede editar mientras el alquiler esté en PENDING_DELIVERY (o antes de formalizar); después, 409 COMPANY_DRIVER_RATE_CLOSED.
+  const rateClosed =
+    !!rental && ['ACTIVE', 'EXTENSION_PENDING', 'RETURN_IN_PROGRESS', 'CLOSED', 'CANCELLED'].includes(rental.status);
+  const rateDefined = driverCharge?.source === 'MANUAL';
   const canFormalize =
-    (!withCompanyDriver || driverRateValid) &&
+    (!withCompanyDriver || (driverRateTrim !== '' && driverRateValid)) &&
     exceptionResolved &&
     !!signatureData &&
     (noDeposit || (!!paymentAmount && !depositBelowMinimum)) &&
@@ -370,13 +375,20 @@ export function Stage3ContractScreen() {
               setDriverRate(e.target.value);
               setRateSaved(false);
             }}
-            disabled={!canSetDriverRate || rateBusy}
+            disabled={!canSetDriverRate || rateBusy || rateClosed}
+            required
             aria-invalid={!driverRateValid}
             aria-describedby="company-driver-rate-hint"
           />
           <span id="company-driver-rate-hint" className={styles.fieldHint}>
-            Monto mayor que 0 con máximo 2 decimales. Si lo digitas, tiene prioridad sobre la tarifa del sistema en este alquiler.
+            Obligatoria. Monto mayor que 0 con máximo 2 decimales; se digita a mano en cada alquiler y solo se puede cambiar hasta
+            completar la entrega.
           </span>
+          {rateClosed && (
+            <p className={styles.blockedNotice} role="status" data-testid="driver-rate-closed">
+              La tarifa diaria ya no se puede cambiar: el proceso de alquiler terminó (la entrega ya se completó).
+            </p>
+          )}
           {!driverRateValid && (
             <span className={styles.evidenceError} role="alert">
               La tarifa diaria debe ser mayor que 0 y tener como máximo 2 decimales.
@@ -385,15 +397,15 @@ export function Stage3ContractScreen() {
           {!canSetDriverRate && (
             <p className={styles.blockedNotice}>No tienes permiso para digitar la tarifa diaria del conductor.</p>
           )}
-          {contractIsCompanyDriver && driverCharge?.source === 'NOT_DEFINED' && (
+          {contractIsCompanyDriver && !rateDefined && (
             <p className={styles.blockedNotice} role="status" data-testid="driver-rate-not-defined">
-              Tarifa diaria no definida: el cobro del servicio de conductor queda pendiente de digitar.
+              Tarifa diaria no definida: digítala y pulsa «Guardar tarifa»; sin ella no se puede continuar a la entrega ni terminar el alquiler.
             </p>
           )}
           {contractIsCompanyDriver && driverCharge?.source === 'ENV' && (
             <p className={styles.fieldHint} role="status" data-testid="driver-rate-env">
-              Se usa la tarifa del sistema: {formatPen(parseFloat(driverCharge.dailyRate))} por día × {driverCharge.days} día(s) ={' '}
-              {formatPen(parseFloat(driverCharge.total))}. Digita un monto para sobrescribirla en este alquiler.
+              Referencia del sistema: {formatPen(parseFloat(driverCharge.dailyRate))} por día. No sustituye a la tarifa digitada: debes
+              digitar la tarifa de este alquiler.
             </p>
           )}
           {contractIsCompanyDriver && driverCharge?.source === 'MANUAL' && (
@@ -404,8 +416,7 @@ export function Stage3ContractScreen() {
           )}
           {!contractIsCompanyDriver && !driverRateTrim && (
             <p className={styles.fieldHint} role="status" data-testid="driver-rate-pending">
-              Tarifa diaria sin digitar: si el sistema tampoco tiene una tarifa, el cobro del servicio de conductor queda pendiente
-              de digitar. Puedes formalizar el contrato y digitarla después.
+              Falta digitar la tarifa diaria del conductor: es obligatoria para formalizar el contrato y terminar el alquiler.
             </p>
           )}
           {!contractIsCompanyDriver && driverRateTrim && driverRateValid && (
@@ -413,7 +424,7 @@ export function Stage3ContractScreen() {
               La tarifa se guardará al formalizar el contrato.
             </p>
           )}
-          {contractIsCompanyDriver && canSetDriverRate && (
+          {contractIsCompanyDriver && canSetDriverRate && !rateClosed && (
             <div className={styles.modalActions}>
               <button
                 type="button"
@@ -439,6 +450,7 @@ export function Stage3ContractScreen() {
             <button
               type="button"
               className={styles.secondaryButton}
+              disabled={!rateDefined && !rateClosed}
               onClick={() => navigate(`/alquileres/${id}/entrega-04`, { state: context })}
             >
               Continuar a la entrega
@@ -540,7 +552,7 @@ export function Stage3ContractScreen() {
                 <p className={styles.summaryLine} data-testid="confirm-driver-rate">
                   {driverRateTrim && canSetDriverRate
                     ? `Servicio de conductor: tarifa diaria ${formatPen(parseFloat(driverRateTrim))} (se guarda al formalizar).`
-                    : 'Servicio de conductor: tarifa diaria sin digitar; si el sistema tampoco tiene una tarifa, el cobro queda pendiente de digitar.'}
+                    : 'Servicio de conductor: tarifa diaria sin digitar (obligatoria para terminar el alquiler).'}
                 </p>
               </>
             ) : (

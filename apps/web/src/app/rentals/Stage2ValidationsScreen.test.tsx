@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage2ValidationsScreen } from './Stage2ValidationsScreen';
 
@@ -19,11 +19,17 @@ vi.mock('./useRentalWizard', () => ({
 }));
 
 const registerAlcoholTestMock = vi.fn();
+const requestSessionMock = vi.fn();
+const uploadGcsMock = vi.fn();
+const recordEvidenceMock = vi.fn();
 vi.mock('./rentals-client', async () => {
   const actual = await vi.importActual<typeof import('./rentals-client')>('./rentals-client');
   return {
     ...actual,
     registerAlcoholTest: (...args: unknown[]) => registerAlcoholTestMock(...args),
+    requestEvidenceUploadSession: (...args: unknown[]) => requestSessionMock(...args),
+    uploadEvidenceToGcs: (...args: unknown[]) => uploadGcsMock(...args),
+    recordEvidence: (...args: unknown[]) => recordEvidenceMock(...args),
   };
 });
 
@@ -71,6 +77,7 @@ function renderScreen() {
       <Routes>
         <Route path="/alquileres/:id/entrega-02" element={<Stage2ValidationsScreen />} />
         <Route path="/alquileres/:id/entrega-03" element={<div>etapa 3</div>} />
+        <Route path="/alquileres" element={<div>bandeja</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -81,6 +88,9 @@ function renderScreen() {
 describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
   beforeEach(() => {
     registerAlcoholTestMock.mockReset();
+    requestSessionMock.mockReset();
+    uploadGcsMock.mockReset();
+    recordEvidenceMock.mockReset();
     useRentalWizardMock.mockReset();
   });
 
@@ -135,13 +145,69 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
     expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled();
   });
 
-  it('muestra aviso y deshabilita Continuar cuando el resultado no es FAVORABLE', () => {
-    useRentalWizardMock.mockReturnValue(makeWizard());
+  it.each([['Desfavorable'], ['Se negó']])(
+    'con «%s» pide la foto del alcoholímetro (obligatoria), sin hora, y bloquea el botón hasta adjuntarla',
+    (label) => {
+      useRentalWizardMock.mockReturnValue(makeWizard());
+      renderScreen();
+
+      fireEvent.click(screen.getByLabelText(label));
+      expect(screen.queryByLabelText(/Fecha y hora de la prueba/)).not.toBeInTheDocument();
+      expect(screen.getByLabelText(/Foto de la prueba del alcoholímetro/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Registrar y cancelar el alquiler' })).toBeDisabled();
+
+      const file = new File(['x'], 'prueba.jpg', { type: 'image/jpeg' });
+      fireEvent.change(screen.getByLabelText(/Foto de la prueba del alcoholímetro/), { target: { files: [file] } });
+      expect(screen.getByRole('button', { name: 'Registrar y cancelar el alquiler' })).not.toBeDisabled();
+    },
+  );
+
+  it('sube la foto con la zona ALCOHOL_TEST y luego registra el resultado desfavorable (sin hora)', async () => {
+    const setRentalMock = vi.fn();
+    useRentalWizardMock.mockReturnValue(makeWizard({ setRental: setRentalMock }));
+    requestSessionMock.mockResolvedValue({ uploadUrl: 'https://gcs/up', objectUrl: 'https://gcs/obj' });
+    uploadGcsMock.mockResolvedValue(undefined);
+    recordEvidenceMock.mockResolvedValue({});
+    registerAlcoholTestMock.mockResolvedValue({ ...baseRental, status: 'CANCELLED', version: 3 });
     renderScreen();
 
     fireEvent.click(screen.getByLabelText('Desfavorable'));
-    expect(screen.getByText(/Solo se puede continuar con resultado Favorable/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+    const file = new File(['x'], 'prueba.jpg', { type: 'image/jpeg' });
+    fireEvent.change(screen.getByLabelText(/Foto de la prueba del alcoholímetro/), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar y cancelar el alquiler' }));
+
+    await waitFor(() => expect(registerAlcoholTestMock).toHaveBeenCalled());
+    expect(requestSessionMock).toHaveBeenCalledWith('tok', 'rent-1', 'c1', 'b1', 'PHOTO', 'ALCOHOL_TEST', 'image/jpeg', 1);
+    expect(recordEvidenceMock).toHaveBeenCalledWith('tok', 'rent-1', 'c1', 'b1', 'PHOTO', 'ALCOHOL_TEST', 'https://gcs/obj');
+    expect(registerAlcoholTestMock).toHaveBeenCalledWith('tok', 'rent-1', 'c1', 'b1', 2, 'DESFAVORABLE', undefined);
+    expect(setRentalMock).toHaveBeenCalled();
+  });
+
+  it('rechaza una foto que no es JPEG/WebP sin llamar al API', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+    fireEvent.click(screen.getByLabelText('Se negó'));
+    const file = new File(['x'], 'prueba.png', { type: 'image/png' });
+    fireEvent.change(screen.getByLabelText(/Foto de la prueba del alcoholímetro/), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar y cancelar el alquiler' }));
+    expect(await screen.findByText('Solo se admiten imágenes JPEG o WebP.')).toBeInTheDocument();
+    expect(requestSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('traduce ALCOHOL_TEST_PHOTO_REQUIRED a un mensaje de negocio', async () => {
+    const { RentalCommandError } = await import('./rentals-client');
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    requestSessionMock.mockResolvedValue({ uploadUrl: 'u', objectUrl: 'o' });
+    uploadGcsMock.mockResolvedValue(undefined);
+    recordEvidenceMock.mockResolvedValue({});
+    registerAlcoholTestMock.mockRejectedValue(new RentalCommandError(422, { code: 'ALCOHOL_TEST_PHOTO_REQUIRED', detail: 'raw' }));
+    renderScreen();
+    fireEvent.click(screen.getByLabelText('Desfavorable'));
+    fireEvent.change(screen.getByLabelText(/Foto de la prueba del alcoholímetro/), {
+      target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar y cancelar el alquiler' }));
+    expect(await screen.findByText(/Falta la foto de la prueba del alcoholímetro/)).toBeInTheDocument();
   });
 
   // ── guardado: submit exitoso ──────────────────────────────────────────────

@@ -51,8 +51,18 @@ describe('InterviewScreen (REC-05)', () => {
     recordMock.mockReset();
     interviewersMock.mockReset();
     interviewersMock.mockResolvedValue([OTHER, ME]);
-    setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.MANAGE_INTERVIEW']);
+    setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.MANAGE_INTERVIEW', 'RECRUITMENT.DECIDE_NO_ADVANCE']);
     setMobile(false);
+  });
+
+  it('sin DECIDE_NO_ADVANCE (solo Gerencia General) no ofrece «No avanza» y lo explica', async () => {
+    setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.MANAGE_INTERVIEW']);
+    getCandidateMock.mockResolvedValue(makeCandidate({ interviews: [makeInterview()] }));
+    renderScreen();
+    await screen.findByLabelText('Notas de la entrevista');
+    expect(screen.getByRole('radio', { name: 'Avanza' })).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: 'No avanza' })).toBeNull();
+    expect(screen.getByText(/«No avanza» lo decide Gerencia General/)).toBeInTheDocument();
   });
 
   it('no ofrece puntaje numérico: notas libres y Avanza / No avanza; foco inicial en las notas', async () => {

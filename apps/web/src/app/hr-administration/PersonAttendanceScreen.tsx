@@ -109,13 +109,11 @@ export function PersonAttendanceScreen() {
           employeeName={employee.fullName}
           initialDate={registering || undefined}
           onCancel={() => setRegistering(null)}
-          onSaved={(record) => {
+          onSaved={() => {
             setRegistering(null);
-            setNotice(
-              record.evidenceMissing
-                ? 'Marcación registrada sin evidencia fotográfica. Pide la foto del grupo de WhatsApp y adjúntala cuando la tengas.'
-                : 'Marcación registrada.',
-            );
+            // El back exige la foto en PRESENTE/TARDANZA (422 ATTENDANCE_EVIDENCE_REQUIRED) y los permisos no llevan foto: ya no
+            // existe el caso «registrada sin evidencia fotográfica» al guardar desde aquí (aviso eliminado por ser código muerto).
+            setNotice('Marcación registrada.');
             void reload();
           }}
           onAbsence={(date) => {

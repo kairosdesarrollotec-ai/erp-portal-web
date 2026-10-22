@@ -32,7 +32,42 @@ export interface paths {
         /** Catálogo de áreas de RR.HH. de la empresa (dato de referencia, solo lectura) */
         get: operations["listHrAreas"];
         put?: never;
-        post?: never;
+        /** Dar de alta un área en el catálogo de la empresa (solo Gerencia General) */
+        post: operations["createHrArea"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr-areas/{code}/deactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Desactivar un área del catálogo (solo Gerencia); deja de ofrecerse, conserva el histórico. Idempotente */
+        post: operations["deactivateHrArea"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr-areas/{code}/reactivate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reactivar un área desactivada (solo Gerencia). Idempotente */
+        post: operations["reactivateHrArea"];
         delete?: never;
         options?: never;
         head?: never;
@@ -495,6 +530,8 @@ export interface components {
         /** @enum {string} */
         FieldTripStatus: "PENDIENTE_NIVEL_1" | "PENDIENTE_NIVEL_2" | "PENDIENTE_NIVEL_3" | "AUTORIZADA" | "NO_AUTORIZADA" | "CERRADA_NORMAL" | "OBSERVADA";
         HrArea: {
+            /** @description true en el listado normal; false solo con includeInactive=true (Gerencia). */
+            isActive: boolean;
             /**
              * @description Código estable; es el valor de Employee.areaId cuando el área viene del catálogo.
              * @example ATENCION_AL_CLIENTE
@@ -504,6 +541,21 @@ export interface components {
             name: string;
             description: string | null;
             sortOrder: number;
+        };
+        CreateHrAreaRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @example Logística */
+            name: string;
+            description?: string;
+        };
+        HrAreaContextRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
         };
         HrAreaList: {
             items: components["schemas"]["HrArea"][];
@@ -553,14 +605,18 @@ export interface components {
             /** Format: uuid */
             branchId?: string;
             fullName?: string;
-            /** Format: email */
+            /**
+             * Format: email
+             * @description Vaciarlo ("" o null) DESVINCULA la ficha de su cuenta sin error (accountRelink UNLINKED).
+             */
             email?: string | null;
             phone?: string | null;
-            /** @description Código del catálogo de áreas (GET /hr-areas); manda sobre areaId/areaName; 422 HR_AREA_NOT_FOUND si no existe. */
+            /** @description Código del catálogo de áreas (GET /hr-areas); manda sobre areaId/areaName; 422 HR_AREA_NOT_FOUND si no existe. «RRHH» se mapea a TALENTO_HUMANO. */
             areaCode?: string;
             areaId?: string;
             areaName?: string;
             jobTitle?: string;
+            /** @description Solo Gerencia (HR_ADMINISTRATION.MANAGE_SALARY) puede cambiarlo; otro rol con un valor distinto al vigente -> 403 EMPLOYEE_SALARY_GERENCIA_ONLY. Reenviar el mismo valor es válido. */
             baseSalary?: number | null;
             status?: components["schemas"]["EmployeeStatus"];
             probationPassed?: boolean | null;
@@ -582,6 +638,8 @@ export interface components {
             email?: string | null;
             phone?: string | null;
             areaId: string;
+            /** @description Código del área (igual a areaId; úsalo con GET /hr-areas). */
+            areaCode: string;
             areaName: string;
             jobTitle: string;
             status: components["schemas"]["EmployeeStatus"];
@@ -651,6 +709,11 @@ export interface components {
             /** @description Opcional; si no se envía lo calcula el sistema */
             deductionAmount?: number;
             notes?: string | null;
+            /** @description HU-29 ubicación automática (opcional). Debe ir con longitude; 422 INVALID_ATTENDANCE_RECORD si falta una o está fuera de rango. */
+            latitude?: number | null;
+            longitude?: number | null;
+            /** @description Precisión horizontal en metros (opcional) */
+            accuracy?: number | null;
             /** @description DEC-ADP-ATT-EVIDENCE-001/002. Foto con reloj + hora + rostro que corrobora la marcación. OBLIGATORIA en PRESENTE/TARDANZA (422 ATTENDANCE_EVIDENCE_REQUIRED); opcional en faltas y permisos. Se sube con POST /employees/{id}/attendance/evidence/upload-url y su `storageRef` va aquí. */
             evidence?: components["schemas"]["AttendanceEvidenceRequest"] | null;
         };
@@ -701,6 +764,10 @@ export interface components {
             /** Format: uuid */
             employeeId: string;
             employeeName?: string;
+            /** @description HU-29: ubicación automática capturada (null si no se envió). */
+            latitude?: number | null;
+            longitude?: number | null;
+            accuracy?: number | null;
             /** Format: date */
             date: string;
             /** Format: date-time */
@@ -1172,6 +1239,8 @@ export interface operations {
                 companyId: string;
                 /** @description Sede del contexto de trabajo (el catálogo es de la empresa) */
                 branchId: string;
+                /** @description Incluye áreas desactivadas. Solo con permiso HR_ADMINISTRATION.MANAGE_AREAS (Gerencia). */
+                includeInactive?: boolean;
             };
             header?: never;
             path?: never;
@@ -1202,8 +1271,168 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES, MANAGE_EMPLOYEES o SCHEDULE_VACATION, o contexto no vigente */
+            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES, MANAGE_EMPLOYEES o SCHEDULE_VACATION (o sin MANAGE_AREAS si se pide includeInactive), o contexto no vigente */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    createHrArea: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateHrAreaRequest"];
+            };
+        };
+        responses: {
+            /** @description Área creada (el `code` se deriva del nombre; queda al final del orden) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrArea"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_AREAS (solo Gerencia) o contexto no vigente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ya existe un área con ese código */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El nombre no produce un código válido (HR_AREA_NAME_INVALID) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    deactivateHrArea: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HrAreaContextRequest"];
+            };
+        };
+        responses: {
+            /** @description Área desactivada (o ya lo estaba) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrArea"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_AREAS */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Hay colaboradores activos asignados al área (HR_AREA_IN_USE) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El área no existe en la empresa (HR_AREA_NOT_FOUND) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reactivateHrArea: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HrAreaContextRequest"];
+            };
+        };
+        responses: {
+            /** @description Área activa */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrArea"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_AREAS */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El área no existe en la empresa (HR_AREA_NOT_FOUND) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1299,7 +1528,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_EMPLOYEES */
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_EMPLOYEES, o baseSalary distinto al vigente sin permiso MANAGE_SALARY (solo Gerencia): code EMPLOYEE_SALARY_GERENCIA_ONLY */
             403: {
                 headers: {
                     [name: string]: unknown;

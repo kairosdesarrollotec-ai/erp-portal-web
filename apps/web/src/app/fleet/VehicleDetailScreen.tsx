@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useVehicleDetail } from './useVehicleDetail';
 import { NewVehicleModal } from './NewVehicleModal';
@@ -49,7 +49,11 @@ export function VehicleDetailScreen() {
     reload,
   } = useVehicleDetail();
 
-  const [editModalOpen, setEditModalOpen] = useState(false);
+  // Atajo desde los avisos de datos faltantes de reserva/alquiler (DEC-ALQ-VEHDATA-001): abre el editor al entrar.
+  const location = useLocation();
+  const [editModalOpen, setEditModalOpen] = useState(
+    () => (location.state as { openEdit?: boolean } | null)?.openEdit === true,
+  );
 
   async function handleEditSubmit(data: VehicleFormData): Promise<boolean> {
     const ok = await editVehicle(data);
@@ -268,7 +272,7 @@ export function VehicleDetailScreen() {
 
       {/* Edit modal */}
       <NewVehicleModal
-        isOpen={editModalOpen}
+        isOpen={editModalOpen && canWrite}
         onClose={() => setEditModalOpen(false)}
         onSubmit={handleEditSubmit}
         isSubmitting={editSubmitting}

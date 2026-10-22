@@ -3,6 +3,7 @@ import { HrDialog } from './HrDialog';
 import { getFirebaseAuth } from '../providers/firebase';
 import { updateEmployee, type EmployeeDetail, type UpdateEmployeeInput, type UpdateEmployeeResult } from './hr-client';
 import { OTHER_AREA } from './hr-domain';
+import { useHrPermissions } from './hr-permissions';
 import { useHrAreaCatalog } from './useHrAreaCatalog';
 import { describeHrError, hrErrorCode, isVersionConflict } from './hr-errors';
 import styles from './HrDialog.module.css';
@@ -47,8 +48,11 @@ export function EditEmployeeDialog({ employee, onReload, onSaved, onCancel }: Pr
   const [reloadedNotice, setReloadedNotice] = useState(false);
   const baseVersion = employee.version;
   const catalog = useHrAreaCatalog(employee.companyId, employee.branchId);
+  // Respuestas de negocio #19: el sueldo base solo lo cambia Gerencia (HR_ADMINISTRATION.MANAGE_SALARY).
+  const canEditSalary = useHrPermissions().can('MANAGE_SALARY');
   const catalogCodes = new Set(catalog.areas.map((a) => a.code));
-  const initialAreaChoice = catalogCodes.has(employee.areaId) ? employee.areaId : OTHER_AREA;
+  const currentAreaCode = employee.areaCode || employee.areaId;
+  const initialAreaChoice = catalogCodes.has(currentAreaCode) ? currentAreaCode : OTHER_AREA;
   // Eleccion explicita de la persona; mientras no elija, se muestra el area actual de la ficha.
   const [areaChoiceState, setAreaChoice] = useState<string | null>(null);
   const areaChoice = areaChoiceState ?? initialAreaChoice;
@@ -73,7 +77,7 @@ export function EditEmployeeDialog({ employee, onReload, onSaved, onCancel }: Pr
     email: values.email.trim() !== '' && !EMAIL_PATTERN.test(values.email.trim()),
     jobTitle: !values.jobTitle.trim(),
     areaName: catalog.state === 'READY' && areaChoice === OTHER_AREA && !values.areaName.trim(),
-    baseSalary: salary !== null && (!Number.isFinite(salary) || salary < 0),
+    baseSalary: canEditSalary && salary !== null && (!Number.isFinite(salary) || salary < 0),
   };
 
   const initial = initialValues(employee);
@@ -82,12 +86,12 @@ export function EditEmployeeDialog({ employee, onReload, onSaved, onCancel }: Pr
   if (values.email.trim().toLowerCase() !== initial.email.trim().toLowerCase()) payload.email = values.email.trim() === '' ? null : values.email.trim();
   if (values.phone.trim() !== initial.phone) payload.phone = values.phone.trim() === '' ? null : values.phone.trim();
   if (values.jobTitle.trim() !== initial.jobTitle) payload.jobTitle = values.jobTitle.trim();
-  if (values.baseSalary.trim() !== initial.baseSalary) payload.baseSalary = salary;
+  if (canEditSalary && values.baseSalary.trim() !== initial.baseSalary) payload.baseSalary = salary;
   // H-02: el area solo se envia si el catalogo cargo y la persona la cambio (una carga fallida no toca el area).
   if (catalog.state === 'READY' && catalog.areas.length > 0) {
     if (areaChoice !== OTHER_AREA) {
-      if (areaChoice !== employee.areaId) payload.areaCode = areaChoice;
-    } else if (values.areaName.trim() !== employee.areaName || catalogCodes.has(employee.areaId)) {
+      if (areaChoice !== currentAreaCode) payload.areaCode = areaChoice;
+    } else if (values.areaName.trim() !== employee.areaName || catalogCodes.has(currentAreaCode)) {
       payload.areaName = values.areaName.trim();
     }
   } else if (catalog.state === 'READY' && values.areaName.trim() !== employee.areaName && values.areaName.trim() !== '') {
@@ -212,7 +216,7 @@ export function EditEmployeeDialog({ employee, onReload, onSaved, onCancel }: Pr
                 value={areaChoice}
                 onChange={(e) => {
                   setAreaChoice(e.target.value);
-                  if (e.target.value === OTHER_AREA && catalogCodes.has(employee.areaId)) setValues((v) => ({ ...v, areaName: '' }));
+                  if (e.target.value === OTHER_AREA && catalogCodes.has(currentAreaCode)) setValues((v) => ({ ...v, areaName: '' }));
                 }}
                 aria-describedby="edit-area-hint"
               >
@@ -251,7 +255,21 @@ export function EditEmployeeDialog({ employee, onReload, onSaved, onCancel }: Pr
         </div>
         <div className={styles.field}>
           <label htmlFor="edit-sueldo">Sueldo base</label>
-          <input id="edit-sueldo" inputMode="decimal" className={styles.inputLine} value={values.baseSalary} onChange={set('baseSalary')} aria-invalid={submitted && invalid.baseSalary} />
+          <input
+            id="edit-sueldo"
+            inputMode="decimal"
+            className={styles.inputLine}
+            value={values.baseSalary}
+            onChange={set('baseSalary')}
+            disabled={!canEditSalary}
+            aria-invalid={submitted && invalid.baseSalary}
+            aria-describedby={canEditSalary ? undefined : 'edit-sueldo-hint'}
+          />
+          {!canEditSalary && (
+            <span id="edit-sueldo-hint" className={styles.description}>
+              El sueldo base solo lo modifica Gerencia.
+            </span>
+          )}
           {submitted && invalid.baseSalary && (
             <span className={styles.error} role="alert">
               El sueldo debe ser un número mayor o igual a 0.

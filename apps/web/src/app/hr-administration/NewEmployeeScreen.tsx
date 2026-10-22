@@ -30,6 +30,8 @@ function NewEmployee() {
   }, 'nuevo-colaborador');
   const command = useHrCommand({ context, reload });
   const catalog = useHrAreaCatalog(context?.companyId, context?.branchId);
+  // Respuestas de negocio #19: el sueldo base solo lo define Gerencia (HR_ADMINISTRATION.MANAGE_SALARY).
+  const canEditSalary = useHrPermissions().can('MANAGE_SALARY');
   // H-02: con catalogo se elige un area (areaCode) o «Otra (texto libre)»; sin catalogo queda el texto libre de siempre.
   const catalogReady = catalog.state === 'READY' && catalog.areas.length > 0;
   const [areaChoice, setAreaChoice] = useState('');
@@ -90,7 +92,7 @@ function NewEmployee() {
     areaName: catalogReady ? areaChoice === '' || (areaChoice === OTHER_AREA && !areaName.trim()) : !areaId,
     jobTitle: !jobTitle.trim(),
     hireDate: !hireDate,
-    baseSalary: salary !== null && (!Number.isFinite(salary) || salary < 0),
+    baseSalary: canEditSalary && salary !== null && (!Number.isFinite(salary) || salary < 0),
   };
 
   async function submit(event: FormEvent) {
@@ -109,7 +111,7 @@ function NewEmployee() {
           hireDate,
           ...(email.trim() ? { email: email.trim() } : {}),
           ...(phone.trim() ? { phone: phone.trim() } : {}),
-          ...(salary !== null ? { baseSalary: salary } : {}),
+          ...(canEditSalary && salary !== null ? { baseSalary: salary } : {}),
           ...(candidateId ? { candidateId } : {}),
         }),
       'No pudimos registrar a la persona. Intenta de nuevo.',
@@ -226,7 +228,21 @@ function NewEmployee() {
         <label className={styles.fieldLabel} htmlFor="emp-sueldo">
           Sueldo base (opcional)
         </label>
-        <input id="emp-sueldo" inputMode="decimal" className={styles.input} value={baseSalary} onChange={(e) => setBaseSalary(e.target.value)} aria-invalid={submitted && invalid.baseSalary} />
+        <input
+          id="emp-sueldo"
+          inputMode="decimal"
+          className={styles.input}
+          value={baseSalary}
+          onChange={(e) => setBaseSalary(e.target.value)}
+          disabled={!canEditSalary}
+          aria-invalid={submitted && invalid.baseSalary}
+          aria-describedby={canEditSalary ? undefined : 'emp-sueldo-hint'}
+        />
+        {!canEditSalary && (
+          <p id="emp-sueldo-hint" className={styles.hint}>
+            El sueldo base solo lo define Gerencia.
+          </p>
+        )}
         {submitted && invalid.baseSalary && (
           <p className={styles.fieldError} role="alert">
             El sueldo debe ser un número mayor o igual a 0.

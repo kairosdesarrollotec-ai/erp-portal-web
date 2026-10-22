@@ -6,6 +6,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ReservationDetailScreen } from './ReservationDetailScreen';
 import { ReservationCommandError } from './reservations-client';
+import { clearPermissions, setPermissions } from '../../test/permissions';
 
 const getReservationMock = vi.fn();
 const registerPaymentMock = vi.fn();
@@ -213,5 +214,31 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
       expect(await screen.findByText('No se pudo completar la operación. Intenta de nuevo.')).toBeInTheDocument();
       expect(screen.queryByText(/cambió por otra operación/)).not.toBeInTheDocument();
     });
+  });
+
+  it('DEC-ALQ-VEHDATA-001: muestra los avisos de datos faltantes del vehículo con atajo a Editar vehículo (FLEET.WRITE)', async () => {
+    clearPermissions();
+    setPermissions(['FLEET.WRITE']);
+    getReservationMock.mockResolvedValue(
+      buildReservation({
+        vehicleWarnings: [
+          { code: 'VEHICLE_DEPOSIT_MINIMUM_MISSING', field: 'depositMinimum', message: 'x' },
+          { code: 'VEHICLE_FUEL_PRICE_MISSING', field: 'fuelPrice', message: 'x' },
+        ],
+      }),
+    );
+    renderScreen();
+
+    expect(await screen.findByTestId('vehicle-warning-VEHICLE_DEPOSIT_MINIMUM_MISSING')).toBeInTheDocument();
+    expect(screen.getByTestId('vehicle-warning-VEHICLE_FUEL_PRICE_MISSING')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Editar vehículo' })).toHaveAttribute('href', '/flota/v');
+    clearPermissions();
+  });
+
+  it('sin avisos de vehículo no muestra el recuadro', async () => {
+    getReservationMock.mockResolvedValue(buildReservation({ vehicleWarnings: [] }));
+    renderScreen();
+    await screen.findByText('Borrador / No confirmada');
+    expect(screen.queryByTestId('vehicle-data-warnings')).not.toBeInTheDocument();
   });
 });

@@ -10,6 +10,8 @@ import { can, usePermissions } from '../shared/usePermissions';
  *  - REC-05: MANAGE_INTERVIEW.
  *  - REC-06: DECIDE_CANDIDATE (exclusivo Gerencia/RR.HH., BR-REC-003).
  *  - REC-07: MANAGE_ONBOARDING. REC-08: EVALUATE_PROBATION.
+ * - recruitment.yaml 0.4.0: DECIDE_NO_ADVANCE («No avanza» tras la entrevista) y TERMINATE_PROBATION (término por prueba
+ *   negativa): ambas solo Gerencia General (Respuestas de negocio #12 y #13).
  * Mientras los permisos cargan (o si fallan) no se muestra ninguna accion.
  */
 export type RecruitmentAction =
@@ -22,7 +24,9 @@ export type RecruitmentAction =
   | 'MANAGE_INTERVIEW'
   | 'DECIDE_CANDIDATE'
   | 'MANAGE_ONBOARDING'
-  | 'EVALUATE_PROBATION';
+  | 'EVALUATE_PROBATION'
+  | 'DECIDE_NO_ADVANCE'
+  | 'TERMINATE_PROBATION';
 
 /** Funcion pura sobre un conjunto de permisos concedidos. */
 export function canRecruitmentAction(granted: ReadonlySet<string>, action: RecruitmentAction): boolean {

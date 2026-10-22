@@ -53,7 +53,7 @@ describe('ProbationScreen (REC-08)', () => {
     getCandidateMock.mockReset();
     evaluateMock.mockReset();
     setFeesMock.mockReset();
-    setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.EVALUATE_PROBATION']);
+    setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.EVALUATE_PROBATION', 'RECRUITMENT.TERMINATE_PROBATION']);
     setMobile(false);
   });
 
@@ -108,12 +108,21 @@ describe('ProbationScreen (REC-08)', () => {
     evaluateMock.mockResolvedValue(makeOnboarding());
     renderScreen();
     await user.type(await screen.findByLabelText('Evaluación cualitativa'), 'No cumple');
-    await user.click(screen.getByRole('button', { name: 'Registrar evaluación negativa' }));
+    await user.click(screen.getByRole('button', { name: 'Registrar término por prueba negativa' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).queryByRole('checkbox')).toBeNull();
     await user.click(within(dialog).getByRole('button', { name: 'Confirmar evaluación negativa' }));
     await waitFor(() => expect(evaluateMock).toHaveBeenCalled());
     expect(evaluateMock.mock.calls[0][3]).toBe(false);
+  });
+
+  it('sin TERMINATE_PROBATION (solo Gerencia General) no ofrece registrar el término, pero sí la evaluación positiva', async () => {
+    setPermissions(['RECRUITMENT.VIEW_CANDIDATE', 'RECRUITMENT.EVALUATE_PROBATION']);
+    getCandidateMock.mockResolvedValue(withOnboarding({ startDate: '2025-01-01' }));
+    renderScreen();
+    expect(await screen.findByRole('button', { name: 'Registrar evaluación positiva' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar término por prueba negativa' })).toBeNull();
+    expect(screen.getByText(/término por prueba negativa lo registra Gerencia General/)).toBeInTheDocument();
   });
 
   it('ya evaluada negativa: badge con texto y sin formulario', async () => {

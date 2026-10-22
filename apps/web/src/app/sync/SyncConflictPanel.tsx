@@ -10,6 +10,7 @@ import {
   type SyncResolution,
 } from './sync-client';
 import { describeSyncError, shouldReloadSyncConflicts } from './sync-errors';
+import { conflictSubject } from './sync-labels';
 import styles from './SyncConflictPanel.module.css';
 
 /**
@@ -26,37 +27,15 @@ import styles from './SyncConflictPanel.module.css';
 const REASON_MIN = 10;
 const REASON_MAX = 500;
 
-const FIELD_LABELS: Record<string, string> = {
-  technicalMinutes: 'Minutos técnicos',
-  documentaryMinutes: 'Minutos documentarios',
-  notes: 'Notas',
-  exceptionReason: 'Motivo de excepción',
-  fivDone: 'FIV completado',
-  fckeDone: 'FCKE completado',
-};
-
 const RESOLUTION_COPY: Record<SyncResolution, { button: string; keeps: string }> = {
   KEEP_LOCAL: { button: 'Conservar la mía', keeps: 'tu versión (la de este dispositivo)' },
   KEEP_SERVER: { button: 'Conservar del servidor', keeps: 'la versión del servidor' },
   MERGE: { button: 'Combinar', keeps: 'ambas versiones combinadas' },
 };
 
-function humanize(text: string): string {
-  const spaced = text.replace(/_/g, ' ').toLowerCase();
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
-}
-
 function conflictTitle(conflict: SyncConflict): string {
   const where = conflict.checklistType === 'ENTREGA' ? 'Entrega' : 'Recepción';
   return `Conflicto en ${where}`;
-}
-
-function conflictSubject(conflict: SyncConflict): string {
-  if (conflict.kind === 'EVIDENCE') {
-    const [zone, slot] = conflict.key.split('#');
-    return `Toma ${humanize(zone ?? conflict.key)}${slot ? ` n.º ${slot}` : ''}`;
-  }
-  return FIELD_LABELS[conflict.key] ?? conflict.key;
 }
 
 function isEvidenceVersion(v: SyncFieldVersion | SyncEvidenceVersion): v is SyncEvidenceVersion {

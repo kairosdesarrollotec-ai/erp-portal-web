@@ -17,13 +17,19 @@ interface Props {
 /** Confirmación reforzada de una decisión irreversible (REC-06). */
 export function ConfirmDecisionDialog({ candidate, decision, busy, error, onConfirm, onCancel }: Props) {
   const [notes, setNotes] = useState('');
+  const [touched, setTouched] = useState(false);
   const hire = decision === 'CONTRATADO';
   const interviews = [...(candidate.interviews ?? [])].sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt));
   const last = interviews[0];
 
+  // Respuestas de negocio #14 / recruitment 0.4.0: rechazar a quien ya fue entrevistado = Descartado CON motivo obligatorio.
+  const reasonRequired = !hire && candidate.processState === 'ENTREVISTADO';
+  const reasonMissing = reasonRequired && !notes.trim();
+
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (!busy) onConfirm(notes.trim());
+    setTouched(true);
+    if (!busy && !reasonMissing) onConfirm(notes.trim());
   }
 
   return (
@@ -53,14 +59,22 @@ export function ConfirmDecisionDialog({ candidate, decision, busy, error, onConf
             : 'Esta decisión no se puede deshacer. El candidato queda descartado para esta vacante y no podrá incorporarse.'}
         </p>
         <div className={styles.field}>
-          <label htmlFor="decision-notes">Notas de la decisión (opcional)</label>
+          <label htmlFor="decision-notes">{reasonRequired ? 'Motivo del descarte (obligatorio)' : 'Notas de la decisión (opcional)'}</label>
           <textarea
             id="decision-notes"
             className={styles.input}
             value={notes}
+            maxLength={1000}
             onChange={(e) => setNotes(e.target.value)}
             disabled={busy}
+            aria-required={reasonRequired}
+            aria-invalid={touched && reasonMissing}
           />
+          {touched && reasonMissing && (
+            <p className={styles.error} role="alert">
+              Indica el motivo del descarte.
+            </p>
+          )}
         </div>
         {error && (
           <p className={styles.error} role="alert">

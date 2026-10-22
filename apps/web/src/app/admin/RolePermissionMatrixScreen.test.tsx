@@ -125,6 +125,22 @@ describe('RolePermissionMatrixScreen (ADM-02)', () => {
     expect(screen.getByRole('checkbox', { name: 'Supervisor de flota: Reserva: registrar pago' })).not.toBeChecked();
   });
 
+  it('muestra las acciones nuevas del catálogo (admin 0.5.0): NOTIFICATIONS, áreas, sueldo, «No avanza» y término por prueba', async () => {
+    const extra = [
+      { module: 'NOTIFICATIONS' as const, action: 'RECEIVE_RETURN_ALERTS', label: 'Notificaciones: recibir alertas de devolución en el tablero (garantía 24 h)' },
+      { module: 'HR_ADMINISTRATION' as const, action: 'MANAGE_AREAS', label: 'Personal: dar de alta y desactivar áreas (solo Gerencia)' },
+      { module: 'HR_ADMINISTRATION' as const, action: 'MANAGE_SALARY', label: 'Personal: editar el sueldo base de la ficha (solo Gerencia)' },
+      { module: 'RECRUITMENT' as const, action: 'DECIDE_NO_ADVANCE', label: 'Reclutamiento: decidir «No avanza» tras la entrevista (solo Gerencia)' },
+      { module: 'RECRUITMENT' as const, action: 'TERMINATE_PROBATION', label: 'Reclutamiento: registrar término tras prueba negativa (solo Gerencia)' },
+    ];
+    getRolePermissionMatrixMock.mockResolvedValue({ ...baseMatrix(), actionCatalog: [...CATALOG, ...extra] });
+    renderScreen();
+    for (const item of extra) {
+      expect(await screen.findByRole('checkbox', { name: `Front Office: ${item.label}` })).not.toBeChecked();
+    }
+    expect(await screen.findByRole('status')).toHaveTextContent('Notificaciones: recibir alertas de devolución');
+  });
+
   it('la fila de PLATFORM_ADMIN es de solo lectura', async () => {
     renderScreen();
     const cell = await screen.findByRole('checkbox', { name: 'Administrador de Plataforma: Reserva: registrar pago' });

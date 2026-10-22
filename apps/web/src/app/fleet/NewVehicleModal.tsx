@@ -49,8 +49,8 @@ const vehicleSchema = z.object({
   brand: z.string().min(1, 'La marca es obligatoria.'),
   model: z.string().min(1, 'El modelo es obligatorio.'),
   year: z.string().refine(
-    (v) => v === '' || (Number.isInteger(Number(v)) && Number(v) >= 1990 && Number(v) <= 2035),
-    { message: 'Ingrese un año válido entre 1990 y 2035.' },
+    (v) => v === '' || (Number.isInteger(Number(v)) && Number(v) >= 1950 && Number(v) <= 2100),
+    { message: 'Ingrese un año válido entre 1950 y 2100.' },
   ),
   color: z.string(),
   category: z.string(),
@@ -217,10 +217,10 @@ export function NewVehicleModal({
 
     const parsedYear = values.year ? parseInt(values.year, 10) : undefined;
     const parsedRate = values.dailyRate ? parseFloat(values.dailyRate) : undefined;
-    // DEC-FLT-CAP-001 (G-05): la capacidad de pasajeros se pide siempre al registrar. Al editar, un vehículo
-    // anterior sin capacidad puede seguir guardándose en blanco; si ya tenía una, no se puede vaciar.
-    // Garantía y precio del combustible son opcionales (se completan cuando se requieran).
-    if (!(values.passengerCapacity ?? '').trim() && (!isEditMode || vehicle?.passengerCapacity != null)) {
+    // DEC-FLT-CAP-001 / Respuestas 2026-10-20 #3-#4: todo vehículo tiene capacidad > 0 (máx. 60), al registrar y al editar
+    // (el botón Editar sirve para completarla en vehículos antiguos). Garantía y combustible son opcionales: si faltan,
+    // la reserva/alquiler avisará para completarlos.
+    if (!(values.passengerCapacity ?? '').trim()) {
       setError('passengerCapacity', { message: PASSENGER_CAPACITY_REQUIRED_MESSAGE });
       return;
     }
@@ -358,8 +358,8 @@ export function NewVehicleModal({
                 className={styles.input}
                 {...register('year')}
                 placeholder="2024"
-                min={1990}
-                max={2035}
+                min={1950}
+                max={2100}
                 disabled={isSubmitting}
                 aria-invalid={!!errors.year}
               />
@@ -404,10 +404,11 @@ export function NewVehicleModal({
                 disabled={isSubmitting}
                 aria-invalid={!!errors.depositMinimum}
               />
+              <span className={styles.fieldHint}>Si no lo sabe, se le avisará al reservar o alquilar este vehículo.</span>
             </label>
 
             <label className={styles.field}>
-              Capacidad de pasajeros {isEditMode && vehicle?.passengerCapacity == null ? '' : '*'}
+              Capacidad de pasajeros *
               <input
                 type="number"
                 step="1"
@@ -417,7 +418,7 @@ export function NewVehicleModal({
                 {...register('passengerCapacity')}
                 placeholder="5"
                 disabled={isSubmitting}
-                required={!isEditMode || vehicle?.passengerCapacity != null}
+                required
                 aria-invalid={!!errors.passengerCapacity}
               />
               {isEditMode && vehicle?.passengerCapacity == null && (
@@ -439,6 +440,7 @@ export function NewVehicleModal({
                 disabled={isSubmitting}
                 aria-invalid={!!errors.fuelPrice}
               />
+              <span className={styles.fieldHint}>Si no lo sabe, se le avisará al reservar o alquilar este vehículo.</span>
             </label>
           </div>
 

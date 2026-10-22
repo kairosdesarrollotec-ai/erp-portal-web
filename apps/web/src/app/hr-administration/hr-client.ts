@@ -1,5 +1,6 @@
 import { hrAdministrationApiClient } from '../../api/hr-administration-api-client';
 import type { components } from '../../api/hr-administration.generated';
+import { ATTENDANCE_LOCATION_SENDING_ENABLED, type AttendanceLocation } from './attendance-location';
 import type { AttendanceStatus, EmployeeStatus, FieldTripStatus, LeaveType, TerminationReason } from './hr-domain';
 
 export type EmployeeResponse = components['schemas']['EmployeeResponse'];
@@ -90,15 +91,52 @@ export async function listEmployees(
   return data;
 }
 
+export interface ListHrAreasOptions {
+  /** Incluye las áreas desactivadas. Solo con HR_ADMINISTRATION.MANAGE_AREAS (Gerencia General); si no, 403. */
+  includeInactive?: boolean;
+}
+
 /** Catalogo de areas de RR.HH. de la empresa (H-02). Lista vacia si la empresa aun no tiene catalogo. */
-export async function listHrAreas(idToken: string, scope: HrScope, signal?: AbortSignal): Promise<HrArea[]> {
+export async function listHrAreas(idToken: string, scope: HrScope, signal?: AbortSignal, options: ListHrAreasOptions = {}): Promise<HrArea[]> {
   const { data, error, response } = await hrAdministrationApiClient.GET('/hr-areas', {
-    params: { query: { ...scope } },
+    params: { query: { ...scope, ...(options.includeInactive ? { includeInactive: true } : {}) } },
     headers: authHeaders(idToken),
     signal,
   });
   if (error || !data) throw new HrApiError(response.status);
   return data.items;
+}
+
+/** Alta de un área del catálogo (solo Gerencia General). 409 HR_AREA_ALREADY_EXISTS, 422 HR_AREA_NAME_INVALID. */
+export async function createHrArea(idToken: string, scope: HrScope, input: { name: string; description?: string }): Promise<HrArea> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/hr-areas', {
+    headers: authHeaders(idToken),
+    body: { ...scope, name: input.name, ...(input.description ? { description: input.description } : {}) },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** Desactiva un área (idempotente). 409 HR_AREA_IN_USE si hay colaboradores activos asignados. */
+export async function deactivateHrArea(idToken: string, scope: HrScope, code: string): Promise<HrArea> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/hr-areas/{code}/deactivate', {
+    params: { path: { code } },
+    headers: authHeaders(idToken),
+    body: scope,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** Reactiva un área desactivada (idempotente). */
+export async function reactivateHrArea(idToken: string, scope: HrScope, code: string): Promise<HrArea> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/hr-areas/{code}/reactivate', {
+    params: { path: { code } },
+    headers: authHeaders(idToken),
+    body: scope,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
 }
 
 export async function getEmployee(idToken: string, id: string): Promise<EmployeeDetail> {
@@ -123,6 +161,8 @@ export interface AttendanceEvidenceInput {
 }
 
 export interface LogAttendanceInput {
+  /** HU-29: ubicación automática; solo viaja si ATTENDANCE_LOCATION_SENDING_ENABLED (hr-administration 0.8.0). */
+  location?: AttendanceLocation | null;
   date: string;
   status: AttendanceStatus;
   /** Obligatorio (> 0) solo para TARDANZA; para el resto no se envia. */
@@ -149,6 +189,7 @@ export async function logAttendance(idToken: string, employeeId: string, input: 
     ...(input.checkOutTime ? { checkOutTime: input.checkOutTime } : {}),
     ...(input.notes ? { notes: input.notes } : {}),
     ...(input.evidence ? { evidence: input.evidence } : {}),
+    ...(ATTENDANCE_LOCATION_SENDING_ENABLED && input.location ? { ...input.location } : {}),
   } as unknown as components['schemas']['LogAttendanceRequest'];
   const { data, error, response } = await hrAdministrationApiClient.POST('/employees/{id}/attendance', {
     params: { path: { id: employeeId } },

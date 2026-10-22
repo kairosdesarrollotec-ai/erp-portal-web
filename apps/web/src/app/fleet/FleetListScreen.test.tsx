@@ -473,7 +473,7 @@ describe('FleetListScreen', () => {
       });
     });
 
-    it('permite editar otros datos de un vehículo sin capacidad sin exigirla (no bloquea vehículos existentes)', async () => {
+    it('Respuestas 2026-10-20 #3-#4: editar un vehículo antiguo exige completar la capacidad (nunca 0) y la guarda', async () => {
       listVehiclesMock.mockResolvedValue({
         items: [{ ...baseVehicle, id: 'v-old', plate: 'OLD-001', passengerCapacity: null }],
         total: 1,
@@ -482,15 +482,34 @@ describe('FleetListScreen', () => {
       renderScreen();
 
       fireEvent.click(await screen.findByRole('button', { name: 'Editar' }));
+      expect(screen.getByLabelText(/^Capacidad de pasajeros/)).toBeRequired();
       fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), { target: { value: 'Navara' } });
       fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
+      expect(
+        await screen.findByText('Indique cuántos pasajeros admite el vehículo (capacidad de pasajeros, de 1 a 60).'),
+      ).toBeInTheDocument();
+      expect(updateVehicleMock).not.toHaveBeenCalled();
 
+      fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '0' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
+      expect(await screen.findByText('La capacidad de pasajeros debe ser un entero entre 1 y 60.')).toBeInTheDocument();
+      expect(updateVehicleMock).not.toHaveBeenCalled();
+    });
+
+    it('el año admite el rango de la API (1950..2100) y muestra la ayuda de garantía/combustible', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [{ ...baseVehicle, id: 'v-ok', plate: 'OKK-002', passengerCapacity: 5 }],
+        total: 1,
+      });
+      updateVehicleMock.mockResolvedValue({ id: 'v-ok' });
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Editar' }));
+      expect(screen.getAllByText('Si no lo sabe, se le avisará al reservar o alquilar este vehículo.')).toHaveLength(2);
+      fireEvent.change(screen.getByLabelText(/^Año/), { target: { value: '1985' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
       await waitFor(() => {
-        expect(updateVehicleMock).toHaveBeenCalledWith(
-          'fake-id-token',
-          'v-old',
-          expect.objectContaining({ model: 'Navara', passengerCapacity: undefined }),
-        );
+        expect(updateVehicleMock).toHaveBeenCalledWith('fake-id-token', 'v-ok', expect.objectContaining({ year: 1985 }));
       });
     });
 

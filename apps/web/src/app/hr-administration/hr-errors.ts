@@ -12,6 +12,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   ATTENDANCE_NOT_FOUND: 'No encontramos ese registro de asistencia.',
   EMPLOYEE_NOT_LINKED: 'Tu usuario todavía no está vinculado a una ficha de colaborador. Pide a Personal que registre tu correo de acceso en tu ficha.',
   // 409
+  HR_AREA_ALREADY_EXISTS: 'Ya existe un área con ese nombre en la empresa (activa o desactivada). Si está desactivada, reactívala desde la lista.',
+  HR_AREA_IN_USE: 'No se puede desactivar el área: todavía tiene personal activo asignado. Reasigna a esas personas primero.',
   CANDIDATE_ALREADY_EMPLOYEE: 'Este candidato ya fue registrado como personal.',
   DUPLICATE_EMPLOYEE_DOCUMENT: 'Ya existe una persona registrada con ese documento en esta empresa.',
   EMPLOYEE_TERMINATED: 'La relación laboral de esta persona ya terminó: no se pueden registrar nuevos movimientos.',
@@ -39,11 +41,15 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   ATTENDANCE_EVIDENCE_REQUIRED: 'La foto de evidencia es obligatoria para registrar una asistencia (presente o tardanza).',
   EMPLOYEE_EMAIL_REQUIRED: 'La ficha no tiene correo registrado: agrégalo antes de vincular la cuenta.',
   USER_ACCOUNT_NOT_FOUND: 'No existe una cuenta de usuario con el correo de esta ficha.',
+  HR_AREA_NAME_INVALID: 'El nombre del área no es válido: usa letras o números (por ejemplo, «Logística»).',
+  HR_AREA_NOT_FOUND: 'Esa área no existe en el catálogo de la empresa.',
   EMPLOYEE_ACCOUNT_ALREADY_LINKED: 'Este correo ya está vinculado a otra ficha de personal.',
   // 412 (If-Match): la ficha cambio desde que se abrio la edicion.
   EMPLOYEE_VERSION_CONFLICT: 'Otra persona modificó esta ficha mientras la editabas. No se guardó ningún cambio.',
   INVALID_ATTENDANCE_RECORD: 'El registro de asistencia no es válido: una tardanza necesita los minutos de tardanza.',
   DEDUCTIONS_BEFORE_MONTH_END: 'Los descuentos se aplican al cerrar el mes: todavía no se puede aplicar.',
+  // 403
+  EMPLOYEE_SALARY_GERENCIA_ONLY: 'El sueldo base solo lo cambia Gerencia. No se guardó ningún cambio de la ficha.',
   // 400
   INVALID_DATE_RANGE: 'La fecha de inicio debe ser anterior o igual a la fecha de término.',
   INVALID_LEAVE_STATUS: 'La resolución del permiso no es válida: solo se aprueba o se deniega.',
