@@ -155,6 +155,23 @@ export async function pauseVacancy(
   return data;
 }
 
+/** REC-01 / REC-02 - "Cancelar" vacante (If-Match, motivo obligatorio; recruitment.yaml 0.6.0). No borra candidatos. */
+export async function cancelVacancy(
+  idToken: string,
+  id: string,
+  version: number,
+  scope: RecruitmentScope,
+  reason: string,
+): Promise<VacancyDetail> {
+  const { data, error, response } = await recruitmentApiClient.POST('/vacancies/{id}/commands/cancel', {
+    params: { path: { id }, header: { 'If-Match': ifMatch(version) } },
+    headers: authHeaders(idToken),
+    body: { ...scope, reason },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
 /** REC-01 / REC-02 - "Reanudar" una vacante pausada (If-Match). */
 export async function resumeVacancy(
   idToken: string,

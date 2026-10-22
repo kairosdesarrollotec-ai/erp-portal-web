@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import { useInquiryVehicles } from './useInquiryVehicles';
+import { useInquiryVehicles, vehicleFitsParty } from './useInquiryVehicles';
 import { estimateQuoteTotal } from './vehicle-catalog';
 import { AppHeader } from '../shared/AppHeader';
 import styles from './InquiryVehiclesScreen.module.css';
@@ -45,6 +45,7 @@ export function InquiryVehiclesScreen() {
   const showVirtualEvidence = navState?.displayMode === 'VIRTUAL';
 
   const filteredVehicles = vehicles.filter((v) => {
+    if (!vehicleFitsParty(v, navState?.travelers)) return false;
     const q = search.trim().toLowerCase();
     const matchesSearch = q === '' || v.model.toLowerCase().includes(q);
     const matchesMin = priceMin === '' || v.dailyRate >= Number(priceMin);
@@ -175,6 +176,15 @@ export function InquiryVehiclesScreen() {
                       </span>
                     ) : null}
                   </span>
+
+                  <span className={styles.rateTotal}>
+                    {vehicle.passengerCapacity != null ? `Capacidad: ${vehicle.passengerCapacity} pasajeros` : 'Capacidad no registrada'}
+                  </span>
+                  {vehicle.vehicleWarnings.map((warning) => (
+                    <p key={warning} className={styles.busyNotice} role="status">
+                      {warning}
+                    </p>
+                  ))}
 
                   {!vehicle.available && (
                     <p id={reasonId} className={styles.unavailableReason}>

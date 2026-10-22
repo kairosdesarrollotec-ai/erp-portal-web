@@ -28,5 +28,5 @@ export function immobilizationAlertText(alert: ImmobilizationAlert): string {
   const days = `${alert.pendingDays} día${alert.pendingDays === 1 ? '' : 's'}`;
   const suggested =
     alert.suggestedAmount != null ? ` Monto sugerido: ${formatPen(alert.suggestedAmount)} (el cobro es manual).` : ' El cobro es manual.';
-  return `Han pasado ${hoursLabel(alert.hoursElapsed)} desde la recepción: ${days} de paralización pendiente${alert.pendingDays === 1 ? '' : 's'} de cobro.${suggested}`;
+  return `Han pasado ${hoursLabel(alert.hoursElapsed)} desde el cierre de la devolución: ${days} de paralización pendiente${alert.pendingDays === 1 ? '' : 's'} de cobro.${suggested}`;
 }

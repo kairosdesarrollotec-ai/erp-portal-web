@@ -143,4 +143,18 @@ describe('EmployeeFileScreen (ADP-01 ficha)', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent(/No existe una cuenta de usuario/);
     });
   });
+
+  it('HU-35: si el back enmascara el documento (documentNumber null) la ficha no muestra la fila Documento', async () => {
+    getEmployeeMock.mockResolvedValue(makeDetail({ documentNumber: null, restrictedFields: ['documentNumber'] }));
+    renderScreen();
+    expect(await screen.findByRole('heading', { name: 'Carlos Pérez' })).toBeInTheDocument();
+    expect(screen.queryByText('Documento')).not.toBeInTheDocument();
+    expect(screen.queryByText(/45678912/)).not.toBeInTheDocument();
+  });
+
+  it('HU-35: con documentNumber presente sí lo muestra', async () => {
+    getEmployeeMock.mockResolvedValue(makeDetail());
+    renderScreen();
+    expect(await screen.findByText(/45678912/)).toBeInTheDocument();
+  });
 });

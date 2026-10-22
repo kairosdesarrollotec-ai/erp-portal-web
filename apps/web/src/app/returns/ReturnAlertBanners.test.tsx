@@ -49,7 +49,7 @@ describe('ReturnAlertBanners (detalle del expediente)', () => {
       />,
     );
     const banner = screen.getByTestId('alert-immobilization');
-    expect(banner).toHaveTextContent('Han pasado 30 h desde la recepción');
+    expect(banner).toHaveTextContent('Han pasado 30 h desde el cierre de la devolución');
     expect(banner).toHaveTextContent('1 día de paralización pendiente de cobro');
     expect(banner).toHaveTextContent('Monto sugerido: S/ 120.00 (el cobro es manual)');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

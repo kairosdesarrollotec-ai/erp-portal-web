@@ -8,6 +8,8 @@ const listVacanciesMock = vi.fn();
 const registerVacancyMock = vi.fn();
 const pauseVacancyMock = vi.fn();
 const resumeVacancyMock = vi.fn();
+const cancelVacancyMock = vi.fn();
+const listAreasMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -27,7 +29,13 @@ vi.mock('./recruitment-client', async () => {
     registerVacancy: (...args: unknown[]) => registerVacancyMock(...args),
     pauseVacancy: (...args: unknown[]) => pauseVacancyMock(...args),
     resumeVacancy: (...args: unknown[]) => resumeVacancyMock(...args),
+    cancelVacancy: (...args: unknown[]) => cancelVacancyMock(...args),
   };
+});
+// El área sale del catálogo hr_areas (GET /hr-areas).
+vi.mock('../hr-administration/hr-client', async () => {
+  const actual = await vi.importActual<typeof import('../hr-administration/hr-client')>('../hr-administration/hr-client');
+  return { ...actual, listHrAreas: (...args: unknown[]) => listAreasMock(...args) };
 });
 
 const ctx = { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central' };
@@ -56,6 +64,12 @@ describe('VacanciesListScreen (REC-01)', () => {
     registerVacancyMock.mockReset();
     pauseVacancyMock.mockReset();
     resumeVacancyMock.mockReset();
+    cancelVacancyMock.mockReset();
+    listAreasMock.mockReset();
+    listAreasMock.mockResolvedValue([
+      { code: 'VENTAS', name: 'Ventas', description: null, sortOrder: 1, isActive: true },
+      { code: 'OPERACIONES', name: 'Operaciones', description: null, sortOrder: 2, isActive: true },
+    ]);
     setPermissions(['RECRUITMENT.VIEW_VACANCY', 'RECRUITMENT.CREATE_VACANCY']);
   });
 
@@ -116,7 +130,10 @@ describe('VacanciesListScreen (REC-01)', () => {
     expect(within(dialog).getByText('Elige el motivo de la necesidad.')).toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByLabelText('Crecimiento'));
-    fireEvent.change(within(dialog).getByRole('textbox', { name: /^Área/ }), { target: { value: 'Ventas' } });
+    // El área es un select alimentado por el catálogo, no texto libre.
+    expect(within(dialog).queryByRole('textbox', { name: /^Área/ })).toBeNull();
+    await waitFor(() => expect(within(dialog).getByRole('option', { name: 'Ventas' })).toBeInTheDocument());
+    fireEvent.change(within(dialog).getByRole('combobox', { name: /^Área/ }), { target: { value: 'Ventas' } });
     fireEvent.change(within(dialog).getByRole('textbox', { name: /^Puesto/ }), { target: { value: 'Asesor' } });
     fireEvent.click(within(dialog).getByLabelText('Es puesto de mecánico'));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Continuar a perfil' }));
@@ -166,6 +183,42 @@ describe('VacanciesListScreen (REC-01)', () => {
       renderScreen();
       await screen.findByRole('table');
       expect(within(screen.getByLabelText('Estado')).getByRole('option', { name: 'Pausada' })).toBeInTheDocument();
+    });
+  });
+
+  describe('Cancelar vacante', () => {
+    beforeEach(() => {
+      setPermissions(['RECRUITMENT.VIEW_VACANCY', 'RECRUITMENT.CANCEL_VACANCY']);
+    });
+
+    it('ofrece Cancelar en vacantes activas (incluida NECESIDAD_REGISTRADA), exige motivo y actualiza la fila', async () => {
+      listVacanciesMock.mockResolvedValue([
+        makeVacancy({ id: 'v2', title: 'Asesor', status: 'NECESIDAD_REGISTRADA', version: 4 }),
+        makeVacancy({ id: 'v3', title: 'Chofer', status: 'CANCELADA' }),
+      ]);
+      cancelVacancyMock.mockResolvedValue(makeVacancy({ id: 'v2', title: 'Asesor', status: 'CANCELADA', version: 5, cancelReason: 'Ya no se necesita' }));
+      renderScreen();
+      await screen.findByRole('table');
+      expect(screen.queryByRole('button', { name: 'Cancelar vacante Chofer' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar vacante Asesor' }));
+      const dialog = await screen.findByRole('dialog');
+      const confirm = within(dialog).getByRole('button', { name: 'Confirmar cancelación' });
+      expect(confirm).toBeDisabled(); // motivo obligatorio
+      fireEvent.change(within(dialog).getByLabelText(/Motivo de la cancelación/), { target: { value: 'Ya no se necesita' } });
+      fireEvent.click(confirm);
+      await waitFor(() =>
+        expect(cancelVacancyMock).toHaveBeenCalledWith('fake-id-token', 'v2', 4, { companyId: 'c1', branchId: 'b1' }, 'Ya no se necesita'),
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(screen.queryByRole('button', { name: 'Cancelar vacante Asesor' })).toBeNull();
+    });
+
+    it('sin RECRUITMENT.CANCEL_VACANCY no ofrece cancelar', async () => {
+      setPermissions(['RECRUITMENT.VIEW_VACANCY']);
+      listVacanciesMock.mockResolvedValue([makeVacancy({ status: 'PUBLICADA' })]);
+      renderScreen();
+      await screen.findByRole('table');
+      expect(screen.queryByRole('button', { name: /Cancelar vacante/ })).toBeNull();
     });
   });
 });

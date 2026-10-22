@@ -28,6 +28,10 @@ export interface InquiryVehicle {
   available: boolean;
   conflictFrom?: string;
   conflictTo?: string;
+  /** Capacidad de pasajeros del vehiculo (null = dato faltante en Flota). */
+  passengerCapacity: number | null;
+  /** Avisos de datos faltantes del vehiculo (no bloquean la cotizacion). */
+  vehicleWarnings: string[];
 }
 
 /**
@@ -60,6 +64,10 @@ function toInquiryVehicle(vehicle: FleetVehicle): InquiryVehicle | null {
     available: vehicle.availability?.available !== false,
     conflictFrom: vehicle.availability?.conflictFrom,
     conflictTo: vehicle.availability?.conflictTo,
+    passengerCapacity: vehicle.passengerCapacity ?? null,
+    vehicleWarnings: [
+      ...(vehicle.passengerCapacity == null ? ['Falta la capacidad de pasajeros en Flota: no se puede validar contra el grupo.'] : []),
+    ],
   };
 }
 
@@ -79,6 +87,16 @@ function toInquiryVehicle(vehicle: FleetVehicle): InquiryVehicle | null {
  * recuperar en un deep link: quedan vacios, documentado como limitacion
  * conocida (mismo motivo que Critico #1 de la revision).
  */
+/**
+ * Decision 22-oct (CON-03/04): solo se ofrecen vehiculos con capacidad >= `partySize` (personas de la
+ * consulta). Si el vehiculo no tiene capacidad registrada no se descarta (aviso en la tarjeta).
+ */
+export function vehicleFitsParty(vehicle: Pick<InquiryVehicle, 'passengerCapacity'>, partySize: number | null | undefined): boolean {
+  if (!partySize || partySize < 1) return true;
+  if (vehicle.passengerCapacity == null) return true;
+  return vehicle.passengerCapacity >= partySize;
+}
+
 export function useInquiryVehicles() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -160,7 +178,7 @@ export function useInquiryVehicles() {
           // CON-02 con el formulario recien lleno.
           destination: inquiry.destination ?? '',
           travelDate: inquiry.travelStartDate ?? '',
-          travelers: 1,
+          travelers: inquiry.partySize ?? 1,
           travelDays: inquiry.estimatedDays ?? 1,
           displayMode: 'PRESENCIAL',
           channel: inquiry.channel as InquiryNavState['channel'],

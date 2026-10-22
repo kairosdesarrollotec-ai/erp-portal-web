@@ -16,6 +16,7 @@ import {
   VEHICLE_NOT_AVAILABLE_MESSAGE,
 } from './reservations-client';
 import { useWorkContextForReservations } from './useWorkContextForReservations';
+import type { ReservationPaymentBody } from '../shared/payment-proof';
 
 /** RES-04/RES-05 - estados del detalle (contrato RES-04 punto 9). */
 export type ReservationDetailState = 'LOADING' | 'READY' | 'RECOVERABLE_ERROR' | 'SYNC_CONFLICT';
@@ -101,11 +102,11 @@ export function useReservationDetail() {
     return null;
   }
 
-  const uploadPaymentVoucher = () =>
+  const uploadPaymentVoucher = (payment?: ReservationPaymentBody) =>
     reservation &&
     context &&
     runCommand('PAYMENT_VALIDATION', (idToken) =>
-      registerPayment(idToken, reservation.id, context.companyId, context.branchId, reservation.version),
+      registerPayment(idToken, reservation.id, context.companyId, context.branchId, reservation.version, payment),
     );
 
   const uploadDocuments = () =>

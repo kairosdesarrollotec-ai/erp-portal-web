@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useInquiriesList } from './useInquiriesList';
-import { INQUIRY_CHANNEL_LABELS, INQUIRY_STATUS_GROUP, INQUIRY_STATUS_GROUP_LABELS } from './inquiry-status';
+import { INQUIRY_CHANNEL_LABELS, inquiryChannelLabel, INQUIRY_STATUS_GROUP, INQUIRY_STATUS_GROUP_LABELS } from './inquiry-status';
 import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './InquiriesListScreen.module.css';
@@ -18,7 +18,7 @@ import { formatLimaDate } from '../shared/lima-time';
  * patron que ReservationsListScreen.tsx, PR#10 finding #3).
  */
 export function InquiriesListScreen() {
-  const { state, inquiries, customerNames, context, filters, setFilters } = useInquiriesList();
+  const { state, inquiries, customerNames, context, filters, setFilters, hasMore, loadingMore, loadMore } = useInquiriesList();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
 
@@ -45,8 +45,8 @@ export function InquiriesListScreen() {
             type="text"
             className={styles.filterInput}
             placeholder="Buscar por cliente"
-            value={filters.customerId}
-            onChange={(event) => setFilters({ ...filters, customerId: event.target.value })}
+            value={filters.customerQuery}
+            onChange={(event) => setFilters({ ...filters, customerQuery: event.target.value })}
             aria-label="Filtrar por cliente"
           />
           <select
@@ -90,7 +90,11 @@ export function InquiriesListScreen() {
 
         {state === 'EMPTY' && <p className={styles.statusText}>Todavía no hay consultas registradas.</p>}
 
-        {state === 'READY' && (
+        {state === 'READY' && inquiries.length === 0 && (
+          <p className={styles.statusText}>No hay consultas que coincidan con el cliente buscado.</p>
+        )}
+
+        {state === 'READY' && inquiries.length > 0 && (
           <div className={styles.tableWrapper}>
           <table className={styles.table}>
             <thead>
@@ -119,7 +123,7 @@ export function InquiriesListScreen() {
                       />
                       {customerName}
                     </td>
-                    <td>{inquiry.channel}</td>
+                    <td>{inquiryChannelLabel(inquiry.channel)}</td>
                     <td>
                       <span className={`${styles.badge} ${styles[`badge_${group}`]}`}>
                         {INQUIRY_STATUS_GROUP_LABELS[group]}
@@ -133,6 +137,12 @@ export function InquiriesListScreen() {
             </tbody>
           </table>
           </div>
+        )}
+
+        {state === 'READY' && hasMore && (
+          <button type="button" className={styles.newButton} onClick={() => void loadMore()} disabled={loadingMore}>
+            {loadingMore ? 'Cargando…' : 'Cargar más consultas'}
+          </button>
         )}
       </div>
     </main>

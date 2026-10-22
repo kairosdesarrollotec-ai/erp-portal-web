@@ -53,7 +53,8 @@ export function TechnicalDamageScreen() {
   const amountValue = Number(amount);
   const amountValid = amount.trim() !== '' && Number.isFinite(amountValue) && amountValue >= 0;
 
-  const elapsed = hoursSince(ret.receivedAt);
+  // Decision 22-oct: el reloj de inmovilizacion corre desde el CIERRE de la devolucion (no desde la recepcion).
+  const elapsed = hoursSince(ret.closedAt);
   const chargeEligible = elapsed !== null && elapsed > GUARANTEE_WINDOW_HOURS;
   const suggestedDays = elapsed !== null && elapsed > GUARANTEE_WINDOW_HOURS ? Math.max(1, Math.ceil((elapsed - 24) / 24)) : 1;
   const daysValue = Number(days === '' ? suggestedDays : days);
@@ -184,16 +185,18 @@ export function TechnicalDamageScreen() {
       <fieldset className={styles.fieldset} disabled={wrongState}>
         <legend>Cargo por paralización (24 h)</legend>
         {elapsed === null ? (
-          <p className={styles.summaryLine}>Sin fecha de recepción registrada.</p>
+          <p className={styles.summaryLine} role="status">
+            El reloj de inmovilización corre desde el cierre de la devolución. Todavía no hay un cierre registrado.
+          </p>
         ) : chargeEligible ? (
           <p className={`${styles.banner} ${styles.banner_warning}`} role="status">
-            Han pasado {Math.floor(elapsed)} h desde la recepción: los días de paralización se cobran como alquiler
+            Han pasado {Math.floor(elapsed)} h desde el cierre de la devolución: los días de paralización se cobran como alquiler
             adicional, sumados al monto del daño.
           </p>
         ) : (
           <p className={styles.summaryLine} role="status">
             Aún no corresponde: faltan {Math.max(0, Math.ceil(GUARANTEE_WINDOW_HOURS - elapsed))} h para cumplir 24 h
-            naturales desde la recepción.
+            naturales desde el cierre de la devolución.
           </p>
         )}
         <label className={styles.fieldLabel}>

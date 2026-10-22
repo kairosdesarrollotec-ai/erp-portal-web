@@ -4,6 +4,7 @@ import { AppHeader } from '../shared/AppHeader';
 import { useRecruitmentPermissions } from './recruitment-permissions';
 import { useVacanciesList } from './useVacanciesList';
 import { PauseVacancyControl } from './PauseVacancyControl';
+import { CancelVacancyControl } from './CancelVacancyControl';
 import { NewVacancyDialog } from './NewVacancyDialog';
 import {
   VACANCY_SOURCE_LABEL,
@@ -122,6 +123,15 @@ function VacanciesList() {
                         </button>
                         {context && (
                           <PauseVacancyControl
+                            vacancy={item}
+                            context={context}
+                            buttonClassName={styles.openButton}
+                            onChanged={(detail) => replaceVacancy(detail)}
+                            onStale={reload}
+                          />
+                        )}
+                        {context && (
+                          <CancelVacancyControl
                             vacancy={item}
                             context={context}
                             buttonClassName={styles.openButton}

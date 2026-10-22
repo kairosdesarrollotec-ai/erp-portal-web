@@ -107,9 +107,20 @@ function Termination() {
             Se registró la {TERMINATION_REASON_LABEL[result.reason].toLowerCase()} de {employee.fullName} el {formatDate(result.terminatedAt)}.
           </p>
           <p className={styles.entryText}>
-            Reclutamiento recibirá el aviso y creará la necesidad de cubrir este puesto con una nueva vacante; puede tardar unos instantes en aparecer.
+            {result.vacancyCreatedId
+              ? 'Reclutamiento ya creó la vacante para cubrir este puesto.'
+              : 'La vacante para cubrir este puesto se crea automáticamente en Reclutamiento; puede tardar unos instantes en aparecer.'}
           </p>
           <div className={styles.rowActions}>
+            {result.vacancyCreatedId ? (
+              <Link className={styles.secondaryButton} to={`/reclutamiento/vacantes/${result.vacancyCreatedId}`} state={context ?? undefined}>
+                Ver la vacante creada
+              </Link>
+            ) : (
+              <Link className={styles.secondaryButton} to="/reclutamiento" state={context ?? undefined}>
+                Ir a Reclutamiento
+              </Link>
+            )}
             <Link className={styles.secondaryButton} to={`/personal/${employee.id}`} state={context ?? undefined}>
               Volver a la ficha
             </Link>

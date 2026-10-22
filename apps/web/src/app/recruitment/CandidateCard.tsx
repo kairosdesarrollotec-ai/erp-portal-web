@@ -30,9 +30,11 @@ export function CandidateCard({ candidate, canMove, canDecide, busy, onOpen, onD
   return (
     <li className={styles.card}>
       <p className={styles.cardName}>{candidate.fullName}</p>
-      <p className={styles.cardMeta}>
-        {candidate.documentType} {candidate.documentNumber}
-      </p>
+      {candidate.documentNumber && (
+        <p className={styles.cardMeta}>
+          {candidate.documentType} {candidate.documentNumber}
+        </p>
+      )}
       <p className={styles.cardMeta}>{PROCESS_STATE_LABEL[candidate.processState]}</p>
       {decided && candidate.decision && (
         <p className={styles.decisionBadge}>{CANDIDATE_DECISION_LABEL[candidate.decision]}</p>

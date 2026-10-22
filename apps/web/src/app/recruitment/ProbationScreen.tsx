@@ -58,7 +58,7 @@ export function ProbationScreen() {
     if (res.ok) {
       setPending(null);
       setText('');
-      setNotice(pending ? 'Evaluación positiva registrada. Pasó a planilla.' : 'Evaluación negativa registrada.');
+      setNotice(pending ? 'Evaluación positiva registrada. Pasó a planilla.' : 'Evaluación negativa registrada. La relación laboral termina y la vacante se crea automáticamente en Reclutamiento.');
       await detail.reload();
     } else if (res.stale) {
       setPending(null);
@@ -179,14 +179,12 @@ export function ProbationScreen() {
                     </div>
                   </>
                 ) : (
-                  <>
-                    <button type="button" className={styles.primaryButton} disabled aria-describedby="prob-payroll-hint">
-                      Pasar a planilla
-                    </button>
-                    <p id="prob-payroll-hint" className={styles.hint}>
-                      {evaluated ? 'No aplica: la evaluación fue negativa y la relación termina.' : 'Disponible tras la evaluación del mes 3'}
-                    </p>
-                  </>
+                  // No hay botón "Pasar a planilla": el paso a planilla ocurre solo al registrar la evaluación POSITIVA del mes 3.
+                  <p id="prob-payroll-hint" className={styles.hint} data-testid="payroll-explanation">
+                    {evaluated
+                      ? 'No aplica: la evaluación fue negativa y la relación termina. La vacante se crea automáticamente en Reclutamiento.'
+                      : 'El paso a planilla ocurre automáticamente cuando registras la evaluación positiva del mes 3; no hay un botón aparte.'}
+                  </p>
                 )}
               </section>
 
@@ -237,7 +235,7 @@ export function ProbationScreen() {
               description={
                 pending
                   ? 'La persona pasa a planilla en el mes 4. Esta decisión no se puede deshacer.'
-                  : 'La relación laboral termina. Esta decisión no se puede deshacer.'
+                  : 'La relación laboral termina y la vacante se crea automáticamente en Reclutamiento. Esta decisión no se puede deshacer.'
               }
               onClose={() => {
                 if (!saving) setPending(null);

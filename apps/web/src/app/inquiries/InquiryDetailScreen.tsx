@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInquiryDetail } from './useInquiryDetail';
-import { INQUIRY_STATUS_LABELS } from './inquiry-status';
+import { INQUIRY_STATUS_LABELS, inquiryChannelLabel, requiredDocumentLabel } from './inquiry-status';
 import { rentalWizardPathForStatus } from '../rentals/rental-status';
 import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
@@ -52,7 +52,7 @@ import { formatLimaDate, formatLimaDateTime, limaDateTimeToInstant } from '../sh
  *   selector generico Presencial/Virtual.
  */
 export function InquiryDetailScreen() {
-  const { navState, context, state, inquiry, customerName, vehicleLabel, vehiclePhotoUrl, saving, actionError, closeWithoutConversion, convertToReservation, convertToRental, reload } =
+  const { navState, context, state, inquiry, customerName, vehicleLabel, vehiclePhotoUrl, vehicleWarnings, saving, actionError, closeWithoutConversion, convertToReservation, convertToRental, reload } =
     useInquiryDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
@@ -194,8 +194,20 @@ export function InquiryDetailScreen() {
             </div>
             <div>
               <dt>Canal</dt>
-              <dd>{inquiry.channel}</dd>
+              <dd>{inquiryChannelLabel(inquiry.channel)}</dd>
             </div>
+            {inquiry.requiredDocuments && inquiry.requiredDocuments.length > 0 && (
+              <div>
+                <dt>Documentos requeridos</dt>
+                <dd>
+                  <ul data-testid="required-documents">
+                    {inquiry.requiredDocuments.map((code) => (
+                      <li key={code}>{requiredDocumentLabel(code)}</li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            )}
           </dl>
 
           <details className={styles.mobileTimeline}>
@@ -212,7 +224,13 @@ export function InquiryDetailScreen() {
         <div className={styles.mainPanel}>
           <span className={styles.badge}>{INQUIRY_STATUS_LABELS[inquiry.status]}</span>
 
-          {actionError && <p className={styles.errorText}>{actionError}</p>}
+          {vehicleWarnings.map((warning) => (
+            <p key={warning} className={styles.helperText} role="status">
+              {warning}
+            </p>
+          ))}
+
+          {actionError && <p className={styles.errorText} role="alert">{actionError}</p>}
 
           {canReserve && !inquiry.customerId && (
             <p className={styles.helperText}>

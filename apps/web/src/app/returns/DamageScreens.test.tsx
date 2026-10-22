@@ -291,8 +291,15 @@ describe('TechnicalDamageScreen (DEV-08)', () => {
     expect(await screen.findByText(/Semáforo del cliente: Sin observación/)).toBeInTheDocument();
   });
 
+  it('sin cierre de la devolucion el reloj de inmovilizacion no corre (decision 22-oct)', () => {
+    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'CON_DANOS', closedAt: null }) }));
+    mount();
+    expect(screen.getByText(/corre desde el cierre de la devolución/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Aplicar cargo por paralización' })).toBeDisabled();
+  });
+
   it('antes de 24 h no se puede cobrar paralizacion', () => {
-    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'CON_DANOS', receivedAt: hoursAgo(1) }) }));
+    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'CON_DANOS', closedAt: hoursAgo(1) }) }));
     mount();
     expect(screen.getByText(/Aún no corresponde/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Aplicar cargo por paralización' })).toBeDisabled();
@@ -301,7 +308,7 @@ describe('TechnicalDamageScreen (DEV-08)', () => {
   it('pasadas 24 h aplica el cargo vinculado al ultimo daño tecnico, sin pedir tarifa, y muestra la tarifa del servidor', async () => {
     const withDamage = makeReturn({
       status: 'CON_DANOS',
-      receivedAt: hoursAgo(50),
+      closedAt: hoursAgo(50),
       damages: [{ id: 'dmg-2', returnId: 'ret-1', origin: 'TECHNICAL', severity: 'MODERADO', estimatedAmount: 1500, externalReportReference: 'MTX-77', createdAt: 'x' }],
     });
     const refresh = vi.fn().mockResolvedValue(undefined);
@@ -324,7 +331,7 @@ describe('TechnicalDamageScreen (DEV-08)', () => {
       makeFlow({
         ret: makeReturn({
           status: 'CON_DANOS',
-          receivedAt: hoursAgo(50),
+          closedAt: hoursAgo(50),
           immobilizationCharges: [{ id: 'c1', returnId: 'ret-1', daysCharged: 2, dailyRate: 120, totalAmount: 240, createdAt: 'x' }],
         }),
       }),
@@ -334,7 +341,7 @@ describe('TechnicalDamageScreen (DEV-08)', () => {
   });
 
   it('el 422 de paralizacion se explica en lenguaje de negocio', async () => {
-    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'CON_DANOS', receivedAt: hoursAgo(50) }) }));
+    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'CON_DANOS', closedAt: hoursAgo(50) }) }));
     chargeMock.mockRejectedValue(new ReturnCommandError(422, { code: 'IMMOBILIZATION_PERIOD_NOT_ELAPSED' }));
     mount();
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar cargo por paralización' }));

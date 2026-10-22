@@ -107,6 +107,7 @@ export function useVehicleDetail() {
           depositMinimum: formData.depositMinimum,
           passengerCapacity: formData.passengerCapacity,
           fuelPrice: formData.fuelPrice,
+          ...(formData.thirdPathEligible !== undefined ? { thirdPathEligible: formData.thirdPathEligible } : {}),
           photoUrl,
         });
       },

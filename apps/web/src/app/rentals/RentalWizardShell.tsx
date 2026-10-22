@@ -12,6 +12,8 @@ export interface RentalWizardShellProps {
   continueDisabled?: boolean;
   continueBusy?: boolean;
   errorMessage?: string | null;
+  /** Accion secundaria (p. ej. cancelar alquiler, DEC-ALQ-CANCEL-001) junto al boton de avance. */
+  cancelControl?: ReactNode;
 }
 
 const STAGE_LABELS = ['Cliente y documentos', 'Validaciones', 'Garantía y contrato', 'Checklist', 'Confirmación'];
@@ -31,6 +33,7 @@ export function RentalWizardShell({
   continueDisabled,
   continueBusy,
   errorMessage,
+  cancelControl,
 }: RentalWizardShellProps) {
   return (
     <main className={styles.wrapper}>
@@ -56,6 +59,8 @@ export function RentalWizardShell({
           {errorMessage}
         </p>
       )}
+
+      {cancelControl && <div className={styles.cancelBar}>{cancelControl}</div>}
 
       {onContinue && (
         <div className={styles.continueBar}>

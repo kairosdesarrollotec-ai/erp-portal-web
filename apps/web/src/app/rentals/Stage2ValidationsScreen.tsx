@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
+import { CancelRentalControl } from './CancelRentalControl';
 import {
   registerAlcoholTest,
   requestEvidenceUploadSession,
@@ -102,6 +103,7 @@ export function Stage2ValidationsScreen() {
   return (
     <RentalWizardShell
       stage={2}
+      cancelControl={<CancelRentalControl rental={rental} context={context} getIdToken={getIdToken} />}
       title="Validaciones y alcoholímetro"
       onContinue={handleContinue}
       continueLabel={unfavorable ? 'Registrar y cancelar el alquiler' : 'Continuar'}

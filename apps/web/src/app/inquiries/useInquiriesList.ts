@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getFirebaseAuth } from '../providers/firebase';
 import { listInquiries, InquirySummary, InquiryApiError } from './inquiries-client';
 import { getCustomer } from '../customers/customers-client';
@@ -9,12 +9,17 @@ import type { InquiryChannel, InquiryStatus } from './inquiry-status';
 export type InquiriesListState = 'LOADING' | 'READY' | 'EMPTY' | 'RECOVERABLE_ERROR' | 'FORBIDDEN';
 
 export interface InquiriesFilters {
-  customerId: string;
+  /**
+   * Texto libre de "Buscar por cliente". NO se envia como `customerId` (era un UUID y el texto
+   * rompia el contrato): se filtra aqui por nombre de cliente ya resuelto. Cuando el backend
+   * exponga su parametro de busqueda por cliente se enviara en `listInquiries`.
+   */
+  customerQuery: string;
   channel: InquiryChannel | '';
   status: InquiryStatus | '';
 }
 
-const EMPTY_FILTERS: InquiriesFilters = { customerId: '', channel: '', status: '' };
+const EMPTY_FILTERS: InquiriesFilters = { customerQuery: '', channel: '', status: '' };
 
 /** CON-01 punto 6 y 15: los filtros se conservan durante la sesion. */
 const FILTERS_SESSION_KEY = 'kairos.consultas.filtros';
@@ -32,11 +37,19 @@ const FILTERS_SESSION_KEY = 'kairos.consultas.filtros';
  */
 const FILTER_DEBOUNCE_MS = 400;
 
+/** Tamano de pagina de la bandeja (paginacion keyset del backend: cursorCreatedAt + cursorId). */
+const PAGE_SIZE = 50;
+
 function loadStoredFilters(): InquiriesFilters {
   try {
     const raw = sessionStorage.getItem(FILTERS_SESSION_KEY);
     if (!raw) return EMPTY_FILTERS;
-    return { ...EMPTY_FILTERS, ...(JSON.parse(raw) as Partial<InquiriesFilters>) };
+    const parsed = JSON.parse(raw) as Partial<InquiriesFilters>;
+    return {
+      customerQuery: typeof parsed.customerQuery === 'string' ? parsed.customerQuery : '',
+      channel: parsed.channel ?? '',
+      status: parsed.status ?? '',
+    };
   } catch {
     return EMPTY_FILTERS;
   }
@@ -66,6 +79,8 @@ export function useInquiriesList() {
   const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
   const [filters, setFiltersState] = useState<InquiriesFilters>(() => loadStoredFilters());
   const requestIdRef = useRef(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const setFilters = useCallback((next: InquiriesFilters) => {
     setFiltersState(next);
@@ -84,15 +99,16 @@ export function useInquiriesList() {
       }
       const idToken = await user.getIdToken();
       const results = await listInquiries(idToken, context.companyId, context.branchId, {
-        customerId: filters.customerId || undefined,
         channel: filters.channel || undefined,
         status: filters.status || undefined,
+        limit: PAGE_SIZE,
       });
       // Proteccion contra respuestas fuera de orden: si mientras esta
       // peticion estaba en vuelo se disparo otra mas reciente (nuevo
       // filtro), esta respuesta llega tarde y se descarta.
       if (requestId !== requestIdRef.current) return;
       setInquiries(results);
+      setHasMore(results.length >= PAGE_SIZE);
       setState(results.length === 0 ? 'EMPTY' : 'READY');
 
       const missingIds = Array.from(
@@ -131,7 +147,7 @@ export function useInquiriesList() {
         setState('RECOVERABLE_ERROR');
       }
     }
-  }, [context, filters, customerNames]);
+  }, [context, filters.channel, filters.status, customerNames]);
 
   useEffect(() => {
     if (contextLoading) return;
@@ -143,7 +159,60 @@ export function useInquiriesList() {
     return () => clearTimeout(timer);
     // reload ya depende de `filters`, no hace falta duplicarlo aqui
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [context, contextLoading, filters]);
+  }, [context, contextLoading, filters.channel, filters.status]);
 
-  return { state, inquiries, customerNames, context, filters, setFilters, reload };
+  /** Siguiente pagina por cursor (createdAt + id de la ultima fila cargada). */
+  const loadMore = useCallback(async () => {
+    const last = inquiries[inquiries.length - 1];
+    if (!context || !last || loadingMore) return;
+    const requestId = requestIdRef.current;
+    setLoadingMore(true);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) return;
+      const idToken = await user.getIdToken();
+      const page = await listInquiries(idToken, context.companyId, context.branchId, {
+        channel: filters.channel || undefined,
+        status: filters.status || undefined,
+        limit: PAGE_SIZE,
+        cursorCreatedAt: last.createdAt,
+        cursorId: last.id,
+      });
+      if (requestId !== requestIdRef.current) return;
+      setInquiries((prev) => [...prev, ...page.filter((item) => !prev.some((p) => p.id === item.id))]);
+      setHasMore(page.length >= PAGE_SIZE);
+      const missing = Array.from(
+        new Set(page.map((i) => i.customerId).filter((id): id is string => Boolean(id) && !(id! in customerNames))),
+      );
+      const entries = await Promise.all(
+        missing.map(async (id) => {
+          try {
+            return [id, (await getCustomer(idToken, id, context.companyId, context.branchId)).fullName] as const;
+          } catch {
+            return [id, null] as const;
+          }
+        }),
+      );
+      setCustomerNames((prev) => {
+        const next = { ...prev };
+        for (const [id, name] of entries) if (name) next[id] = name;
+        return next;
+      });
+    } catch {
+      // se conserva lo ya cargado; el usuario puede reintentar con el mismo boton
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [context, inquiries, filters.channel, filters.status, loadingMore, customerNames]);
+
+  const customerQuery = filters.customerQuery.trim().toLowerCase();
+  const visibleInquiries = useMemo(() => {
+    if (!customerQuery) return inquiries;
+    return inquiries.filter((inquiry) => {
+      const name = inquiry.customerId ? customerNames[inquiry.customerId] : undefined;
+      return name ? name.toLowerCase().includes(customerQuery) : false;
+    });
+  }, [inquiries, customerNames, customerQuery]);
+
+  return { state, inquiries: visibleInquiries, customerNames, context, filters, setFilters, reload, hasMore, loadingMore, loadMore };
 }

@@ -37,12 +37,12 @@ describe('rentals-client', () => {
 
   it('createRental hace POST /rentals sin If-Match (recurso nuevo)', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, { id: 'r1' }));
-    await createRental('token', 'c1', 'b1', 'cust1', 'veh1');
+    await createRental('token', 'c1', 'b1', 'cust1', 'veh1', { inquiryId: 'inq1' });
     const request = fetchMock.mock.calls[0][0] as Request;
     expect(request.method).toBe('POST');
     expect(request.headers.get('If-Match')).toBeNull();
     const body = await request.json();
-    expect(body).toMatchObject({ companyId: 'c1', branchId: 'b1', customerId: 'cust1', vehicleId: 'veh1' });
+    expect(body).toMatchObject({ companyId: 'c1', branchId: 'b1', customerId: 'cust1', vehicleId: 'veh1', inquiryId: 'inq1' });
   });
 
   it('validateDocuments envia If-Match con la version y lanza RentalCommandError en 409', async () => {

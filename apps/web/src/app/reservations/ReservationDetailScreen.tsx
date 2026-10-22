@@ -12,7 +12,9 @@ import {
 } from './reservations-client';
 import { getFirebaseAuth } from '../providers/firebase';
 import styles from './ReservationDetailScreen.module.css';
-import { formatLimaDate } from '../shared/lima-time';
+import { formatLimaDate, formatLimaDayMonth, limaToday, toLimaDateOnly } from '../shared/lima-time';
+import { PaymentProofForm } from '../shared/PaymentProofForm';
+import { toReservationPaymentBody, type PaymentProofDraft } from '../shared/payment-proof';
 import { VehicleDataWarnings } from '../shared/VehicleDataWarnings';
 
 /**
@@ -40,13 +42,16 @@ export function ReservationDetailScreen() {
   const [cancelNote, setCancelNote] = useState('');
   const [uploadingVoucher, setUploadingVoucher] = useState(false);
   const [voucherUploadError, setVoucherUploadError] = useState<string | null>(null);
-  const voucherFileRef = useRef<HTMLInputElement>(null);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [uploadingContract, setUploadingContract] = useState(false);
   const [contractUploadError, setContractUploadError] = useState<string | null>(null);
   const contractFileRef = useRef<HTMLInputElement>(null);
 
-  async function handleVoucherFile(file: File) {
-    if (!reservation || !context) return;
+  /** Decision 22-oct #8: sube el comprobante y envia metodo, nº de operacion y pagador junto con el registro del pago. */
+  async function handlePaymentProof(draft: PaymentProofDraft) {
+    if (!reservation || !context || !draft.file) return;
+    const file = draft.file;
+    let voucherDocumentId: string | undefined;
     setUploadingVoucher(true);
     setVoucherUploadError(null);
     try {
@@ -63,7 +68,7 @@ export function ReservationDetailScreen() {
         file.size,
       );
       await uploadReservationFileToGcs(session.uploadUrl, file);
-      await recordReservationDocument(
+      const recorded = await recordReservationDocument(
         idToken,
         reservation.id,
         context.companyId,
@@ -71,12 +76,17 @@ export function ReservationDetailScreen() {
         'PAYMENT_VOUCHER',
         session.objectUrl,
       );
-      await uploadPaymentVoucher();
+      voucherDocumentId = recorded?.id;
     } catch {
       setVoucherUploadError('No pudimos subir el comprobante. Intenta de nuevo.');
-    } finally {
       setUploadingVoucher(false);
+      return;
     }
+    setUploadingVoucher(false);
+    const updated = await uploadPaymentVoucher(
+      toReservationPaymentBody(draft, reservation.customer.name, voucherDocumentId),
+    );
+    if (updated) setShowPaymentForm(false);
   }
 
   async function handleContractFile(file: File) {
@@ -135,6 +145,8 @@ export function ReservationDetailScreen() {
   const isConfirmed = reservation.status === 'CONFIRMED';
   const paymentDone = Boolean(reservation.requirements.paymentValidatedAt);
   const documentsDone = Boolean(reservation.requirements.documentsCompletedAt);
+  // Decision 22-oct #3: Reserva -> Alquiler solo desde la fecha pactada (dia calendario en hora de Lima).
+  const beforeAgreedDate = limaToday() < toLimaDateOnly(reservation.startAt);
 
   return (
     <main className={styles.wrapper}>
@@ -234,7 +246,8 @@ export function ReservationDetailScreen() {
                   detail={`S/ ${reservation.requiredPayment.amount}`}
                   done={paymentDone}
                   saving={uploadingVoucher || savingRequirement === 'PAYMENT_VALIDATION'}
-                  onUpload={() => voucherFileRef.current?.click()}
+                  onUpload={() => setShowPaymentForm(true)}
+                  uploadLabel="Registrar pago"
                 />
                 <ChecklistItem
                   label="Documentos / contrato"
@@ -248,17 +261,18 @@ export function ReservationDetailScreen() {
                   onUpload={() => contractFileRef.current?.click()}
                 />
               </ul>
-              <input
-                ref={voucherFileRef}
-                type="file"
-                accept="image/jpeg,image/webp,image/png,application/pdf"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleVoucherFile(file);
-                  e.target.value = '';
-                }}
-              />
+              {showPaymentForm && !paymentDone && (
+                <PaymentProofForm
+                  submitLabel="Enviar comprobante"
+                  requireAmount
+                  initialAmount={reservation.requiredPayment.amount}
+                  hint={`Monto de reserva vigente: S/ ${reservation.requiredPayment.amount} (lo fija el sistema; no hay saldo a favor).`}
+                  busy={uploadingVoucher || savingRequirement === 'PAYMENT_VALIDATION'}
+                  error={actionError}
+                  onSubmit={handlePaymentProof}
+                  onCancel={() => setShowPaymentForm(false)}
+                />
+              )}
               <input
                 ref={contractFileRef}
                 type="file"
@@ -301,6 +315,8 @@ export function ReservationDetailScreen() {
               <button
                 type="button"
                 className={styles.confirmButton}
+                disabled={beforeAgreedDate}
+                aria-describedby={beforeAgreedDate ? 'agreed-date-hint' : undefined}
                 onClick={() =>
                   navigate('/alquileres/nuevo', {
                     state: {
@@ -318,6 +334,12 @@ export function ReservationDetailScreen() {
               >
                 Continuar con alquiler
               </button>
+              {beforeAgreedDate && (
+                <p id="agreed-date-hint" className={styles.helperText} role="status">
+                  Disponible el día pactado: {formatLimaDayMonth(reservation.startAt)}. La reserva solo pasa a alquiler
+                  en la fecha pactada (hora de Lima).
+                </p>
+              )}
 
               {reservation.startDatePassed && (
                 <button
@@ -382,12 +404,14 @@ function ChecklistItem({
   done,
   saving,
   onUpload,
+  uploadLabel = 'Subir',
 }: {
   label: string;
   detail?: string;
   done: boolean;
   saving: boolean;
   onUpload: () => void;
+  uploadLabel?: string;
 }) {
   return (
     <li className={styles.checklistItem}>
@@ -398,7 +422,7 @@ function ChecklistItem({
       </div>
       {!done && (
         <button type="button" className={styles.uploadButton} disabled={saving} onClick={onUpload}>
-          {saving ? 'Subiendo…' : 'Subir'}
+          {saving ? 'Subiendo…' : uploadLabel}
         </button>
       )}
     </li>

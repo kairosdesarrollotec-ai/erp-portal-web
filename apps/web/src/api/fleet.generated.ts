@@ -181,6 +181,8 @@ export interface components {
             passengerCapacity?: number;
             /** @description Precio del combustible por unidad (PEN). Si se omite, el valor existente no cambia. */
             fuelPrice?: number;
+            /** @description DEC-ALQ-THIRDPATH-001 (22-oct-2026): vehículo elegible para la tercera vía notarial. Solo lo puede cambiar Gerencia (FLEET.MANAGE_THIRD_PATH); de otro modo 403. Si se omite no cambia. */
+            thirdPathEligible?: boolean;
             /**
              * Format: uri
              * @description URL HTTPS de GCS del objeto ya cargado. Si no se proporciona, la foto existente del vehículo no cambia.
@@ -227,6 +229,8 @@ export interface components {
             passengerCapacity?: number | null;
             /** @description Precio del combustible por unidad (PEN). null en vehículos anteriores a 0.5.0. */
             fuelPrice?: number | null;
+            /** @description DEC-ALQ-THIRDPATH-001: vehículo «de menor costo relativo» elegible para la tercera vía notarial (BR-ALQ-004). false por defecto. */
+            thirdPathEligible?: boolean;
             photoUrl?: string | null;
             /**
              * Format: date-time

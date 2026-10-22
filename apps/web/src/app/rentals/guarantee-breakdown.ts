@@ -4,14 +4,12 @@ export interface GuaranteeBreakdown {
   total: number;
   credit: number;
   toCollect: number;
-  /** Saldo a favor de la reserva cuando supera la garantia (sin reembolso automatico). */
-  creditExcess: number;
 }
 
 /**
- * La reserva se traslada a la garantia; se cobra la diferencia. Si la reserva supera la garantia
- * (el monto de reserva es un parametro versionado), el cobro es 0.00 y el sobrante queda como
- * saldo a favor de la reserva (sin reembolso automatico).
+ * La reserva se traslada a la garantia; se cobra la diferencia. Decision 22-oct: la reserva nunca supera la
+ * garantia (el backend rechaza con 422 RESERVATION_EXCEEDS_GUARANTEE) y no existe saldo a favor; por seguridad
+ * el traslado se acota a la garantia y el cobro nunca es negativo.
  */
 export function computeGuaranteeBreakdown(
   total: number | null,
@@ -23,7 +21,6 @@ export function computeGuaranteeBreakdown(
     total: t / 100,
     credit: Math.min(c, t) / 100,
     toCollect: Math.max(t - c, 0) / 100,
-    creditExcess: t > 0 ? Math.max(c - t, 0) / 100 : 0,
   };
 }
 

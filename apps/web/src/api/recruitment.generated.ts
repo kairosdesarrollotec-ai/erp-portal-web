@@ -56,6 +56,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vacancies/{id}/commands/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancelar una vacante con motivo obligatorio (REC-02, 22-oct)
+         * @description NECESIDAD_REGISTRADA / PUBLICADA / PAUSADA -> CANCELADA. Exige `reason` (5 a 500 caracteres) y el permiso RECRUITMENT.CANCEL_VACANCY. No borra nada: los candidatos siguen consultables.
+         */
+        post: operations["cancelVacancy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/vacancies/{id}/commands/pause": {
         parameters: {
             query?: never;
@@ -382,6 +402,14 @@ export interface components {
             /** @description Motivo opcional de la pausa (queda en la auditoría) */
             reason?: string;
         };
+        CancelVacancyRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @description Motivo obligatorio de la cancelacion (5 a 500 caracteres) */
+            reason: string;
+        };
         ResumeVacancyRequest: {
             /** Format: uuid */
             companyId: string;
@@ -613,6 +641,22 @@ export interface components {
             version: number;
             /** Format: date-time */
             createdAt: string;
+            /**
+             * Format: uuid
+             * @description Terminacion laboral que origino la vacante (null si se registro a mano o viene de una prueba negativa)
+             */
+            originTerminationId?: string | null;
+            /**
+             * Format: uuid
+             * @description Colaborador cuya salida origino la vacante
+             */
+            originEmployeeId?: string | null;
+            /** @description Motivo de la cancelacion (solo vacantes CANCELADA) */
+            cancelReason?: string | null;
+            /** Format: date-time */
+            cancelledAt?: string | null;
+            /** @description Usuario que cancelo */
+            cancelledBy?: string | null;
         };
         VacancyDetailResponse: components["schemas"]["VacancyResponse"] & {
             profileDescription?: string | null;
@@ -963,6 +1007,90 @@ export interface operations {
             };
             /** @description Conflicto de versión (VERSION_CONFLICT) o estado no transicionable */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancelVacancy: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelVacancyRequest"];
+            };
+        };
+        responses: {
+            /** @description Vacante transicionada a CANCELADA */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacancyDetailResponse"];
+                };
+            };
+            /** @description Datos inválidos o If-Match mal formado */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso RECRUITMENT.CANCEL_VACANCY o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Vacante no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflicto de versión (VERSION_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Motivo ausente o muy corto (VACANCY_CANCEL_REASON_REQUIRED) o la vacante no admite cancelación en su estado (VACANCY_NOT_CANCELLABLE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta If-Match */
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -18,7 +18,8 @@ import { getResponsibilityTemplate, type ResponsibilityTemplateResult } from './
 import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
 import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
 import { useOnlineStatus } from '../shared/useOnlineStatus';
-import { EvidenceDeleteButton } from '../shared/EvidenceDeleteButton';
+import { RequestEvidenceDeletionButton } from '../evidence/RequestEvidenceDeletionButton';
+import { useOpenEvidenceDeletions } from '../evidence/useOpenEvidenceDeletions';
 import { deriveEvidenceSyncState, type EvidenceSyncInput } from '../shared/evidence-sync-state';
 import { usePermissions } from '../shared/usePermissions';
 import { saveFieldEdit } from '../../offline/queue/sync-draft-store';
@@ -57,7 +58,8 @@ export function ChecklistScreen() {
   const { can } = useReturnPermissions();
   const online = useOnlineStatus();
   const { can: canPermission } = usePermissions();
-  const { evidence, loaded, uploading, error, upload, remove: removeEvidence, reload } = useReturnEvidence(id, context, getIdToken);
+  const { evidence, loaded, uploading, error, upload, reload } = useReturnEvidence(id, context, getIdToken);
+  const openDeletions = useOpenEvidenceDeletions(context, 'RETURN', id);
   const [zone, setZone] = useState(RETURN_ZONES[0].value);
   const [draft, setDraft] = useState<ReturnChecklistDraft>(() => loadReturnChecklist(id));
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -416,11 +418,19 @@ export function ChecklistScreen() {
                   <span>
                     {kind} · {zoneLabel}
                   </span>
-                  <EvidenceDeleteButton
-                    label={`${kind.toLowerCase()} ${zoneLabel}`}
-                    disabled={!online}
-                    onConfirm={() => removeEvidence(item.id)}
-                  />
+                  {context && id && (
+                    <RequestEvidenceDeletionButton
+                      companyId={context.companyId}
+                      branchId={context.branchId}
+                      targetKind="RETURN"
+                      targetId={id}
+                      evidenceId={item.id}
+                      label={`${kind.toLowerCase()} ${zoneLabel}`}
+                      openRequest={openDeletions.byEvidence[item.id]}
+                      disabled={!online}
+                      onRequested={openDeletions.track}
+                    />
+                  )}
                 </li>
               );
             })}
