@@ -89,7 +89,6 @@ export function GuaranteeScreen() {
   const remaining = elapsed === null ? null : Math.ceil(GUARANTEE_WINDOW_HOURS - elapsed);
   const noRecordedDamages = ret.status === 'CON_DANOS' && !hasRecordedCharges;
   const canConfirm = actionable && (depositAmount !== null || noDeposit) && retainedValid && can('CLOSE_FINANCIAL') && !blocked;
-  const creditExcess = Number(rental?.reservationCreditExcess ?? rental?.deposit?.reservationCreditExcess ?? 0) || 0;
   const money = (n: number) => (currency === 'PEN' ? formatPen(n) : `${n.toFixed(2)} ${currency}`);
 
   async function handleConfirm() {
@@ -179,12 +178,6 @@ export function GuaranteeScreen() {
 
       {actionable && !noDeposit && depositAmount === null && !rentalError && rental && (
         <p className={`${styles.banner} ${styles.banner_warning}`}>El alquiler de origen no tiene garantía registrada.</p>
-      )}
-
-      {creditExcess > 0 && (
-        <p className={`${styles.banner} ${styles.banner_warning}`} role="status" data-testid="reservation-credit-excess">
-          Saldo a favor de la reserva (sin reembolso automático): {money(creditExcess)}
-        </p>
       )}
 
       {depositAmount !== null && (

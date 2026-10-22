@@ -133,7 +133,14 @@ export async function deleteRentalEvidence(
   }
 }
 
-export type RentalDocumentType = 'LICENSE' | 'ID_DOCUMENT' | 'PROOF_OF_ADDRESS' | 'BANK_STATEMENT' | 'OTHER';
+export type RentalDocumentType =
+  | 'LICENSE'
+  | 'ID_DOCUMENT'
+  | 'PROOF_OF_ADDRESS'
+  | 'BANK_STATEMENT'
+  | 'PAYMENT_VOUCHER'
+  | 'RESPONSIBILITY_DOCUMENT'
+  | 'OTHER';
 export type RentalDocumentContentType = 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf';
 
 export interface RentalDocumentRecord {

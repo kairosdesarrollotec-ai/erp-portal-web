@@ -107,12 +107,15 @@ export function EmployeeFileScreen() {
               )}
             </div>
             <dl className={styles.dataGrid}>
-              <div>
-                <dt>Documento</dt>
-                <dd>
-                  {employee.documentType} {employee.documentNumber}
-                </dd>
-              </div>
+              {/* HU-35: sin HR_ADMINISTRATION.VIEW_EMPLOYEE_DOCUMENT el back devuelve documentNumber = null: no se muestra la fila. */}
+              {employee.documentNumber && (
+                <div>
+                  <dt>Documento</dt>
+                  <dd>
+                    {employee.documentType} {employee.documentNumber}
+                  </dd>
+                </div>
+              )}
               <div>
                 <dt>Puesto</dt>
                 <dd>{employee.jobTitle}</dd>

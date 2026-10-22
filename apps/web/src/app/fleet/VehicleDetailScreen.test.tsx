@@ -20,8 +20,9 @@ const updateVehicleStatusMock = vi.fn();
 const updateVehicleMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
+let canImpl: (module: string, action: string) => boolean = () => true;
 vi.mock('../shared/useRolePermissions', () => ({
-  useRolePermissions: () => ({ can: () => true }),
+  useRolePermissions: () => ({ can: (module: string, action: string) => canImpl(module, action) }),
 }));
 
 vi.mock('../providers/firebase', () => ({
@@ -93,6 +94,7 @@ function renderScreen(vehicleId = 'veh-1', extraState: Record<string, unknown> =
 }
 
 beforeEach(() => {
+  canImpl = () => true;
   getWorkContextAssignmentsMock.mockResolvedValue(oneAssignment);
   getVehicleMock.mockResolvedValue(sampleVehicle);
   updateVehicleStatusMock.mockResolvedValue({ ...sampleVehicle, status: 'MAINTENANCE' });
@@ -109,6 +111,40 @@ describe('VehicleDetailScreen', () => {
     renderScreen();
     await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  describe('tercera via notarial (DEC-ALQ-THIRDPATH-001)', () => {
+    it('muestra si el vehiculo es elegible', async () => {
+      getVehicleMock.mockResolvedValue({ ...sampleVehicle, thirdPathEligible: true });
+      renderScreen();
+      expect(await screen.findByTestId('third-path-eligible')).toHaveTextContent('Elegible');
+    });
+
+    it('Gerencia (FLEET.MANAGE_THIRD_PATH) edita la marca y se envia en el PATCH', async () => {
+      renderScreen();
+      await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: 'Editar vehículo' }));
+      fireEvent.click(screen.getByLabelText(/Elegible para tercera vía notarial/));
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
+      await waitFor(() =>
+        expect(updateVehicleMock).toHaveBeenCalledWith(
+          'fake-id-token',
+          'veh-1',
+          expect.objectContaining({ thirdPathEligible: true }),
+        ),
+      );
+    });
+
+    it('sin el permiso de la matriz no se ofrece la casilla ni se envia el campo', async () => {
+      canImpl = (module, action) => !(module === 'FLEET' && action === 'MANAGE_THIRD_PATH');
+      renderScreen();
+      await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
+      fireEvent.click(screen.getByRole('button', { name: 'Editar vehículo' }));
+      expect(screen.queryByLabelText(/Elegible para tercera vía notarial/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
+      await waitFor(() => expect(updateVehicleMock).toHaveBeenCalled());
+      expect(updateVehicleMock.mock.calls[0][2]).not.toHaveProperty('thirdPathEligible');
+    });
   });
 
   it('muestra estado LOADING mientras carga', () => {

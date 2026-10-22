@@ -65,7 +65,6 @@ export function Stage5ConfirmationScreen() {
   }
 
   const draft = loadChecklistDraft(id);
-  const creditExcess = Number(rental.reservationCreditExcess ?? rental.deposit?.reservationCreditExcess ?? 0) || 0;
 
   return (
     <RentalWizardShell
@@ -117,11 +116,6 @@ export function Stage5ConfirmationScreen() {
         {rental.depositRequired === false && (
           <p className={styles.summaryLine} data-testid="no-deposit-company-driver">
             Con conductor de la empresa no se cobra garantía.
-          </p>
-        )}
-        {creditExcess > 0 && (
-          <p className={styles.summaryLine} data-testid="reservation-credit-excess">
-            Saldo a favor de la reserva (sin reembolso automático): {creditExcess.toFixed(2)} {rental.deposit?.currency ?? 'PEN'}
           </p>
         )}
       </section>

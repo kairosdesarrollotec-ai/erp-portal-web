@@ -166,6 +166,22 @@ describe('DashboardScreen (TR-06)', () => {
     expect(screen.queryByText('No tienes pendientes por ahora.')).not.toBeInTheDocument();
   });
 
+  it('las alertas de Gerencia (salida a campo, terminación, vacante) se marcan como "Alerta" y llevan la sede al destino', async () => {
+    getDashboardMock.mockResolvedValue({
+      role: roleRef('GERENCIA', 'Gerencia'),
+      state: 'READY',
+      tasks: [
+        { id: 'a1', itemType: 'ALERT', priority: 5, title: 'Salida a campo pendiente de autorización', detail: 'Ana Torres — Cusco', deepLink: '/personal/campo' },
+        { id: 'a2', itemType: 'ALERT', priority: 6, title: 'Se creó una vacante por la salida de un colaborador', detail: null, deepLink: '/reclutamiento' },
+      ],
+    });
+    renderScreen({ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Ayacucho — Sede Central' });
+
+    const link = await screen.findByRole('link', { name: /Salida a campo pendiente de autorización/ });
+    expect(link).toHaveAttribute('href', '/personal/campo');
+    expect(screen.getAllByTestId('task-alert-badge')).toHaveLength(2);
+  });
+
   it('muestra el contador de notificaciones no leidas y abre el panel al hacer clic en la campana', async () => {
     getDashboardMock.mockResolvedValue({ role: roleRef('GERENCIA', 'Gerencia'), state: 'EMPTY' });
     getMyNotificationsMock.mockResolvedValue([

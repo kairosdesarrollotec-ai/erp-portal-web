@@ -172,6 +172,8 @@ export interface LogAttendanceInput {
   notes?: string;
   /** OBLIGATORIA para PRESENTE y TARDANZA (422 ATTENDANCE_EVIDENCE_REQUIRED); opcional en faltas y permisos. */
   evidence?: AttendanceEvidenceInput;
+  /** Registro «a nombre de otro» (ADP-02): motivo obligatorio (22-oct, Respuestas #10/#20). */
+  reason?: string;
 }
 
 /**
@@ -189,6 +191,7 @@ export async function logAttendance(idToken: string, employeeId: string, input: 
     ...(input.checkOutTime ? { checkOutTime: input.checkOutTime } : {}),
     ...(input.notes ? { notes: input.notes } : {}),
     ...(input.evidence ? { evidence: input.evidence } : {}),
+    ...(input.reason ? { reason: input.reason } : {}),
     ...(ATTENDANCE_LOCATION_SENDING_ENABLED && input.location ? { ...input.location } : {}),
   } as unknown as components['schemas']['LogAttendanceRequest'];
   const { data, error, response } = await hrAdministrationApiClient.POST('/employees/{id}/attendance', {
@@ -416,6 +419,41 @@ export async function scheduleVacation(
     params: { path: { id: employeeId } },
     headers: authHeaders(idToken),
     body: { startDate: input.startDate, endDate: input.endDate, ...(input.notes ? { notes: input.notes } : {}) },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/**
+ * Reprograma unas vacaciones en conflicto a otra fecha libre (hr-administration 0.10.0, #10; sin lista de espera). Motivo
+ * obligatorio. 409 VACATION_OVERLAP si las nuevas fechas tambien chocan; queda REPROGRAMADA con las fechas originales.
+ */
+export async function rescheduleVacation(
+  idToken: string,
+  vacationId: string,
+  input: { startDate: string; endDate: string; reason: string },
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<VacationRequest> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/vacations/{id}/reschedule', {
+    params: { path: { id: vacationId }, header: { 'Idempotency-Key': idempotencyKey } },
+    headers: authHeaders(idToken),
+    body: input,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** Cancela unas vacaciones (SOLICITADA / PROGRAMADA / REPROGRAMADA) liberando el cupo del area. Motivo obligatorio. */
+export async function cancelVacation(
+  idToken: string,
+  vacationId: string,
+  input: { reason: string },
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<VacationRequest> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/vacations/{id}/cancel', {
+    params: { path: { id: vacationId }, header: { 'Idempotency-Key': idempotencyKey } },
+    headers: authHeaders(idToken),
+    body: input,
   });
   if (error || !data) throw toCommandError(error, response.status);
   return data;
@@ -653,6 +691,105 @@ export async function updateEmployee(
     params: { path: { id: employeeId }, header: expectedVersion === undefined ? {} : { 'If-Match': `"${expectedVersion}"` } },
     headers: authHeaders(idToken),
     body: input,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+
+// --- hr-administration 0.10.0 (22-oct #9): asistencia propia con geocerca, revision y configuracion por sede -------------
+
+export type MyAttendance = components['schemas']['MyAttendanceResponse'];
+export type BranchGeofence = components['schemas']['BranchGeofenceResponse'];
+export type LogMyAttendanceInput = Omit<components['schemas']['LogMyAttendanceRequest'], 'companyId' | 'branchId'>;
+
+/** GET /me/attendance: mis marcas del mes y la geocerca de la sede. */
+export async function getMyAttendance(idToken: string, scope: HrScope, month?: string, signal?: AbortSignal): Promise<MyAttendance> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/me/attendance', {
+    params: { query: { ...scope, ...(month ? { month } : {}) } },
+    headers: authHeaders(idToken),
+    signal,
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data;
+}
+
+/** POST /me/attendance: marca la propia entrada o salida (foto obligatoria en la entrada; ubicacion obligatoria). */
+export async function logMyAttendance(
+  idToken: string,
+  scope: HrScope,
+  input: LogMyAttendanceInput,
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<AttendanceRecord> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/me/attendance', {
+    params: { header: { 'Idempotency-Key': idempotencyKey } },
+    headers: authHeaders(idToken),
+    body: { ...scope, ...input },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** GET /attendance/pending-review: marcas fuera de la geocerca que esperan revision. */
+export async function listAttendancePendingReview(idToken: string, scope: HrScope, limit = 100, signal?: AbortSignal): Promise<AttendanceRecord[]> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/attendance/pending-review', {
+    params: { query: { ...scope, limit } },
+    headers: authHeaders(idToken),
+    signal,
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data;
+}
+
+export interface ReviewAttendanceInput {
+  decision: 'APPROVE' | 'CORRECT';
+  note?: string;
+  status?: AttendanceStatus;
+  minutesLate?: number;
+}
+
+/** PATCH /attendance/{id}/review: aprobar tal cual o corregir (nota obligatoria al corregir). */
+export async function reviewAttendance(idToken: string, attendanceId: string, input: ReviewAttendanceInput): Promise<AttendanceRecord> {
+  const { data, error, response } = await hrAdministrationApiClient.PATCH('/attendance/{id}/review', {
+    params: { path: { id: attendanceId } },
+    headers: authHeaders(idToken),
+    body: input as components['schemas']['ReviewAttendanceRequest'],
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** GET /branches/{branchId}/geofence. */
+export async function getBranchGeofence(idToken: string, scope: HrScope, signal?: AbortSignal): Promise<BranchGeofence> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/branches/{branchId}/geofence', {
+    params: { path: { branchId: scope.branchId }, query: { companyId: scope.companyId } },
+    headers: authHeaders(idToken),
+    signal,
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data;
+}
+
+/** PUT /branches/{branchId}/geofence: centro + radio (10..5000 m). */
+export async function setBranchGeofence(
+  idToken: string,
+  scope: HrScope,
+  input: { latitude: number; longitude: number; radiusMeters: number },
+): Promise<BranchGeofence> {
+  const { data, error, response } = await hrAdministrationApiClient.PUT('/branches/{branchId}/geofence', {
+    params: { path: { branchId: scope.branchId } },
+    headers: authHeaders(idToken),
+    body: { companyId: scope.companyId, ...input },
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** DELETE /branches/{branchId}/geofence: la sede queda sin geocerca (ninguna marca se considera fuera). */
+export async function deleteBranchGeofence(idToken: string, scope: HrScope): Promise<BranchGeofence> {
+  const { data, error, response } = await hrAdministrationApiClient.DELETE('/branches/{branchId}/geofence', {
+    params: { path: { branchId: scope.branchId }, query: { companyId: scope.companyId } },
+    headers: authHeaders(idToken),
   });
   if (error || !data) throw toCommandError(error, response.status);
   return data;

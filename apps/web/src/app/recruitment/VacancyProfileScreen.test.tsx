@@ -9,6 +9,7 @@ const getVacancyMock = vi.fn();
 const publishVacancyMock = vi.fn();
 const pauseVacancyMock = vi.fn();
 const resumeVacancyMock = vi.fn();
+const cancelVacancyMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -28,6 +29,7 @@ vi.mock('./recruitment-client', async () => {
     publishVacancy: (...args: unknown[]) => publishVacancyMock(...args),
     pauseVacancy: (...args: unknown[]) => pauseVacancyMock(...args),
     resumeVacancy: (...args: unknown[]) => resumeVacancyMock(...args),
+    cancelVacancy: (...args: unknown[]) => cancelVacancyMock(...args),
   };
 });
 
@@ -64,6 +66,7 @@ describe('VacancyProfileScreen (REC-02)', () => {
     publishVacancyMock.mockReset();
     pauseVacancyMock.mockReset();
     resumeVacancyMock.mockReset();
+    cancelVacancyMock.mockReset();
     setPermissions(['RECRUITMENT.VIEW_VACANCY', 'RECRUITMENT.PUBLISH_VACANCY']);
   });
 
@@ -178,5 +181,50 @@ describe('VacancyProfileScreen (REC-02)', () => {
     renderScreen();
     await screen.findByText('VAC-001');
     expect(screen.queryByRole('button', { name: /Pausar|Reanudar/ })).toBeNull();
+  });
+
+  it('cancela una necesidad recién registrada (NECESIDAD_REGISTRADA) con motivo obligatorio y deja de mostrar el formulario de publicación', async () => {
+    setPermissions(['RECRUITMENT.VIEW_VACANCY', 'RECRUITMENT.CANCEL_VACANCY']);
+    getVacancyMock.mockResolvedValue(makeDetail());
+    cancelVacancyMock.mockResolvedValue(makeDetail({ status: 'CANCELADA', version: 5, cancelReason: 'Se cubrió con personal interno' }));
+    renderScreen();
+    await screen.findByText('VAC-001');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar vacante Asesor' }));
+    const dialog = await screen.findByRole('dialog');
+    const confirm = within(dialog).getByRole('button', { name: 'Confirmar cancelación' });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText(/Motivo de la cancelación/), { target: { value: 'Se cubrió con personal interno' } });
+    fireEvent.click(confirm);
+    await waitFor(() =>
+      expect(cancelVacancyMock).toHaveBeenCalledWith('fake-id-token', 'v1', 4, { companyId: 'c1', branchId: 'b1' }, 'Se cubrió con personal interno'),
+    );
+    expect(await screen.findByTestId('vacancy-cancelled')).toHaveTextContent(/Motivo: Se cubrió con personal interno/);
+    expect(screen.queryByLabelText('Funciones principales')).toBeNull();
+  });
+
+  it('traduce el 422 de cancelación no permitida', async () => {
+    setPermissions(['RECRUITMENT.VIEW_VACANCY', 'RECRUITMENT.CANCEL_VACANCY']);
+    getVacancyMock.mockResolvedValue(makeDetail({ status: 'PUBLICADA' }));
+    cancelVacancyMock.mockRejectedValue(new RecruitmentCommandError(422, { code: 'VACANCY_NOT_CANCELLABLE', detail: 'x' }));
+    renderScreen();
+    await screen.findByText('VAC-001');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar vacante Asesor' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText(/Motivo de la cancelación/), { target: { value: 'Ya no hace falta' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar cancelación' }));
+    expect(await within(dialog).findByText(/ya no se puede cancelar/)).toBeInTheDocument();
+  });
+
+  it('indica cuando la vacante se creó automáticamente por la salida de un colaborador', async () => {
+    getVacancyMock.mockResolvedValue(makeDetail({ source: 'RENUNCIA', originEmployeeId: 'emp-1', originTerminationId: 'ter-1' }));
+    renderScreen();
+    expect(await screen.findByTestId('vacancy-origin')).toHaveTextContent(/creó automáticamente/);
+  });
+
+  it('sin RECRUITMENT.CANCEL_VACANCY no se ofrece cancelar', async () => {
+    getVacancyMock.mockResolvedValue(makeDetail({ status: 'PUBLICADA' }));
+    renderScreen();
+    await screen.findByText('VAC-001');
+    expect(screen.queryByRole('button', { name: /Cancelar vacante/ })).toBeNull();
   });
 });

@@ -2,8 +2,12 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { HrFrame } from './HrFrame';
-import { getEmployee, getEmployeeVacations, scheduleVacation, type EmployeeDetail, type VacationRequest } from './hr-client';
-import { VACATION_STATUS_LABEL } from './hr-domain';
+import { cancelVacation, getEmployee, getEmployeeVacations, rescheduleVacation, scheduleVacation, type EmployeeDetail, type VacationRequest } from './hr-client';
+import { ACTIVE_VACATION_STATUSES, rangeLengthDays, suggestFreeRange, VACATION_STATUS_LABEL } from './hr-domain';
+import { AreaFreeDaysCalendar } from './AreaFreeDaysCalendar';
+import { VacationChangeDialog } from './VacationChangeDialog';
+import { useAreaOccupiedDays } from './useAreaOccupiedDays';
+import { limaToday } from '../shared/lima-time';
 import { VACATION_CONFLICT_MESSAGE } from './hr-errors';
 import { formatDate } from './hr-format';
 import { useHrPermissions } from './hr-permissions';
@@ -39,11 +43,20 @@ export function VacationScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [serverConflict, setServerConflict] = useState(false);
   const startRef = useRef<HTMLInputElement>(null);
+  const [pickOther, setPickOther] = useState(false);
+  const [change, setChange] = useState<{ mode: 'RESCHEDULE' | 'CANCEL'; vacation: VacationRequest } | null>(null);
 
   const employee = data?.employee;
   const check = useVacationConflict({ scope: context ? { companyId: context.companyId, branchId: context.branchId } : undefined, areaId: employee?.areaId, employeeId: id, startDate, endDate });
   const conflict = check.status === 'CONFLICT' || serverConflict;
   const rangeInvalid = !!startDate && !!endDate && endDate < startDate;
+  const wantsDays = pickOther || !!change;
+  const area = useAreaOccupiedDays({
+    enabled: wantsDays,
+    scope: context ? { companyId: context.companyId, branchId: context.branchId } : undefined,
+    areaId: employee?.areaId,
+    employeeId: id,
+  });
   const canRequest = can('SCHEDULE_VACATION') && employee?.status !== 'TERMINADO';
 
   useEffect(() => {
@@ -68,6 +81,33 @@ export function VacationScreen() {
     }
   }
 
+  async function submitChange(input: { startDate: string; endDate: string; reason: string }) {
+    if (!change) return;
+    const target = change.vacation;
+    const res = await command.run(
+      (token) =>
+        change.mode === 'RESCHEDULE'
+          ? rescheduleVacation(token, target.id, input)
+          : cancelVacation(token, target.id, { reason: input.reason }),
+      change.mode === 'RESCHEDULE' ? 'No pudimos reprogramar las vacaciones. Intenta de nuevo.' : 'No pudimos cancelar las vacaciones. Intenta de nuevo.',
+    );
+    if (res.ok) {
+      command.setNotice(change.mode === 'RESCHEDULE' ? 'Vacaciones reprogramadas.' : 'Vacaciones canceladas.');
+      setChange(null);
+      await reload();
+    }
+  }
+
+  function suggestForForm() {
+    const length = startDate && endDate && endDate >= startDate ? rangeLengthDays({ startDate, endDate }) : 7;
+    const free = suggestFreeRange(area.occupied, length, startDate && startDate > limaToday() ? startDate : limaToday());
+    if (free) {
+      setStartDate(free.startDate);
+      setEndDate(free.endDate);
+      setServerConflict(false);
+    }
+  }
+
   const vacations = [...(data?.vacations ?? [])].sort((a, b) => b.startDate.localeCompare(a.startDate));
 
   return (
@@ -89,7 +129,7 @@ export function VacationScreen() {
               </p>
             )}
           </div>
-          {command.error && !serverConflict && (
+          {command.error && !serverConflict && !change && (
             <p className={styles.errorBanner} role="alert">
               {command.error}
             </p>
@@ -160,10 +200,40 @@ export function VacationScreen() {
                     {check.status === 'CONFLICT' && ` (fechas ocupadas: del ${formatDate(check.startDate)} al ${formatDate(check.endDate)})`}.
                   </p>
                 )}
+                {conflict && (
+                  <div>
+                    <button type="button" className={styles.smallButton} onClick={() => setPickOther((v) => !v)} aria-expanded={pickOther}>
+                      {pickOther ? 'Ocultar días libres' : 'Elegir otra fecha libre'}
+                    </button>
+                  </div>
+                )}
                 {check.status === 'UNAVAILABLE' && !conflict && (
                   <p className={styles.hint}>No pudimos verificar la disponibilidad antes de enviar; el sistema la revisará al solicitar.</p>
                 )}
               </div>
+              {pickOther && (
+                <div>
+                  {area.state === 'LOADING' && <p className={styles.hint}>Cargando los días ocupados del área…</p>}
+                  {area.state === 'UNAVAILABLE' && <p className={styles.hint}>No pudimos cargar los días ocupados del área.</p>}
+                  {area.state === 'READY' && (
+                    <>
+                      <AreaFreeDaysCalendar
+                        occupied={area.occupied}
+                        startDate={startDate}
+                        endDate={endDate}
+                        onChange={(r) => {
+                          setStartDate(r.startDate);
+                          setEndDate(r.endDate);
+                          setServerConflict(false);
+                        }}
+                      />
+                      <button type="button" className={styles.smallButton} onClick={suggestForForm}>
+                        Proponer el primer rango libre
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </form>
           ) : (
             <p className={styles.hint}>No tienes permiso para solicitar vacaciones.</p>
@@ -180,11 +250,41 @@ export function VacationScreen() {
                 {vacations.map((v) => (
                   <li key={v.id} className={styles.listItem}>
                     Del {formatDate(v.startDate)} al {formatDate(v.endDate)} · {VACATION_STATUS_LABEL[v.status]}
+                    {v.status === 'REPROGRAMADA' && v.originalStartDate && v.originalEndDate && (
+                      <span data-testid="vacation-rescheduled-note">
+                        {' '}
+                        (antes del {formatDate(v.originalStartDate)} al {formatDate(v.originalEndDate)}
+                        {v.statusReason ? `; motivo: ${v.statusReason}` : ''})
+                      </span>
+                    )}
+                    {v.status === 'CANCELADA' && v.statusReason && <span data-testid="vacation-cancelled-note"> (motivo: {v.statusReason})</span>}
+                    {canRequest && ACTIVE_VACATION_STATUSES.includes(v.status) && (
+                      <span className={styles.rowActions}>
+                        <button type="button" className={styles.smallButton} onClick={() => { command.clearError(); setChange({ mode: 'RESCHEDULE', vacation: v }); }}>
+                          Reprogramar
+                        </button>
+                        <button type="button" className={styles.smallButton} onClick={() => { command.clearError(); setChange({ mode: 'CANCEL', vacation: v }); }}>
+                          Cancelar
+                        </button>
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
             )}
           </section>
+          {change && (
+            <VacationChangeDialog
+              mode={change.mode}
+              vacation={change.vacation}
+              occupied={area.occupied}
+              occupiedState={area.state}
+              saving={command.saving}
+              error={command.error}
+              onSubmit={(input) => void submitChange(input)}
+              onClose={() => setChange(null)}
+            />
+          )}
         </>
       )}
     </HrFrame>

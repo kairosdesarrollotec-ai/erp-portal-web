@@ -135,7 +135,7 @@ describe('NewInquiryScreen (CON-02)', () => {
     expect(screen.queryByText('Canal de contacto')).not.toBeInTheDocument();
   });
 
-  it('revela el documento de hospedaje solo cuando el cliente vinculado es Extranjero', async () => {
+  it('muestra los documentos requeridos por nacionalidad del cliente vinculado y no pide "documento de hospedaje"', async () => {
     listCustomersMock.mockResolvedValue({
       items: [{ ...mariaQuispeCustomer, id: 'cust-ext', fullName: 'John Smith', nationality: 'EXTRANJERO' }],
       total: 1,
@@ -143,11 +143,13 @@ describe('NewInquiryScreen (CON-02)', () => {
     renderScreen();
     await waitForContext();
 
-    expect(screen.queryByText('Documento de hospedaje')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('required-documents')).not.toBeInTheDocument();
 
     await linkExistingCustomer('John Smith');
 
-    expect(screen.getByText('Documento de hospedaje')).toBeInTheDocument();
+    expect(screen.queryByText('Documento de hospedaje')).not.toBeInTheDocument();
+    expect(screen.getByTestId('required-documents')).toHaveTextContent('Constancia de hospedaje');
+    expect(screen.getByTestId('required-documents')).toHaveTextContent('Pasaporte');
   });
 
   // Finding "Sin validacion funcional" + rediseño CON-02: no se puede
@@ -170,7 +172,7 @@ describe('NewInquiryScreen (CON-02)', () => {
     createInquiryMock.mockResolvedValue({
       id: 'con-1',
       status: 'REGISTRADA',
-      channel: 'WHATSAPP',
+      channel: 'PRESENCIAL',
       version: 1,
       companyId: 'c1',
       customerId: null,
@@ -188,7 +190,7 @@ describe('NewInquiryScreen (CON-02)', () => {
     expect(createInquiryMock).toHaveBeenCalledWith('fake-id-token', {
       companyId: 'c1',
       branchId: 'b1',
-      channel: 'WHATSAPP',
+      channel: 'PRESENCIAL',
       touristUse: true,
       customerId: 'cust-maria',
       destination: 'Ayacucho',
@@ -202,7 +204,7 @@ describe('NewInquiryScreen (CON-02)', () => {
     createInquiryMock.mockResolvedValue({
       id: 'con-2',
       status: 'REGISTRADA',
-      channel: 'WHATSAPP',
+      channel: 'PRESENCIAL',
       version: 1,
       companyId: 'c1',
       customerId: null,
@@ -212,7 +214,7 @@ describe('NewInquiryScreen (CON-02)', () => {
     closeInquiryMock.mockResolvedValue({
       id: 'con-2',
       status: 'CERRADA_SIN_CONVERSION',
-      channel: 'WHATSAPP',
+      channel: 'PRESENCIAL',
       version: 2,
       companyId: 'c1',
       customerId: null,
@@ -296,7 +298,7 @@ describe('NewInquiryScreen (CON-02)', () => {
     createInquiryMock.mockResolvedValue({
       id: 'con-3',
       status: 'REGISTRADA',
-      channel: 'WHATSAPP',
+      channel: 'PRESENCIAL',
       version: 1,
       companyId: 'c1',
       customerId: null,
@@ -384,7 +386,7 @@ describe('NewInquiryScreen (CON-02)', () => {
     createInquiryMock.mockResolvedValue({
       id: 'con-4',
       status: 'REGISTRADA',
-      channel: 'WHATSAPP',
+      channel: 'PRESENCIAL',
       version: 1,
       companyId: 'c1',
       customerId: null,

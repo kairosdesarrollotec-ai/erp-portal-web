@@ -21,7 +21,6 @@ export interface InquiryFormErrors {
    * el modal). Sin `customerId` no hay como registrar la consulta.
    */
   customerId?: string;
-  hospedajeDocument?: string;
   destination?: string;
   travelDate?: string;
 }
@@ -35,9 +34,6 @@ export function validateNewInquiryForm(form: NewInquiryFormData): InquiryFormErr
 
   if (!form.customerId) {
     errors.customerId = 'Busca y selecciona un cliente registrado, o registra uno nuevo, antes de continuar.';
-  }
-  if (form.nationality === 'EXTRANJERO' && form.hospedajeDocument.trim().length === 0) {
-    errors.hospedajeDocument = 'Ingresa el documento de hospedaje.';
   }
   if (form.destination.trim().length === 0) {
     errors.destination = 'Ingresa el destino del viaje.';

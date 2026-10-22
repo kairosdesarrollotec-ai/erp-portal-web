@@ -6,14 +6,49 @@ export type InquiryStatus = 'REGISTRADA' | 'COTIZADA' | 'CONVERTIDA' | 'CERRADA_
  * exhibicion" de CON-02 (Presencial/Virtual, ver `DisplayMode`) - son dos
  * datos distintos que la especificacion UX menciona por separado.
  */
-export type InquiryChannel = 'WHATSAPP' | 'PRESENCIAL' | 'WEB' | 'REDES';
+export type InquiryChannel = 'WHATSAPP' | 'LLAMADA' | 'PRESENCIAL' | 'WEB' | 'REDES';
 
 export const INQUIRY_CHANNEL_LABELS: Record<InquiryChannel, string> = {
   WHATSAPP: 'WhatsApp',
+  LLAMADA: 'Llamada',
   PRESENCIAL: 'Presencial',
   WEB: 'Web',
   REDES: 'Redes sociales',
 };
+
+/** Etiqueta legible del canal (el backend puede devolver null en consultas LEGACY_STUB). */
+export function inquiryChannelLabel(channel: string | null | undefined): string {
+  if (!channel) return 'Sin canal';
+  return (INQUIRY_CHANNEL_LABELS as Record<string, string>)[channel] ?? channel;
+}
+
+export type InquiryNationality = 'PERUANO' | 'EXTRANJERO';
+
+/**
+ * BR-CON-004 (decision 22-oct): documentos que se exigen segun la nacionalidad. El backend
+ * devuelve `requiredDocuments` en la consulta; este mapa solo es el respaldo para CON-02,
+ * donde la consulta aun no existe y la nacionalidad sale del cliente vinculado.
+ */
+export const REQUIRED_DOCUMENT_LABELS: Record<string, string> = {
+  DNI: 'DNI',
+  PASAPORTE: 'Pasaporte',
+  LICENCIA_CONDUCIR: 'Licencia de conducir',
+  RECIBO_AGUA_O_LUZ: 'Recibo de agua o luz (comprobante de domicilio)',
+  CONSTANCIA_HOSPEDAJE: 'Constancia de hospedaje',
+  CARNE_EXTRANJERIA: 'Carné de extranjería (CE)',
+  RECIBO_AGUA_LUZ: 'Recibo de agua o luz',
+  FECHA_INGRESO: 'Fecha de ingreso al país',
+};
+
+export function fallbackRequiredDocuments(nationality: InquiryNationality): string[] {
+  return nationality === 'EXTRANJERO'
+    ? ['PASAPORTE', 'LICENCIA_CONDUCIR', 'CONSTANCIA_HOSPEDAJE']
+    : ['DNI', 'LICENCIA_CONDUCIR', 'RECIBO_AGUA_O_LUZ'];
+}
+
+export function requiredDocumentLabel(code: string): string {
+  return REQUIRED_DOCUMENT_LABELS[code] ?? code;
+}
 
 /** Modalidad de exhibicion (CON-02/CON-03) - solo UI, no viaja al backend. */
 export type DisplayMode = 'PRESENCIAL' | 'VIRTUAL';

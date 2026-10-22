@@ -405,4 +405,10 @@ describe('LoginScreen (TR-01)', () => {
       expect(getWorkContextAssignmentsMock).toHaveBeenCalledWith('fake-id-token');
     });
   });
+
+  it('no ofrece un botón "¿Olvidaste tu contraseña?" sin función: avisa que la recuperación llegará próximamente', () => {
+    renderScreen();
+    expect(screen.queryByRole('button', { name: /Olvidaste/ })).not.toBeInTheDocument();
+    expect(screen.getByTestId('forgot-password-notice')).toHaveTextContent(/próximamente/);
+  });
 });

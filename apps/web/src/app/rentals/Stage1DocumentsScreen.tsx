@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
+import { CancelRentalControl } from './CancelRentalControl';
 import {
   validateDocuments,
   RentalCommandError,
@@ -11,9 +12,9 @@ import {
   recordRentalDocument,
   registerAuthorizedDriver,
   registerCompanion,
-  RentalDocumentType,
   ContractHolderType,
 } from './rentals-client';
+import { allDocumentsUploaded, buildValidatePayload, stage1RequiredDocuments, uploadTypeFor } from './stage1-documents';
 import { describeRentalError } from './rental-errors';
 import { useInquiryCustomerSearch } from '../inquiries/useInquiryCustomerSearch';
 import type { Customer } from '../customers/customers-client';
@@ -22,7 +23,6 @@ import { VehicleDataWarnings } from '../shared/VehicleDataWarnings';
 import styles from './RentalStageForms.module.css';
 
 type DriverType = 'TITULAR' | 'ACOMPANANTE' | 'JURIDICA';
-type IdDocType = 'DNI' | 'PASAPORTE_CE';
 
 /**
  * El expediente no expone el tipo de documento del titular. Se infiere del numero (regla de negocio: RUC ->
@@ -49,15 +49,15 @@ export function Stage1DocumentsScreen() {
   const { can } = usePermissions();
 
   const [driverType, setDriverType] = useState<DriverType>('TITULAR');
-  const [idDocType, setIdDocType] = useState<IdDocType>('DNI');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Tracks which document types have been successfully uploaded this session.
-  const [uploadedTypes, setUploadedTypes] = useState<Set<RentalDocumentType>>(new Set());
-  // Per-type upload state: which type is currently uploading.
-  const [uploadingType, setUploadingType] = useState<RentalDocumentType | null>(null);
+  // Codigos de documento requerido (BR-CON-004) subidos con exito en esta sesion.
+  const [uploadedCodes, setUploadedCodes] = useState<Set<string>>(new Set());
+  // Codigo que se esta subiendo ahora y codigo elegido para el selector de archivo compartido.
+  const [uploadingCode, setUploadingCode] = useState<string | null>(null);
+  const pendingCodeRef = useRef<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Conductor propio de persona juridica (DEC-ALQ-OWN-DRIVER-005): cliente-conductor + adenda.
@@ -75,13 +75,10 @@ export function Stage1DocumentsScreen() {
   const companionSearch = useInquiryCustomerSearch(context, (c) => setCompanionCustomer(c));
   const realDriverSearch = useInquiryCustomerSearch(context, (c) => setRealDriverCustomer(c));
 
-  const licenseFileRef = useRef<HTMLInputElement>(null);
-  const idDocFileRef = useRef<HTMLInputElement>(null);
-  const addressFileRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const licenseUploaded = uploadedTypes.has('LICENSE');
-  const idDocUploaded = uploadedTypes.has('ID_DOCUMENT');
-  const addressUploaded = uploadedTypes.has('PROOF_OF_ADDRESS');
+  const requiredDocs = rental ? stage1RequiredDocuments(rental) : [];
+  const documentsReady = allDocumentsUploaded(requiredDocs, uploadedCodes);
   const holderType = inferHolderType(rental?.customerDocNumber);
   const isNaturalHolder = holderType === 'NATURAL';
   const registeredDriver = rental?.parties?.find((p) => p.role === 'DRIVER') ?? null;
@@ -98,12 +95,13 @@ export function Stage1DocumentsScreen() {
   const companionReady =
     !needsCompanion ||
     (!!companionCustomer && !!realDriverCustomer && companionLicenseOk && realDriverLicenseOk && companionReason.trim().length >= 10);
-  const canContinue = licenseUploaded && idDocUploaded && ownDriverReady && companionReady;
+  const canContinue = documentsReady && ownDriverReady && companionReady;
 
-  async function handleFileUpload(file: File, docType: RentalDocumentType) {
+  async function handleFileUpload(file: File, code: string) {
     if (!rental || !context) return;
+    const docType = uploadTypeFor(code);
     const contentType = file.type as 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf';
-    setUploadingType(docType);
+    setUploadingCode(code);
     setUploadError(null);
     try {
       const idToken = await getIdToken();
@@ -113,11 +111,11 @@ export function Stage1DocumentsScreen() {
       );
       await uploadFileToGcs(session.uploadUrl, file);
       await recordRentalDocument(idToken, id, context.companyId, context.branchId, docType, session.objectUrl);
-      setUploadedTypes((prev) => new Set([...prev, docType]));
+      setUploadedCodes((prev) => new Set([...prev, code]));
     } catch {
       setUploadError('No pudimos subir el documento. Intenta de nuevo.');
     } finally {
-      setUploadingType(null);
+      setUploadingCode(null);
     }
   }
 
@@ -143,12 +141,10 @@ export function Stage1DocumentsScreen() {
         );
         setRental(current);
       }
-      const updated = await validateDocuments(idToken, id, context.companyId, context.branchId, current.version, {
-        identityDocumentValid: idDocUploaded,
-        driverLicenseValid: licenseUploaded,
-        addressOrStayProofValid: addressUploaded,
-        notes: notes || undefined,
-      });
+      const updated = await validateDocuments(
+        idToken, id, context.companyId, context.branchId, current.version,
+        buildValidatePayload(requiredDocs, uploadedCodes, notes),
+      );
       setRental(updated);
       navigate(`/alquileres/${id}/entrega-02`, { state: context });
     } catch (err) {
@@ -170,6 +166,7 @@ export function Stage1DocumentsScreen() {
   return (
     <RentalWizardShell
       stage={1}
+      cancelControl={<CancelRentalControl rental={rental} context={context} getIdToken={getIdToken} />}
       title="Cliente y documentos"
       onContinue={handleContinue}
       continueDisabled={!canContinue}
@@ -379,72 +376,36 @@ export function Stage1DocumentsScreen() {
 
         {uploadError && <p className={styles.evidenceError}>{uploadError}</p>}
 
-        <DocumentUploadItem
-          label="Licencia de conducir"
-          done={licenseUploaded}
-          saving={uploadingType === 'LICENSE'}
-          onUpload={() => licenseFileRef.current?.click()}
-        />
+        {requiredDocs.map((doc) =>
+          doc.kind === 'DATA' ? (
+            <p key={doc.code} className={styles.fieldHint} data-testid={`doc-data-${doc.code}`}>
+              <strong>{doc.label}:</strong> se toma de la ficha del cliente; debe estar registrada antes de validar. Si falta,
+              completa el dato en Clientes.
+            </p>
+          ) : (
+            <DocumentUploadItem
+              key={doc.code}
+              label={doc.label}
+              done={uploadedCodes.has(doc.code)}
+              saving={uploadingCode === doc.code}
+              onUpload={() => {
+                pendingCodeRef.current = doc.code;
+                fileInputRef.current?.click();
+              }}
+            />
+          ),
+        )}
+        <p className={styles.fieldHint}>Todos los documentos son obligatorios (según la nacionalidad del cliente).</p>
         <input
-          ref={licenseFileRef}
+          ref={fileInputRef}
           type="file"
+          data-testid="document-file-input"
           accept="image/jpeg,image/webp,image/png,application/pdf"
           style={{ display: 'none' }}
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) void handleFileUpload(file, 'LICENSE');
-            e.target.value = '';
-          }}
-        />
-
-        <div className={styles.chipRow}>
-          <button
-            type="button"
-            className={`${styles.chip} ${idDocType === 'DNI' ? styles.chipActive : ''}`}
-            onClick={() => setIdDocType('DNI')}
-          >
-            DNI
-          </button>
-          <button
-            type="button"
-            className={`${styles.chip} ${idDocType === 'PASAPORTE_CE' ? styles.chipActive : ''}`}
-            onClick={() => setIdDocType('PASAPORTE_CE')}
-          >
-            Pasaporte / CE
-          </button>
-        </div>
-        <DocumentUploadItem
-          label={idDocType === 'DNI' ? 'DNI' : 'Pasaporte / Carné de extranjería'}
-          done={idDocUploaded}
-          saving={uploadingType === 'ID_DOCUMENT'}
-          onUpload={() => idDocFileRef.current?.click()}
-        />
-        <input
-          ref={idDocFileRef}
-          type="file"
-          accept="image/jpeg,image/webp,image/png,application/pdf"
-          style={{ display: 'none' }}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void handleFileUpload(file, 'ID_DOCUMENT');
-            e.target.value = '';
-          }}
-        />
-
-        <DocumentUploadItem
-          label="Comprobante de domicilio / estadía (opcional)"
-          done={addressUploaded}
-          saving={uploadingType === 'PROOF_OF_ADDRESS'}
-          onUpload={() => addressFileRef.current?.click()}
-        />
-        <input
-          ref={addressFileRef}
-          type="file"
-          accept="image/jpeg,image/webp,image/png,application/pdf"
-          style={{ display: 'none' }}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void handleFileUpload(file, 'PROOF_OF_ADDRESS');
+            const code = pendingCodeRef.current;
+            if (file && code) void handleFileUpload(file, code);
             e.target.value = '';
           }}
         />

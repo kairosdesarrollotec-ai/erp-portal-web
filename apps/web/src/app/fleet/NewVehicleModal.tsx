@@ -23,6 +23,11 @@ interface NewVehicleModalProps {
    * selector rápido o la acción "Dar de baja" en la lista).
    */
   vehicle?: FleetVehicle | null;
+  /**
+   * DEC-ALQ-THIRDPATH-001: la marca «elegible para tercera vía» solo la edita Gerencia (permiso FLEET.MANAGE_THIRD_PATH).
+   * Solo se ofrece en modo edición.
+   */
+  canManageThirdPath?: boolean;
 }
 
 const CATEGORIES = [
@@ -80,6 +85,7 @@ export function NewVehicleModal({
   errorMessage,
   onClearError,
   vehicle = null,
+  canManageThirdPath = false,
 }: NewVehicleModalProps) {
   const isEditMode = vehicle !== null;
 
@@ -110,6 +116,7 @@ export function NewVehicleModal({
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
   const [existingPhotoUrl, setExistingPhotoUrl] = useState('');
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [thirdPathEligible, setThirdPathEligible] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -157,6 +164,7 @@ export function NewVehicleModal({
       setPendingPhotoFile(null);
       setPhotoPreviewUrl('');
       setExistingPhotoUrl(vehicle.photoUrl ?? '');
+      setThirdPathEligible(vehicle.thirdPathEligible === true);
     }
   }, [isOpen, vehicle, reset, onClearError]);
 
@@ -242,6 +250,7 @@ export function NewVehicleModal({
       depositMinimum: parsedDepositMinimum,
       passengerCapacity: parsedCapacity,
       fuelPrice: parsedFuelPrice,
+      ...(isEditMode && canManageThirdPath ? { thirdPathEligible } : {}),
       photoFile: pendingPhotoFile ?? undefined,
       photoUrl: pendingPhotoFile ? undefined : (existingPhotoUrl.trim() || undefined),
     }).then((success) => {
@@ -443,6 +452,24 @@ export function NewVehicleModal({
               <span className={styles.fieldHint}>Si no lo sabe, se le avisará al reservar o alquilar este vehículo.</span>
             </label>
           </div>
+
+          {isEditMode && canManageThirdPath && (
+            <label className={styles.field}>
+              <span>
+                <input
+                  type="checkbox"
+                  checked={thirdPathEligible}
+                  onChange={(e) => setThirdPathEligible(e.target.checked)}
+                  disabled={isSubmitting}
+                />{' '}
+                Elegible para tercera vía notarial
+              </span>
+              <span className={styles.fieldHint}>
+                Marca de vehículo «de menor costo relativo» (BR-ALQ-004). Solo Gerencia puede cambiarla; aplica junto con la
+                verificación biométrica del cliente.
+              </span>
+            </label>
+          )}
 
           {!isEditMode && (
             <label className={styles.field}>

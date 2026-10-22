@@ -50,6 +50,8 @@ export interface VehicleEditFormData {
   depositMinimum?: number;
   passengerCapacity?: number;
   fuelPrice?: number;
+  /** Solo se informa cuando el usuario tiene FLEET.MANAGE_THIRD_PATH (Gerencia); si no, se omite y el back no cambia el valor. */
+  thirdPathEligible?: boolean;
   photoUrl?: string;
   photoFile?: File;
 }

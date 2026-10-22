@@ -66,12 +66,13 @@ vi.mock('../customers/customers-client', async () => {
 const legalRental = { ...baseRental, customerName: 'Transportes SAC', customerDocNumber: '20123456789' };
 
 async function uploadRequiredDocs(container: HTMLElement) {
-  const inputs = container.querySelectorAll('input[type="file"]');
+  // BR-CON-004 (22-oct): peruano = licencia + DNI + comprobante de domicilio, los tres obligatorios.
   const file = new File(['c'], 'doc.pdf', { type: 'application/pdf' });
-  fireEvent.change(inputs[0], { target: { files: [file] } });
-  await waitFor(() => expect(recordRentalDocumentMock).toHaveBeenCalledTimes(1));
-  fireEvent.change(inputs[1], { target: { files: [file] } });
-  await waitFor(() => expect(recordRentalDocumentMock).toHaveBeenCalledTimes(2));
+  for (let n = 1; n <= 3; n += 1) {
+    fireEvent.click(screen.getAllByRole('button', { name: 'Subir' })[0]);
+    fireEvent.change(container.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } });
+    await waitFor(() => expect(recordRentalDocumentMock).toHaveBeenCalledTimes(n));
+  }
 }
 
 describe('Stage1DocumentsScreen - conductor propio (DEC-ALQ-OWN-DRIVER-005)', () => {

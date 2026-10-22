@@ -1,5 +1,5 @@
 import type { components } from '../../api/hr-administration.generated';
-import { limaDateAndTimeToInstant, limaToday } from '../shared/lima-time';
+import { addDaysToDateOnly, limaDateAndTimeToInstant, limaToday } from '../shared/lima-time';
 
 export type EmployeeStatus = components['schemas']['EmployeeStatus'];
 export type TerminationReason = components['schemas']['TerminationReason'];
@@ -237,4 +237,59 @@ export function areaIdFromName(name: string): string {
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
+}
+
+/**
+ * Dias ocupados del area por vacaciones activas de OTRAS personas (BR-ADP-002: maximo 1 por area a la vez). Solo fechas:
+ * nunca quien las ocupa. Las propias, canceladas y completadas no cuentan.
+ */
+export function occupiedDates(
+  vacations: readonly (DateRange & { employeeId: string; status: VacationStatus })[],
+  employeeId: string,
+): Set<string> {
+  const days = new Set<string>();
+  for (const v of vacations) {
+    if (v.employeeId === employeeId || !ACTIVE_VACATION_STATUSES.includes(v.status)) continue;
+    let day: string | null = v.startDate.slice(0, 10);
+    const last = v.endDate.slice(0, 10);
+    let guard = 0;
+    while (day && day <= last && guard < 800) {
+      days.add(day);
+      day = addDaysToDateOnly(day, 1);
+      guard += 1;
+    }
+  }
+  return days;
+}
+
+/** Cantidad de dias (inclusive) de un rango. */
+export function rangeLengthDays(range: DateRange): number {
+  const a = Date.UTC(Number(range.startDate.slice(0, 4)), Number(range.startDate.slice(5, 7)) - 1, Number(range.startDate.slice(8, 10)));
+  const b = Date.UTC(Number(range.endDate.slice(0, 4)), Number(range.endDate.slice(5, 7)) - 1, Number(range.endDate.slice(8, 10)));
+  return Math.floor((b - a) / 86_400_000) + 1;
+}
+
+/** ¿Algun dia del rango esta ocupado? */
+export function rangeHasOccupied(range: DateRange, occupied: ReadonlySet<string>): boolean {
+  let day: string | null = range.startDate;
+  let guard = 0;
+  while (day && day <= range.endDate && guard < 800) {
+    if (occupied.has(day)) return true;
+    day = addDaysToDateOnly(day, 1);
+    guard += 1;
+  }
+  return false;
+}
+
+/** Primer rango libre de `lengthDays` dias que empieza en `from` o despues (sin lista de espera: se propone otra fecha). */
+export function suggestFreeRange(occupied: ReadonlySet<string>, lengthDays: number, from: string, searchDays = 366): DateRange | null {
+  if (lengthDays < 1) return null;
+  let start: string | null = from;
+  for (let i = 0; i < searchDays && start; i += 1) {
+    const end = addDaysToDateOnly(start, lengthDays - 1);
+    if (!end) return null;
+    if (!rangeHasOccupied({ startDate: start, endDate: end }, occupied)) return { startDate: start, endDate: end };
+    start = addDaysToDateOnly(start, 1);
+  }
+  return null;
 }

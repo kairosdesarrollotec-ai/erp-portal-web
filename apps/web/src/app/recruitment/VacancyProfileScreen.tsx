@@ -12,6 +12,7 @@ import {
   VACANCY_STATUS_LABEL,
 } from './recruitment-domain';
 import { PauseVacancyControl } from './PauseVacancyControl';
+import { CancelVacancyControl } from './CancelVacancyControl';
 import { useVacancyDetail } from './useVacancyDetail';
 import type { RecruitmentWorkContext } from './useWorkContextForRecruitment';
 import styles from './VacancyProfileScreen.module.css';
@@ -178,6 +179,8 @@ function ProfileForm({ vacancy, context, onPublished, onStale }: FormProps) {
 function VacancyProfile() {
   const { id, state, vacancy, setVacancy, context, reload } = useVacancyDetail();
   const navigate = useNavigate();
+  const { can: canRecruitment } = useRecruitmentPermissions();
+  const canCancel = canRecruitment('CANCEL_VACANCY');
   const [notice, setNotice] = useState<string | null>(null);
 
   return (
@@ -211,6 +214,34 @@ function VacancyProfile() {
               {notice && <p className={styles.notice} role="status">{notice}</p>}
             </div>
 
+            {vacancy.originEmployeeId && (
+              <p className={styles.notice} role="status" data-testid="vacancy-origin">
+                Esta vacante se creó automáticamente en Reclutamiento a raíz de la salida de un colaborador.
+              </p>
+            )}
+
+            {vacancy.status === 'CANCELADA' && (
+              <p className={styles.notice} role="status" data-testid="vacancy-cancelled">
+                <strong>Vacante cancelada.</strong>
+                {vacancy.cancelReason ? ` Motivo: ${vacancy.cancelReason}` : ''} Sus candidatos se conservan y siguen consultables.
+              </p>
+            )}
+
+            {canCancel && (['NECESIDAD_REGISTRADA', 'PUBLICADA', 'PAUSADA'] as string[]).includes(vacancy.status) && (
+            <div className={styles.notice}>
+              <CancelVacancyControl
+                vacancy={vacancy}
+                context={context}
+                buttonClassName={styles.secondaryButton}
+                onChanged={(detail, message) => {
+                  setVacancy(detail);
+                  setNotice(message);
+                }}
+                onStale={reload}
+              />
+            </div>
+            )}
+
             {vacancy.status !== 'NECESIDAD_REGISTRADA' && (
               <div className={styles.notice} role="status">
                 <strong>{vacancy.status === 'PUBLICADA' ? 'Vacante publicada' : `Vacante ${VACANCY_STATUS_LABEL[vacancy.status].toLowerCase()}`}</strong>
@@ -234,6 +265,7 @@ function VacancyProfile() {
               </div>
             )}
 
+            {vacancy.status !== 'CANCELADA' && (
             <ProfileForm
               key={`${vacancy.id}-${vacancy.version}`}
               vacancy={vacancy}
@@ -244,6 +276,7 @@ function VacancyProfile() {
               }}
               onStale={reload}
             />
+            )}
           </>
         )}
       </div>

@@ -96,9 +96,9 @@ describe('InquiriesListScreen (CON-01)', () => {
     expect(screen.getByText('Abierta')).toBeInTheDocument();
     expect(screen.getByText('Nueva Consulta')).toBeInTheDocument();
     expect(listInquiriesMock).toHaveBeenCalledWith('fake-id-token', 'c1', 'b1', {
-      customerId: undefined,
       channel: undefined,
       status: undefined,
+      limit: 50,
     });
   });
 
@@ -169,25 +169,44 @@ describe('InquiriesListScreen (CON-01)', () => {
     expect(getCustomerMock).not.toHaveBeenCalled();
   });
 
-  // Finding "Filtro por cliente dispara una peticion por tecla": escribir
-  // rapido no debe mandar una peticion HTTP por letra.
-  it('el filtro de cliente hace debounce y no dispara una peticion por tecla', async () => {
-    listInquiriesMock.mockResolvedValue([]);
+  // Decision 22-oct: "Buscar por cliente" no manda texto como `customerId`; filtra por nombre ya resuelto.
+  it('el filtro de cliente no envia el texto como customerId y filtra por nombre', async () => {
+    listInquiriesMock.mockResolvedValue([
+      { id: 'con-1', status: 'REGISTRADA', channel: 'LLAMADA', version: 1, companyId: 'c1', branchId: 'b1', customerId: 'cust-1', touristUse: true, createdAt: '2026-10-01T10:00:00Z' },
+      { id: 'con-2', status: 'REGISTRADA', channel: 'PRESENCIAL', version: 1, companyId: 'c1', branchId: 'b1', customerId: 'cust-2', touristUse: true, createdAt: '2026-10-01T11:00:00Z' },
+    ]);
+    getCustomerMock.mockImplementation(async (_t: string, id: string) => ({ id, fullName: id === 'cust-1' ? 'Maria Quispe' : 'Juan Perez' }));
     renderScreen();
 
-    const input = screen.getByLabelText('Filtrar por cliente');
-    fireEvent.change(input, { target: { value: 'M' } });
-    fireEvent.change(input, { target: { value: 'Ma' } });
-    fireEvent.change(input, { target: { value: 'Mar' } });
-    fireEvent.change(input, { target: { value: 'Maria' } });
+    expect(await screen.findByText('Maria Quispe')).toBeInTheDocument();
+    expect(await screen.findByText('Juan Perez')).toBeInTheDocument();
+    // Etiquetas legibles de canal.
+    // (una vez en el selector de canal y otra en la fila)
+    expect(screen.getAllByText('Llamada')).toHaveLength(2);
+    expect(screen.getAllByText('Presencial')).toHaveLength(2);
 
-    await waitFor(() => {
-      const lastCall = listInquiriesMock.mock.calls[listInquiriesMock.mock.calls.length - 1];
-      expect(lastCall?.[3]).toMatchObject({ customerId: 'Maria' });
-    });
+    fireEvent.change(screen.getByLabelText('Filtrar por cliente'), { target: { value: 'maria' } });
 
-    // Solo la carga inicial (filtros vacios) mas la busqueda final - nunca
-    // una llamada por cada letra escrita.
-    expect(listInquiriesMock.mock.calls.length).toBeLessThanOrEqual(2);
+    await waitFor(() => expect(screen.queryByText('Juan Perez')).not.toBeInTheDocument());
+    expect(screen.getByText('Maria Quispe')).toBeInTheDocument();
+    for (const call of listInquiriesMock.mock.calls) {
+      expect(call[3]).not.toHaveProperty('customerId');
+    }
+  });
+
+  it('pagina por cursor: "Cargar más" envia cursorCreatedAt/cursorId de la ultima fila', async () => {
+    const page1 = Array.from({ length: 50 }, (_, i) => ({
+      id: `con-${i}`, status: 'REGISTRADA', channel: 'WEB', version: 1, companyId: 'c1', branchId: 'b1',
+      customerId: null, touristUse: true, createdAt: `2026-10-01T10:${String(59 - (i % 60)).padStart(2, '0')}:00Z`,
+    }));
+    listInquiriesMock.mockResolvedValueOnce(page1).mockResolvedValueOnce([
+      { id: 'con-x', status: 'REGISTRADA', channel: 'WEB', version: 1, companyId: 'c1', branchId: 'b1', customerId: null, touristUse: true, createdAt: '2026-09-01T10:00:00Z' },
+    ]);
+    renderScreen();
+    fireEvent.click(await screen.findByRole('button', { name: 'Cargar más consultas' }));
+    await waitFor(() => expect(listInquiriesMock).toHaveBeenCalledTimes(2));
+    const filters = listInquiriesMock.mock.calls[1][3];
+    expect(filters).toMatchObject({ cursorId: 'con-49', cursorCreatedAt: page1[49].createdAt });
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Cargar más consultas' })).not.toBeInTheDocument());
   });
 });

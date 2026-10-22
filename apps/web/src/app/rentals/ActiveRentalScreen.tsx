@@ -8,6 +8,7 @@ import { formatPen } from './guarantee-breakdown';
 import { GpsPanel } from './GpsPanel';
 import { RequestExtensionModal } from './RequestExtensionModal';
 import { SeriousBreachModal } from './SeriousBreachModal';
+import { ExtensionDecisionPanel } from './ExtensionDecisionPanel';
 import styles from './ActiveRentalScreen.module.css';
 import { formatLimaDateTime } from '../shared/lima-time';
 
@@ -22,7 +23,7 @@ function formatDate(iso: string | null): string {
  * solo Gerencia, registrar falta grave (BR-ALQ-013) cuando hay una ampliacion pendiente.
  */
 export function ActiveRentalScreen() {
-  const { state, rental, context, reload } = useRentalWizard();
+  const { state, rental, context, reload, getIdToken } = useRentalWizard();
   const navigate = useNavigate();
   const { can } = usePermissions();
   const canReportBreach = can('RENTAL', 'REPORT_EXTENSION_BREACH');
@@ -39,7 +40,6 @@ export function ActiveRentalScreen() {
   const isExtensionPending = rental.status === 'EXTENSION_PENDING';
   const inProgress = isActive || isExtensionPending;
   const deposit = rental.deposit;
-  const creditExcess = Number(rental.reservationCreditExcess ?? deposit?.reservationCreditExcess ?? 0) || 0;
   const lastExtension = rental.extensions && rental.extensions.length > 0 ? rental.extensions[rental.extensions.length - 1] : null;
   const incidentsPath = `/incidencias?rentalId=${rental.id}`;
 
@@ -87,11 +87,6 @@ export function ActiveRentalScreen() {
           ) : (
             <p className={styles.statusText}>Sin garantía registrada.</p>
           )}
-          {creditExcess > 0 && (
-            <p className={styles.statusText} data-testid="reservation-credit-excess">
-              Saldo a favor de la reserva (sin reembolso automático): {formatPen(creditExcess)}
-            </p>
-          )}
         </section>
 
         {lastExtension && (
@@ -108,6 +103,10 @@ export function ActiveRentalScreen() {
               <li>Adenda firmada: {lastExtension.requirements.addendumSigned ? 'cumplido' : 'pendiente'}</li>
             </ul>
           </section>
+        )}
+
+        {isExtensionPending && (
+          <ExtensionDecisionPanel rental={rental} context={context} getIdToken={getIdToken} onDone={() => void reload()} />
         )}
 
         {inProgress && (

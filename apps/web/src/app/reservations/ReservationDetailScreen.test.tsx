@@ -103,7 +103,7 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
       expiresAt: '2026-09-16T01:00:00Z',
     });
     uploadReservationFileToGcsMock.mockResolvedValue(undefined);
-    recordReservationDocumentMock.mockResolvedValue(undefined);
+    recordReservationDocumentMock.mockResolvedValue({ id: 'doc-voucher-1' });
     registerPaymentMock.mockResolvedValue(
       buildReservation({ requirements: { paymentValidatedAt: '2026-09-16T00:00:00Z', documentsCompletedAt: null } }),
     );
@@ -112,12 +112,76 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
     await screen.findByText('Borrador / No confirmada');
     expect(screen.queryByText('Confirmar reserva')).not.toBeInTheDocument();
 
+    // Decision 22-oct #8: formulario con metodo, nº de operacion, pagador y comprobante adjunto.
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }));
+    expect(screen.getByTestId('payment-proof-form')).toBeInTheDocument();
+    // Sin datos no envia nada.
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar comprobante' }));
+    expect(await screen.findByText('Ingresa el número de operación.')).toBeInTheDocument();
+    expect(screen.getByText('Adjunta el comprobante de pago.')).toBeInTheDocument();
+    expect(registerPaymentMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText(/Método de pago/), { target: { value: 'YAPE' } });
+    fireEvent.change(screen.getByLabelText(/Nº de operación/), { target: { value: 'OP-998877' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Paga un agente externo' }));
+    fireEvent.change(screen.getByLabelText(/Nombre de quien paga/), { target: { value: 'Carlos Ruiz' } });
     const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['voucher'], 'voucher.png', { type: 'image/png' });
     fireEvent.change(fileInput, { target: { files: [file] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar comprobante' }));
 
     expect(await screen.findByText(/confirma automáticamente/)).toBeInTheDocument();
-    expect(registerPaymentMock).toHaveBeenCalledWith('fake-id-token', 'res-1', 'c1', 'b1', 1);
+    expect(recordReservationDocumentMock).toHaveBeenCalledWith('fake-id-token', 'res-1', 'c1', 'b1', 'PAYMENT_VOUCHER', 'gs://bucket/voucher.png');
+    // El monto requerido y la version de politica ya no viajan desde el cliente; si viajan metodo, operacion y pagador.
+    expect(registerPaymentMock).toHaveBeenCalledWith('fake-id-token', 'res-1', 'c1', 'b1', 1, {
+      amount: '300.00',
+      method: 'YAPE',
+      operationNumber: 'OP-998877',
+      payerName: 'Carlos Ruiz',
+      voucherDocumentId: 'doc-voucher-1',
+    });
+  });
+
+  it('muestra el 422 RESERVATION_EXCEEDS_GUARANTEE de forma clara (sin saldo a favor)', async () => {
+    getReservationMock.mockResolvedValue(buildReservation({
+      requirements: { paymentValidatedAt: '2026-09-16T00:00:00Z', documentsCompletedAt: '2026-09-16T00:00:00Z' },
+      missingRequirements: [],
+    }));
+    confirmReservationMock.mockRejectedValue(new ReservationCommandError(422, { code: 'RESERVATION_EXCEEDS_GUARANTEE', detail: 'tecnico' }));
+    renderScreen();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirmar reserva' }));
+
+    expect(await screen.findByText(/no puede superar la garantía del vehículo/)).toBeInTheDocument();
+    expect(screen.getByText(/No existe saldo a favor/)).toBeInTheDocument();
+  });
+
+  describe('RES-05 - Continuar con alquiler solo en la fecha pactada (hora de Lima)', () => {
+    const confirmed = (startAt: string) =>
+      buildReservation({
+        status: 'CONFIRMED',
+        version: 2,
+        startAt,
+        requirements: { paymentValidatedAt: '2026-09-16T00:00:00Z', documentsCompletedAt: '2026-09-16T00:00:00Z' },
+        confirmedAt: '2026-09-16T00:00:00Z',
+      });
+
+    it('antes de la fecha pactada el boton esta deshabilitado y explica "Disponible el dia pactado: dd/mm"', async () => {
+      getReservationMock.mockResolvedValue(confirmed('2099-03-05T15:00:00Z'));
+      renderScreen();
+
+      const btn = await screen.findByRole('button', { name: 'Continuar con alquiler' });
+      expect(btn).toBeDisabled();
+      expect(screen.getByText(/Disponible el día pactado: 05\/03/)).toBeInTheDocument();
+    });
+
+    it('desde la fecha pactada el boton esta habilitado', async () => {
+      getReservationMock.mockResolvedValue(confirmed('2026-09-20T14:00:00Z'));
+      renderScreen();
+
+      expect(await screen.findByRole('button', { name: 'Continuar con alquiler' })).toBeEnabled();
+      expect(screen.queryByText(/Disponible el día pactado/)).not.toBeInTheDocument();
+    });
   });
 
   it('cuando esta confirmada, muestra el mensaje sin bloqueo exclusivo (ADR-008)', async () => {

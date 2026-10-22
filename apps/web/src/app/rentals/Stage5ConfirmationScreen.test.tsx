@@ -267,19 +267,20 @@ describe('Stage5ConfirmationScreen (ENTREGA-05 / ALQ-09)', () => {
     expect(await screen.findByText(/No pudimos confirmar la entrega/)).toBeInTheDocument();
   });
 
-  it('muestra el saldo a favor de la reserva solo si reservationCreditExcess > 0', async () => {
-    useRentalWizardMock.mockReturnValue(makeWizard({ rental: { ...baseRental, deposit: { ...baseRental.deposit, originalAmount: '0.00', reservationCreditExcess: '100.00' } } }));
+  it('no muestra ningun saldo a favor de la reserva (decision 22-oct)', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard({ rental: { ...baseRental, deposit: { ...baseRental.deposit, originalAmount: '0.00' } } }));
     renderScreen();
-    expect(await screen.findByTestId('reservation-credit-excess')).toHaveTextContent('Saldo a favor de la reserva (sin reembolso automático): 100.00 PEN');
+    await screen.findByText(/Confirmar entrega/);
+    expect(screen.queryByTestId('reservation-credit-excess')).not.toBeInTheDocument();
   });
 
-  it('conductor de la empresa: sin garantia (deposit null) y saldo a favor del credito de reserva', async () => {
+  it('conductor de la empresa: sin garantia (deposit null)', async () => {
     useRentalWizardMock.mockReturnValue(
-      makeWizard({ rental: { ...baseRental, deposit: null, depositRequired: false, reservationCreditExcess: '250.00' } }),
+      makeWizard({ rental: { ...baseRental, deposit: null, depositRequired: false } }),
     );
     renderScreen();
     expect(await screen.findByTestId('no-deposit-company-driver')).toHaveTextContent('Con conductor de la empresa no se cobra garantía');
     expect(screen.getByText(/sin garantía \(conductor de la empresa\)/)).toBeInTheDocument();
-    expect(screen.getByTestId('reservation-credit-excess')).toHaveTextContent('250.00 PEN');
+    expect(screen.queryByTestId('reservation-credit-excess')).not.toBeInTheDocument();
   });
 });

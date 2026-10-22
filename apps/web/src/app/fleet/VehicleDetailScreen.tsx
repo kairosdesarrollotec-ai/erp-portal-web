@@ -36,6 +36,7 @@ export function VehicleDetailScreen() {
   const navigate = useNavigate();
   const { can } = useRolePermissions();
   const canWrite = can('FLEET', 'WRITE');
+  const canManageThirdPath = can('FLEET', 'MANAGE_THIRD_PATH');
   const {
     state,
     vehicle,
@@ -207,6 +208,12 @@ export function VehicleDetailScreen() {
                 )}
               </div>
               <div className={styles.vehicleMetaItem}>
+                <span className={styles.vehicleMetaLabel}>Tercera vía notarial</span>
+                <span className={styles.vehicleMetaValue} data-testid="third-path-eligible">
+                  {vehicle.thirdPathEligible ? 'Elegible' : 'No elegible'}
+                </span>
+              </div>
+              <div className={styles.vehicleMetaItem}>
                 <span className={styles.vehicleMetaLabel}>Precio del combustible</span>
                 <span className={styles.vehicleMetaValue}>
                   {vehicle.fuelPrice != null
@@ -279,6 +286,7 @@ export function VehicleDetailScreen() {
         errorMessage={editErrorMessage}
         onClearError={() => {/* handled by mutation reset */}}
         vehicle={vehicle}
+        canManageThirdPath={canManageThirdPath}
       />
     </main>
   );

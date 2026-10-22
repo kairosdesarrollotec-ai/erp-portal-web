@@ -20,7 +20,6 @@ export interface NewInquiryFormData {
   documentType: string;
   document: string;
   nationality: Nationality;
-  hospedajeDocument: string;
   destination: string;
   travelDate: string;
   travelers: number;
@@ -36,7 +35,6 @@ const INITIAL_FORM: NewInquiryFormData = {
   documentType: 'DNI',
   document: '',
   nationality: 'PERUANO',
-  hospedajeDocument: '',
   destination: '',
   travelDate: '',
   travelers: 1,
@@ -90,6 +88,15 @@ function clearStoredDraft() {
   } catch {
     // ignorar
   }
+}
+
+/**
+ * Decision 22-oct: en modalidad PRESENCIAL el canal que viaja al backend es PRESENCIAL
+ * (antes se enviaba el WHATSAPP por defecto). Solo en VIRTUAL se usa el canal elegido.
+ */
+export function effectiveInquiryChannel(form: Pick<NewInquiryFormData, 'displayMode' | 'channel'>): InquiryChannel {
+  if (form.displayMode === 'PRESENCIAL') return 'PRESENCIAL';
+  return form.channel === 'PRESENCIAL' ? 'WHATSAPP' : form.channel;
 }
 
 export function useNewInquiry() {
@@ -187,7 +194,7 @@ export function useNewInquiry() {
       } = {
         companyId: context.companyId,
         branchId: context.branchId,
-        channel: form.channel,
+        channel: effectiveInquiryChannel(form),
         touristUse: form.touristUse ?? false,
         destination: form.destination.trim(),
         estimatedDays: form.travelDays,
@@ -213,7 +220,7 @@ export function useNewInquiry() {
           travelers: form.travelers,
           travelDays: form.travelDays,
           displayMode: form.displayMode,
-          channel: form.channel,
+          channel: effectiveInquiryChannel(form),
           touristUse: created.touristUse,
           version: created.version,
         },
@@ -281,7 +288,7 @@ export function useNewInquiry() {
       } = {
         companyId: context.companyId,
         branchId: context.branchId,
-        channel: form.channel,
+        channel: effectiveInquiryChannel(form),
         touristUse: false,
         destination: form.destination.trim(),
         estimatedDays: form.travelDays,

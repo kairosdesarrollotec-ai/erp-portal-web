@@ -511,6 +511,166 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/vacations/{id}/reschedule": {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        get?: never;
+        put?: never;
+        /** Reprogramar vacaciones en conflicto a otra fecha libre (22-oct, #10) */
+        post: {
+            parameters: { query?: never; header?: { "Idempotency-Key"?: string }; path: { id: string }; cookie?: never };
+            requestBody: { content: { "application/json": components["schemas"]["RescheduleVacationRequest"] } };
+            responses: {
+                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["VacationRequestResponse"] } };
+                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                409: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vacations/{id}/cancel": {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        get?: never;
+        put?: never;
+        /** Cancelar vacaciones liberando el cupo del área (22-oct, #10) */
+        post: {
+            parameters: { query?: never; header?: { "Idempotency-Key"?: string }; path: { id: string }; cookie?: never };
+            requestBody: { content: { "application/json": components["schemas"]["CancelVacationRequest"] } };
+            responses: {
+                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["VacationRequestResponse"] } };
+                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                409: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/attendance": {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        /** Mis marcas de asistencia y la geocerca de mi sede (22-oct, #9) */
+        get: {
+            parameters: { query: { companyId: string; branchId: string; month?: string }; header?: never; path?: never; cookie?: never };
+            requestBody?: never;
+            responses: {
+                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["MyAttendanceResponse"] } };
+                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+            };
+        };
+        put?: never;
+        /** Marcar la propia asistencia desde la cuenta personal (22-oct, #9) */
+        post: {
+            parameters: { query?: never; header?: { "Idempotency-Key"?: string }; path?: never; cookie?: never };
+            requestBody: { content: { "application/json": components["schemas"]["LogMyAttendanceRequest"] } };
+            responses: {
+                201: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["AttendanceRecordResponse"] } };
+                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                409: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/pending-review": {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        /** Marcas fuera de la geocerca pendientes de revisión (22-oct, #9) */
+        get: {
+            parameters: { query: { companyId: string; branchId: string; limit?: number }; header?: never; path?: never; cookie?: never };
+            requestBody?: never;
+            responses: {
+                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["AttendanceRecordResponse"][] } };
+                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/{id}/review": {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Aprobar o corregir una marca fuera de la geocerca (22-oct, #9) */
+        patch: {
+            parameters: { query?: never; header?: never; path: { id: string }; cookie?: never };
+            requestBody: { content: { "application/json": components["schemas"]["ReviewAttendanceRequest"] } };
+            responses: {
+                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["AttendanceRecordResponse"] } };
+                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                409: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+            };
+        };
+        trace?: never;
+    };
+    "/branches/{branchId}/geofence": {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        /** Geocerca de la sede para las marcas de asistencia (22-oct, #9) */
+        get: {
+            parameters: { query: { companyId: string }; header?: never; path: { branchId: string }; cookie?: never };
+            requestBody?: never;
+            responses: {
+                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["BranchGeofenceResponse"] } };
+                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+            };
+        };
+        /** Configurar coordenadas y radio de la geocerca de la sede */
+        put: {
+            parameters: { query?: never; header?: never; path: { branchId: string }; cookie?: never };
+            requestBody: { content: { "application/json": components["schemas"]["SetBranchGeofenceRequest"] } };
+            responses: {
+                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["BranchGeofenceResponse"] } };
+                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+            };
+        };
+        post?: never;
+        /** Quitar la geocerca de la sede */
+        delete: {
+            parameters: { query: { companyId: string }; header?: never; path: { branchId: string }; cookie?: never };
+            requestBody?: never;
+            responses: {
+                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["BranchGeofenceResponse"] } };
+                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -633,7 +793,8 @@ export interface components {
             /** Format: uuid */
             candidateId?: string | null;
             documentType: string;
-            documentNumber: string;
+            /** @description null si el rol no tiene HR_ADMINISTRATION.VIEW_EMPLOYEE_DOCUMENT (ver restrictedFields). */
+            documentNumber: string | null;
             fullName: string;
             email?: string | null;
             phone?: string | null;
@@ -656,7 +817,10 @@ export interface components {
             terminationNoticeDays?: number | null;
             fieldTripLateCount: number;
             isFieldTripObserved: boolean;
+            /** @description null = pendiente O restringido: solo lo ve quien tiene HR_ADMINISTRATION.MANAGE_SALARY (ver restrictedFields). */
             baseSalary?: number | null;
+            /** @description Campos enmascarados para el rol del solicitante (HU-35). Vacío si ve todo. */
+            restrictedFields?: ("documentNumber" | "baseSalary")[];
             /** @description La ficha está vinculada a una cuenta de usuario por correo (DEC-ADP-LINK-EMAIL-001) */
             accountLinked: boolean;
             /** @description Versión optimista de la ficha (DEC-ADP-EDIT-ETAG-001); mismo valor que el header ETag */
@@ -716,6 +880,8 @@ export interface components {
             accuracy?: number | null;
             /** @description DEC-ADP-ATT-EVIDENCE-001/002. Foto con reloj + hora + rostro que corrobora la marcación. OBLIGATORIA en PRESENTE/TARDANZA (422 ATTENDANCE_EVIDENCE_REQUIRED); opcional en faltas y permisos. Se sube con POST /employees/{id}/attendance/evidence/upload-url y su `storageRef` va aquí. */
             evidence?: components["schemas"]["AttendanceEvidenceRequest"] | null;
+            /** @description Registro «a nombre de» otro colaborador (22-oct): motivo OBLIGATORIO en PRESENTE/TARDANZA (422 ATTENDANCE_REASON_REQUIRED), 3-500 caracteres. */
+            reason?: string | null;
         };
         /** @description Requiere al menos uno de storageRef o url. Si viene storageRef debe empezar por companies/{companyId}/employees/{employeeId}/attendance/ (el que devuelve la URL de subida). */
         AttendanceEvidenceRequest: {
@@ -785,6 +951,23 @@ export interface components {
             justification?: string | null;
             /** Format: date-time */
             reclassifiedAt?: string | null;
+            /** @description SELF = el colaborador marcó desde su cuenta; ON_BEHALF = Personal registró a nombre de otro. Registros históricos: ON_BEHALF. @enum {string} */
+            source?: "SELF" | "ON_BEHALF";
+            onBehalfReason?: string | null;
+            /** Format: date-time */
+            capturedAt?: string | null;
+            /** @description La entrada quedó fuera del radio de la geocerca de la sede */
+            outsideGeofence?: boolean;
+            distanceMeters?: number | null;
+            geofenceRadiusMeters?: number | null;
+            /** @description PENDING = fuera de geocerca, espera revisión; null = no requiere revisión. */
+            reviewStatus?: ("PENDING" | "APPROVED" | "CORRECTED") | null;
+            requiresReview?: boolean;
+            reviewedById?: string | null;
+            /** Format: date-time */
+            reviewedAt?: string | null;
+            reviewNote?: string | null;
+            checkOut?: components["schemas"]["AttendanceCheckOutResponse"] | null;
             evidence?: components["schemas"]["AttendanceEvidenceResponse"] | null;
             /** @description true si el registro no tiene evidencia fotográfica (incluye registros previos a 0.3.0) */
             evidenceMissing?: boolean;
@@ -896,6 +1079,16 @@ export interface components {
             /** Format: date-time */
             approvedAt?: string | null;
             notes?: string | null;
+            /** Format: date */
+            originalStartDate?: string | null;
+            /** Format: date */
+            originalEndDate?: string | null;
+            rescheduleCount?: number;
+            /** @description Motivo de la última reprogramación o cancelación */
+            statusReason?: string | null;
+            /** Format: date-time */
+            statusChangedAt?: string | null;
+            statusChangedById?: string | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -1107,6 +1300,88 @@ export interface components {
             jobTitle: string;
             fieldTripLateCount: number;
             isFieldTripObserved: boolean;
+        };
+        AttendanceCheckOutResponse: {
+            /** Format: date-time */
+            capturedAt?: string | null;
+            latitude?: number | null;
+            longitude?: number | null;
+            accuracy?: number | null;
+            outsideGeofence: boolean;
+            distanceMeters?: number | null;
+        };
+        MyAttendanceEvidenceRequest: {
+            /** @enum {string} */
+            kind?: "SELF_PHOTO" | "WHATSAPP_PHOTO";
+            storageRef?: string | null;
+            url?: string | null;
+            note?: string | null;
+        };
+        LogMyAttendanceRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @default CHECK_IN @enum {string} */
+            type?: "CHECK_IN" | "CHECK_OUT";
+            /** @default PRESENTE @enum {string} */
+            status?: "PRESENTE" | "TARDANZA";
+            minutesLate?: number;
+            /** Format: date-time */
+            capturedAt: string;
+            latitude: number;
+            longitude: number;
+            accuracy: number;
+            notes?: string | null;
+            evidence?: components["schemas"]["MyAttendanceEvidenceRequest"] | null;
+        };
+        GeofenceInfo: {
+            configured: boolean;
+            latitude?: number | null;
+            longitude?: number | null;
+            radiusMeters?: number | null;
+        };
+        MyAttendanceResponse: {
+            /** Format: uuid */
+            employeeId: string;
+            geofence: components["schemas"]["GeofenceInfo"];
+            items: components["schemas"]["AttendanceRecordResponse"][];
+        };
+        ReviewAttendanceRequest: {
+            /** @enum {string} */
+            decision: "APPROVE" | "CORRECT";
+            note?: string;
+            status?: components["schemas"]["AttendanceStatus"];
+            minutesLate?: number;
+        };
+        SetBranchGeofenceRequest: {
+            /** Format: uuid */
+            companyId: string;
+            latitude: number;
+            longitude: number;
+            radiusMeters: number;
+        };
+        BranchGeofenceResponse: {
+            /** Format: uuid */
+            branchId: string;
+            branchName: string;
+            configured: boolean;
+            latitude?: number | null;
+            longitude?: number | null;
+            radiusMeters?: number | null;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            updatedBy?: string | null;
+        };
+        RescheduleVacationRequest: {
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            reason: string;
+        };
+        CancelVacationRequest: {
+            reason: string;
         };
         /** @description Cuerpo de error de dominio (DomainExceptionFilter). `code` es estable y apto para que el front decida el mensaje. */
         ProblemDetail: {

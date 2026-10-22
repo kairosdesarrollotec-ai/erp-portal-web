@@ -10,7 +10,7 @@ type ConvertBody = components['schemas']['ConvertToReservationRequest'];
 export interface InquirySummary {
   id: string;
   status: InquiryStatus;
-  channel: string;
+  channel: string | null;
   version: number;
   companyId: string;
   branchId?: string;
@@ -26,6 +26,8 @@ export interface InquirySummary {
   customerId: string | null;
   touristUse: boolean;
   createdAt: string;
+  /** BR-CON-004: documentos exigidos segun la nacionalidad del cliente (los devuelve el backend). */
+  requiredDocuments?: string[];
   /**
    * El backend (InquirySummaryResponse) ya envia estos campos desde
    * siempre - faltaban en este tipo (no reflejaban el shape real de la
@@ -38,6 +40,7 @@ export interface InquirySummary {
   destination: string | null;
   estimatedDays: number | null;
   travelStartDate: string | null;
+  partySize?: number | null;
 }
 
 export interface InquiryQuotation {
@@ -95,6 +98,10 @@ export async function listInquiries(
     status?: InquiryStatus;
     createdFrom?: string;
     createdTo?: string;
+    limit?: number;
+    /** Keyset: createdAt / id de la ULTIMA fila de la pagina anterior (se envian juntos). */
+    cursorCreatedAt?: string;
+    cursorId?: string;
   },
   signal?: AbortSignal,
 ): Promise<InquirySummary[]> {
@@ -108,6 +115,10 @@ export async function listInquiries(
         ...(filters?.status ? { status: filters.status as components['schemas']['InquiryStatus'] } : {}),
         ...(filters?.createdFrom ? { createdFrom: filters.createdFrom } : {}),
         ...(filters?.createdTo ? { createdTo: filters.createdTo } : {}),
+        ...(filters?.limit ? { limit: filters.limit } : {}),
+        ...(filters?.cursorCreatedAt && filters?.cursorId
+          ? { cursorCreatedAt: filters.cursorCreatedAt, cursorId: filters.cursorId }
+          : {}),
       },
     },
     headers: { Authorization: `Bearer ${idToken}` },
@@ -144,6 +155,23 @@ export class InquiryCommandError extends Error {
   ) {
     super(problem?.detail ?? `La operación no se pudo completar (${status})`);
   }
+}
+
+const INQUIRY_ERROR_MESSAGES: Record<string, string> = {
+  RESERVATION_EXCEEDS_GUARANTEE:
+    'El monto de la reserva no puede superar la garantía del vehículo. No existe saldo a favor: elige otro vehículo o revisa la política de reserva.',
+  INQUIRY_REQUIRED: 'Toda reserva o alquiler nace de una Consulta. Registra la consulta primero.',
+  INQUIRY_CONVERSION_REQUIRED:
+    'Esta operación solo se puede hacer desde la Consulta (botón "Reservar" o "Convertir a Alquiler" en su detalle).',
+};
+
+/** Mensaje en español para un error de comando de Consulta (usa el código del backend si lo conocemos). */
+export function inquiryCommandErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof InquiryCommandError) {
+    const mapped = error.problem?.code ? INQUIRY_ERROR_MESSAGES[error.problem.code] : undefined;
+    return mapped ?? error.message;
+  }
+  return error instanceof Error ? error.message : fallback;
 }
 
 /**

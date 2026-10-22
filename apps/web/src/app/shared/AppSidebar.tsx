@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowLeftRight, LogOut, RefreshCw, X } from 'lucide-react';
+import { ArrowLeftRight, FileX2, LogOut, MapPinCheck, RefreshCw, X } from 'lucide-react';
 import { MODULE_ITEMS } from '../modules/module-definitions';
 import { isModuleVisible } from '../modules/module-visibility';
 import { useWorkSession } from './useWorkSession';
@@ -96,6 +96,32 @@ export function AppSidebar() {
             >
               <RefreshCw size={16} />
               <span>Sincronización</span>
+            </Link>
+          )}
+          {/* Asistencia propia con foto y ubicación (hr-administration 0.10.0, 22-oct #9). */}
+          {can('HR_ADMINISTRATION', 'LOG_OWN_ATTENDANCE') && (
+            <Link
+              to="/mi-asistencia"
+              state={location.state}
+              className={styles.footerLink}
+              onClick={() => setSidebarOpen(false)}
+              title="Marcar mi entrada y mi salida"
+            >
+              <MapPinCheck size={16} />
+              <span>Mi asistencia</span>
+            </Link>
+          )}
+          {/* Doble aprobación para eliminar evidencia (evidence.yaml 1.0.0): quien solicita o aprueba. */}
+          {(can('EVIDENCE', 'REQUEST_DELETION') || can('EVIDENCE', 'APPROVE_DELETION')) && (
+            <Link
+              to="/evidencia/solicitudes"
+              state={location.state}
+              className={styles.footerLink}
+              onClick={() => setSidebarOpen(false)}
+              title="Solicitudes de eliminación de evidencia (doble aprobación)"
+            >
+              <FileX2 size={16} />
+              <span>Eliminación de evidencia</span>
             </Link>
           )}
           <Link

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
-import { closeInquiry, convertInquiryToReservation, convertInquiryToRental, getInquiry, InquiryCommandError, InquiryDetail } from './inquiries-client';
+import { closeInquiry, convertInquiryToReservation, convertInquiryToRental, getInquiry, InquiryCommandError, inquiryCommandErrorMessage, InquiryDetail } from './inquiries-client';
 import { getCustomer } from '../customers/customers-client';
 import { getVehicle } from '../fleet/fleet-client';
 import { useWorkContextForInquiries } from './useWorkContextForInquiries';
@@ -35,6 +35,8 @@ export function useInquiryDetail() {
    * resumen solo mostraba el nombre, sin ningun indicio visual - mismo
    * patron `photoUrl` que InquiryVehiclesScreen/useInquiryVehicles.ts. */
   const [vehiclePhotoUrl, setVehiclePhotoUrl] = useState<string | null>(null);
+  /** Avisos del vehiculo cotizado (capacidad faltante o menor que el grupo). */
+  const [vehicleWarnings, setVehicleWarnings] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -67,13 +69,24 @@ export function useInquiryDetail() {
           const vehicle = await getVehicle(idToken, latestQuotation.vehicleId, context.companyId, context.branchId);
           setVehicleLabel(`${vehicle.brand} ${vehicle.model}`.trim());
           setVehiclePhotoUrl(vehicle.photoUrl ?? null);
+          const warnings: string[] = [];
+          if (vehicle.passengerCapacity == null) {
+            warnings.push('El vehículo no tiene capacidad de pasajeros registrada en Flota.');
+          } else if (result.partySize && result.partySize > vehicle.passengerCapacity) {
+            warnings.push(
+              `El grupo (${result.partySize} personas) supera la capacidad del vehículo (${vehicle.passengerCapacity}).`,
+            );
+          }
+          setVehicleWarnings(warnings);
         } catch {
           setVehicleLabel(null);
           setVehiclePhotoUrl(null);
+          setVehicleWarnings([]);
         }
       } else {
         setVehicleLabel(null);
         setVehiclePhotoUrl(null);
+        setVehicleWarnings([]);
       }
     } catch {
       setState('RECOVERABLE_ERROR');
@@ -136,7 +149,7 @@ export function useInquiryDetail() {
       if (error instanceof InquiryCommandError && (error.status === 412 || error.status === 409)) {
         setState('SYNC_CONFLICT');
       } else {
-        setActionError(error instanceof Error ? error.message : 'No se pudo crear la reserva.');
+        setActionError(inquiryCommandErrorMessage(error, 'No se pudo crear la reserva.'));
       }
       return null;
     } finally {
@@ -160,7 +173,7 @@ export function useInquiryDetail() {
       if (error instanceof InquiryCommandError && (error.status === 412 || (error.status === 409 && !error.problem?.code))) {
         setState('SYNC_CONFLICT');
       } else {
-        setActionError(error instanceof Error ? error.message : 'No se pudo convertir la consulta a alquiler.');
+        setActionError(inquiryCommandErrorMessage(error, 'No se pudo convertir la consulta a alquiler.'));
       }
       return null;
     } finally {
@@ -177,6 +190,7 @@ export function useInquiryDetail() {
     customerName,
     vehicleLabel,
     vehiclePhotoUrl,
+    vehicleWarnings,
     saving,
     actionError,
     closeWithoutConversion,

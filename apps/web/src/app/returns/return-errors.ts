@@ -25,7 +25,7 @@ const DOMAIN_MESSAGES: Record<string, string> = {
     'Los daños técnicos no tienen precio fijo. Deriva el vehículo a Motrix y registra el monto de su informe.',
   UNKNOWN_COSMETIC_ZONE: 'El paño elegido no está en el tarifario oficial de daños estéticos.',
   IMMOBILIZATION_PERIOD_NOT_ELAPSED:
-    'Aún no corresponde cobrar paralización: no han pasado 24 horas desde la recepción del vehículo.',
+    'Aún no corresponde cobrar paralización: no han pasado 24 horas desde el cierre de la devolución.',
   RENTAL_ALREADY_HAS_ACTIVE_RETURN: 'Este alquiler ya tiene una devolución en curso. Búscala en la bandeja de devoluciones.',
   RENTAL_NOT_RETURNABLE: 'Este alquiler no está activo, por lo que no se puede iniciar su devolución.',
   RETURN_VERSION_CONFLICT: 'Otra persona modificó esta devolución. Recargamos los datos; revisa y vuelve a intentar.',

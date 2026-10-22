@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
+import { CancelRentalControl } from './CancelRentalControl';
 import {
   evaluateNotary,
   approveNotaryException,
   formalizeContract,
   getContractTemplate,
   setCompanyDriverDailyRate,
+  requestRentalDocumentUploadSession,
+  uploadFileToGcs,
+  recordRentalDocument,
   RentalCommandError,
   NotaryEvaluationResponse,
   ContractHolderType,
@@ -17,6 +21,14 @@ import { usePermissions } from '../shared/usePermissions';
 import { SignaturePad } from '../shared/SignaturePad';
 import { computeGuaranteeBreakdown, formatPen } from './guarantee-breakdown';
 import { describeRentalError } from './rental-errors';
+import { PaymentProofFields } from '../shared/PaymentProofFields';
+import {
+  emptyPaymentDraft,
+  hasPaymentErrors,
+  toGuaranteePaymentBody,
+  validatePaymentDraft,
+  type PaymentProofDraft,
+} from '../shared/payment-proof';
 import styles from './RentalStageForms.module.css';
 
 /** DEC-ALQ-DRIVERRATE-001: monto > 0, maximo 2 decimales y hasta 8 enteros (DECIMAL(10,2)); mismo patron que el backend. */
@@ -25,8 +37,19 @@ const DAILY_RATE_PATTERN = /^(?!0+(\.0{1,2})?$)\d{1,8}(\.\d{1,2})?$/;
 const NOTARY_RESULT_LABELS: Record<string, string> = {
   MANDATORY: 'Notaría obligatoria',
   DOUBLE_DEPOSIT: 'Doble depósito de garantía',
-  THIRD_PATH_ELIGIBLE: 'Elegible para tercer camino (requiere aprobación)',
-  MANUAL_REVIEW: 'Revisión manual requerida',
+  THIRD_PATH_ELIGIBLE: 'Elegible para tercera vía (requiere aprobación de Gerencia)',
+  MANUAL_REVIEW: 'Revisión manual requerida (Gerencia)',
+};
+
+/** DEC-ALQ-THIRDPATH-001 / BR-ALQ-004: que significa cada resultado de la matriz para el personal. */
+const NOTARY_RESULT_EXPLANATIONS: Record<string, string> = {
+  MANDATORY: 'Vehículo de alto riesgo: el trámite notarial es obligatorio y no admite excepción.',
+  DOUBLE_DEPOSIT:
+    'No aplica la tercera vía: se exige el doble de la garantía base del vehículo (cliente con 2 o menos alquileres previos, o vehículo que no es de menor costo).',
+  THIRD_PATH_ELIGIBLE:
+    'Cliente antiguo con biometría favorable y vehículo de menor costo: puede firmar el documento de responsabilidad en lugar de ir a notaría, sin duplicar la garantía. Requiere la aprobación de Gerencia.',
+  MANUAL_REVIEW:
+    'Cliente antiguo sin verificación biométrica registrada: la matriz no es determinista. Gerencia decide; si verificas la biometría puedes volver a evaluar.',
 };
 
 /**
@@ -46,9 +69,13 @@ export function Stage3ContractScreen() {
 
   const [evaluation, setEvaluation] = useState<NotaryEvaluationResponse | null>(rental?.notaryEvaluation ?? null);
   const [justification, setJustification] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('EFECTIVO');
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [payer, setPayer] = useState<'TITULAR' | 'AGENTE_EXTERNO'>('TITULAR');
+  // null = el personal aun no tocó el monto: se propone la garantía exigida (tarifa de Flota, x2 con DOUBLE_DEPOSIT).
+  const [paymentAmountInput, setPaymentAmountInput] = useState<string | null>(null);
+  // Decisión 8: comprobante del cobro (método, nº de operación, pagador, voucher adjunto).
+  const [paymentDraft, setPaymentDraft] = useState<PaymentProofDraft>(() => emptyPaymentDraft());
+  // DEC-ALQ-THIRDPATH-001: casilla de verificación biométrica favorable registrada por el personal.
+  const [biometricVerified, setBiometricVerified] = useState(false);
+
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -63,24 +90,30 @@ export function Stage3ContractScreen() {
   const [templateSel, setTemplateSel] = useState<ContractTemplateSelectionResponse | null>(null);
   const [templateState, setTemplateState] = useState<'LOADING' | 'READY' | 'ERROR'>('LOADING');
 
-  useEffect(() => {
-    async function runEvaluation() {
-      if (!rental || !context || rental.notaryEvaluation || evaluation) return;
-      setEvaluating(true);
-      try {
-        const idToken = await getIdToken();
-        const result = await evaluateNotary(idToken, id, context.companyId, context.branchId, rental.version);
-        setRental(result.rental);
-        setEvaluation(result.evaluation);
-      } catch {
-        setError('No pudimos evaluar la matriz notarial. Intenta de nuevo.');
-      } finally {
-        setEvaluating(false);
-      }
+  /**
+   * La evaluación ya no es automática: la casilla de verificación biométrica debe registrarse ANTES de evaluar
+   * (con resultado determinista el alquiler avanza y no se puede reevaluar). Si queda pendiente de Gerencia
+   * (MANUAL_REVIEW / THIRD_PATH_ELIGIBLE) se puede evaluar de nuevo mientras siga en evaluación notarial.
+   */
+  async function handleEvaluate() {
+    if (!rental || !context) return;
+    setEvaluating(true);
+    setError(null);
+    try {
+      const idToken = await getIdToken();
+      const result = await evaluateNotary(idToken, id, context.companyId, context.branchId, rental.version, biometricVerified);
+      setRental(result.rental);
+      setEvaluation(result.evaluation);
+    } catch (err) {
+      setError(
+        err instanceof RentalCommandError
+          ? describeRentalError(err, 'No pudimos evaluar la matriz notarial. Intenta de nuevo.')
+          : 'No pudimos evaluar la matriz notarial. Intenta de nuevo.',
+      );
+    } finally {
+      setEvaluating(false);
     }
-    void runEvaluation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rental?.id]);
+  }
 
   // Si el alquiler ya tiene una tarifa manual, se muestra en el campo.
   const manualRate = rental?.companyDriverCharge?.source === 'MANUAL' ? rental.companyDriverCharge.dailyRate : null;
@@ -120,14 +153,16 @@ export function Stage3ContractScreen() {
   const needsException = evaluation && (evaluation.result === 'MANUAL_REVIEW' || evaluation.result === 'THIRD_PATH_ELIGIBLE');
   const exceptionResolved = !needsException || !!evaluation?.approvedBy;
   const depositMinimum = rental?.vehicleDepositMinimum ?? null;
+  // Garantía exigida: tarifa de Flota x multiplicador notarial (el back la devuelve ya calculada en requiredGuarantee).
+  const requiredGuarantee = rental?.requiredGuarantee ?? null;
+  const requiredAmountNum = requiredGuarantee ? parseFloat(requiredGuarantee.amount) : depositMinimum;
+  const paymentAmount = paymentAmountInput ?? (requiredGuarantee?.amount ?? '');
   const paymentAmountNum = paymentAmount ? parseFloat(paymentAmount) : null;
-  const depositBelowMinimum = depositMinimum != null && paymentAmountNum != null && paymentAmountNum < depositMinimum;
+  const depositBelowMinimum = requiredAmountNum != null && paymentAmountNum != null && paymentAmountNum < requiredAmountNum;
   const breakdown = computeGuaranteeBreakdown(paymentAmountNum, rental?.reservationCredit ?? null);
   const hasTemplate = templateState === 'READY' && !!templateSel?.template;
   // Con conductor de la empresa NO hay garantia (DEC-ALQ-COMPANY-DRIVER-004): se omite el cobro.
   const noDeposit = withCompanyDriver;
-  const appliedCredit = rental?.reservationCredit?.applied ? parseFloat(rental.reservationCredit.creditAmount) || 0 : 0;
-  const companyDriverCreditBalance = noDeposit ? appliedCredit : 0;
   // DEC-ALQ-DRIVERRATE-001 (F-02): tarifa diaria del conductor de la empresa. La variante solo se conoce en el contrato
   // formalizado; antes de formalizar vale lo marcado en el checkbox y la tarifa digitada se guarda justo despues.
   const contractIsCompanyDriver = !!rental?.contract?.contractVariant?.endsWith('_WITH_DRIVER');
@@ -140,11 +175,16 @@ export function Stage3ContractScreen() {
   const rateClosed =
     !!rental && ['ACTIVE', 'EXTENSION_PENDING', 'RETURN_IN_PROGRESS', 'CLOSED', 'CANCELLED'].includes(rental.status);
   const rateDefined = driverCharge?.source === 'MANUAL';
+  const paymentErrors = validatePaymentDraft(paymentDraft, { externalAgentFields: true });
+  // El comprobante solo se exige si queda diferencia por cobrar (si la reserva cubre toda la garantía no hay cobro).
+  const needsPaymentProof = !noDeposit && breakdown.toCollect > 0;
+  const paymentReady = !needsPaymentProof || !hasPaymentErrors(paymentErrors);
   const canFormalize =
     (!withCompanyDriver || (driverRateTrim !== '' && driverRateValid)) &&
     exceptionResolved &&
     !!signatureData &&
     (noDeposit || (!!paymentAmount && !depositBelowMinimum)) &&
+    paymentReady &&
     !rental?.contract &&
     hasTemplate;
 
@@ -174,10 +214,34 @@ export function Stage3ContractScreen() {
 
   async function handleFormalize() {
     if (!rental || !context) return;
+    if (needsPaymentProof && hasPaymentErrors(paymentErrors)) {
+      setConfirmOpen(false);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       const idToken = await getIdToken();
+      // Decisión 8: el voucher se sube con el mecanismo de documentos del alquiler (PAYMENT_VOUCHER) y se envía su id.
+      let payment: ReturnType<typeof toGuaranteePaymentBody> | undefined;
+      if (needsPaymentProof && paymentDraft.file) {
+        const file = paymentDraft.file;
+        try {
+          const session = await requestRentalDocumentUploadSession(
+            idToken, id, context.companyId, context.branchId, 'PAYMENT_VOUCHER',
+            file.type as 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf', file.size,
+          );
+          await uploadFileToGcs(session.uploadUrl, file);
+          const recorded = await recordRentalDocument(
+            idToken, id, context.companyId, context.branchId, 'PAYMENT_VOUCHER', session.objectUrl,
+          );
+          payment = toGuaranteePaymentBody(paymentDraft, rental.customerName, recorded?.id);
+        } catch {
+          setError('No pudimos subir el comprobante de pago. Intenta de nuevo.');
+          setConfirmOpen(false);
+          return;
+        }
+      }
       // templateVersionId se omite: el backend resuelve la plantilla ACTIVE
       // vigente de la empresa (BR-DOC-002).
       const updated = await formalizeContract(
@@ -192,6 +256,7 @@ export function Stage3ContractScreen() {
         undefined,
         signatureData ?? undefined,
         { holderType, withCompanyDriver },
+        payment,
       );
       // La tarifa digitada se guarda tras formalizar (antes no existe contrato con la variante del conductor).
       if (withCompanyDriver && driverRateTrim && canSetDriverRate) {
@@ -261,6 +326,7 @@ export function Stage3ContractScreen() {
   return (
     <RentalWizardShell
       stage={3}
+      cancelControl={<CancelRentalControl rental={rental} context={context} getIdToken={getIdToken} />}
       title="Garantía y contrato"
       onContinue={() => setConfirmOpen(true)}
       continueLabel="Formalizar y continuar"
@@ -271,11 +337,58 @@ export function Stage3ContractScreen() {
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>Evaluación notarial</p>
         {evaluating && <p className={styles.statusText}>Evaluando matriz notarial…</p>}
+        {rental.vehicleThirdPathEligible && (
+          <p className={styles.fieldHint} data-testid="vehicle-third-path-flag">
+            Este vehículo está marcado por Gerencia como elegible para la tercera vía.
+          </p>
+        )}
         {evaluation && (
           <>
             <span className={styles.statusBadge}>{NOTARY_RESULT_LABELS[evaluation.result] ?? evaluation.result}</span>
             <p className={styles.summaryLine}>{evaluation.reason}</p>
+            {NOTARY_RESULT_EXPLANATIONS[evaluation.result] && (
+              <p className={styles.fieldHint} data-testid="notary-explanation">
+                {NOTARY_RESULT_EXPLANATIONS[evaluation.result]}
+              </p>
+            )}
+            {evaluation.previousRentalsCount != null && (
+              <p className={styles.fieldHint} data-testid="notary-previous-rentals">
+                Alquileres previos cerrados del cliente: {evaluation.previousRentalsCount}
+                {evaluation.previousRentalsCount > 2 ? ' (cliente antiguo)' : ' (cliente nuevo: se necesitan más de 2)'}.
+              </p>
+            )}
+            {evaluation.biometricVerified && (
+              <p className={styles.fieldHint} data-testid="notary-biometric">
+                Verificación biométrica favorable registrada{evaluation.biometricVerifiedBy ? ' por el personal' : ''}.
+              </p>
+            )}
+            {needsException && !evaluation.approvedBy && (
+              <p className={styles.blockedNotice} role="status" data-testid="notary-pending-approval">
+                Pendiente de aprobación de Gerencia para continuar.
+              </p>
+            )}
           </>
+        )}
+        {(!evaluation || (needsException && !evaluation.approvedBy)) && (
+          <div data-testid="notary-evaluate-step">
+            <label className={styles.fieldLabel}>
+              <input
+                type="checkbox"
+                checked={biometricVerified}
+                disabled={evaluating}
+                onChange={(e) => setBiometricVerified(e.target.checked)}
+              />{' '}
+              Verificación biométrica favorable
+            </label>
+            <span className={styles.fieldHint}>
+              Marca solo si verificaste la biometría del cliente; queda registrada con tu usuario. Debe marcarse antes de evaluar.
+            </span>
+            <div className={styles.modalActions}>
+              <button type="button" className={styles.retryButton} onClick={() => void handleEvaluate()} disabled={evaluating}>
+                {evaluation ? 'Volver a evaluar' : 'Evaluar notaría'}
+              </button>
+            </div>
+          </div>
         )}
       </section>
 
@@ -463,11 +576,6 @@ export function Stage3ContractScreen() {
         <fieldset className={styles.fieldset} data-testid="no-deposit-company-driver">
           <legend>Garantía</legend>
           <p className={styles.summaryLine} role="status">Con conductor de la empresa no se cobra garantía.</p>
-          {companyDriverCreditBalance > 0 && (
-            <p className={styles.fieldHint} role="status" data-testid="reservation-credit-excess">
-              Saldo a favor de la reserva (sin reembolso automático): {formatPen(companyDriverCreditBalance)}
-            </p>
-          )}
         </fieldset>
       )}
 
@@ -475,17 +583,16 @@ export function Stage3ContractScreen() {
       <fieldset className={styles.fieldset}>
         <legend>Pago de garantía</legend>
         <label className={styles.fieldLabel}>
-          Medio de pago
-          <select className={styles.select} value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-            <option value="EFECTIVO">Efectivo</option>
-            <option value="TARJETA">Tarjeta</option>
-            <option value="TRANSFERENCIA">Transferencia</option>
-          </select>
-        </label>
-        <label className={styles.fieldLabel}>
           Garantía total (PEN)
-          {depositMinimum != null && (
-            <span className={styles.fieldHint}>Mínimo requerido: S/ {depositMinimum.toFixed(2)}</span>
+          {requiredGuarantee ? (
+            <span className={styles.fieldHint} data-testid="required-guarantee">
+              Garantía exigida: S/ {parseFloat(requiredGuarantee.amount).toFixed(2)}
+              {requiredGuarantee.multiplier === 2
+                ? ` (doble depósito: base S/ ${parseFloat(requiredGuarantee.baseAmount).toFixed(2)} x 2)`
+                : ' (tarifa de Flota)'}
+            </span>
+          ) : (
+            depositMinimum != null && <span className={styles.fieldHint}>Mínimo requerido: S/ {depositMinimum.toFixed(2)}</span>
           )}
           <input
             className={styles.input}
@@ -493,12 +600,12 @@ export function Stage3ContractScreen() {
             min="0"
             step="0.01"
             value={paymentAmount}
-            onChange={(e) => setPaymentAmount(e.target.value)}
+            onChange={(e) => setPaymentAmountInput(e.target.value)}
             aria-invalid={depositBelowMinimum}
           />
           {depositBelowMinimum && (
             <span className={styles.evidenceError}>
-              El monto es inferior al mínimo de garantía (S/ {depositMinimum!.toFixed(2)}).
+              El monto es inferior a la garantía exigida (S/ {requiredAmountNum!.toFixed(2)}).
             </span>
           )}
         </label>
@@ -517,27 +624,19 @@ export function Stage3ContractScreen() {
             <div><dt>Diferencia a cobrar</dt><dd>{formatPen(breakdown.toCollect)}</dd></div>
           </dl>
         )}
-        {breakdown.creditExcess > 0 && (
-          <p className={styles.fieldHint} role="status" data-testid="reservation-credit-excess">
-            Saldo a favor de la reserva (sin reembolso automático): {formatPen(breakdown.creditExcess)}
+        {paymentAmountNum != null && !needsPaymentProof && (
+          <p className={styles.fieldHint} role="status">
+            La reserva cubre toda la garantía: no hay cobro ni comprobante que registrar.
           </p>
         )}
-        <div className={styles.chipRow}>
-          <button
-            type="button"
-            className={`${styles.chip} ${payer === 'TITULAR' ? styles.chipActive : ''}`}
-            onClick={() => setPayer('TITULAR')}
-          >
-            Paga el titular
-          </button>
-          <button
-            type="button"
-            className={`${styles.chip} ${payer === 'AGENTE_EXTERNO' ? styles.chipActive : ''}`}
-            onClick={() => setPayer('AGENTE_EXTERNO')}
-          >
-            Paga un agente externo
-          </button>
-        </div>
+        {needsPaymentProof && (
+          <PaymentProofFields
+            draft={paymentDraft}
+            onChange={setPaymentDraft}
+            errors={paymentErrors}
+            externalAgentFields
+          />
+        )}
       </fieldset>
       )}
 

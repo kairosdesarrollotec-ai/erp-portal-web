@@ -19,6 +19,8 @@ type Choice = AttendanceStatus | 'FALTA';
 type EvidenceMode = 'FILE' | 'REF';
 type UploadState = 'idle' | 'uploading' | 'done' | 'error';
 
+const MIN_REASON_LENGTH = 5;
+
 /** Valida tipo y tamano de la foto antes de pedir la URL firmada. */
 function validatePhoto(file: File): string | null {
   if (!(ATTENDANCE_EVIDENCE_TYPES as readonly string[]).includes(file.type)) return 'La foto debe ser JPG, PNG o WEBP.';
@@ -63,6 +65,8 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
   const [checkOut, setCheckOut] = useState('');
   const [minutesLate, setMinutesLate] = useState('');
   const [notes, setNotes] = useState('');
+  // Registrar a nombre de otra persona exige un motivo (queda en la auditoría).
+  const [reason, setReason] = useState('');
   const [photoRef, setPhotoRef] = useState('');
   const [capturedAt, setCapturedAt] = useState('');
   const [evidenceNote, setEvidenceNote] = useState('');
@@ -130,6 +134,7 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
       onAbsence(date);
       return;
     }
+    if (reason.trim().length < MIN_REASON_LENGTH) return;
     // Obligatoria en PRESENTE/TARDANZA; si se llena (opcional en otros casos) debe estar completa y no ser futura (hora de Lima).
     if (uploadState === 'uploading') return;
     if (wantsEvidence && (!hasPhoto || !capturedAt || capturedAt > limaNowInputValue())) return;
@@ -149,6 +154,7 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
         checkInTime: checkIn ? localToIso(date, checkIn) : undefined,
         checkOutTime: checkOut ? localToIso(date, checkOut) : undefined,
         notes: notes.trim() || undefined,
+        reason: reason.trim(),
         evidence: wantsEvidence ? (buildEvidence(mode === 'REF' ? photoRef : '', capturedAt, evidenceNote, mode === 'FILE' ? storageRef : null) ?? undefined) : undefined,
       });
       onSaved(saved);
@@ -219,6 +225,25 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
               <input id="att-out" type="time" className={styles.inputLine} value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
             </div>
           </>
+        )}
+        {choice !== 'FALTA' && (
+          <div className={styles.field}>
+            <label htmlFor="att-reason">Motivo del registro a nombre de la persona (obligatorio)</label>
+            <textarea
+              id="att-reason"
+              className={styles.input}
+              value={reason}
+              maxLength={500}
+              onChange={(e) => setReason(e.target.value)}
+              aria-invalid={submitted && reason.trim().length < MIN_REASON_LENGTH}
+              aria-required="true"
+            />
+            {submitted && reason.trim().length < MIN_REASON_LENGTH && (
+              <span className={styles.error} role="alert">
+                Indica el motivo (al menos {MIN_REASON_LENGTH} caracteres). Queda en la auditoría.
+              </span>
+            )}
+          </div>
         )}
         {choice !== 'FALTA' && (
           <div className={styles.field}>

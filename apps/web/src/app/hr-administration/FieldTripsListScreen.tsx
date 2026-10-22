@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { AppHeader } from '../shared/AppHeader';
 import { HrFrame } from './HrFrame';
 import { listFieldTrips, type FieldTrip } from './hr-client';
@@ -59,6 +59,16 @@ function TripRows({ trips, label, context, action }: RowsProps) {
 function FieldTripsList() {
   const { can } = useHrPermissions();
   const { state, data, context } = useHrResource<FieldTrip[]>((token, scope) => listFieldTrips(token, scope), 'list');
+  // Deep link de las notificaciones de Gerencia (`/personal/campo?tripId=...`): abre directo la solicitud.
+  const [searchParams] = useSearchParams();
+  const requestedTripId = searchParams.get('tripId');
+  const requestedTrip = requestedTripId ? (data ?? []).find((t) => t.id === requestedTripId) : undefined;
+  if (requestedTrip) {
+    const needsReturn = requestedTrip.status === 'AUTORIZADA' && can('EVALUATE_FIELD_TRIP_RETURN');
+    const closedWithReturn = pendingLevel(requestedTrip.status) === null && requestedTrip.status !== 'AUTORIZADA' && requestedTrip.status !== 'NO_AUTORIZADA';
+    const page = needsReturn || closedWithReturn ? 'regreso' : 'autorizacion';
+    return <Navigate replace to={`/personal/campo/${requestedTrip.id}/${page}`} state={context ?? undefined} />;
+  }
   const trips = [...(data ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const pending = trips.filter((t) => pendingLevel(t.status) !== null);
   const out = trips.filter((t) => t.status === 'AUTORIZADA');
