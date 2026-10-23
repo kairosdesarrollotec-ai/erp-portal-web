@@ -11,6 +11,8 @@ const getEmployeeMock = vi.fn();
 const getVacationsMock = vi.fn();
 const calendarMock = vi.fn();
 const scheduleMock = vi.fn();
+const rescheduleMock = vi.fn();
+const cancelMock = vi.fn();
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
@@ -27,6 +29,8 @@ vi.mock('./hr-client', async () => {
     getEmployeeVacations: (...a: unknown[]) => getVacationsMock(...a),
     getVacationsCalendar: (...a: unknown[]) => calendarMock(...a),
     scheduleVacation: (...a: unknown[]) => scheduleMock(...a),
+    rescheduleVacation: (...a: unknown[]) => rescheduleMock(...a),
+    cancelVacation: (...a: unknown[]) => cancelMock(...a),
   };
 });
 
@@ -51,6 +55,8 @@ describe('VacationScreen (ADP-05)', () => {
     getVacationsMock.mockReset().mockResolvedValue([]);
     calendarMock.mockReset().mockResolvedValue([makeVacation()]);
     scheduleMock.mockReset();
+    rescheduleMock.mockReset().mockResolvedValue(makeVacation());
+    cancelMock.mockReset().mockResolvedValue(makeVacation());
     setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.SCHEDULE_VACATION']);
   });
 
@@ -132,5 +138,74 @@ describe('VacationScreen (ADP-05)', () => {
     renderScreen();
     expect(await screen.findByText('No tienes permiso para solicitar vacaciones.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Solicitar' })).not.toBeInTheDocument();
+  });
+
+  describe('reprogramar y cancelar (22-oct #10)', () => {
+    const own = () => makeVacation({ id: 'vac-own', employeeId: 'emp-1', employeeName: 'Yo', startDate: '2026-11-12', endDate: '2026-11-14' });
+
+    it('ante el conflicto ofrece elegir otra fecha libre: los dias ocupados salen con texto y no se pueden elegir', async () => {
+      renderScreen();
+      await screen.findByLabelText('Desde');
+      pick('2026-11-12', '2026-11-20');
+      fireEvent.click(await screen.findByRole('button', { name: 'Elegir otra fecha libre' }));
+      const busy = await screen.findByRole('button', { name: /12 de .*: ocupado/ });
+      expect(busy).toBeDisabled();
+      expect(busy).toHaveTextContent('Ocupado');
+      expect(screen.queryByText('Rosa Díaz')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Proponer el primer rango libre' }));
+      await waitFor(() => expect(screen.getByLabelText('Desde')).not.toHaveValue('2026-11-12'));
+    });
+
+    it('reprograma a otra fecha con motivo', async () => {
+      getVacationsMock.mockResolvedValue([own()]);
+      renderScreen();
+      fireEvent.click(await screen.findByRole('button', { name: 'Reprogramar' }));
+      await screen.findAllByRole("button", { name: /2[3-9] de .*: libre/ });
+      fireEvent.change(screen.getByLabelText('Nueva fecha de inicio'), { target: { value: '2026-11-20' } });
+      fireEvent.change(screen.getByLabelText('Nueva fecha final'), { target: { value: '2026-11-22' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Reprogramar', hidden: false, description: undefined }));
+      expect(await screen.findByText(/al menos 3 caracteres/)).toBeInTheDocument();
+      expect(rescheduleMock).not.toHaveBeenCalled();
+      fireEvent.change(screen.getByLabelText('Motivo (obligatorio)'), { target: { value: 'Cruce con otra persona' } });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Reprogramar' }).at(-1)!);
+      await waitFor(() =>
+        expect(rescheduleMock).toHaveBeenCalledWith('tok', 'vac-own', { startDate: '2026-11-20', endDate: '2026-11-22', reason: 'Cruce con otra persona' }),
+      );
+    });
+
+    it('muestra el 409 VACATION_OVERLAP del servidor dentro del dialogo', async () => {
+      getVacationsMock.mockResolvedValue([own()]);
+      rescheduleMock.mockRejectedValue(new HrCommandError(409, { code: 'VACATION_OVERLAP' } as never));
+      renderScreen();
+      fireEvent.click(await screen.findByRole('button', { name: 'Reprogramar' }));
+      fireEvent.change(screen.getByLabelText('Nueva fecha de inicio'), { target: { value: '2026-12-20' } });
+      fireEvent.change(screen.getByLabelText('Nueva fecha final'), { target: { value: '2026-12-22' } });
+      fireEvent.change(screen.getByLabelText('Motivo (obligatorio)'), { target: { value: 'Cambio de plan' } });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Reprogramar' }).at(-1)!);
+      expect(await screen.findByText(VACATION_CONFLICT_MESSAGE)).toBeInTheDocument();
+    });
+
+    it('cancela con motivo obligatorio', async () => {
+      getVacationsMock.mockResolvedValue([own()]);
+      renderScreen();
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancelar' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar vacaciones' }));
+      expect(await screen.findByText(/al menos 3 caracteres/)).toBeInTheDocument();
+      expect(cancelMock).not.toHaveBeenCalled();
+      fireEvent.change(screen.getByLabelText('Motivo (obligatorio)'), { target: { value: 'Ya no viajo' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancelar vacaciones' }));
+      await waitFor(() => expect(cancelMock).toHaveBeenCalledWith('tok', 'vac-own', { reason: 'Ya no viajo' }));
+    });
+
+    it('muestra los estados REPROGRAMADA y CANCELADA con fechas originales y motivo, sin acciones para las canceladas', async () => {
+      getVacationsMock.mockResolvedValue([
+        makeVacation({ id: 'a', employeeId: 'emp-1', status: 'REPROGRAMADA', startDate: '2026-12-01', endDate: '2026-12-05', originalStartDate: '2026-11-01', originalEndDate: '2026-11-05', statusReason: 'Cruce' }),
+        makeVacation({ id: 'b', employeeId: 'emp-1', status: 'CANCELADA', startDate: '2027-01-01', endDate: '2027-01-05', statusReason: 'Ya no viajo' }),
+      ]);
+      renderScreen();
+      expect(await screen.findByTestId('vacation-rescheduled-note')).toHaveTextContent('motivo: Cruce');
+      expect(screen.getByTestId('vacation-cancelled-note')).toHaveTextContent('Ya no viajo');
+      expect(screen.getAllByRole('button', { name: 'Reprogramar' })).toHaveLength(1);
+    });
   });
 });

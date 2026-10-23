@@ -13,6 +13,8 @@ import { can, usePermissions } from '../shared/usePermissions';
  *  - ADP-10: REGISTER_TRAINING (registrar talleres internos).
  *  - hr-administration 0.8.0: MANAGE_AREAS (alta y activar/desactivar áreas; solo Gerencia General) y MANAGE_SALARY
  *    (cambiar el sueldo base de una ficha; solo Gerencia).
+ *  - hr-administration 0.10.0 (22-oct #9): LOG_OWN_ATTENDANCE (marcar la propia asistencia), REVIEW_ATTENDANCE (revisar marcas fuera de
+ *    la geocerca), MANAGE_GEOFENCE (configurar la geocerca por sede) y VIEW_EMPLOYEE_DOCUMENT (ver el DNI).
  * Mientras los permisos cargan (o si fallan) no se muestra ninguna accion.
  */
 export type HrAction =
@@ -27,7 +29,11 @@ export type HrAction =
   | 'TERMINATE_EMPLOYMENT'
   | 'REGISTER_TRAINING'
   | 'MANAGE_AREAS'
-  | 'MANAGE_SALARY';
+  | 'MANAGE_SALARY'
+  | 'LOG_OWN_ATTENDANCE'
+  | 'REVIEW_ATTENDANCE'
+  | 'MANAGE_GEOFENCE'
+  | 'VIEW_EMPLOYEE_DOCUMENT';
 
 export const HR_MODULE = 'HR_ADMINISTRATION';
 

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useNewInquiry } from './useNewInquiry';
-import { INQUIRY_CHANNEL_LABELS } from './inquiry-status';
+import { INQUIRY_CHANNEL_LABELS, fallbackRequiredDocuments, requiredDocumentLabel } from './inquiry-status';
 import { AppHeader } from '../shared/AppHeader';
 import { NewCustomerModal } from '../customers/NewCustomerModal';
 import styles from './NewInquiryScreen.module.css';
@@ -99,7 +99,9 @@ export function NewInquiryScreen() {
                 value={form.channel}
                 onChange={(event) => updateForm({ channel: event.target.value as typeof form.channel })}
               >
-                {Object.entries(INQUIRY_CHANNEL_LABELS).map(([value, label]) => (
+                {Object.entries(INQUIRY_CHANNEL_LABELS)
+                  .filter(([value]) => value !== 'PRESENCIAL')
+                  .map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
@@ -199,20 +201,17 @@ export function NewInquiryScreen() {
             <span className={styles.fieldError}>{fieldErrors.customerId}</span>
           )}
 
-          {form.nationality === 'EXTRANJERO' && (
-            <label className={`${styles.field} ${styles.revealed}`}>
-              <span>Documento de hospedaje</span>
-              <input
-                className={styles.input}
-                type="text"
-                value={form.hospedajeDocument}
-                onChange={(event) => updateForm({ hospedajeDocument: event.target.value })}
-                aria-invalid={Boolean(fieldErrors.hospedajeDocument)}
-              />
-              {fieldErrors.hospedajeDocument && (
-                <span className={styles.fieldError}>{fieldErrors.hospedajeDocument}</span>
-              )}
-            </label>
+          {form.customerId && (
+            <div className={`${styles.field} ${styles.revealed}`} data-testid="required-documents">
+              <span>
+                Documentos que se pedirán al alquilar ({form.nationality === 'EXTRANJERO' ? 'cliente extranjero' : 'cliente peruano'})
+              </span>
+              <ul>
+                {fallbackRequiredDocuments(form.nationality).map((code) => (
+                  <li key={code}>{requiredDocumentLabel(code)}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </section>
 

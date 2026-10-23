@@ -48,12 +48,15 @@ export function CandidateSummary({ candidate, showInterviews = false, collapsibl
           hadInterview={(candidate.interviews ?? []).some((i) => i.result !== 'PENDIENTE')}
         />
         <dl className={styles.dataGrid}>
-          <div>
-            <dt>Documento</dt>
-            <dd>
-              {candidate.documentType} {candidate.documentNumber}
-            </dd>
-          </div>
+          {/* HU-35: si la respuesta no trae el documento (vista restringida) no se muestra la fila. */}
+          {candidate.documentNumber && (
+            <div>
+              <dt>Documento</dt>
+              <dd>
+                {candidate.documentType} {candidate.documentNumber}
+              </dd>
+            </div>
+          )}
           <div>
             <dt>Estado del proceso</dt>
             <dd>{PROCESS_STATE_LABEL[candidate.processState]}</dd>

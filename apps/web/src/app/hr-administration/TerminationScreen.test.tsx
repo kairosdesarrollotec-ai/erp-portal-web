@@ -98,9 +98,24 @@ describe('TerminationScreen (ADP-09)', () => {
     await waitFor(() =>
       expect(terminateMock).toHaveBeenCalledWith('tok', 'emp-1', expect.objectContaining({ reason: 'RENUNCIA', noticeDays: 0, finalSettlementPaid: true })),
     );
-    expect(await screen.findByText(/Reclutamiento recibirá el aviso y creará la necesidad/)).toBeInTheDocument();
-    // La vacante la crea Reclutamiento de forma asincrona: no hay enlace directo.
-    expect(screen.queryByRole('link', { name: /Reclutamiento/ })).not.toBeInTheDocument();
+    // Con `vacancyCreatedId` en la respuesta se enlaza a la vacante creada.
+    expect(await screen.findByText(/Reclutamiento ya creó la vacante/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver la vacante creada' })).toHaveAttribute('href', '/reclutamiento/vacantes/vac-77');
+  });
+
+  it('si la vacante aún no existe (creación asíncrona) lo dice con verdad y enlaza a Reclutamiento', async () => {
+    terminateMock.mockResolvedValue(termination({ vacancyCreatedId: null }));
+    renderScreen();
+    fireEvent.click(await screen.findByLabelText('Renuncia'));
+    fireEvent.change(screen.getByLabelText('Último día trabajado'), { target: { value: '2026-10-09' } });
+    fireEvent.click(screen.getByLabelText(/Se pagó la quincena pendiente/));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar término' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByLabelText(/irreversible/));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar' }));
+    expect(await screen.findByText(/se crea automáticamente en Reclutamiento/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir a Reclutamiento' })).toHaveAttribute('href', '/reclutamiento');
+    expect(screen.queryByRole('link', { name: 'Ver la vacante creada' })).not.toBeInTheDocument();
   });
 
   it('despido con aviso envia 15 dias y el motivo', async () => {

@@ -42,6 +42,7 @@ import { IncidentDetailScreen } from '../incidents/IncidentDetailScreen';
 import { DepositsListScreen } from '../payments/DepositsListScreen';
 import { DepositDetailScreen } from '../payments/DepositDetailScreen';
 import { UserProfileScreen } from '../profile/UserProfileScreen';
+import { EvidenceDeletionRequestsScreen } from '../evidence/EvidenceDeletionRequestsScreen';
 
 function lazyNamed<TModule extends Record<string, unknown>, TName extends keyof TModule>(
   load: () => Promise<TModule>,
@@ -71,6 +72,9 @@ const ProbationScreen = lazyNamed(() => import('../recruitment/ProbationScreen')
 const EmployeesListScreen = lazyNamed(() => import('../hr-administration/EmployeesListScreen'), 'EmployeesListScreen');
 const EmployeeFileScreen = lazyNamed(() => import('../hr-administration/EmployeeFileScreen'), 'EmployeeFileScreen');
 const AttendanceTeamScreen = lazyNamed(() => import('../hr-administration/AttendanceTeamScreen'), 'AttendanceTeamScreen');
+const MyAttendanceScreen = lazyNamed(() => import('../hr-administration/MyAttendanceScreen'), 'MyAttendanceScreen');
+const AttendanceReviewScreen = lazyNamed(() => import('../hr-administration/AttendanceReviewScreen'), 'AttendanceReviewScreen');
+const GeofenceSettingsScreen = lazyNamed(() => import('../hr-administration/GeofenceSettingsScreen'), 'GeofenceSettingsScreen');
 const PersonAttendanceScreen = lazyNamed(() => import('../hr-administration/PersonAttendanceScreen'), 'PersonAttendanceScreen');
 const AbsenceScreen = lazyNamed(() => import('../hr-administration/AbsenceScreen'), 'AbsenceScreen');
 const LeavesScreen = lazyNamed(() => import('../hr-administration/LeavesScreen'), 'LeavesScreen');
@@ -165,6 +169,19 @@ export const router = createBrowserRouter([
               // Administracion de Personal ADP-01..ADP-10 (acceso desde la tarjeta Personal).
               { path: '/personal', element: <EmployeesListScreen /> },
               { path: '/personal/asistencia', element: <AttendanceTeamScreen /> },
+              // Asistencia propia con geocerca, revision de marcas fuera de la geocerca y su configuracion (hr-administration 0.10.0).
+              {
+                element: <RequirePermission anyOf={[{ module: 'HR_ADMINISTRATION', action: 'LOG_OWN_ATTENDANCE' }]} />,
+                children: [{ path: '/mi-asistencia', element: <MyAttendanceScreen /> }],
+              },
+              {
+                element: <RequirePermission anyOf={[{ module: 'HR_ADMINISTRATION', action: 'REVIEW_ATTENDANCE' }]} />,
+                children: [{ path: '/personal/asistencia/revision', element: <AttendanceReviewScreen /> }],
+              },
+              {
+                element: <RequirePermission anyOf={[{ module: 'HR_ADMINISTRATION', action: 'MANAGE_GEOFENCE' }]} />,
+                children: [{ path: '/personal/geocerca', element: <GeofenceSettingsScreen /> }],
+              },
               { path: '/personal/campo', element: <FieldTripsListScreen /> },
               { path: '/personal/campo/:tripId/autorizacion', element: <FieldTripAuthorizationScreen /> },
               { path: '/personal/campo/:tripId/regreso', element: <ReturnFollowUpScreen /> },
@@ -195,6 +212,18 @@ export const router = createBrowserRouter([
               {
                 element: <RequirePermission allow={canSuperviseSync} />,
                 children: [{ path: '/sincronizacion', element: <SyncCenterScreen /> }],
+              },
+              // Bandeja de solicitudes de eliminacion de evidencia (doble aprobacion, evidence.yaml 1.0.0).
+              {
+                element: (
+                  <RequirePermission
+                    anyOf={[
+                      { module: 'EVIDENCE', action: 'REQUEST_DELETION' },
+                      { module: 'EVIDENCE', action: 'APPROVE_DELETION' },
+                    ]}
+                  />
+                ),
+                children: [{ path: '/evidencia/solicitudes', element: <EvidenceDeletionRequestsScreen /> }],
               },
               { path: '/admin/notificaciones', element: <NotificationTemplatesScreen /> },
               { path: '/admin/plantillas', element: <DocumentTemplatesScreen /> },

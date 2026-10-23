@@ -1,5 +1,6 @@
 import type { ChannelMode, ReservationStatus } from './reservation-status';
 import { reservationsApiClient } from '../../api/reservations-api-client';
+import type { ReservationPaymentBody } from '../shared/payment-proof';
 
 /** Error HTTP de lectura (GET) — expone el status para distinguir 401/403/404/5xx (TDD-RES-001.md finding #7). */
 export class ReservationApiError extends Error {
@@ -103,18 +104,25 @@ export async function getReservation(
   return data as unknown as ReservationSummary;
 }
 
+/**
+ * Decision 22-oct (#8): el pago de la reserva se verifica con el comprobante. Ademas del scope se envian
+ * monto pagado, metodo, nº de operacion, pagador y `voucherDocumentId` (`payment`). El comprobante ya fue subido y
+ * registrado como documento PAYMENT_VOUCHER antes de llamar a este comando. El monto REQUERIDO y la version de politica
+ * los lee el backend (no se envian); `amount` es lo realmente pagado (menor -> 422 INVALID_DEPOSIT_AMOUNT).
+ */
 export function registerPayment(
   idToken: string,
   id: string,
   companyId: string,
   branchId: string,
   version: number,
+  payment?: ReservationPaymentBody,
 ): Promise<ReservationSummary> {
   return reservationsApiClient
     .POST('/reservations/{id}/commands/register-payment', {
       params: { path: { id }, header: { 'If-Match': `"${version}"` } },
       headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-      body: { companyId, branchId },
+      body: { companyId, branchId, ...(payment ?? {}) } as { companyId: string; branchId: string },
     })
     .then(({ data, error, response }) => {
       if (error || !data) {
@@ -274,9 +282,29 @@ export const RESERVATION_ERROR_MESSAGES: Record<string, string> = {
   INVALID_CANCEL_REASON:
     'Motivo de cancelación no válido: solo se permite cambio solicitado por el cliente o no presentación. La venta del vehículo se resuelve desde "Registrar venta".',
   IF_MATCH_REQUIRED: 'No se pudo verificar la versión de la reserva. Recarga e intenta de nuevo.',
+  RESERVATION_EXCEEDS_GUARANTEE:
+    'El monto de la reserva no puede superar la garantía del vehículo. No existe saldo a favor: elige otro vehículo o revisa la política de reserva.',
+  INVALID_DEPOSIT_AMOUNT: 'El monto del pago no es válido. Revisa el monto de la reserva e inténtalo de nuevo.',
+  RESERVATION_START_NOT_REACHED:
+    'Todavía no llegó la fecha pactada de la reserva: solo se puede continuar con el alquiler el día pactado.',
+  RESERVATION_START_DATE_PASSED:
+    'La fecha pactada de la reserva ya pasó. Aplica el protocolo de no-show.',
+  INQUIRY_CONVERSION_REQUIRED:
+    'La reserva solo se crea desde una Consulta (botón "Reservar este vehículo" en su detalle).',
 };
 
+/** Codigos cuyo mensaje de negocio (decisiones 22-oct) prevalece sobre el `detail` tecnico del backend. */
+const PREFERRED_MESSAGE_CODES = new Set([
+  'RESERVATION_EXCEEDS_GUARANTEE',
+  'INVALID_DEPOSIT_AMOUNT',
+  'RESERVATION_START_NOT_REACHED',
+  'RESERVATION_START_DATE_PASSED',
+  'INQUIRY_CONVERSION_REQUIRED',
+]);
+
 export function describeReservationError(error: ReservationCommandError): string {
+  const code = error.problem?.code;
+  if (code && PREFERRED_MESSAGE_CODES.has(code)) return RESERVATION_ERROR_MESSAGES[code];
   return (
     error.problem?.detail?.trim() ||
     (error.problem?.code ? RESERVATION_ERROR_MESSAGES[error.problem.code] : undefined) ||

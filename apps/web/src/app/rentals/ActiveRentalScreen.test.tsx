@@ -92,12 +92,13 @@ describe('ActiveRentalScreen (ALQ-10)', () => {
     expect(screen.getByText(/seguimiento GPS aún no está conectado/)).toBeInTheDocument();
   });
 
-  it('conductor de la empresa: tolera deposit null, muestra sin garantia y el saldo a favor', () => {
-    wizardMock.mockReturnValue(wizard({ ...baseRental, deposit: null, depositRequired: false, reservationCreditExcess: '300.00' }));
+  it('conductor de la empresa: tolera deposit null, muestra sin garantia y nunca un saldo a favor', () => {
+    wizardMock.mockReturnValue(wizard({ ...baseRental, deposit: null, depositRequired: false }));
     renderScreen();
     expect(screen.getByTestId('no-deposit-company-driver')).toHaveTextContent('con conductor de la empresa no se cobra garantía');
     expect(screen.queryByTestId('active-guarantee')).not.toBeInTheDocument();
-    expect(screen.getByTestId('reservation-credit-excess')).toHaveTextContent('S/ 300.00');
+    expect(screen.queryByTestId('reservation-credit-excess')).not.toBeInTheDocument();
+    expect(screen.queryByText(/saldo a favor/i)).not.toBeInTheDocument();
   });
 
   it('Iniciar devolucion lleva a la recepcion', async () => {
@@ -166,6 +167,25 @@ describe('ActiveRentalScreen (ALQ-10)', () => {
     renderScreen();
     fireEvent.click(screen.getByRole('button', { name: 'Registrar falta grave' }));
     expect(await screen.findByText('0 de 4 cumplidos')).toBeInTheDocument();
+  });
+
+  it('EXTENSION_PENDING: el panel de decision aparece solo con permiso de autorizar/rechazar (ALQ-11)', () => {
+    const pending = {
+      ...baseRental,
+      status: 'EXTENSION_PENDING',
+      extensions: [{ id: 'e1', status: 'PENDING', requestedEndAt: '2026-10-25T13:00:00Z', requirements: { noticeGiven: true, authorized: false, paid: false, addendumSigned: false } }],
+    };
+    wizardMock.mockReturnValue(wizard(pending));
+    const { unmount } = renderScreen();
+    expect(screen.getByTestId('extension-awaiting-manager')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Autorizar ampliación' })).not.toBeInTheDocument();
+    unmount();
+
+    setPermissions(['RENTAL.AUTHORIZE_EXTENSION', 'RENTAL.REJECT_EXTENSION']);
+    wizardMock.mockReturnValue(wizard(pending));
+    renderScreen();
+    expect(screen.getByRole('button', { name: 'Autorizar ampliación' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Rechazar ampliación' })).toBeEnabled();
   });
 
   it('un alquiler cerrado no ofrece acciones', () => {

@@ -69,6 +69,20 @@ function AttendanceTeam() {
               </p>
             )}
           </div>
+          {(can('REVIEW_ATTENDANCE') || can('MANAGE_GEOFENCE')) && (
+            <p className={styles.rowActions}>
+              {can('REVIEW_ATTENDANCE') && (
+                <Link className={styles.smallButton} to="/personal/asistencia/revision" state={context ?? undefined}>
+                  Marcas fuera de la geocerca
+                </Link>
+              )}
+              {can('MANAGE_GEOFENCE') && (
+                <Link className={styles.smallButton} to="/personal/geocerca" state={context ?? undefined}>
+                  Geocerca de la sede
+                </Link>
+              )}
+            </p>
+          )}
           <div className={styles.toolbar}>
             <div className={styles.monthNav}>
               <button type="button" className={styles.secondaryButton} aria-label="Mes anterior" onClick={() => setParams({ mes: shiftMonth(month, -1) }, { replace: true, state: context ?? undefined })}>

@@ -59,6 +59,12 @@ const requestSessionMock = vi.fn();
 const uploadGcsMock = vi.fn();
 const recordEvidenceMock = vi.fn();
 const deleteEvidenceMock = vi.fn();
+const requestDeletionMock = vi.fn();
+vi.mock('../evidence/evidence-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../evidence/evidence-client')>()),
+  requestEvidenceDeletion: (...args: unknown[]) => requestDeletionMock(...args),
+  listEvidenceDeletionRequests: vi.fn().mockResolvedValue([]),
+}));
 const getResponsibilityTemplateMock = vi.fn();
 
 vi.mock('./returns-client', async () => {
@@ -362,32 +368,42 @@ describe('ChecklistScreen — validacion MIME offline', () => {
   });
 });
 
-// ── Suite: eliminar evidencia registrada por error (DEV-04) ───────────────────
-describe('ChecklistScreen — eliminar evidencia', () => {
-  it('lista los archivos subidos y elimina uno con confirmación, refrescando el progreso', async () => {
-    deleteEvidenceMock.mockResolvedValue(undefined);
-    listReturnEvidenceMock
-      .mockResolvedValueOnce([evidence('PHOTO', 0)])
-      .mockResolvedValueOnce([]);
+// ── Suite: eliminar evidencia = solicitud con doble aprobacion (DEV-04, evidence.yaml 1.0.0) ───────────────
+describe('ChecklistScreen — solicitar eliminación de evidencia', () => {
+  it('solicita la eliminación con motivo y NO borra directo', async () => {
+    setPermissions(['EVIDENCE.REQUEST_DELETION']);
+    requestDeletionMock.mockResolvedValue({ id: 'req-1', evidenceId: 'PHOTO-0', status: 'PENDING' });
+    listReturnEvidenceMock.mockResolvedValue([evidence('PHOTO', 0)]);
     renderChecklist();
 
-    const deleteButtons = await screen.findAllByRole('button', { name: /^Eliminar foto/i });
-    expect(deleteButtons).toHaveLength(1);
-    fireEvent.click(deleteButtons[0]);
-    expect(deleteEvidenceMock).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    const buttons = await screen.findAllByRole('button', { name: /^Solicitar eliminación de foto/i });
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]);
+    expect(screen.getByRole('button', { name: 'Enviar solicitud' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Motivo/), { target: { value: 'Foto duplicada del lado derecho' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
 
-    await waitFor(() => expect(deleteEvidenceMock).toHaveBeenCalledWith(expect.anything(), 'ret-1', 'PHOTO-0', baseContext.companyId, baseContext.branchId));
-    await waitFor(() => expect(listReturnEvidenceMock).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(requestDeletionMock).toHaveBeenCalledWith(expect.anything(), {
+        companyId: baseContext.companyId,
+        branchId: baseContext.branchId,
+        targetKind: 'RETURN',
+        targetId: 'ret-1',
+        evidenceId: 'PHOTO-0',
+        reason: 'Foto duplicada del lado derecho',
+      }),
+    );
+    expect(deleteEvidenceMock).not.toHaveBeenCalled();
   });
 
-  it('sin conexión el botón Eliminar está deshabilitado', async () => {
+  it('sin conexión el botón Solicitar eliminación está deshabilitado', async () => {
+    setPermissions(['EVIDENCE.REQUEST_DELETION']);
     listReturnEvidenceMock.mockResolvedValue([evidence('VIDEO', 0)]);
     setOnline(false);
     renderChecklist();
     act(() => { window.dispatchEvent(new Event('offline')); });
 
-    const btn = await screen.findByRole('button', { name: /^Eliminar video/i });
+    const btn = await screen.findByRole('button', { name: /^Solicitar eliminación de video/i });
     expect(btn).toBeDisabled();
   });
 });

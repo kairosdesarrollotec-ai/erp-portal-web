@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage4ChecklistScreen } from './Stage4ChecklistScreen';
+import { EvidenceDeletionError } from '../evidence/evidence-client';
+import { clearPermissions, setPermissions } from '../../test/permissions';
 
 // ── mocks de infraestructura ────────────────────────────────────────────────
 
@@ -21,6 +23,25 @@ const requestEvidenceUploadSessionMock = vi.fn();
 const uploadEvidenceToGcsMock = vi.fn();
 const recordEvidenceMock = vi.fn();
 const deleteRentalEvidenceMock = vi.fn();
+const requestDeletionMock = vi.fn();
+const listDeletionMock = vi.fn();
+
+vi.mock('../evidence/evidence-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../evidence/evidence-client')>()),
+  requestEvidenceDeletion: (...args: unknown[]) => requestDeletionMock(...args),
+  listEvidenceDeletionRequests: (...args: unknown[]) => listDeletionMock(...args),
+}));
+
+function openRequest(status: 'PENDING' | 'APPROVED_1') {
+  return {
+    id: 'req-1', companyId: 'c1', branchId: 'b1', targetKind: 'RENTAL' as const, targetId: 'rent-1', evidenceId: 'ev-PHOTO-0',
+    evidence: { type: 'PHOTO', zone: 'FRONTAL', uploadedBy: 'uid-1', uploadedAt: '2026-10-22T10:00:00Z' },
+    reason: 'Foto movida por error', status, requestedBy: 'uid-1', requestedAt: '2026-10-22T10:05:00Z',
+    firstApprovedBy: null, firstApprovedAt: null, firstApprovalNote: null, secondApprovedBy: null, secondApprovedAt: null,
+    secondApprovalNote: null, rejectedBy: null, rejectedAt: null, rejectionReason: null, executedAt: null, expiredAt: null,
+    expiresAt: '2026-10-29T10:05:00Z', version: 1, viewer: { canApprove: false, canReject: false },
+  };
+}
 
 vi.mock('./rentals-client', async () => {
   const actual = await vi.importActual<typeof import('./rentals-client')>('./rentals-client');
@@ -158,6 +179,10 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     uploadEvidenceToGcsMock.mockReset();
     recordEvidenceMock.mockReset();
     deleteRentalEvidenceMock.mockReset();
+    requestDeletionMock.mockReset();
+    listDeletionMock.mockReset();
+    listDeletionMock.mockResolvedValue([]);
+    clearPermissions();
     addEvidenceToQueueMock.mockReset();
     useSyncManagerMock.mockReset();
     listRentalEvidenceMock.mockResolvedValue([]);
@@ -346,48 +371,71 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     await waitFor(() => expect(screen.getByText(/1\/35/)).toBeInTheDocument());
   });
 
-  it('permite eliminar una foto subida por error, con confirmación, y refresca la lista', async () => {
-    deleteRentalEvidenceMock.mockResolvedValue(undefined);
-    listRentalEvidenceMock
-      .mockResolvedValueOnce([evidenceItem('PHOTO', 0)])
-      .mockResolvedValueOnce([]);
-    useRentalWizardMock.mockReturnValue(makeWizard());
-    renderScreen();
-
-    fireEvent.click(await screen.findByRole('button', { name: /Eliminar foto Frontal/i }));
-    // pide confirmación antes de borrar
-    expect(deleteRentalEvidenceMock).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
-
-    await waitFor(() =>
-      expect(deleteRentalEvidenceMock).toHaveBeenCalledWith('tok', 'rent-1', 'ev-PHOTO-0', 'c1', 'b1'),
-    );
-    await waitFor(() => expect(listRentalEvidenceMock).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.queryByRole('button', { name: /Eliminar foto Frontal/i })).not.toBeInTheDocument());
-  });
-
-  it('al decir "No" en la confirmación no se elimina nada', async () => {
-    listRentalEvidenceMock.mockResolvedValue([evidenceItem('VIDEO', 0)]);
-    useRentalWizardMock.mockReturnValue(makeWizard());
-    renderScreen();
-
-    fireEvent.click(await screen.findByRole('button', { name: /Eliminar video Frontal/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'No' }));
-
-    expect(deleteRentalEvidenceMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: /Eliminar video Frontal/i })).toBeInTheDocument();
-  });
-
-  it('si la entrega ya no admite cambios (409) muestra un mensaje claro', async () => {
-    deleteRentalEvidenceMock.mockRejectedValue(Object.assign(new Error('conflict'), { status: 409 }));
+  // Eliminar evidencia = solicitud con DOBLE APROBACION (evidence.yaml 1.0.0): nunca borra directo.
+  it('solicita eliminar una foto con motivo obligatorio y no llama al borrado directo', async () => {
+    setPermissions(['EVIDENCE.REQUEST_DELETION']);
+    requestDeletionMock.mockResolvedValue(openRequest('PENDING'));
     listRentalEvidenceMock.mockResolvedValue([evidenceItem('PHOTO', 0)]);
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
-    fireEvent.click(await screen.findByRole('button', { name: /Eliminar foto Frontal/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Solicitar eliminación de foto Frontal/i }));
+    const send = screen.getByRole('button', { name: 'Enviar solicitud' });
+    expect(send).toBeDisabled(); // motivo obligatorio
+    fireEvent.change(screen.getByLabelText(/Motivo/), { target: { value: 'Foto movida por error' } });
+    fireEvent.click(send);
 
-    expect(await screen.findByText(/La entrega ya no admite cambios en la evidencia/)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(requestDeletionMock).toHaveBeenCalledWith('fake-id-token', {
+        companyId: 'c1',
+        branchId: 'b1',
+        targetKind: 'RENTAL',
+        targetId: 'rent-1',
+        evidenceId: 'ev-PHOTO-0',
+        reason: 'Foto movida por error',
+      }),
+    );
+    expect(deleteRentalEvidenceMock).not.toHaveBeenCalled();
+    expect(await screen.findByTestId('evidence-deletion-status')).toHaveTextContent(/Eliminación solicitada/);
+  });
+
+  it('muestra "Eliminación solicitada" cuando la evidencia ya tiene una solicitud abierta', async () => {
+    setPermissions(['EVIDENCE.APPROVE_DELETION']);
+    listDeletionMock.mockImplementation(async (_t: string, p: { status: string }) =>
+      p.status === 'APPROVED_1' ? [openRequest('APPROVED_1')] : [],
+    );
+    listRentalEvidenceMock.mockResolvedValue([evidenceItem('PHOTO', 0)]);
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    expect(await screen.findByTestId('evidence-deletion-status')).toHaveTextContent(/Falta la 2.ª aprobación/);
+    expect(screen.queryByRole('button', { name: /Solicitar eliminación/i })).not.toBeInTheDocument();
+  });
+
+  it('sin el permiso EVIDENCE.REQUEST_DELETION no ofrece eliminar evidencia', async () => {
+    setPermissions([]);
+    listRentalEvidenceMock.mockResolvedValue([evidenceItem('PHOTO', 0)]);
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    await screen.findByText(/Foto · Frontal/);
+    expect(screen.queryByRole('button', { name: /eliminación|Eliminar/i })).not.toBeInTheDocument();
+  });
+
+  it('si ya existe una solicitud abierta (409) muestra un mensaje claro', async () => {
+    setPermissions(['EVIDENCE.REQUEST_DELETION']);
+    requestDeletionMock.mockRejectedValue(
+      new EvidenceDeletionError(409, { code: 'EVIDENCE_DELETION_ALREADY_REQUESTED', detail: 'x' }),
+    );
+    listRentalEvidenceMock.mockResolvedValue([evidenceItem('PHOTO', 0)]);
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Solicitar eliminación de foto Frontal/i }));
+    fireEvent.change(screen.getByLabelText(/Motivo/), { target: { value: 'Duplicada por error' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar solicitud' }));
+
+    expect(await screen.findByText(/Ya existe una solicitud abierta/)).toBeInTheDocument();
   });
 
   it('rechaza un tipo de archivo no permitido sin llamar al backend', async () => {

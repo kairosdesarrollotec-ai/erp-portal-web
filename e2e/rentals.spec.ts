@@ -12,6 +12,32 @@ async function setupTest(
   await page.waitForURL('**/tablero', { timeout: 10_000 });
 }
 
+async function uploadRequiredDocument(
+  page: Parameters<typeof loginViaUI>[0],
+  label: string,
+  file: { name: string; mimeType: string; buffer: Buffer },
+) {
+  const documentItem = page.getByText(label, { exact: true }).locator('..');
+  await documentItem.getByRole('button', { name: 'Subir' }).click();
+  await page.getByTestId('document-file-input').setInputFiles(file);
+  await expect(documentItem.getByRole('button', { name: 'Subir' })).toHaveCount(0);
+}
+
+async function attachGuaranteePaymentProof(
+  page: Parameters<typeof loginViaUI>[0],
+  file: { name: string; mimeType: string; buffer: Buffer },
+) {
+  await page.getByLabel(/Nº de operación/).fill('E2E-TRANSFER-001');
+  await page.getByTestId('payment-proof-form').getByLabel('Comprobante de pago').setInputFiles(file);
+}
+
+async function evaluateNotary(
+  page: Parameters<typeof loginViaUI>[0],
+) {
+  await page.getByRole('button', { name: 'Evaluar notaría' }).click();
+  await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
+}
+
 // ── ALQ-01 Bandeja ─────────────────────────────────────────────────────────
 
 test.describe('ALQ-01 Bandeja de alquileres', () => {
@@ -54,10 +80,11 @@ test.describe('ENTREGA-01 Cliente y documentos', () => {
 
     await expect(page.getByText('Licencia de conducir')).toBeVisible();
 
-    // Simular subida de archivos en los inputs ocultos (license = índice 0, id-doc = índice 1)
+    // El selector de archivo es compartido: primero se indica el documento a subir.
     const fakeFile = { name: 'doc.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') };
-    await page.locator('input[type="file"]').nth(0).setInputFiles(fakeFile);
-    await page.locator('input[type="file"]').nth(1).setInputFiles(fakeFile);
+    await uploadRequiredDocument(page, 'Licencia de conducir vigente', fakeFile);
+    await uploadRequiredDocument(page, 'DNI', fakeFile);
+    await uploadRequiredDocument(page, 'Recibo de agua o luz', fakeFile);
 
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled({ timeout: 10_000 });
   });
@@ -109,10 +136,10 @@ test.describe('ENTREGA-03 Garantía y contrato', () => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-03`);
 
-    // Espera que evaluate-notary complete (resultado MANDATORY aparece)
-    await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
+    await evaluateNotary(page);
 
     await page.getByLabel(/Garantía total/i).fill('500');
+    await attachGuaranteePaymentProof(page, { name: 'transferencia.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') });
 
     // SignaturePad usa canvas — simular trazo con eventos de ratón
     const canvas = page.locator('canvas').first();
@@ -209,8 +236,9 @@ test.describe('Flujo completo asistente de entrega', () => {
     // — Stage 1 —
     await expect(page.getByText('Carlos López')).toBeVisible();
     const fakeFile = { name: 'doc.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') };
-    await page.locator('input[type="file"]').nth(0).setInputFiles(fakeFile);
-    await page.locator('input[type="file"]').nth(1).setInputFiles(fakeFile);
+    await uploadRequiredDocument(page, 'Licencia de conducir vigente', fakeFile);
+    await uploadRequiredDocument(page, 'DNI', fakeFile);
+    await uploadRequiredDocument(page, 'Recibo de agua o luz', fakeFile);
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled({ timeout: 10_000 });
     await page.getByRole('button', { name: 'Continuar' }).click();
 
@@ -223,8 +251,9 @@ test.describe('Flujo completo asistente de entrega', () => {
 
     // — Stage 3 —
     await expect(page).toHaveURL(/entrega-03/);
-    await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
+    await evaluateNotary(page);
     await page.getByLabel(/Garantía total/i).fill('500');
+    await attachGuaranteePaymentProof(page, { name: 'transferencia.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') });
 
     // SignaturePad usa canvas — simular trazo con eventos de ratón
     const canvas3 = page.locator('canvas').first();

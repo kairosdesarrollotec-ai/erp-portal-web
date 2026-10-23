@@ -19,11 +19,13 @@ vi.mock('./hr-client', async () => {
   return { ...actual, listFieldTrips: (...a: unknown[]) => listMock(...a) };
 });
 
-function renderScreen() {
+function renderScreen(search = '') {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/personal/campo', state: baseContext }]}>
+    <MemoryRouter initialEntries={[{ pathname: '/personal/campo', search, state: baseContext }]}>
       <Routes>
         <Route path="/personal/campo" element={<FieldTripsListScreen />} />
+        <Route path="/personal/campo/:tripId/autorizacion" element={<div>pantalla autorización</div>} />
+        <Route path="/personal/campo/:tripId/regreso" element={<div>pantalla regreso</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -72,5 +74,17 @@ describe('FieldTripsListScreen', () => {
     listMock.mockRejectedValue(new Error('x'));
     renderScreen();
     expect(await screen.findByRole('alert')).toHaveTextContent(/No pudimos cargar las salidas a campo/);
+  });
+
+  it('el deep link ?tripId= abre directamente la solicitud pendiente de autorización', async () => {
+    listMock.mockResolvedValue([makeTrip({ id: 't1', employeeName: 'Ana', status: 'PENDIENTE_NIVEL_2' })]);
+    renderScreen('?tripId=t1');
+    expect(await screen.findByText('pantalla autorización')).toBeInTheDocument();
+  });
+
+  it('el deep link sin tripId (o con un id desconocido) deja la lista visible con las salidas por autorizar', async () => {
+    listMock.mockResolvedValue([makeTrip({ id: 't1', employeeName: 'Ana', status: 'PENDIENTE_NIVEL_2' })]);
+    renderScreen('?tripId=otro');
+    expect(await screen.findByRole('region', { name: 'Por autorizar' })).toHaveTextContent('Ana');
   });
 });

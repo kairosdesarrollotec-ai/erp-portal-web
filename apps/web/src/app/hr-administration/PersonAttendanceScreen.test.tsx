@@ -46,6 +46,13 @@ const RECORDS = [
   makeRecord({ id: 'a3', date: '2026-09-03', status: 'FALTA_INJUSTIFICADA', deductionAmount: 50 }),
 ];
 
+/** Rellena el motivo (obligatorio al registrar a nombre de otra persona) si falta y pulsa «Registrar marcación». */
+function submitDialog(dialog: HTMLElement) {
+  const reason = within(dialog).queryByLabelText(/Motivo del registro/) as HTMLTextAreaElement | null;
+  if (reason && !reason.value) fireEvent.change(reason, { target: { value: 'Registro desde Administración' } });
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+}
+
 async function attachPhoto(dialog: HTMLElement, file = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })) {
   fireEvent.change(within(dialog).getByLabelText(/^Foto \(JPG/), { target: { files: [file] } });
   await within(dialog).findByText(/Foto subida: /);
@@ -97,9 +104,14 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
     expect(logAttendanceMock).not.toHaveBeenCalled();
     fireEvent.change(within(dialog).getByLabelText('Minutos de tardanza'), { target: { value: '15' } });
     await attachPhoto(dialog);
+    // «A nombre de otro»: el motivo es obligatorio (no se llama al servidor sin él).
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+    expect(await within(dialog).findByText(/Indica el motivo/)).toBeInTheDocument();
+    expect(logAttendanceMock).not.toHaveBeenCalled();
+    fireEvent.change(within(dialog).getByLabelText(/Motivo del registro/), { target: { value: 'El colaborador no tenía celular' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
     await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
-    expect(logAttendanceMock).toHaveBeenCalledWith('tok', 'emp-1', expect.objectContaining({ date: '2026-09-04', status: 'TARDANZA', minutesLate: 15 }));
+    expect(logAttendanceMock).toHaveBeenCalledWith('tok', 'emp-1', expect.objectContaining({ date: '2026-09-04', status: 'TARDANZA', minutesLate: 15, reason: 'El colaborador no tenía celular' }));
     expect(logAttendanceMock.mock.calls[0][2]).not.toHaveProperty('deductionAmount');
     expect(logAttendanceMock.mock.calls[0][2].evidence).toMatchObject({ kind: 'WHATSAPP_PHOTO', storageRef: 'gs://b/att/1.jpg' });
     expect(await screen.findByText('Marcación registrada.')).toBeInTheDocument();
@@ -112,7 +124,8 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Registrar marcación del 4' }));
     const dialog = await screen.findByRole('dialog');
     await attachPhoto(dialog);
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+    fireEvent.change(within(dialog).getByLabelText(/Motivo del registro/), { target: { value: 'Registro desde Administración' } });
+    submitDialog(dialog);
     await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
   }
 
@@ -159,7 +172,7 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Registrar marcación del 4' }));
     const dialog = await screen.findByRole('dialog');
     await attachPhoto(dialog);
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+    submitDialog(dialog);
     expect(await within(dialog).findByRole('alert')).toHaveTextContent(/Ya existe un registro de asistencia/);
   });
 
@@ -188,7 +201,7 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
     it('PRESENTE sin evidencia no se guarda (evidencia obligatoria)', async () => {
       const dialog = await openDialog();
       expect(within(dialog).getByText('Evidencia (obligatoria)')).toBeInTheDocument();
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       expect(await within(dialog).findByText('Adjunta la foto de evidencia.')).toBeInTheDocument();
       expect(logAttendanceMock).not.toHaveBeenCalled();
     });
@@ -197,7 +210,7 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       const dialog = await openDialog();
       fireEvent.click(within(dialog).getByLabelText('Tardanza'));
       fireEvent.change(within(dialog).getByLabelText('Minutos de tardanza'), { target: { value: '10' } });
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       expect(await within(dialog).findByText('Adjunta la foto de evidencia.')).toBeInTheDocument();
       expect(logAttendanceMock).not.toHaveBeenCalled();
     });
@@ -208,7 +221,7 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       fireEvent.click(within(dialog).getByLabelText('Permiso'));
       expect(within(dialog).queryByText(/^Evidencia/)).not.toBeInTheDocument();
       expect(within(dialog).queryByLabelText(/^Foto \(JPG/)).not.toBeInTheDocument();
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
       expect(logAttendanceMock.mock.calls[0][2].evidence).toBeUndefined();
       // Aviso «sin evidencia fotográfica» eliminado (código muerto): el permiso no lleva foto y el back exige la de PRESENTE/TARDANZA.
@@ -224,7 +237,7 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       expect(uploadEvidenceMock).toHaveBeenCalledWith('tok', 'emp-1', file);
       fireEvent.change(within(dialog).getByLabelText(/Fecha y hora de captura/), { target: { value: '2020-09-04T08:05' } });
       fireEvent.change(within(dialog).getByLabelText('Nota de la evidencia (opcional)'), { target: { value: 'grupo' } });
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
       expect(logAttendanceMock.mock.calls[0][2].evidence).toEqual({
         kind: 'WHATSAPP_PHOTO',
@@ -262,7 +275,7 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       logAttendanceMock.mockRejectedValue(new HrCommandError(422, { code: 'ATTENDANCE_EVIDENCE_REQUIRED' }));
       const dialog = await openDialog();
       await attachPhoto(dialog);
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       expect(await within(dialog).findByText(/foto de evidencia es obligatoria/)).toBeInTheDocument();
     });
 
@@ -273,7 +286,7 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       fireEvent.change(within(dialog).getByLabelText('Enlace o referencia de la foto'), { target: { value: 'https://chat.example/foto.jpg' } });
       fireEvent.change(within(dialog).getByLabelText(/Fecha y hora de captura/), { target: { value: '2020-09-04T08:05' } });
       fireEvent.change(within(dialog).getByLabelText('Nota de la evidencia (opcional)'), { target: { value: 'Foto en el grupo' } });
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
       expect(logAttendanceMock.mock.calls[0][2].evidence).toEqual({
         kind: 'WHATSAPP_PHOTO',
@@ -290,7 +303,7 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       await chooseRef(dialog);
       fireEvent.change(within(dialog).getByLabelText('Enlace o referencia de la foto'), { target: { value: 'gs://bucket/asistencia/1.jpg' } });
       fireEvent.change(within(dialog).getByLabelText(/Fecha y hora de captura/), { target: { value: '2020-09-04T08:05' } });
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       await waitFor(() => expect(logAttendanceMock).toHaveBeenCalledTimes(1));
       expect(logAttendanceMock.mock.calls[0][2].evidence).toMatchObject({ storageRef: 'gs://bucket/asistencia/1.jpg' });
       expect(logAttendanceMock.mock.calls[0][2].evidence).not.toHaveProperty('url');
@@ -300,13 +313,13 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       const dialog = await openDialog();
       await chooseRef(dialog);
       fireEvent.change(within(dialog).getByLabelText('Nota de la evidencia (opcional)'), { target: { value: 'solo nota' } });
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       expect(await within(dialog).findByText('Indica el enlace o la referencia de la foto.')).toBeInTheDocument();
       expect(within(dialog).getByText('Indica cuándo se tomó la foto.')).toBeInTheDocument();
 
       fireEvent.change(within(dialog).getByLabelText('Enlace o referencia de la foto'), { target: { value: 'https://x.pe/f.jpg' } });
       fireEvent.change(within(dialog).getByLabelText(/Fecha y hora de captura/), { target: { value: '2999-01-01T08:00' } });
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       expect(await within(dialog).findByText('La fecha y hora de la foto no puede ser futura.')).toBeInTheDocument();
       expect(logAttendanceMock).not.toHaveBeenCalled();
     });
@@ -318,7 +331,7 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
       await chooseRef(dialog);
       fireEvent.change(within(dialog).getByLabelText('Enlace o referencia de la foto'), { target: { value: 'https://x.pe/f.jpg' } });
       fireEvent.change(within(dialog).getByLabelText(/Fecha y hora de captura/), { target: { value: '2020-09-04T08:05' } });
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+      submitDialog(dialog);
       expect(await within(dialog).findByText(/La evidencia no es válida/)).toBeInTheDocument();
     });
 

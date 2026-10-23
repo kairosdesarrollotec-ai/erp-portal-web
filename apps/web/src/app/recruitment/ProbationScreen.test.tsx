@@ -64,12 +64,12 @@ describe('ProbationScreen (REC-08)', () => {
     expect(screen.queryByLabelText('Evaluación cualitativa')).toBeNull();
   });
 
-  it('muestra los días que faltan, "Pasar a planilla" deshabilitado', async () => {
+  it('muestra los días que faltan y explica que el paso a planilla es automático (sin botón decorativo)', async () => {
     getCandidateMock.mockResolvedValue(withOnboarding({ startDate: recentStart() }));
     renderScreen();
     expect(await screen.findByText(/Mes 3 \(faltan \d+ días\)/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pasar a planilla' })).toBeDisabled();
-    expect(screen.getByText('Disponible tras la evaluación del mes 3')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Pasar a planilla' })).toBeNull();
+    expect(screen.getByTestId('payroll-explanation')).toHaveTextContent(/ocurre automáticamente cuando registras la evaluación positiva/);
     expect(screen.getByText('Todavía no se registraron los honorarios de la prueba.')).toBeInTheDocument();
   });
 
@@ -133,7 +133,8 @@ describe('ProbationScreen (REC-08)', () => {
     expect(await screen.findByText('Negativa')).toBeInTheDocument();
     expect(screen.getByText('No cumple')).toBeInTheDocument();
     expect(screen.queryByLabelText('Evaluación cualitativa')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Pasar a planilla' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Pasar a planilla' })).toBeNull();
+    expect(screen.getByTestId('payroll-explanation')).toHaveTextContent(/La vacante se crea automáticamente en Reclutamiento/);
   });
 
   it('sin EVALUATE_PROBATION no se puede evaluar', async () => {

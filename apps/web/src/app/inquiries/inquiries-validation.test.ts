@@ -11,7 +11,6 @@ function buildForm(overrides: Partial<NewInquiryFormData> = {}): NewInquiryFormD
     documentType: 'DNI',
     document: '12345678',
     nationality: 'PERUANO',
-    hospedajeDocument: '',
     destination: 'Ayacucho',
     travelDate: '2099-01-01',
     travelers: 2,
@@ -41,12 +40,9 @@ describe('validateNewInquiryForm (finding "sin validacion funcional")', () => {
     expect(errors.customerId).toBeUndefined();
   });
 
-  it('exige documento de hospedaje solo si la nacionalidad es Extranjero', () => {
-    const peruano = validateNewInquiryForm(buildForm({ nationality: 'PERUANO', hospedajeDocument: '' }));
-    expect(peruano.hospedajeDocument).toBeUndefined();
-
-    const extranjero = validateNewInquiryForm(buildForm({ nationality: 'EXTRANJERO', hospedajeDocument: '' }));
-    expect(extranjero.hospedajeDocument).toBeTruthy();
+  it('ya no exige documento de hospedaje (se piden los documentos por nacionalidad al alquilar)', () => {
+    const extranjero = validateNewInquiryForm(buildForm({ nationality: 'EXTRANJERO' }));
+    expect(hasInquiryFormErrors(extranjero)).toBe(false);
   });
 
   it('rechaza una fecha de viaje pasada', () => {

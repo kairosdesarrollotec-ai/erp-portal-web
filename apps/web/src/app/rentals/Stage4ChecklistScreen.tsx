@@ -3,10 +3,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
 import { RentalWizardShell } from './RentalWizardShell';
+import { CancelRentalControl } from './CancelRentalControl';
 import { loadChecklistDraft, saveChecklistDraft, RentalChecklistDraft } from './rental-checklist-draft';
 import {
   listRentalEvidence,
-  deleteRentalEvidence,
   recordEvidence,
   requestEvidenceUploadSession,
   uploadEvidenceToGcs,
@@ -14,7 +14,8 @@ import {
   RentalEvidenceType,
   RentalEvidenceZone,
 } from './rentals-client';
-import { EvidenceDeleteButton } from '../shared/EvidenceDeleteButton';
+import { RequestEvidenceDeletionButton } from '../evidence/RequestEvidenceDeletionButton';
+import { useOpenEvidenceDeletions } from '../evidence/useOpenEvidenceDeletions';
 import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
 import { useSyncManager } from '../../offline/synchronization/use-sync-manager';
 import { saveFieldEdit } from '../../offline/queue/sync-draft-store';
@@ -105,25 +106,8 @@ export function Stage4ChecklistScreen() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleDeleteEvidence(evidenceId: string) {
-    if (!context) return;
-    setUploadError(null);
-    try {
-      const idToken = await getIdToken();
-      await deleteRentalEvidence(idToken, id, evidenceId, context.companyId, context.branchId);
-      await queryClient.invalidateQueries({ queryKey: ['rental', id, 'evidence'] });
-    } catch (err) {
-      const status = (err as { status?: number }).status;
-      setUploadError(
-        status === 409
-          ? 'La entrega ya no admite cambios en la evidencia.'
-          : status === 404
-            ? 'Ese archivo ya no existe. Actualizamos la lista.'
-            : 'No pudimos eliminar el archivo. Intenta de nuevo.',
-      );
-      if (status === 404) void queryClient.invalidateQueries({ queryKey: ['rental', id, 'evidence'] });
-    }
-  }
+  // Eliminar evidencia = SOLICITUD con doble aprobacion (DEC-EVID-DELETE-002); el borrado directo ya no se usa aqui.
+  const openDeletions = useOpenEvidenceDeletions(context, 'RENTAL', id);
 
   function update(patch: Partial<RentalChecklistDraft>) {
     // Sin conexion cada campo editado tambien queda en el borrador Dexie (con su revision base) para /sync.
@@ -259,7 +243,7 @@ export function Stage4ChecklistScreen() {
   const continueDisabled = !checklistComplete || !isOnline || syncing || pendingCount > 0;
 
   return (
-    <RentalWizardShell stage={4} title="Checklist y evidencias" onContinue={handleContinue} continueDisabled={continueDisabled}>
+    <RentalWizardShell stage={4} title="Checklist y evidencias" cancelControl={<CancelRentalControl rental={rental} context={context} getIdToken={getIdToken} />} onContinue={handleContinue} continueDisabled={continueDisabled}>
 
       {/* ── Banner de estado de conectividad ── */}
       {syncState === 'OFFLINE' && (
@@ -414,11 +398,19 @@ export function Stage4ChecklistScreen() {
                 {item.type === 'PHOTO' ? 'Foto' : 'Video'} · {ZONES.find((z) => z.value === item.zone)?.label ?? item.zone}
               </span>
               <span>{formatLimaTime(item.uploadedAt)}</span>
-              <EvidenceDeleteButton
-                label={`${item.type === 'PHOTO' ? 'foto' : 'video'} ${ZONES.find((z) => z.value === item.zone)?.label ?? item.zone}`}
-                disabled={!isOnline}
-                onConfirm={() => handleDeleteEvidence(item.id)}
-              />
+              {context && id && (
+                <RequestEvidenceDeletionButton
+                  companyId={context.companyId}
+                  branchId={context.branchId}
+                  targetKind="RENTAL"
+                  targetId={id}
+                  evidenceId={item.id}
+                  label={`${item.type === 'PHOTO' ? 'foto' : 'video'} ${ZONES.find((z) => z.value === item.zone)?.label ?? item.zone}`}
+                  openRequest={openDeletions.byEvidence[item.id]}
+                  disabled={!isOnline}
+                  onRequested={openDeletions.track}
+                />
+              )}
             </li>
           ))}
         </ul>

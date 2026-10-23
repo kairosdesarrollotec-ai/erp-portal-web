@@ -59,7 +59,17 @@ export function DashboardScreen() {
               <ul className={styles.taskList}>
                 {tasks.map((task) => (
                   <li key={task.id}>
-                    <Link to={task.deepLink} className={styles.taskCard}>
+                    <Link
+                      to={task.deepLink}
+                      // El destino recibe la empresa/sede para no volver a pedirla (alertas de Gerencia: /personal/campo, /reclutamiento).
+                      state={companyId && branchId ? { companyId, companyName: companyName ?? '', branchId, branchName: branchName ?? '' } : undefined}
+                      className={styles.taskCard}
+                    >
+                      {task.itemType === 'ALERT' && (
+                        <span className={styles.alertBadge} data-testid="task-alert-badge">
+                          Alerta
+                        </span>
+                      )}
                       <span className={styles.taskTitle}>{task.title}</span>
                       {task.detail && <span className={styles.taskDetail}>{task.detail}</span>}
                     </Link>

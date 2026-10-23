@@ -181,9 +181,11 @@ export function LoginScreen() {
           </button>
         </form>
 
-        <button type="button" className={styles.forgotPassword}>
-          ¿Olvidaste tu contraseña?
-        </button>
+        {/* TR-04 (recuperación de contraseña) aún no está construida: un botón sin función confunde, así que se avisa. */}
+        <p className={styles.forgotPassword} data-testid="forgot-password-notice">
+          ¿Olvidaste tu contraseña? La recuperación en línea estará disponible próximamente; mientras tanto, comunícate
+          con Administración.
+        </p>
 
         <p className={`${styles.mobileFooter} ${styles.mobileOnly}`}>
           Kairos Corporation ERP v2.6 · Uso exclusivo para personal autorizado

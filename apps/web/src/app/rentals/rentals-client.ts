@@ -1,6 +1,7 @@
 import type { RentalStatus, NotaryResult, AlcoholTestResult } from './rental-status';
 import { rentalsApiClient } from '../../api/rentals-api-client';
 import type { components } from '../../api/rentals.generated';
+import type { GuaranteePaymentBody } from '../shared/payment-proof';
 export type { RentalStatus, NotaryResult, AlcoholTestResult };
 
 type CreateRentalBody = components['schemas']['CreateRentalRequest'];
@@ -27,7 +28,8 @@ export class RentalApiError extends Error {
 export class RentalCommandError extends Error {
   constructor(
     public readonly status: number,
-    public readonly problem: { code?: string; detail?: string } | null,
+    /** `missingDocuments`/`requiredDocuments` llegan en 422 DOCUMENTS_INCOMPLETE (BR-CON-004). */
+    public readonly problem: { code?: string; detail?: string; missingDocuments?: unknown; requiredDocuments?: unknown } | null,
   ) {
     super(problem?.detail ?? `La operacion no se pudo completar (${status})`);
   }
@@ -50,6 +52,54 @@ export interface NotaryEvaluationResponse {
   evaluatedAt: string;
   approvedBy: string | null;
   justification: string | null;
+  /** DEC-ALQ-THIRDPATH-001: casilla de verificacion biometrica favorable registrada por el personal. */
+  biometricVerified?: boolean;
+  biometricVerifiedBy?: string | null;
+  /** Alquileres previos CERRADOS del cliente usados en la decision (cliente antiguo = mas de 2). */
+  previousRentalsCount?: number | null;
+  /** true = falta aprobacion de Gerencia (THIRD_PATH_ELIGIBLE / MANUAL_REVIEW sin approvedBy). */
+  pendingApproval?: boolean;
+  /** Solo en la respuesta de evaluate-notary. */
+  vehicleThirdPathEligible?: boolean;
+  depositMultiplier?: 1 | 2;
+  requiredGuarantee?: RentalRequiredGuarantee | null;
+}
+
+/** BR-CON-004: documento requerido segun la nacionalidad del cliente (fuente de verdad: `requiredDocuments` del alquiler). */
+export interface RentalRequiredDocument {
+  code: string;
+  label: string;
+  /** DOCUMENT = el personal lo valida (archivo); DATA = dato del cliente (p. ej. fecha de ingreso al pais). */
+  kind: 'DOCUMENT' | 'DATA';
+  /** Campo de validate-documents con el que se confirma (null para DATA). */
+  field: string | null;
+}
+
+/** Garantia exigida: tarifa de Flota x multiplicador notarial (x2 con DOUBLE_DEPOSIT). */
+export interface RentalRequiredGuarantee {
+  baseAmount: string;
+  multiplier: 1 | 2;
+  amount: string;
+}
+
+export interface RentalCancellation {
+  reason: string;
+  note: string | null;
+  cancelledAt: string;
+  cancelledBy: string;
+}
+
+/** Comprobante del cobro de la garantia (decision 8, BR-ALQ-011). */
+export interface RentalGuaranteePayment {
+  amount: string;
+  method: string;
+  operationNumber: string | null;
+  payerName: string;
+  payerDocumentNumber: string | null;
+  payerIsExternalAgent: boolean;
+  externalAgentVerifiedBy: string | null;
+  voucherDocumentId: string | null;
+  registeredBy: string | null;
 }
 
 export interface RentalContractResponse {
@@ -102,9 +152,9 @@ export interface RentalDepositResponse {
   originalAmount: string;
   currency: string;
   reservationCreditAmount?: string;
-  /** Saldo a favor de la reserva cuando supera la garantia (decimal; "0.00" si no hay). Sin reembolso automatico. */
-  reservationCreditExcess?: string;
   amountCollected?: string;
+  /** Comprobante del cobro (null si no hubo cobro o el deposito es previo). */
+  payment?: RentalGuaranteePayment | null;
   status: string;
   createdAt: string;
 }
@@ -140,6 +190,16 @@ export interface RentalResponse {
   vehicleBrand: string;
   vehicleModel: string;
   vehicleDepositMinimum: number | null;
+  /** DEC-ALQ-THIRDPATH-001: vehiculo marcado por Gerencia como elegible para la tercera via notarial. */
+  vehicleThirdPathEligible?: boolean;
+  /** BR-CON-004: nacionalidad efectiva del cliente. */
+  customerNationality?: 'PERUANO' | 'EXTRANJERO';
+  /** BR-CON-004: documentos requeridos para validar el alquiler segun la nacionalidad. */
+  requiredDocuments?: RentalRequiredDocument[];
+  /** Garantia exigida segun Flota y la evaluacion notarial (null si Flota no define garantia). */
+  requiredGuarantee?: RentalRequiredGuarantee | null;
+  /** DEC-ALQ-CANCEL-001: datos de la cancelacion manual (null si no aplica). */
+  cancellation?: RentalCancellation | null;
   /** rentals.yaml 1.11.0: null = vehiculo sin capacidad registrada (sin tope). Opcional por compatibilidad con respuestas cacheadas. */
   vehiclePassengerCapacity?: number | null;
   /** rentals.yaml 1.12.0: precio del combustible del vehículo (PEN); null = no registrado en Flota. */
@@ -166,8 +226,6 @@ export interface RentalResponse {
   deposit?: RentalDepositResponse | null;
   /** false = con conductor de la empresa: no se exige ni cobra garantia. Se asume true si falta. */
   depositRequired?: boolean;
-  /** Saldo a favor del credito de reserva ("0.00" si no hay). Sin reembolso automatico. */
-  reservationCreditExcess?: string;
   reservationCredit?: ReservationCreditResponse | null;
   /** Solo con conductor de la empresa (GET detalle y tras set-company-driver-daily-rate); null/ausente en otro caso. */
   companyDriverCharge?: CompanyDriverChargeResponse | null;
@@ -210,14 +268,18 @@ export async function getRental(
   return data as unknown as RentalResponse;
 }
 
-/** ALQ-02 - crea un expediente de alquiler desde cero. */
+/**
+ * ALQ-02 - crea un expediente de alquiler. Decision 22-oct: el alquiler solo nace de una Consulta, por eso
+ * `inquiryId` es obligatorio. La via normal es `convertInquiryToRental` (CON-04); esta funcion queda por
+ * compatibilidad y el backend puede responder 422 INQUIRY_CONVERSION_REQUIRED.
+ */
 export async function createRental(
   idToken: string,
   companyId: string,
   branchId: string,
   customerId: string,
   vehicleId: string,
-  opts?: { planCode?: string; startAt?: string; expectedEndAt?: string; inquiryId?: string },
+  opts: { inquiryId: string; planCode?: string; startAt?: string; expectedEndAt?: string },
 ): Promise<RentalResponse> {
   const { data, error, response } = await rentalsApiClient.POST('/rentals', {
     headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
@@ -250,6 +312,21 @@ export async function createRentalFromReservation(
   return data as unknown as RentalResponse;
 }
 
+/**
+ * ENTREGA-01 (BR-CON-004, 22-oct): los campos exigidos dependen de la nacionalidad del cliente.
+ * PERUANO: identityDocumentValid (DNI) + driverLicenseValid + addressOrStayProofValid (recibo de agua o luz).
+ * EXTRANJERO: passportValid + foreignerCardValid (CE) + driverLicenseValid + addressOrStayProofValid (constancia de hospedaje)
+ * y fecha de ingreso registrada en el cliente. El tercer documento ya NO es opcional.
+ */
+export interface ValidateDocumentsPayload {
+  identityDocumentValid?: boolean;
+  passportValid?: boolean;
+  foreignerCardValid?: boolean;
+  driverLicenseValid?: boolean;
+  addressOrStayProofValid?: boolean;
+  notes?: string;
+}
+
 /** ENTREGA-01. */
 export async function validateDocuments(
   idToken: string,
@@ -257,12 +334,7 @@ export async function validateDocuments(
   companyId: string,
   branchId: string,
   version: number,
-  payload?: {
-    identityDocumentValid: boolean;
-    driverLicenseValid: boolean;
-    addressOrStayProofValid: boolean;
-    notes?: string;
-  },
+  payload?: ValidateDocumentsPayload,
 ): Promise<RentalResponse> {
   const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/validate-documents', {
     params: { path: { id }, header: { 'If-Match': `"${version}"` } },
@@ -305,11 +377,13 @@ export async function evaluateNotary(
   companyId: string,
   branchId: string,
   version: number,
+  /** DEC-ALQ-THIRDPATH-001: verificacion biometrica favorable registrada por el personal (RENIEC/MTC fuera del MVP). */
+  biometricVerified = false,
 ): Promise<{ rental: RentalResponse; evaluation: NotaryEvaluationResponse }> {
   const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/evaluate-notary', {
     params: { path: { id }, header: { 'If-Match': `"${version}"` } },
     headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-    body: { companyId, branchId } as unknown as EvaluateNotaryBody,
+    body: { companyId, branchId, biometricVerified } as unknown as EvaluateNotaryBody,
   });
   if (error || !data) {
     const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
@@ -376,6 +450,8 @@ export async function formalizeContract(
   templateVersionId?: string,
   signatureData?: string,
   variant?: { holderType: ContractHolderType; withCompanyDriver: boolean },
+  /** Decision 8 (BR-ALQ-011): comprobante del cobro de la garantia. Obligatorio si hay diferencia a cobrar. */
+  payment?: GuaranteePaymentBody,
 ): Promise<RentalResponse> {
   const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/formalize-contract', {
     params: { path: { id }, header: { 'If-Match': `"${version}"` } },
@@ -389,6 +465,7 @@ export async function formalizeContract(
       ...(variant?.withCompanyDriver || depositAmount == null ? {} : { depositAmount, depositCurrency: depositCurrency ?? 'PEN' }),
       ...(signatureData ? { signatureData } : {}),
       ...(variant ? { holderType: variant.holderType, withCompanyDriver: variant.withCompanyDriver } : {}),
+      ...(payment && !variant?.withCompanyDriver ? { payment } : {}),
     } as unknown as FormalizeContractBody,
   });
   if (error || !data) {
@@ -546,6 +623,14 @@ export {
   recordRentalDocument,
   listRentalDocuments,
 } from './rentals-documents-client';
+
+// --- DEC-ALQ-CANCEL-001 - cancelar alquiler antes de la entrega ---
+export {
+  RENTAL_CANCEL_REASONS,
+  RENTAL_CANCEL_REASON_LABELS,
+  type RentalCancelReason,
+  cancelRental,
+} from './rentals-cancel-client';
 
 // --- UC-ALQ-006 / BR-ALQ-012 - Ciclo de vida de ampliaciones de alquiler ---
 // Exportados desde rentals-extensions-client.ts para cumplir con File Size Pattern (<500 líneas).
