@@ -7,8 +7,8 @@ import { useRecruitmentPermissions } from './recruitment-permissions';
 import type { RecruitmentWorkContext } from './useWorkContextForRecruitment';
 import dialogStyles from './RecruitmentDialog.module.css';
 
-export const CANCELLABLE_STATUSES = ['NECESIDAD_REGISTRADA', 'PUBLICADA', 'PAUSADA'] as const;
-export const MIN_CANCEL_REASON = 5;
+const CANCELLABLE_STATUSES = ['NECESIDAD_REGISTRADA', 'PUBLICADA', 'PAUSADA'] as const;
+const MIN_CANCEL_REASON = 5;
 
 interface Props {
   vacancy: Pick<VacancyResponse, 'id' | 'title' | 'status' | 'version'>;

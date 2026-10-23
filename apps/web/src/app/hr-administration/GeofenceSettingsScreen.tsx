@@ -29,7 +29,9 @@ export function GeofenceSettingsScreen() {
   const lngBad = form.lng.trim() === '' || !Number.isFinite(lng) || lng < -180 || lng > 180;
   const radiusBad = form.radius.trim() === '' || !Number.isInteger(radius) || radius < 10 || radius > 5000;
 
-  async function useMyLocation() {
+  // Es un manejador de evento, no un hook de React. El prefijo `use` hace que
+  // eslint aplique erróneamente las reglas de hooks cuando se invoca al hacer clic.
+  async function handleUseMyLocation() {
     setLocating(true);
     setLocError(null);
     const here = await captureAttendanceLocation(10_000);
@@ -102,7 +104,7 @@ export function GeofenceSettingsScreen() {
             <h2 id="geo-form" className={styles.sectionTitle}>
               Centro y radio
             </h2>
-            <button type="button" className={styles.secondaryButton} onClick={() => void useMyLocation()} disabled={locating}>
+            <button type="button" className={styles.secondaryButton} onClick={() => void handleUseMyLocation()} disabled={locating}>
               {locating ? 'Obteniendo ubicación…' : 'Usar mi ubicación actual como centro'}
             </button>
             {locError && (
