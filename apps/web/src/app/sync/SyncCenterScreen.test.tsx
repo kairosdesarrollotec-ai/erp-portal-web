@@ -22,7 +22,7 @@ vi.mock('./sync-client', async (orig) => ({
 
 import { SyncCenterScreen } from './SyncCenterScreen';
 
-const SUPERVISOR = ['RENTAL.MANAGE_CONTRACT_TEMPLATES', 'RETURN.CLOSE'];
+const SUPERVISOR = ['SYNC.SUPERVISE_CONFLICTS'];
 
 function renderScreen() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -130,12 +130,11 @@ describe('SyncCenterScreen (TR-08)', () => {
     expect(listMock.fn).not.toHaveBeenCalled();
   });
 
-  it('con permiso solo de Entrega consulta únicamente conflictos de Entrega', async () => {
+  it('con permisos legacy (sin SYNC.SUPERVISE_CONFLICTS) no consulta nada y avisa', async () => {
     clearPermissions();
-    setPermissions(['RENTAL.MANAGE_CONTRACT_TEMPLATES']);
+    setPermissions(['RENTAL.MANAGE_CONTRACT_TEMPLATES', 'RETURN.CLOSE']);
     renderScreen();
-    await screen.findAllByTestId('sync-center-row');
-    expect(listMock.fn).toHaveBeenCalledTimes(1);
-    expect(listMock.fn).toHaveBeenCalledWith('tok', expect.objectContaining({ checklistType: 'ENTREGA' }));
+    expect(await screen.findByText(/Solo Administración y Gerencia pueden ver el centro de sincronización/)).toBeInTheDocument();
+    expect(listMock.fn).not.toHaveBeenCalled();
   });
 });

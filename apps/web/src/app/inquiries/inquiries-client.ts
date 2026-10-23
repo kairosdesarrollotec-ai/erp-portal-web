@@ -27,7 +27,7 @@ export interface InquirySummary {
   touristUse: boolean;
   createdAt: string;
   /** BR-CON-004: documentos exigidos segun la nacionalidad del cliente (los devuelve el backend). */
-  requiredDocuments?: string[];
+  requiredDocuments?: Array<{ code: string; label: string } | string>;
   /**
    * El backend (InquirySummaryResponse) ya envia estos campos desde
    * siempre - faltaban en este tipo (no reflejaban el shape real de la
@@ -53,12 +53,14 @@ export interface InquiryQuotation {
 
 export interface InquiryInteraction {
   id: string;
-  type: string;
+  channel: string;
   occurredAt: string;
-  note?: string;
+  outcome: string | null;
+  note: string | null;
 }
 
 export interface InquiryDetail extends InquirySummary {
+  latestQuotationId?: string | null;
   interactions: InquiryInteraction[];
   quotations: InquiryQuotation[];
 }
@@ -310,14 +312,24 @@ export async function convertInquiryToReservation(
   branchId: string,
   channelMode: 'PRESENCIAL' | 'VIRTUAL',
   startAt: string,
+  canComeToOffice?: boolean,
+  customerLocation?: 'AYACUCHO' | 'FUERA_DE_AYACUCHO',
 ): Promise<ConvertToReservationResult> {
+  const effectiveChannelMode = canComeToOffice === false ? 'VIRTUAL' : channelMode;
   const { data, error, response } = await inquiriesApiClient.POST('/inquiries/{id}/commands/convert-to-reservation', {
     params: {
       path: { id },
       header: { 'If-Match': `"${version}"`, 'Idempotency-Key': crypto.randomUUID() },
     },
     headers: { Authorization: `Bearer ${idToken}` },
-    body: { companyId, branchId, channelMode, startAt } as unknown as ConvertBody,
+    body: {
+      companyId,
+      branchId,
+      channelMode: effectiveChannelMode,
+      startAt,
+      ...(canComeToOffice !== undefined ? { canComeToOffice } : {}),
+      ...(customerLocation !== undefined ? { customerLocation } : {}),
+    } as unknown as ConvertBody,
   });
   if (error || !data) {
     const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;

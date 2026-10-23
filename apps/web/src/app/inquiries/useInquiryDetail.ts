@@ -63,7 +63,10 @@ export function useInquiryDetail() {
       } else {
         setCustomerName(null);
       }
-      const latestQuotation = result.quotations?.[result.quotations.length - 1] ?? null;
+      const latestQuotation =
+        (result.latestQuotationId ? result.quotations?.find((q) => q.id === result.latestQuotationId) : null) ??
+        result.quotations?.[0] ??
+        null;
       if (latestQuotation) {
         try {
           const vehicle = await getVehicle(idToken, latestQuotation.vehicleId, context.companyId, context.branchId);
@@ -126,7 +129,12 @@ export function useInquiryDetail() {
     }
   }
 
-  async function convertToReservation(channelMode: 'PRESENCIAL' | 'VIRTUAL', startAt: string) {
+  async function convertToReservation(
+    channelMode: 'PRESENCIAL' | 'VIRTUAL',
+    startAt: string,
+    canComeToOffice?: boolean,
+    customerLocation?: 'AYACUCHO' | 'FUERA_DE_AYACUCHO',
+  ) {
     if (!inquiry || !context) return null;
     setSaving(true);
     setActionError(null);
@@ -142,6 +150,8 @@ export function useInquiryDetail() {
         context.branchId,
         channelMode,
         startAt,
+        canComeToOffice,
+        customerLocation,
       );
       setInquiry({ ...inquiry, ...result.inquiry });
       return result.reservation.id;

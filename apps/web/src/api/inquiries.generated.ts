@@ -198,6 +198,10 @@ export interface components {
              * @description Debe ser futura
              */
             startAt: string;
+            /** @description PEND-08 (BR-RES-005, PROPUESTO). Opcional. Si es false con channelMode=PRESENCIAL -> 422 CHANNEL_MODE_MISMATCH. */
+            canComeToOffice?: boolean;
+            /** @description PEND-08 (DAT-RES-001). Opcional. FUERA_DE_AYACUCHO con PRESENCIAL -> 422 CHANNEL_MODE_MISMATCH. */
+            customerLocation?: "AYACUCHO" | "FUERA_DE_AYACUCHO";
         };
         ConvertToRentalRequest: components["schemas"]["CommandScopeRequest"] & {
             /**
@@ -231,6 +235,13 @@ export interface components {
             createdAt: string;
         };
         InquiryResponse: components["schemas"]["InquirySummaryResponse"] & {
+            requiredDocuments?: {
+                /** @enum {string} */
+                code: "RECIBO_AGUA_O_LUZ" | "CONSTANCIA_HOSPEDAJE";
+                label: string;
+            }[];
+            /** Format: uuid */
+            latestQuotationId?: string | null;
             interactions: {
                 /** Format: uuid */
                 id: string;
