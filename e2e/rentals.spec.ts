@@ -31,6 +31,13 @@ async function attachGuaranteePaymentProof(
   await page.getByTestId('payment-proof-form').getByLabel('Comprobante de pago').setInputFiles(file);
 }
 
+async function evaluateNotary(
+  page: Parameters<typeof loginViaUI>[0],
+) {
+  await page.getByRole('button', { name: 'Evaluar notaría' }).click();
+  await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
+}
+
 // ── ALQ-01 Bandeja ─────────────────────────────────────────────────────────
 
 test.describe('ALQ-01 Bandeja de alquileres', () => {
@@ -129,8 +136,7 @@ test.describe('ENTREGA-03 Garantía y contrato', () => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-03`);
 
-    // Espera que evaluate-notary complete (resultado MANDATORY aparece)
-    await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
+    await evaluateNotary(page);
 
     await page.getByLabel(/Garantía total/i).fill('500');
     await attachGuaranteePaymentProof(page, { name: 'transferencia.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') });
@@ -245,7 +251,7 @@ test.describe('Flujo completo asistente de entrega', () => {
 
     // — Stage 3 —
     await expect(page).toHaveURL(/entrega-03/);
-    await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
+    await evaluateNotary(page);
     await page.getByLabel(/Garantía total/i).fill('500');
     await attachGuaranteePaymentProof(page, { name: 'transferencia.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') });
 
