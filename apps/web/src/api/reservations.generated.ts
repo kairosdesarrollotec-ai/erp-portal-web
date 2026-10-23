@@ -225,6 +225,8 @@ export interface components {
         ReservationStatus: "DRAFT" | "CONFIRMED" | "PENDING_SALE_RESOLUTION" | "CONVERTED" | "CANCELLED";
         /** @enum {string} */
         ChannelMode: "PRESENCIAL" | "VIRTUAL";
+        /** @enum {string} */
+        CustomerLocation: "AYACUCHO" | "FUERA_DE_AYACUCHO";
         CommandScopeRequest: {
             /** Format: uuid */
             companyId: string;
@@ -361,6 +363,10 @@ export interface components {
             startDatePassed: boolean;
             /** @description RES-07: ultima resolucion por venta del vehiculo. Solo GET /reservations/{id} la incluye (null = nunca hubo venta); las demas respuestas la omiten. */
             saleResolution?: components["schemas"]["SaleResolution"] | null;
+            /** @description PEND-08 (BR-RES-005, PROPUESTO). */
+            canComeToOffice?: boolean | null;
+            /** @description PEND-08 (DAT-RES-001). */
+            customerLocation?: components["schemas"]["CustomerLocation"] | null;
         };
         /**
          * @description Tipo de documento adjunto a una reserva.

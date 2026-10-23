@@ -59,7 +59,7 @@ describe('AppSidebar', () => {
     expect(screen.queryByRole('link', { name: /Sincronización/ })).not.toBeInTheDocument();
     unmount();
 
-    setPermissions(['RETURN.CLOSE']);
+    setPermissions(['SYNC.SUPERVISE_CONFLICTS']);
     render(
       <MemoryRouter>
         <AppSidebar />

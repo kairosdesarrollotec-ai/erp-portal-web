@@ -28,7 +28,7 @@ export interface NewInquiryFormData {
 }
 
 const INITIAL_FORM: NewInquiryFormData = {
-  channel: 'WHATSAPP',
+  channel: 'PRESENCIAL',
   displayMode: 'PRESENCIAL',
   customerId: null,
   customerName: '',

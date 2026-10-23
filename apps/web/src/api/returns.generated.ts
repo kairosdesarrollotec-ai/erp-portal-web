@@ -71,7 +71,7 @@ export interface paths {
         };
         /**
          * Alertas operativas de devolución - garantía por liberar (24 h) e inmovilización > 24 h (DEV-07 / DEV-08)
-         * @description Calculadas con el reloj en cada consulta (sin estado propio). WARRANTY_RELEASE: devolución SIN_DANOS sin cierre financiero a la que le faltan 4 h o menos (DUE_SOON) o ya venció (OVERDUE) el plazo MÁXIMO de 24 h naturales desde la recepción (BR-DEV-001); un daño suspende ese plazo. IMMOBILIZATION: más de 24 h naturales desde la recepción con daño TÉCNICO y días de paralización aún sin cobrar (BR-DEV-011). SOLO ALERTAN: el reembolso y el cobro siguen siendo manuales (close-financial / charge-immobilization). Sin `type` devuelve ambos tipos. Solo lectura; no requiere If-Match.
+         * @description Calculadas con el reloj en cada consulta (sin estado propio). WARRANTY_RELEASE: devolución SIN_DANOS sin cierre financiero a la que le faltan 4 h o menos (DUE_SOON) o ya venció (OVERDUE) el plazo MÁXIMO de 24 h naturales desde la recepción (BR-DEV-001); un daño suspende ese plazo. IMMOBILIZATION: más de 24 h naturales desde el cierre con daño TÉCNICO y días de paralización aún sin cobrar (BR-DEV-011; desde 1.10.0 el reloj corre desde el CIERRE de la devolución, no desde la recepción: devolución sin cerrar = sin alerta). SOLO ALERTAN: el reembolso y el cobro siguen siendo manuales (close-financial / charge-immobilization). Sin `type` devuelve ambos tipos. Solo lectura; no requiere If-Match.
          */
         get: operations["listReturnAlerts"];
         put?: never;
@@ -135,6 +135,30 @@ export interface paths {
         get: operations["getResponsibilityTemplate"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/returns/{id}/zone-marks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Marcas por zona de DEV-05 persistidas en el servidor (PD-07)
+         * @description Devuelve las marcas "Sin daño" / "Con daño" guardadas por zona y la ruta resultante (`route`): NO_DAMAGE (las 5 zonas sin daño -> DEV-09), DAMAGE (al menos una con daño -> DEV-06) o null mientras falten zonas. Sirve para restaurar la pantalla Resultado tras recargar o en otro dispositivo. Solo lectura.
+         */
+        get: operations["listReturnZoneMarks"];
+        put?: never;
+        /**
+         * Registrar las marcas por zona de DEV-05 y la ruta tomada (PD-07)
+         * @description Upsert por zona (solo las zonas enviadas cambian; las 5 zonas: FRONTAL, LATERAL_IZQUIERDO, LATERAL_DERECHO, POSTERIOR, INTERIOR).
+         */
+        post: operations["recordReturnZoneMarks"];
         delete?: never;
         options?: never;
         head?: never;
@@ -549,6 +573,40 @@ export interface components {
             content: string;
             /** @description Versión activa de la plantilla */
             version: number;
+        };
+        ReturnZoneMark: {
+            /** @enum {string} */
+            zone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR";
+            /** @enum {string} */
+            mark: "NO_DAMAGE" | "DAMAGE";
+            /** @description Usuario que marcó por última vez */
+            markedBy: string;
+            /** Format: date-time */
+            markedAt: string;
+        };
+        ReturnZoneMarksResponse: {
+            /** Format: uuid */
+            returnId: string;
+            marks: components["schemas"]["ReturnZoneMark"][];
+            /** @description true = las 5 zonas tienen marca */
+            complete: boolean;
+            /**
+             * @description NO_DAMAGE = las 5 sin daño (DEV-09); DAMAGE = al menos una con daño (DEV-06); null = faltan zonas
+             * @enum {string|null}
+             */
+            route: "NO_DAMAGE" | "DAMAGE" | null;
+        };
+        RecordReturnZoneMarksRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            marks: {
+                /** @enum {string} */
+                zone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR";
+                /** @enum {string} */
+                mark: "NO_DAMAGE" | "DAMAGE";
+            }[];
         };
         /** @enum {string} */
         ReturnStatus: "PROGRAMADA" | "RECEPCION_PROVISIONAL" | "INSPECCION" | "SIN_DANOS" | "CON_DANOS" | "CIERRE_FINANCIERO" | "CERRADA" | "CANCELADA";
@@ -1328,6 +1386,127 @@ export interface operations {
             };
         };
     };
+    listReturnZoneMarks: {
+        parameters: {
+            query: {
+                companyId: components["parameters"]["companyId"];
+                branchId: components["parameters"]["branchId"];
+            };
+            header?: never;
+            path: {
+                id: components["parameters"]["returnId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marcas y ruta */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnZoneMarksResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución no encontrada (RETURN_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno del servidor */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordReturnZoneMarks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["returnId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordReturnZoneMarksRequest"];
+            };
+        };
+        responses: {
+            /** @description Marcas vigentes y ruta */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnZoneMarksResponse"];
+                };
+            };
+            /** @description No autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución no encontrada (RETURN_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución fuera de RECEPCION_PROVISIONAL / INSPECCION (RETURN_STATE_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Zona o marca fuera del catálogo, zona repetida o lista vacía (INVALID_ZONE_MARK) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno del servidor */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     registerAlcoholTest: {
         parameters: {
             query?: never;
@@ -1726,7 +1905,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description No han transcurrido 24 horas naturales desde la recepción (IMMOBILIZATION_PERIOD_NOT_ELAPSED), no hay daño técnico, el vehículo no tiene dailyRate o los días exceden los pendientes de cobro (INVALID_IMMOBILIZATION_CHARGE) */
+            /** @description La devolución aún no está cerrada, el reloj no corre (IMMOBILIZATION_CLOCK_NOT_STARTED), no han transcurrido 24 horas naturales desde el cierre (IMMOBILIZATION_PERIOD_NOT_ELAPSED), no hay daño técnico, el vehículo no tiene dailyRate o los días exceden los pendientes de cobro (INVALID_IMMOBILIZATION_CHARGE) */
             422: {
                 headers: {
                     [name: string]: unknown;

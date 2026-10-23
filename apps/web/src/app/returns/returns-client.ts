@@ -496,6 +496,57 @@ export async function listReturnAlerts(
   return data as unknown as ReturnAlertItem[];
 }
 
+// --- DEV-05 / PD-07 - marcas por zona de DEV-05 persistidas en el servidor ------------------
+
+export interface ReturnZoneMarkItem {
+  zone: 'FRONTAL' | 'LATERAL_IZQUIERDO' | 'LATERAL_DERECHO' | 'POSTERIOR' | 'INTERIOR';
+  mark: 'NO_DAMAGE' | 'DAMAGE';
+  markedBy?: string;
+  markedAt?: string;
+}
+
+export interface ReturnZoneMarksResult {
+  returnId: string;
+  marks: ReturnZoneMarkItem[];
+  complete: boolean;
+  route: 'NO_DAMAGE' | 'DAMAGE' | null;
+}
+
+export async function getReturnZoneMarks(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+): Promise<ReturnZoneMarksResult> {
+  const { data, error, response } = await returnsApiClient.GET('/returns/{id}/zone-marks', {
+    params: { path: { id }, query: { companyId, branchId } },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new ReturnApiError(response.status);
+  return data as unknown as ReturnZoneMarksResult;
+}
+
+export async function recordReturnZoneMarks(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  marks: Array<{
+    zone: 'FRONTAL' | 'LATERAL_IZQUIERDO' | 'LATERAL_DERECHO' | 'POSTERIOR' | 'INTERIOR';
+    mark: 'NO_DAMAGE' | 'DAMAGE';
+  }>,
+): Promise<ReturnZoneMarksResult> {
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/zone-marks', {
+    params: { path: { id } },
+    headers: authHeaders(idToken),
+    body: { companyId, branchId, marks },
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnZoneMarksResult;
+}
+
 // --- DEV-04 / TR-08 - evidencia real (foto/video) de retorno ---
 export {
   ReturnEvidenceUploadError,

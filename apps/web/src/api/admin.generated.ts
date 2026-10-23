@@ -375,7 +375,7 @@ export interface components {
          * @description Modulos cuyas acciones administra la matriz ADM-02 (PERMISSION_MODULES del dominio). 0.3.0: se declaran RETURN, FLEET, CUSTOMER, TEMPLATE, PAYMENT y REPORT, que el backend ya devolvia en el catalogo. Acciones de Reserva incluidas en el catalogo: READ_LIST, READ_DETAIL, CREATE, REGISTER_PAYMENT, REGISTER_DOCUMENTS, CONFIRM, CANCEL_CUSTOMER_REQUESTED_CHANGE, CANCEL_NO_SHOW, FLAG_SALE, RESOLVE_SALE y CHANGE_VEHICLE. Una version ya guardada que no incluya una accion nueva la deniega hasta que se guarde la matriz (deny-by-default).
          * @enum {string}
          */
-        PermissionModule: "RESERVATION" | "INQUIRY" | "ADMIN" | "RENTAL" | "INCIDENT" | "RETURN" | "FLEET" | "CUSTOMER" | "RECRUITMENT" | "TEMPLATE" | "HR_ADMINISTRATION" | "PAYMENT" | "REPORT" | "NOTIFICATIONS" | "EVIDENCE";
+        PermissionModule: "RESERVATION" | "INQUIRY" | "ADMIN" | "RENTAL" | "INCIDENT" | "RETURN" | "FLEET" | "CUSTOMER" | "RECRUITMENT" | "TEMPLATE" | "HR_ADMINISTRATION" | "PAYMENT" | "REPORT" | "NOTIFICATIONS" | "EVIDENCE" | "SYNC";
         RolePermissionEntry: {
             /** Format: uuid */
             roleId: string;
