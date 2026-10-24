@@ -163,6 +163,16 @@ export function EmployeeFileScreen() {
                   {employee.isFieldTripObserved && <span className={`${styles.badge} ${styles.badgeWarn}`}> Observado</span>}
                 </dd>
               </div>
+              <div>
+                <dt>Sueldo base</dt>
+                <dd>
+                  {employee.baseSalary !== null && employee.baseSalary !== undefined
+                    ? formatSoles(employee.baseSalary)
+                    : employee.restrictedFields?.includes('baseSalary')
+                    ? <span className={styles.hint}>Restringido</span>
+                    : '—'}
+                </dd>
+              </div>
             </dl>
             {employee.candidateId && (
               <p className={styles.hint}>
@@ -173,6 +183,68 @@ export function EmployeeFileScreen() {
                 . Es un registro aparte: la ficha de personal no se fusiona con la de candidato.
               </p>
             )}
+          </section>
+
+          <section className={styles.card} aria-labelledby="emp-banco-contrato">
+            <h2 id="emp-banco-contrato" className={styles.sectionTitle}>
+              Datos bancarios y de contrato
+            </h2>
+            <dl className={styles.dataGrid}>
+              <div>
+                <dt>Entidad bancaria</dt>
+                <dd>
+                  {employee.restrictedFields?.includes('bankName')
+                    ? <span className={styles.hint}>Restringido</span>
+                    : employee.bankName || '—'}
+                </dd>
+              </div>
+              <div>
+                <dt>Número de cuenta</dt>
+                <dd>
+                  {employee.restrictedFields?.includes('bankAccountNumber')
+                    ? <span className={styles.hint}>Restringido</span>
+                    : employee.bankAccountNumber || '—'}
+                </dd>
+              </div>
+              <div>
+                <dt>Código de cuenta interbancario (CCI)</dt>
+                <dd>
+                  {employee.restrictedFields?.includes('bankAccountCci')
+                    ? <span className={styles.hint}>Restringido</span>
+                    : employee.bankAccountCci || '—'}
+                </dd>
+              </div>
+              <div>
+                <dt>Tipo de contrato</dt>
+                <dd>
+                  {employee.restrictedFields?.includes('contractType')
+                    ? <span className={styles.hint}>Restringido</span>
+                    : employee.contractType || '—'}
+                </dd>
+              </div>
+              <div>
+                <dt>Documento de contrato</dt>
+                <dd>
+                  {employee.restrictedFields?.includes('contractUrl') ? (
+                    <span className={styles.hint}>Restringido</span>
+                  ) : employee.contractUrl ? (
+                    <a href={employee.contractUrl} target="_blank" rel="noopener noreferrer">
+                      Ver contrato
+                    </a>
+                  ) : (
+                    '—'
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Notas de contrato</dt>
+                <dd>
+                  {employee.restrictedFields?.includes('contractNotes')
+                    ? <span className={styles.hint}>Restringido</span>
+                    : employee.contractNotes || '—'}
+                </dd>
+              </div>
+            </dl>
           </section>
 
           {terminated && (

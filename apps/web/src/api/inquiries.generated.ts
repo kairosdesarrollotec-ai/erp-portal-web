@@ -180,12 +180,15 @@ export interface components {
             travelStartDate?: string;
             /** @description CON-02 personas (opcional) */
             partySize?: number;
+            /** @description DEC-CON-TROCHA-001: indica si la ruta incluye trocha / afirmado */
+            isDirtRoad?: boolean;
         };
         QuoteRequest: components["schemas"]["CommandScopeRequest"] & {
             /** Format: uuid */
             vehicleId: string;
             destination: string;
             estimatedDays: number;
+            plan?: "NORMAL" | "PLUS" | "LIBRE";
         };
         CloseInquiryRequest: components["schemas"]["CommandScopeRequest"] & {
             reason: string;
@@ -198,6 +201,10 @@ export interface components {
              * @description Debe ser futura
              */
             startAt: string;
+            /** @description PEND-08 (BR-RES-005, PROPUESTO). Opcional. Si es false con channelMode=PRESENCIAL -> 422 CHANNEL_MODE_MISMATCH. */
+            canComeToOffice?: boolean;
+            /** @description PEND-08 (DAT-RES-001). Opcional. FUERA_DE_AYACUCHO con PRESENCIAL -> 422 CHANNEL_MODE_MISMATCH. */
+            customerLocation?: "AYACUCHO" | "FUERA_DE_AYACUCHO";
         };
         ConvertToRentalRequest: components["schemas"]["CommandScopeRequest"] & {
             /**
@@ -225,12 +232,20 @@ export interface components {
             travelStartDate: string | null;
             partySize: number | null;
             dataOrigin: components["schemas"]["InquiryDataOrigin"];
+            isDirtRoad?: boolean;
             closedReason: string | null;
             version: number;
             /** Format: date-time */
             createdAt: string;
         };
         InquiryResponse: components["schemas"]["InquirySummaryResponse"] & {
+            requiredDocuments?: {
+                /** @enum {string} */
+                code: "RECIBO_AGUA_O_LUZ" | "CONSTANCIA_HOSPEDAJE";
+                label: string;
+            }[];
+            /** Format: uuid */
+            latestQuotationId?: string | null;
             interactions: {
                 /** Format: uuid */
                 id: string;
@@ -251,6 +266,7 @@ export interface components {
                 estimatedDays: number;
                 amount: string;
                 currency: string;
+                plan?: string | null;
                 /** Format: date-time */
                 validUntil: string;
                 /** Format: date-time */

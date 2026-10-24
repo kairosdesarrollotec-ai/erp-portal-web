@@ -11,6 +11,8 @@ build/
 coverage/
 .turbo/
 apps/web/dist/
+apps/web/dev-dist/
+dev-dist/
 apps/api/dist/
 *.tsbuildinfo
 

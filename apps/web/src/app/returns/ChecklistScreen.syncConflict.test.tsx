@@ -70,7 +70,7 @@ beforeEach(() => {
     ...EMPTY_RETURN_CHECKLIST,
     responsibilityDocument: { signerName: 'Maria', signerIsHolder: true, signerRelationToHolder: '', signatureData: 'data:image/png;base64,F' },
   });
-  setPermissions([...BASE, 'RETURN.CLOSE']);
+  setPermissions([...BASE, 'SYNC.SUPERVISE_CONFLICTS']);
   flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'INSPECCION' }) }));
   listReturnEvidenceMock.mockResolvedValue(full());
 });
@@ -86,7 +86,7 @@ describe('DEV-04 ChecklistScreen + sync.yaml', () => {
     expect(await axe(document.body)).toHaveNoViolations();
   });
 
-  it('el supervisor resuelve (RETURN.CLOSE), el servidor confirma SYNCED y recien ahi se habilita Continuar', async () => {
+  it('el supervisor resuelve (SYNC.SUPERVISE_CONFLICTS), el servidor confirma SYNCED y recien ahi se habilita Continuar', async () => {
     status.get.mockResolvedValueOnce(syncedStatus('RECEPCION', 'ret-1', { status: 'SYNC_CONFLICT', openConflicts: [conflict] }));
     status.get.mockResolvedValue(syncedStatus('RECEPCION', 'ret-1', { serverConfirmedAt: '2026-10-19T16:00:00Z', stateVersion: 2 }));
     status.resolve.mockResolvedValue({ conflict: { ...conflict, status: 'RESOLVED' }, checklistStatus: 'SYNCED', serverConfirmedAt: '2026-10-19T16:00:00Z', openConflicts: 0 });

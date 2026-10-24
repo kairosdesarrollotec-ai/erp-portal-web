@@ -4,7 +4,15 @@ import { ReturnFlowShell } from './ReturnFlowShell';
 import { returnFlowGuard } from './ReturnGuards';
 import { useReturnFlow } from './useReturnFlow';
 import { ZoneComparator } from './ZoneComparator';
-import { completeInspection, listReturnEvidence, ReturnCommandError, ReturnEvidenceResponse } from './returns-client';
+import {
+  completeInspection,
+  getReturnZoneMarks,
+  listReturnEvidence,
+  recordReturnZoneMarks,
+  ReturnCommandError,
+  ReturnEvidenceResponse,
+  ReturnZoneMarkItem,
+} from './returns-client';
 import { listRentalEvidence, RentalEvidenceResponse } from '../rentals/rentals-client';
 import { describeReturnError, isStaleReturnError } from './return-errors';
 import { RETURN_ZONES, zoneLabel } from './return-evidence';
@@ -29,8 +37,8 @@ import styles from './ReturnForms.module.css';
  *    sin pasar por DEV-06/07/08). Nunca se asume "sin dano" por defecto.
  *  - al menos 1 zona con dano -> "Continuar a evaluacion de dano" (DEV-06).
  * El backend registra la categoria con complete-inspection (SIN_DANOS /
- * CON_DANOS); las marcas por zona son locales (el contrato no tiene
- * endpoint por zona) y se resumen en `damagesDescription`. complete-inspection
+ * CON_DANOS); las marcas por zona se persisten en el servidor (PD-07:
+ * GET/POST /returns/{id}/zone-marks) y se resumen en `damagesDescription`. complete-inspection
  * exige el documento de responsabilidad firmado en DEV-04 (BR-DEV-009): se
  * toma del borrador del checklist; si falta se devuelve al checklist.
  *
@@ -72,6 +80,33 @@ export function ResultScreen() {
     };
   }, [context, rentalId, id, getIdToken]);
 
+  useEffect(() => {
+    if (!context || !id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const idToken = await getIdToken();
+        const serverMarks = await getReturnZoneMarks(idToken, id, context.companyId, context.branchId);
+        if (!cancelled && serverMarks?.marks && serverMarks.marks.length > 0) {
+          const mapped: ZoneMarks = {};
+          serverMarks.marks.forEach((m) => {
+            mapped[m.zone] = m.mark === 'NO_DAMAGE' ? 'OK' : 'DAMAGED';
+          });
+          setMarks((prev) => {
+            const next = { ...mapped, ...prev };
+            saveZoneMarks(id, next);
+            return next;
+          });
+        }
+      } catch {
+        // el borrador local sirve de respaldo
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [context, id, getIdToken]);
+
   const guard = returnFlowGuard({ state, hasReturn: Boolean(ret) });
   if (guard || !ret) return guard;
 
@@ -89,6 +124,19 @@ export function ResultScreen() {
     saveZoneMarks(id, next);
     const following = RETURN_ZONES.find((z) => next[z.value] === undefined);
     if (following) setCurrentZone(following.value);
+
+    if (context) {
+      getIdToken()
+        .then((idToken) => {
+          const apiMark = value === 'OK' ? 'NO_DAMAGE' : 'DAMAGE';
+          return recordReturnZoneMarks(idToken, id, context.companyId, context.branchId, [
+            { zone: zone as ReturnZoneMarkItem['zone'], mark: apiMark },
+          ]);
+        })
+        .catch(() => {
+          // El estado local ya se guardó como respaldo
+        });
+    }
   }
 
   async function runInspection(hasDamages: boolean) {

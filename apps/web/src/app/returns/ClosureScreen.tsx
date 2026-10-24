@@ -6,7 +6,7 @@ import { useReturnFlow } from './useReturnFlow';
 import { DamageLog } from './DamageLog';
 import { useCosmeticTariff } from './useCosmeticTariff';
 import { formatPen } from './return-financial';
-import { closeReturn } from './returns-client';
+import { closeReturn, recordMechanicReport, escalateLegal } from './returns-client';
 import { describeReturnError, isIncidentOpenError, isStaleReturnError } from './return-errors';
 import { clearReturnDrafts } from './return-session-draft';
 import { ALCOHOL_RESULT_LABELS, FUEL_LEVEL_LABELS, RETURN_STATUS_LABELS } from './return-status';
@@ -33,6 +33,9 @@ export function ClosureScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalReason, setLegalReason] = useState('');
+  const [legalCaseNumber, setLegalCaseNumber] = useState('');
   const tariff = useCosmeticTariff(
     context,
     getIdToken,
@@ -45,7 +48,10 @@ export function ClosureScreen() {
   const doc = ret.responsibilityDocument;
   const closed = ret.status === 'CERRADA';
   const actionable = ret.status === 'CIERRE_FINANCIERO';
-  const canSubmit = actionable && !blocked && can('CLOSE') && (!wantsAct || signature.trim().length > 0);
+  const hasDamages = Boolean(ret.damages && ret.damages.length > 0);
+  const mechanicReportGate = !hasDamages || ret.mechanicReportAccepted === true;
+  const offlineGate = !ret.hasPendingOfflineChanges;
+  const canSubmit = actionable && !blocked && offlineGate && mechanicReportGate && can('CLOSE') && (!wantsAct || signature.trim().length > 0);
 
   async function handleClose() {
     if (!context || !ret) return;
@@ -71,6 +77,47 @@ export function ClosureScreen() {
     }
   }
 
+  async function handleRecordMechanicReport(accepted: boolean) {
+    if (!context || !ret) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const idToken = await getIdToken();
+      const updated = await recordMechanicReport(idToken, id, context.companyId, context.branchId, ret.version, {
+        accepted,
+        observation: accepted ? 'Aceptado por el cliente' : 'No aceptado por el cliente',
+      });
+      setRet(updated);
+    } catch (err) {
+      setError(describeReturnError(err, 'No pudimos registrar la respuesta del informe mecánico.'));
+      if (isStaleReturnError(err)) await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleEscalateLegal() {
+    if (!context || !ret || !legalReason.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const idToken = await getIdToken();
+      const updated = await escalateLegal(idToken, id, context.companyId, context.branchId, ret.version, {
+        reason: legalReason.trim(),
+        legalCaseNumber: legalCaseNumber.trim() || undefined,
+      });
+      setRet(updated);
+      setLegalModalOpen(false);
+      setLegalReason('');
+      setLegalCaseNumber('');
+    } catch (err) {
+      setError(describeReturnError(err, 'No pudimos anotar la escalación legal.'));
+      if (isStaleReturnError(err)) await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <ReturnFlowShell
       step={6}
@@ -84,6 +131,20 @@ export function ClosureScreen() {
       latenessCharge={ret.latenessCharge}
     >
       <h1 className={styles.pageHeading}>Cierre y expediente — {ret.vehiclePlate ?? 'Vehículo'}</h1>
+
+      {ret.hasPendingOfflineChanges && (
+        <p className={`${styles.banner} ${styles.banner_error}`} role="alert" data-testid="offline-changes-banner">
+          Hay cambios pendientes de sincronización local. Espera a que se sincronicen antes de cerrar el expediente.
+        </p>
+      )}
+
+      {ret.legalEscalatedAt && (
+        <p className={`${styles.banner} ${styles.banner_info}`} data-testid="legal-escalated-banner">
+          Expediente escalado a Legal ({formatLimaDateTime(ret.legalEscalatedAt)})
+          {ret.legalCaseNumber ? ` · Caso N° ${ret.legalCaseNumber}` : ''}
+          {ret.legalEscalationReason ? ` · Motivo: ${ret.legalEscalationReason}` : ''}
+        </p>
+      )}
 
       {blocked && (
         <p className={`${styles.banner} ${styles.banner_error}`} role="alert">
@@ -161,6 +222,60 @@ export function ClosureScreen() {
         zoneNames={Object.fromEntries(tariff.items.map((t) => [t.code, t.name]))}
       />
 
+      {hasDamages && (
+        <section className={styles.reviewSection} data-testid="mechanic-report-section">
+          <p className={styles.reviewSectionTitle}>Informe de Taller Mecánico / Motrix</p>
+          {ret.mechanicReportAccepted === true ? (
+            <p className={`${styles.banner} ${styles.banner_success}`} data-testid="mechanic-report-accepted">
+              ✓ Informe mecánico aceptado por el cliente
+              {ret.mechanicReportAcceptedAt ? ` (${formatLimaDateTime(ret.mechanicReportAcceptedAt)})` : ''}
+              {ret.mechanicReportObservation ? ` · ${ret.mechanicReportObservation}` : ''}
+            </p>
+          ) : (
+            <div data-testid="mechanic-report-pending">
+              <p className={`${styles.banner} ${styles.banner_error}`} role="alert">
+                Este vehículo presenta daños. Es requisito obligatorio que el cliente acepte el informe del taller mecánico/Motrix antes de archivar el expediente.
+              </p>
+              {actionable && (
+                <div className={styles.actionRow}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    disabled={busy}
+                    onClick={() => handleRecordMechanicReport(false)}
+                    data-testid="mechanic-report-reject-btn"
+                  >
+                    Registrar rechazo de cliente
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    disabled={busy}
+                    onClick={() => handleRecordMechanicReport(true)}
+                    data-testid="mechanic-report-accept-btn"
+                  >
+                    Registrar aceptación de cliente
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {!closed && (
+        <div style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={() => setLegalModalOpen(true)}
+            data-testid="open-legal-escalation-modal-btn"
+          >
+            {ret.legalEscalatedAt ? 'Actualizar anotación legal' : 'Anotar escalación legal'}
+          </button>
+        </div>
+      )}
+
       {actionable && (
         <>
           {ret.depositRequired === false && (
@@ -211,6 +326,59 @@ export function ClosureScreen() {
               </button>
               <button type="button" className={styles.dangerButton} onClick={handleClose} disabled={busy}>
                 Cerrar expediente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {legalModalOpen && (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="legal-modal-title">
+          <div className={styles.modalCard}>
+            <p id="legal-modal-title" className={styles.modalTitle}>
+              Anotar escalación legal
+            </p>
+            <p className={styles.summaryLine}>
+              Registra el motivo del pase a legal y el número de caso judicial/policial si aplica.
+            </p>
+            <label className={styles.fieldLabel}>
+              Motivo de escalación *
+              <textarea
+                className={styles.textarea}
+                rows={3}
+                value={legalReason}
+                onChange={(e) => setLegalReason(e.target.value)}
+                placeholder="Ej. Negativa de pago por daños mecánicos graves / apropiación ilícita..."
+                data-testid="legal-reason-input"
+              />
+            </label>
+            <label className={styles.fieldLabel}>
+              Número de caso / expediente legal (opcional)
+              <input
+                className={styles.input}
+                value={legalCaseNumber}
+                onChange={(e) => setLegalCaseNumber(e.target.value)}
+                placeholder="Ej. CASO-2026-0042"
+                data-testid="legal-case-number-input"
+              />
+            </label>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setLegalModalOpen(false)}
+                disabled={busy}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={handleEscalateLegal}
+                disabled={busy || !legalReason.trim()}
+                data-testid="submit-legal-escalation-btn"
+              >
+                Guardar escalación legal
               </button>
             </div>
           </div>

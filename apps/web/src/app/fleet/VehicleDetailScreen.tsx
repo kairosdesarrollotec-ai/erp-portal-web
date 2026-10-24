@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useVehicleDetail } from './useVehicleDetail';
 import { NewVehicleModal } from './NewVehicleModal';
+import { VehicleDigitalFileSection } from './operational-formats/VehicleDigitalFileSection';
 import { useRolePermissions } from '../shared/useRolePermissions';
 import type { VehicleStatus } from './fleet-client';
 import type { VehicleFormData } from './useFleetList';
@@ -37,6 +38,8 @@ export function VehicleDetailScreen() {
   const { can } = useRolePermissions();
   const canWrite = can('FLEET', 'WRITE');
   const canManageThirdPath = can('FLEET', 'MANAGE_THIRD_PATH');
+  const canRegisterOperationalFormat = can('FLEET', 'REGISTER_VEHICLE_OPERATIONAL_FORMAT') || canWrite;
+  const canViewOperationalFormat = can('FLEET', 'VIEW_VEHICLE_OPERATIONAL_FORMAT') || can('FLEET', 'READ');
   const {
     state,
     vehicle,
@@ -208,9 +211,44 @@ export function VehicleDetailScreen() {
                 )}
               </div>
               <div className={styles.vehicleMetaItem}>
+                <span className={styles.vehicleMetaLabel}>Apto para trocha</span>
+                <span className={styles.vehicleMetaValue} data-testid="suitable-for-trocha">
+                  {vehicle.suitableForTrocha ? 'Sí (Apto)' : 'No'}
+                </span>
+              </div>
+              <div className={styles.vehicleMetaItem}>
                 <span className={styles.vehicleMetaLabel}>Tercera vía notarial</span>
                 <span className={styles.vehicleMetaValue} data-testid="third-path-eligible">
                   {vehicle.thirdPathEligible ? 'Elegible' : 'No elegible'}
+                </span>
+              </div>
+              <div className={styles.vehicleMetaItem}>
+                <span className={styles.vehicleMetaLabel}>Tarifas por Plan</span>
+                <span className={styles.vehicleMetaValue}>
+                  {`Normal: ${(vehicle.rateNormal ?? vehicle.dailyRate) != null ? `S/ ${Number(vehicle.rateNormal ?? vehicle.dailyRate).toFixed(2)}` : '—'} · Plus: ${vehicle.ratePlus != null ? `S/ ${Number(vehicle.ratePlus).toFixed(2)}` : '—'} · Libre: ${vehicle.rateLibre != null ? `S/ ${Number(vehicle.rateLibre).toFixed(2)}` : '—'}`}
+                </span>
+                {vehicle.rateNormal == null && vehicle.dailyRate == null && (
+                  <span className={styles.missingCapacity} data-testid="missing-rate-normal" role="status">
+                    Falta tarifa del plan Normal
+                  </span>
+                )}
+                {vehicle.ratePlus == null && (
+                  <span className={styles.missingCapacity} data-testid="missing-rate-plus" role="status">
+                    Falta tarifa del plan Plus
+                  </span>
+                )}
+                {vehicle.rateLibre == null && (
+                  <span className={styles.missingCapacity} data-testid="missing-rate-libre" role="status">
+                    Falta tarifa del plan Libre
+                  </span>
+                )}
+              </div>
+              <div className={styles.vehicleMetaItem}>
+                <span className={styles.vehicleMetaLabel}>Multa combustible (por línea)</span>
+                <span className={styles.vehicleMetaValue}>
+                  {vehicle.fuelPenaltyPerLine != null
+                    ? `S/ ${Number(vehicle.fuelPenaltyPerLine).toFixed(2)} / línea`
+                    : 'Estándar'}
                 </span>
               </div>
               <div className={styles.vehicleMetaItem}>
@@ -261,13 +299,16 @@ export function VehicleDetailScreen() {
           )}
         </div>
 
-        {/* Placeholders for sections requiring backend modules not in fleet.yaml v0.2.0 */}
-        <div className={styles.placeholderSection} aria-label="Historial de mantenimiento no disponible">
-          <p className={styles.placeholderTitle}>Historial de mantenimiento</p>
-          <p className={styles.placeholderDesc}>
-            Disponible cuando exista el módulo de Mantenimiento con sus endpoints en fleet.yaml.
-          </p>
-        </div>
+        {/* Ficha Digital de Formatos Operativos (C4) */}
+        {context && canViewOperationalFormat && (
+          <VehicleDigitalFileSection
+            vehicleId={vehicle.id}
+            vehiclePlate={vehicle.plate}
+            companyId={context.companyId}
+            branchId={context.branchId}
+            canRegister={canRegisterOperationalFormat}
+          />
+        )}
 
         <div className={styles.placeholderSection} aria-label="Telemetría no disponible">
           <p className={styles.placeholderTitle}>Telemetría y compromisos futuros</p>

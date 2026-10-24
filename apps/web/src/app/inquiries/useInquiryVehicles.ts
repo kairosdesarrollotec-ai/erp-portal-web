@@ -32,6 +32,11 @@ export interface InquiryVehicle {
   passengerCapacity: number | null;
   /** Avisos de datos faltantes del vehiculo (no bloquean la cotizacion). */
   vehicleWarnings: string[];
+  suitableForTrocha?: boolean;
+  rateNormal?: number | null;
+  ratePlus?: number | null;
+  rateLibre?: number | null;
+  fuelPenaltyPerLine?: number | null;
 }
 
 /**
@@ -65,6 +70,11 @@ function toInquiryVehicle(vehicle: FleetVehicle): InquiryVehicle | null {
     conflictFrom: vehicle.availability?.conflictFrom,
     conflictTo: vehicle.availability?.conflictTo,
     passengerCapacity: vehicle.passengerCapacity ?? null,
+    suitableForTrocha: vehicle.suitableForTrocha ?? false,
+    rateNormal: vehicle.rateNormal ?? vehicle.dailyRate,
+    ratePlus: vehicle.ratePlus,
+    rateLibre: vehicle.rateLibre,
+    fuelPenaltyPerLine: vehicle.fuelPenaltyPerLine,
     vehicleWarnings: [
       ...(vehicle.passengerCapacity == null ? ['Falta la capacidad de pasajeros en Flota: no se puede validar contra el grupo.'] : []),
     ],
@@ -114,34 +124,62 @@ export function useInquiryVehicles() {
 
   const hasUsableNavState = Boolean(rawNavState?.companyId && rawNavState?.branchId && rawNavState?.version);
 
-  const loadVehicles = useCallback(async (companyId: string, branchId: string, travelDate?: string, travelDays?: number) => {
-    const requestId = ++requestIdRef.current;
-    try {
-      const user = getFirebaseAuth().currentUser;
-      if (!user) throw new Error('Sesión no disponible.');
-      const idToken = await user.getIdToken();
-      const result = await listVehicles(idToken, {
-        companyId,
-        branchId,
-        status: 'AVAILABLE',
-        limit: 100,
-        offset: 0,
-        ...(buildAvailabilityWindow(travelDate, travelDays) ?? {}),
-      });
-      if (requestId !== requestIdRef.current) return;
-      const mapped = result.items
-        .map(toInquiryVehicle)
-        .filter((v): v is InquiryVehicle => v !== null)
-        // Los ocupados van al final (sort estable: se conserva el orden del catalogo).
-        .sort((a, b) => Number(b.available) - Number(a.available));
-      loadedAtRef.current = Date.now();
-      setVehicles(mapped);
-      setState(mapped.length === 0 ? 'EMPTY' : 'READY');
-    } catch {
-      if (requestId !== requestIdRef.current) return;
-      setState('RECOVERABLE_ERROR');
-    }
-  }, []);
+  const loadVehicles = useCallback(
+    async (
+      companyId: string,
+      branchId: string,
+      travelDate?: string,
+      travelDays?: number,
+      isDirtRoad?: boolean,
+      plan?: 'NORMAL' | 'PLUS' | 'LIBRE',
+    ) => {
+      const requestId = ++requestIdRef.current;
+      try {
+        const user = getFirebaseAuth().currentUser;
+        if (!user) throw new Error('Sesión no disponible.');
+        const idToken = await user.getIdToken();
+        const result = await listVehicles(idToken, {
+          companyId,
+          branchId,
+          status: 'AVAILABLE',
+          limit: 100,
+          offset: 0,
+          ...(buildAvailabilityWindow(travelDate, travelDays) ?? {}),
+        });
+        if (requestId !== requestIdRef.current) return;
+        const mapped = result.items
+          .map(toInquiryVehicle)
+          .filter((v): v is InquiryVehicle => v !== null)
+          .map((v) => {
+            // DEC-CON-TROCHA-001: si la ruta incluye trocha, los no aptos quedan no disponibles
+            if (isDirtRoad && !v.suitableForTrocha) {
+              return {
+                ...v,
+                available: false,
+                vehicleWarnings: [...v.vehicleWarnings, 'No apto para trocha / afirmado.'],
+              };
+            }
+            let dailyRate = v.dailyRate;
+            if (plan === 'PLUS' && v.ratePlus != null) dailyRate = v.ratePlus;
+            if (plan === 'LIBRE' && v.rateLibre != null) dailyRate = v.rateLibre;
+            if (plan === 'NORMAL' && v.rateNormal != null) dailyRate = v.rateNormal;
+            return {
+              ...v,
+              dailyRate,
+            };
+          })
+          // Los ocupados van al final (sort estable: se conserva el orden del catalogo).
+          .sort((a, b) => Number(b.available) - Number(a.available));
+        loadedAtRef.current = Date.now();
+        setVehicles(mapped);
+        setState(mapped.length === 0 ? 'EMPTY' : 'READY');
+      } catch {
+        if (requestId !== requestIdRef.current) return;
+        setState('RECOVERABLE_ERROR');
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -149,7 +187,14 @@ export function useInquiryVehicles() {
     async function resolveDeepLink() {
       if (hasUsableNavState && rawNavState) {
         setNavState(rawNavState);
-        await loadVehicles(rawNavState.companyId, rawNavState.branchId, rawNavState.travelDate, rawNavState.travelDays);
+        await loadVehicles(
+          rawNavState.companyId,
+          rawNavState.branchId,
+          rawNavState.travelDate,
+          rawNavState.travelDays,
+          rawNavState.isDirtRoad,
+          rawNavState.plan,
+        );
         return;
       }
       if (contextLoading) return;
@@ -184,9 +229,18 @@ export function useInquiryVehicles() {
           channel: inquiry.channel as InquiryNavState['channel'],
           touristUse: inquiry.touristUse,
           version: inquiry.version,
+          isDirtRoad: inquiry.isDirtRoad ?? false,
+          plan: 'NORMAL',
         };
         setNavState(nextNavState);
-        await loadVehicles(nextNavState.companyId, nextNavState.branchId, nextNavState.travelDate, nextNavState.travelDays);
+        await loadVehicles(
+          nextNavState.companyId,
+          nextNavState.branchId,
+          nextNavState.travelDate,
+          nextNavState.travelDays,
+          nextNavState.isDirtRoad,
+          nextNavState.plan,
+        );
       } catch {
         if (!cancelled) setState('RECOVERABLE_ERROR');
       }
@@ -211,7 +265,14 @@ export function useInquiryVehicles() {
 
   const refreshAvailability = useCallback(() => {
     if (!navState) return;
-    void loadVehicles(navState.companyId, navState.branchId, navState.travelDate, navState.travelDays);
+    void loadVehicles(
+      navState.companyId,
+      navState.branchId,
+      navState.travelDate,
+      navState.travelDays,
+      navState.isDirtRoad,
+      navState.plan,
+    );
   }, [navState, loadVehicles]);
 
   /**
@@ -234,7 +295,17 @@ export function useInquiryVehicles() {
       const user = getFirebaseAuth().currentUser;
       if (!user) throw new Error('Sesión no disponible.');
       const idToken = await user.getIdToken();
-      await quoteInquiry(idToken, id, navState.version, navState.companyId, navState.branchId, vehicleId, navState.destination, navState.travelDays || 1);
+      await quoteInquiry(
+        idToken,
+        id,
+        navState.version,
+        navState.companyId,
+        navState.branchId,
+        vehicleId,
+        navState.destination,
+        navState.travelDays || 1,
+        navState.plan ?? 'NORMAL',
+      );
       navigate(`/consultas/${id}`, { state: navState });
     } catch (err) {
       if (err instanceof InquiryCommandError && (err.status === 409 || err.status === 412)) {

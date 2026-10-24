@@ -225,6 +225,8 @@ export interface components {
         ReservationStatus: "DRAFT" | "CONFIRMED" | "PENDING_SALE_RESOLUTION" | "CONVERTED" | "CANCELLED";
         /** @enum {string} */
         ChannelMode: "PRESENCIAL" | "VIRTUAL";
+        /** @enum {string} */
+        CustomerLocation: "AYACUCHO" | "FUERA_DE_AYACUCHO";
         CommandScopeRequest: {
             /** Format: uuid */
             companyId: string;
@@ -351,6 +353,12 @@ export interface components {
                 paymentValidatedAt: string | null;
                 /** Format: date-time */
                 documentsCompletedAt: string | null;
+                /** @description BR-RES-005. True si la reserva es remota. */
+                isRemote?: boolean;
+                /** @description SC-RES-003. True si se subio el video 360 del vehiculo. */
+                video360Uploaded?: boolean;
+                /** @description SC-RES-003. True si se subio el documento de aceptacion firmado. */
+                signedAcceptanceUploaded?: boolean;
             };
             missingRequirements?: string[];
             /** Format: date-time */
@@ -361,21 +369,25 @@ export interface components {
             startDatePassed: boolean;
             /** @description RES-07: ultima resolucion por venta del vehiculo. Solo GET /reservations/{id} la incluye (null = nunca hubo venta); las demas respuestas la omiten. */
             saleResolution?: components["schemas"]["SaleResolution"] | null;
+            /** @description PEND-08 (BR-RES-005, PROPUESTO). */
+            canComeToOffice?: boolean | null;
+            /** @description PEND-08 (DAT-RES-001). */
+            customerLocation?: components["schemas"]["CustomerLocation"] | null;
         };
         /**
          * @description Tipo de documento adjunto a una reserva.
          * @enum {string}
          */
-        ReservationDocumentType: "PAYMENT_VOUCHER" | "ID_DOCUMENT" | "OTHER";
+        ReservationDocumentType: "PAYMENT_VOUCHER" | "ID_DOCUMENT" | "VIDEO_360" | "SIGNED_ACCEPTANCE" | "OTHER";
         RequestReservationDocumentUploadSessionRequest: {
             /** Format: uuid */
             companyId: string;
             /** Format: uuid */
             branchId: string;
             documentType: components["schemas"]["ReservationDocumentType"];
-            /** @description MIME type del archivo (image/jpeg, image/png, application/pdf). */
+            /** @description MIME type del archivo (image/jpeg, image/png, application/pdf, video/mp4, video/webm). */
             contentType: string;
-            /** @description Tamaño en bytes. Máximo 10 MB. */
+            /** @description Tamaño en bytes. Máximo 100 MB. */
             contentLength: number;
         };
         ReservationDocumentUploadSessionResponse: {

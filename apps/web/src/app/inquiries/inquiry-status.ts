@@ -75,3 +75,17 @@ export const INQUIRY_STATUS_LABELS: Record<InquiryStatus, string> = {
   CONVERTIDA: 'Convertida',
   CERRADA_SIN_CONVERSION: 'Cerrada sin conversión',
 };
+
+export const INTERACTION_OUTCOME_LABELS: Record<string, string> = {
+  REGISTRADA: 'Consulta registrada',
+  COTIZADA: 'Cotizada',
+  CONVERTIDA_A_RESERVA: 'Convertida a reserva',
+  CONVERTIDA_A_ALQUILER: 'Convertida a alquiler',
+  CERRADA_SIN_CONVERSION: 'Cerrada sin conversión',
+};
+
+export function interactionOutcomeLabel(outcome: string | null | undefined): string {
+  if (!outcome) return 'Interacción';
+  return INTERACTION_OUTCOME_LABELS[outcome] ?? outcome;
+}
+

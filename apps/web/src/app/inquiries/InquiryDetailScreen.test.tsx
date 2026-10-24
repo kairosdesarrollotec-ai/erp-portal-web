@@ -185,6 +185,8 @@ describe('InquiryDetailScreen (CON-04)', () => {
       'b1',
       'PRESENCIAL',
       expect.any(String),
+      true,
+      undefined,
     );
   });
 

@@ -16,6 +16,8 @@ function buildForm(overrides: Partial<NewInquiryFormData> = {}): NewInquiryFormD
     travelers: 2,
     travelDays: 3,
     touristUse: true,
+    isDirtRoad: false,
+    plan: 'NORMAL',
     ...overrides,
   };
 }

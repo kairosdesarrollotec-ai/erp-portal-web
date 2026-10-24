@@ -36,6 +36,11 @@ export interface VehicleFormData {
   passengerCapacity?: number;
   /** Precio del combustible por unidad (PEN). Opcional hasta que exista la tarifa. */
   fuelPrice?: number;
+  suitableForTrocha?: boolean;
+  rateNormal?: number;
+  ratePlus?: number;
+  rateLibre?: number;
+  fuelPenaltyPerLine?: number;
   photoUrl?: string;
   photoFile?: File;
 }
@@ -52,6 +57,11 @@ export interface VehicleEditFormData {
   fuelPrice?: number;
   /** Solo se informa cuando el usuario tiene FLEET.MANAGE_THIRD_PATH (Gerencia); si no, se omite y el back no cambia el valor. */
   thirdPathEligible?: boolean;
+  suitableForTrocha?: boolean;
+  rateNormal?: number;
+  ratePlus?: number;
+  rateLibre?: number;
+  fuelPenaltyPerLine?: number;
   photoUrl?: string;
   photoFile?: File;
 }
@@ -184,6 +194,11 @@ export function useFleetList() {
           depositMinimum: formData.depositMinimum,
           passengerCapacity: formData.passengerCapacity,
           fuelPrice: formData.fuelPrice,
+          suitableForTrocha: formData.suitableForTrocha,
+          rateNormal: formData.rateNormal,
+          ratePlus: formData.ratePlus,
+          rateLibre: formData.rateLibre,
+          fuelPenaltyPerLine: formData.fuelPenaltyPerLine,
           photoUrl,
         },
         idempotencyKey,
@@ -245,6 +260,12 @@ export function useFleetList() {
         depositMinimum: formData.depositMinimum,
         passengerCapacity: formData.passengerCapacity,
         fuelPrice: formData.fuelPrice,
+        suitableForTrocha: formData.suitableForTrocha,
+        rateNormal: formData.rateNormal,
+        ratePlus: formData.ratePlus,
+        rateLibre: formData.rateLibre,
+        fuelPenaltyPerLine: formData.fuelPenaltyPerLine,
+        ...(formData.thirdPathEligible !== undefined ? { thirdPathEligible: formData.thirdPathEligible } : {}),
         photoUrl,
       });
     },

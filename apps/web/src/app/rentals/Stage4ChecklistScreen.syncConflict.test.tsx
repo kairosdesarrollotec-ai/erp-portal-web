@@ -54,7 +54,7 @@ beforeEach(() => {
   sessionStorage.clear();
   localStorage.clear();
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
-  setPermissions(['RENTAL.READ', 'RENTAL.UPLOAD_EVIDENCE', 'RENTAL.MANAGE_CONTRACT_TEMPLATES']);
+  setPermissions(['RENTAL.READ', 'RENTAL.UPLOAD_EVIDENCE', 'SYNC.SUPERVISE_CONFLICTS']);
   wizard.mockReturnValue({
     id: 'rent-1', state: 'READY', context: ctx, getIdToken: vi.fn().mockResolvedValue('tok'), setRental: vi.fn(), reload: vi.fn(),
     rental: { id: 'rent-1', status: 'PENDING_DELIVERY', customerName: 'Ana', customerDocNumber: '1', vehicleBrand: 'T', vehicleModel: 'Y', vehiclePlate: 'B2C-456', alcoholTestResult: 'FAVORABLE', version: 4, notaryEvaluation: null, contract: null, deposit: null },
@@ -84,7 +84,7 @@ describe('ENTREGA-04 Stage4ChecklistScreen + sync.yaml', () => {
     expect(screen.queryByTestId('sync-conflict-card')).not.toBeInTheDocument();
   });
 
-  it('sin RENTAL.MANAGE_CONTRACT_TEMPLATES no se puede resolver', async () => {
+  it('sin SYNC.SUPERVISE_CONFLICTS no se puede resolver', async () => {
     setPermissions(['RENTAL.READ', 'RENTAL.UPLOAD_EVIDENCE']);
     status.get.mockResolvedValue(syncedStatus('ENTREGA', 'rent-1', { status: 'SYNC_CONFLICT', openConflicts: [conflict] }));
     renderScreen();

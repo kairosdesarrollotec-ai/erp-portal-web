@@ -6,6 +6,7 @@ import { recordLoginAttempt } from './audit-client';
 
 const signInMock = vi.fn();
 const resolveSignInMock = vi.fn();
+const sendPasswordResetEmailMock = vi.fn();
 const assertionForSignInMock = vi.fn((..._args: unknown[]) => 'mock-assertion');
 const getActivationStatusMock = vi.fn();
 const navigateMock = vi.fn();
@@ -24,6 +25,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 vi.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: (...args: unknown[]) => signInMock(...args),
+  sendPasswordResetEmail: (...args: unknown[]) => sendPasswordResetEmailMock(...args),
   getMultiFactorResolver: () => ({
     hints: mfaHints,
     resolveSignIn: (...args: unknown[]) => resolveSignInMock(...args),
@@ -72,7 +74,9 @@ function renderScreen() {
 
 describe('LoginScreen (TR-01)', () => {
   beforeEach(() => {
+    localStorage.clear();
     signInMock.mockReset();
+    sendPasswordResetEmailMock.mockReset().mockResolvedValue(undefined);
     vi.mocked(recordLoginAttempt).mockClear();
     resolveSignInMock.mockReset();
     assertionForSignInMock.mockClear();
@@ -406,9 +410,76 @@ describe('LoginScreen (TR-01)', () => {
     });
   });
 
-  it('no ofrece un botón "¿Olvidaste tu contraseña?" sin función: avisa que la recuperación llegará próximamente', () => {
+  it('ofrece un botón "¿Olvidaste tu contraseña?" que envía el correo vía Firebase Auth si se indica el email', async () => {
     renderScreen();
-    expect(screen.queryByRole('button', { name: /Olvidaste/ })).not.toBeInTheDocument();
-    expect(screen.getByTestId('forgot-password-notice')).toHaveTextContent(/próximamente/);
+    const forgotBtn = screen.getByRole('button', { name: /Olvidaste tu contraseña/i });
+    expect(forgotBtn).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), {
+      target: { value: 'user@veloxrent.pe' },
+    });
+    fireEvent.click(forgotBtn);
+
+    await waitFor(() => {
+      expect(sendPasswordResetEmailMock).toHaveBeenCalledWith(expect.anything(), 'user@veloxrent.pe');
+    });
+    expect(await screen.findByTestId('reset-email-success')).toHaveTextContent(
+      'Se envió un enlace para restablecer tu contraseña a tu correo.',
+    );
+  });
+
+  it('muestra error si se intenta recuperar la contraseña sin ingresar el correo', async () => {
+    renderScreen();
+    const forgotBtn = screen.getByRole('button', { name: /Olvidaste tu contraseña/i });
+    fireEvent.click(forgotBtn);
+
+    expect(await screen.findByText('Ingresa tu correo para restablecer la contraseña')).toBeInTheDocument();
+    expect(sendPasswordResetEmailMock).not.toHaveBeenCalled();
+  });
+
+  it('bloquea la cuenta tras 5 intentos fallidos consecutivos durante 15 minutos (BLOCKING_ERROR)', async () => {
+    signInMock.mockRejectedValue({ code: 'auth/invalid-credential' });
+    renderScreen();
+
+    const emailInput = screen.getByLabelText('Correo o usuario');
+    const passwordInput = screen.getByLabelText('Contraseña');
+    const submitBtn = screen.getByRole('button', { name: 'Ingresar' });
+
+    for (let i = 1; i <= 4; i++) {
+      fireEvent.change(emailInput, { target: { value: 'bloqueo@veloxrent.pe' } });
+      fireEvent.change(passwordInput, { target: { value: `bad-pass-${i}` } });
+      fireEvent.click(submitBtn);
+      await screen.findByRole('alert');
+    }
+
+    // El 5to intento fallido debe bloquear la cuenta inmediatamente
+    fireEvent.change(emailInput, { target: { value: 'bloqueo@veloxrent.pe' } });
+    fireEvent.change(passwordInput, { target: { value: 'bad-pass-5' } });
+    fireEvent.click(submitBtn);
+
+    expect(await screen.findByText('Tu cuenta está bloqueada')).toBeInTheDocument();
+    expect(screen.getByText('Contacta a tu administrador para reactivarla')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Correo o usuario')).not.toBeInTheDocument();
+  });
+
+  it('un intento posterior en estado bloqueado no vuelve a consultar a Firebase', async () => {
+    signInMock.mockRejectedValue({ code: 'auth/invalid-credential' });
+    renderScreen();
+
+    const emailInput = screen.getByLabelText('Correo o usuario');
+    const passwordInput = screen.getByLabelText('Contraseña');
+    const submitBtn = screen.getByRole('button', { name: 'Ingresar' });
+
+    for (let i = 1; i <= 5; i++) {
+      fireEvent.change(emailInput, { target: { value: 'bloqueo2@veloxrent.pe' } });
+      fireEvent.change(passwordInput, { target: { value: `bad-pass-${i}` } });
+      fireEvent.click(submitBtn);
+      if (i < 5) {
+        await screen.findByRole('alert');
+      }
+    }
+
+    expect(await screen.findByText('Tu cuenta está bloqueada')).toBeInTheDocument();
+    expect(signInMock).toHaveBeenCalledTimes(5);
   });
 });

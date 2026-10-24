@@ -88,6 +88,38 @@ export interface paths {
         patch: operations["updateVehicleStatus"];
         trace?: never;
     };
+    "/fleet/vehicles/{id}/operational-records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listVehicleOperationalRecords"];
+        put?: never;
+        post: operations["recordVehicleOperationalFormat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/fleet/operational-reminders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listVehicleOperationalReminders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -153,6 +185,11 @@ export interface components {
             passengerCapacity: number;
             /** @description Precio del combustible por unidad para este vehículo (PEN). Insumo de la multa por combustible (aún no calculada). Opcional; se completa cuando exista la tarifa. */
             fuelPrice?: number;
+            suitableForTrocha?: boolean;
+            rateNormal?: number | null;
+            ratePlus?: number | null;
+            rateLibre?: number | null;
+            fuelPenaltyPerLine?: number | null;
             /**
              * Format: uri
              * @description URL HTTPS de Google Cloud Storage del objeto ya cargado. Obtener previamente via POST /fleet/vehicles/photo-upload-sessions. No se acepta data: URI ni URL de otro proveedor.
@@ -183,6 +220,11 @@ export interface components {
             fuelPrice?: number;
             /** @description DEC-ALQ-THIRDPATH-001 (22-oct-2026): vehículo elegible para la tercera vía notarial. Solo lo puede cambiar Gerencia (FLEET.MANAGE_THIRD_PATH); de otro modo 403. Si se omite no cambia. */
             thirdPathEligible?: boolean;
+            suitableForTrocha?: boolean;
+            rateNormal?: number | null;
+            ratePlus?: number | null;
+            rateLibre?: number | null;
+            fuelPenaltyPerLine?: number | null;
             /**
              * Format: uri
              * @description URL HTTPS de GCS del objeto ya cargado. Si no se proporciona, la foto existente del vehículo no cambia.
@@ -231,6 +273,11 @@ export interface components {
             fuelPrice?: number | null;
             /** @description DEC-ALQ-THIRDPATH-001: vehículo «de menor costo relativo» elegible para la tercera vía notarial (BR-ALQ-004). false por defecto. */
             thirdPathEligible?: boolean;
+            suitableForTrocha?: boolean;
+            rateNormal?: number | null;
+            ratePlus?: number | null;
+            rateLibre?: number | null;
+            fuelPenaltyPerLine?: number | null;
             photoUrl?: string | null;
             /**
              * Format: date-time
@@ -672,6 +719,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["KairosErrorResponse"];
+                };
+            };
+        };
+    };
+    recordVehicleOperationalFormat: {
+        parameters: {
+            path: {
+                id: components["parameters"]["VehicleId"];
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    companyId: string;
+                    branchId: string;
+                    formatType: string;
+                    processType?: string;
+                    processId?: string;
+                    odometerKm?: number;
+                    fuelLevelLines?: number;
+                    data: Record<string, unknown>;
+                    observations?: string;
+                    performedBy: string;
+                    performedAt?: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                content: {
+                    "application/json": Record<string, unknown>;
+                };
+            };
+        };
+    };
+    listVehicleOperationalRecords: {
+        parameters: {
+            query?: {
+                companyId: string;
+                branchId: string;
+                formatType?: string;
+                limit?: number;
+                offset?: number;
+            };
+            path: {
+                id: components["parameters"]["VehicleId"];
+            };
+        };
+        responses: {
+            200: {
+                content: {
+                    "application/json": {
+                        items: Array<Record<string, unknown>>;
+                        total: number;
+                    };
+                };
+            };
+        };
+    };
+    listVehicleOperationalReminders: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+                status?: "PENDING" | "COMPLETED" | "OVERDUE";
+            };
+        };
+        responses: {
+            200: {
+                content: {
+                    "application/json": {
+                        items: Array<Record<string, unknown>>;
+                        total: number;
+                    };
                 };
             };
         };

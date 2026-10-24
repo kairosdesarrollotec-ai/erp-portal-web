@@ -12,6 +12,7 @@ export interface RentalChecklistDraft {
   documentaryMinutes: number;
   exceptionReason: string;
   notes: string;
+  [key: string]: unknown;
 }
 
 export const EMPTY_CHECKLIST_DRAFT: RentalChecklistDraft = {

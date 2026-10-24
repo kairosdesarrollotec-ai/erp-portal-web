@@ -9,9 +9,9 @@ export type SyncCenterStatusFilter = 'OPEN' | 'RESOLVED' | 'ALL';
 
 const CHECKLIST_TYPES: SyncChecklistType[] = ['ENTREGA', 'RECEPCION'];
 
-/** Criterio de supervisor del Centro de sincronización: puede resolver conflictos de Entrega o de Recepción. */
+/** Criterio de supervisor del Centro de sincronización: evalúa la acción propia SYNC.SUPERVISE_CONFLICTS de ADM-02. */
 export function canSuperviseSync(can: (module: string, action: string) => boolean): boolean {
-  return CHECKLIST_TYPES.some((type) => canSyncAction(can, type, 'RESOLVE'));
+  return can('SYNC', 'SUPERVISE_CONFLICTS');
 }
 
 export type SyncCenterState = 'LOADING' | 'FORBIDDEN' | 'NO_CONTEXT' | 'RECOVERABLE_ERROR' | 'EMPTY' | 'READY';

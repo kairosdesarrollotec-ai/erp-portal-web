@@ -73,6 +73,7 @@ const EmployeesListScreen = lazyNamed(() => import('../hr-administration/Employe
 const EmployeeFileScreen = lazyNamed(() => import('../hr-administration/EmployeeFileScreen'), 'EmployeeFileScreen');
 const AttendanceTeamScreen = lazyNamed(() => import('../hr-administration/AttendanceTeamScreen'), 'AttendanceTeamScreen');
 const MyAttendanceScreen = lazyNamed(() => import('../hr-administration/MyAttendanceScreen'), 'MyAttendanceScreen');
+const MyRequestsScreen = lazyNamed(() => import('../hr-administration/MyRequestsScreen'), 'MyRequestsScreen');
 const AttendanceReviewScreen = lazyNamed(() => import('../hr-administration/AttendanceReviewScreen'), 'AttendanceReviewScreen');
 const GeofenceSettingsScreen = lazyNamed(() => import('../hr-administration/GeofenceSettingsScreen'), 'GeofenceSettingsScreen');
 const PersonAttendanceScreen = lazyNamed(() => import('../hr-administration/PersonAttendanceScreen'), 'PersonAttendanceScreen');
@@ -90,6 +91,7 @@ const AreasScreen = lazyNamed(() => import('../hr-administration/AreasScreen'), 
 const NewEmployeeScreen = lazyNamed(() => import('../hr-administration/NewEmployeeScreen'), 'NewEmployeeScreen');
 const RolePermissionMatrixScreen = lazyNamed(() => import('../admin/RolePermissionMatrixScreen'), 'RolePermissionMatrixScreen');
 const ReportsDashboardScreen = lazyNamed(() => import('../reporting/ReportsDashboardScreen'), 'ReportsDashboardScreen');
+const HrDocumentsScreen = lazyNamed(() => import('../hr-administration/HrDocumentsScreen'), 'HrDocumentsScreen');
 
 // Pantallas reales se registran aqui una a una, pantalla a pantalla,
 // cada una respaldada por su UX-ID + PROTO-ID aprobado
@@ -174,6 +176,10 @@ export const router = createBrowserRouter([
                 element: <RequirePermission anyOf={[{ module: 'HR_ADMINISTRATION', action: 'LOG_OWN_ATTENDANCE' }]} />,
                 children: [{ path: '/mi-asistencia', element: <MyAttendanceScreen /> }],
               },
+              { path: '/personal/mis-solicitudes', element: <MyRequestsScreen /> },
+              { path: '/mis-solicitudes', element: <MyRequestsScreen /> },
+              { path: '/personal/documentos', element: <HrDocumentsScreen /> },
+              { path: '/documentos-institucionales', element: <HrDocumentsScreen /> },
               {
                 element: <RequirePermission anyOf={[{ module: 'HR_ADMINISTRATION', action: 'REVIEW_ATTENDANCE' }]} />,
                 children: [{ path: '/personal/asistencia/revision', element: <AttendanceReviewScreen /> }],

@@ -264,4 +264,20 @@ describe('VehicleDetailScreen', () => {
     await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /volver a la lista de flota/i })).toBeInTheDocument();
   });
+
+  it('muestra avisos cuando faltan tarifas de planes (DEC-R1-FIX-001)', async () => {
+    getVehicleMock.mockResolvedValue({
+      ...sampleVehicle,
+      dailyRate: null,
+      rateNormal: null,
+      ratePlus: null,
+      rateLibre: null,
+    });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());
+    expect(screen.getByTestId('missing-rate-normal')).toHaveTextContent('Falta tarifa del plan Normal');
+    expect(screen.getByTestId('missing-rate-plus')).toHaveTextContent('Falta tarifa del plan Plus');
+    expect(screen.getByTestId('missing-rate-libre')).toHaveTextContent('Falta tarifa del plan Libre');
+  });
 });
+
