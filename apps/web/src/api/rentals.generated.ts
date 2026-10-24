@@ -927,6 +927,37 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        CompanyExpenseType: "GASTO_NOTARIAL";
+        RecordCompanyExpenseRequest: {
+            /** Format: uuid */
+            companyId: string;
+            expenseType: components["schemas"]["CompanyExpenseType"];
+            amount: number;
+            currency?: string;
+            /** Format: date-time */
+            expenseDate: string;
+            reference: string;
+            notes?: string;
+            paidByCustomer?: boolean;
+        };
+        CompanyExpenseResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            rentalId: string | null;
+            expenseType: components["schemas"]["CompanyExpenseType"];
+            amount: number;
+            currency: string;
+            /** Format: date-time */
+            expenseDate: string;
+            reference: string;
+            notes: string | null;
+            createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
     };
     responses: never;
     parameters: never;

@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getMultiFactorResolver,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   TotpMultiFactorGenerator,
   type AuthError,
@@ -13,6 +14,7 @@ import { getFirebaseAuth } from '../providers/firebase';
 import { recordLoginAttempt } from './audit-client';
 import { getActivationStatus, type ActivationStatus } from './activation-client';
 import { getWorkContextAssignments, selectWorkContext } from './work-context-client';
+import { checkLoginLockout, clearLoginFailures, recordLoginFailure } from './login-lockout';
 import type { LoginFormValues } from './login.schema';
 import type { MfaChallengeState } from './MfaChallengeModal';
 
@@ -149,6 +151,12 @@ export function useLogin() {
 
   const submit = useCallback(
     async (values: LoginFormValues) => {
+      const lockout = checkLoginLockout(values.emailOrUsername);
+      if (lockout.isLocked) {
+        setState('BLOCKING_ERROR');
+        return;
+      }
+
       setState('VALIDATING');
       try {
         const credential = await signInWithEmailAndPassword(
@@ -156,6 +164,7 @@ export function useLogin() {
           values.emailOrUsername,
           values.password,
         );
+        clearLoginFailures(values.emailOrUsername);
         void recordLoginAttempt(values.emailOrUsername, 'SUCCESS', null);
 
         // TR-02 (HU-21): si el usuario esta en "primer acceso" (contrasena
@@ -190,7 +199,12 @@ export function useLogin() {
         }
 
         const nextState = mapFirebaseErrorToState(authError);
-        setState(nextState);
+        if (nextState === 'RECOVERABLE_ERROR') {
+          const isLocked = recordLoginFailure(values.emailOrUsername);
+          setState(isLocked ? 'BLOCKING_ERROR' : 'RECOVERABLE_ERROR');
+        } else {
+          setState(nextState);
+        }
         void recordLoginAttempt(values.emailOrUsername, 'FAILURE', authError.code ?? 'unknown');
       }
     },
@@ -217,6 +231,7 @@ export function useLogin() {
         const credential = await mfaResolver.resolveSignIn(assertion);
         setMfaResolver(null);
         const email = pendingMfaEmail ?? credential.user.email ?? 'unknown';
+        clearLoginFailures(email);
         setPendingMfaEmail(null);
         void recordLoginAttempt(email, 'SUCCESS', null);
         await resolveActivation(credential.user);
@@ -235,6 +250,10 @@ export function useLogin() {
     setPendingMfaEmail(null);
   }, []);
 
+  const sendPasswordReset = useCallback(async (email: string) => {
+    await sendPasswordResetEmail(getFirebaseAuth(), email);
+  }, []);
+
   const retryActivationCheck = useCallback(async () => {
     if (!pendingUser) return;
     setState('VALIDATING');
@@ -244,6 +263,7 @@ export function useLogin() {
   return {
     state,
     submit,
+    sendPasswordReset,
     retryActivationCheck,
     mfaChallenge: {
       isOpen: mfaResolver !== null,

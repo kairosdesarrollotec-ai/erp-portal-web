@@ -73,6 +73,19 @@ const vehicleSchema = z.object({
   fuelPrice: z.string().refine((v) => v === '' || (Number(v) >= 0 && !isNaN(Number(v))), {
     message: 'El precio del combustible debe ser un monto mayor o igual a 0.',
   }),
+  suitableForTrocha: z.boolean().optional(),
+  rateNormal: z.string().optional().refine((v) => !v || (Number(v) >= 0 && !isNaN(Number(v))), {
+    message: 'La tarifa Normal debe ser un monto mayor o igual a 0.',
+  }),
+  ratePlus: z.string().optional().refine((v) => !v || (Number(v) >= 0 && !isNaN(Number(v))), {
+    message: 'La tarifa Plus debe ser un monto mayor o igual a 0.',
+  }),
+  rateLibre: z.string().optional().refine((v) => !v || (Number(v) >= 0 && !isNaN(Number(v))), {
+    message: 'La tarifa Libre debe ser un monto mayor o igual a 0.',
+  }),
+  fuelPenaltyPerLine: z.string().optional().refine((v) => !v || (Number(v) >= 0 && !isNaN(Number(v))), {
+    message: 'La multa por línea faltante debe ser un monto mayor o igual a 0.',
+  }),
 });
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
@@ -109,6 +122,11 @@ export function NewVehicleModal({
       depositMinimum: undefined,
       passengerCapacity: undefined,
       fuelPrice: undefined,
+      suitableForTrocha: false,
+      rateNormal: '',
+      ratePlus: '',
+      rateLibre: '',
+      fuelPenaltyPerLine: '',
     },
   });
 
@@ -133,6 +151,11 @@ export function NewVehicleModal({
         depositMinimum: undefined,
         passengerCapacity: undefined,
         fuelPrice: undefined,
+        suitableForTrocha: false,
+        rateNormal: '',
+        ratePlus: '',
+        rateLibre: '',
+        fuelPenaltyPerLine: '',
       });
       // Las siguientes llamadas setState se batchean en una sola re-render (React 18).
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -160,6 +183,11 @@ export function NewVehicleModal({
         depositMinimum: vehicle.depositMinimum != null ? String(vehicle.depositMinimum) : '',
         passengerCapacity: vehicle.passengerCapacity != null ? String(vehicle.passengerCapacity) : '',
         fuelPrice: vehicle.fuelPrice != null ? String(vehicle.fuelPrice) : '',
+        suitableForTrocha: vehicle.suitableForTrocha ?? false,
+        rateNormal: vehicle.rateNormal != null ? String(vehicle.rateNormal) : '',
+        ratePlus: vehicle.ratePlus != null ? String(vehicle.ratePlus) : '',
+        rateLibre: vehicle.rateLibre != null ? String(vehicle.rateLibre) : '',
+        fuelPenaltyPerLine: vehicle.fuelPenaltyPerLine != null ? String(vehicle.fuelPenaltyPerLine) : '',
       });
       setPendingPhotoFile(null);
       setPhotoPreviewUrl('');
@@ -237,6 +265,10 @@ export function NewVehicleModal({
     const parsedDepositMinimum = values.depositMinimum ? parseFloat(values.depositMinimum) : undefined;
     const parsedCapacity = values.passengerCapacity ? parseInt(values.passengerCapacity, 10) : undefined;
     const parsedFuelPrice = values.fuelPrice ? parseFloat(values.fuelPrice) : undefined;
+    const parsedRateNormal = values.rateNormal ? parseFloat(values.rateNormal) : undefined;
+    const parsedRatePlus = values.ratePlus ? parseFloat(values.ratePlus) : undefined;
+    const parsedRateLibre = values.rateLibre ? parseFloat(values.rateLibre) : undefined;
+    const parsedFuelPenaltyPerLine = values.fuelPenaltyPerLine ? parseFloat(values.fuelPenaltyPerLine) : undefined;
 
     void onSubmit({
       plate: values.plate.trim().toUpperCase(),
@@ -250,6 +282,11 @@ export function NewVehicleModal({
       depositMinimum: parsedDepositMinimum,
       passengerCapacity: parsedCapacity,
       fuelPrice: parsedFuelPrice,
+      suitableForTrocha: values.suitableForTrocha ?? false,
+      rateNormal: parsedRateNormal,
+      ratePlus: parsedRatePlus,
+      rateLibre: parsedRateLibre,
+      fuelPenaltyPerLine: parsedFuelPenaltyPerLine,
       ...(isEditMode && canManageThirdPath ? { thirdPathEligible } : {}),
       photoFile: pendingPhotoFile ?? undefined,
       photoUrl: pendingPhotoFile ? undefined : (existingPhotoUrl.trim() || undefined),
@@ -450,6 +487,79 @@ export function NewVehicleModal({
                 aria-invalid={!!errors.fuelPrice}
               />
               <span className={styles.fieldHint}>Si no lo sabe, se le avisará al reservar o alquilar este vehículo.</span>
+            </label>
+          </div>
+
+          <div className={styles.gridThree}>
+            <label className={styles.field}>
+              Tarifa Plan Normal (S/) (opcional)
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={styles.input}
+                {...register('rateNormal')}
+                placeholder="250.00"
+                disabled={isSubmitting}
+                aria-invalid={!!errors.rateNormal}
+              />
+            </label>
+
+            <label className={styles.field}>
+              Tarifa Plan Plus (S/) (opcional)
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={styles.input}
+                {...register('ratePlus')}
+                placeholder="280.00"
+                disabled={isSubmitting}
+                aria-invalid={!!errors.ratePlus}
+              />
+            </label>
+
+            <label className={styles.field}>
+              Tarifa Plan Libre (S/) (opcional)
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={styles.input}
+                {...register('rateLibre')}
+                placeholder="320.00"
+                disabled={isSubmitting}
+                aria-invalid={!!errors.rateLibre}
+              />
+            </label>
+          </div>
+
+          <div className={styles.gridTwo}>
+            <label className={styles.field}>
+              Multa combustible por línea (S/) (opcional)
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                className={styles.input}
+                {...register('fuelPenaltyPerLine')}
+                placeholder="35.00"
+                disabled={isSubmitting}
+                aria-invalid={!!errors.fuelPenaltyPerLine}
+              />
+              <span className={styles.fieldHint}>Multa aplicada por cada línea faltante en la devolución.</span>
+            </label>
+
+            <label className={styles.field}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem' }}>
+                <input
+                  type="checkbox"
+                  {...register('suitableForTrocha')}
+                  disabled={isSubmitting}
+                />{' '}
+                Apto para trocha / afirmado
+              </span>
+              <span className={styles.fieldHint}>Permite cotizar este vehículo en rutas con trocha (DEC-CON-TROCHA-001).</span>
             </label>
           </div>
 

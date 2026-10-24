@@ -390,6 +390,46 @@ export async function closeReturn(
   return data as unknown as ReturnResponse;
 }
 
+/** DEC-DEV-IMMOBILIZE-001 - registra aceptación o rechazo del informe mecánico/Motrix por parte del cliente. */
+export async function recordMechanicReport(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  input: { accepted: boolean; observation?: string },
+): Promise<ReturnResponse> {
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/record-mechanic-report', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: { companyId, branchId, ...input } as unknown as never,
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
+}
+
+/** DEC-DEV-LEGAL-001 - anota la escalación del expediente al área legal. */
+export async function escalateLegal(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  input: { reason: string; legalCaseNumber?: string },
+): Promise<ReturnResponse> {
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/escalate-legal', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: { companyId, branchId, ...input } as unknown as never,
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
+}
+
 export interface ResponsibilityTemplateResult {
   type: string;
   name: string;

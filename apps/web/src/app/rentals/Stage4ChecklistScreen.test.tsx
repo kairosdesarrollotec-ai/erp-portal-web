@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage4ChecklistScreen } from './Stage4ChecklistScreen';
 import { EvidenceDeletionError } from '../evidence/evidence-client';
@@ -55,6 +55,18 @@ vi.mock('./rentals-client', async () => {
   };
 });
 
+const recordVehicleOperationalFormatMock = vi.fn().mockResolvedValue({ id: 'rec-1' });
+const listVehicleOperationalRecordsMock = vi.fn().mockResolvedValue({ items: [], total: 0 });
+
+vi.mock('../fleet/fleet-client', async () => {
+  const actual = await vi.importActual<typeof import('../fleet/fleet-client')>('../fleet/fleet-client');
+  return {
+    ...actual,
+    recordVehicleOperationalFormat: (...args: unknown[]) => recordVehicleOperationalFormatMock(...args),
+    listVehicleOperationalRecords: (...args: unknown[]) => listVehicleOperationalRecordsMock(...args),
+  };
+});
+
 // ── mocks de infraestructura offline ────────────────────────────────────────
 
 const addEvidenceToQueueMock = vi.fn();
@@ -84,6 +96,7 @@ const baseRental = {
   vehicleBrand: 'Toyota',
   vehicleModel: 'Yaris',
   vehiclePlate: 'B2C-456',
+  vehicleId: 'veh-1',
   alcoholTestResult: 'FAVORABLE',
   version: 4,
   notaryEvaluation: null,
@@ -578,4 +591,111 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
 
     expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
   });
+
+  it('renders FIV (02), FCKE (08) and RNC (06) operational sections and updates draft', () => {
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    expect(screen.getByText(/Control de Kit de Emergencia \(FCKE - Formato 08/)).toBeInTheDocument();
+    expect(screen.getByText(/Inspección Vehicular Completa \(FIV - Formato 02\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Registro de Combustible y Kilometraje \(RNC - Formato 06\)/)).toBeInTheDocument();
+
+    const gataRow = screen.getByText(/Gata hidráulica tipo botella/).closest('div');
+    expect(gataRow).toBeInTheDocument();
+    const btnM = within(gataRow!).getByRole('button', { name: 'M' });
+    fireEvent.click(btnM);
+
+    const saved = JSON.parse(sessionStorage.getItem(CHECKLIST_KEY) || '{}');
+    expect(saved.fcke_gata_botella).toBe('M');
+  });
+
+  it('persiste formatos FIV, FCKE y RNC en el servidor al continuar (C2)', async () => {
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
+    sessionStorage.setItem(
+      CHECKLIST_KEY,
+      JSON.stringify({
+        technicalMinutes: 35,
+        documentaryMinutes: 20,
+        exceptionReason: '',
+        notes: 'Todo verificado en patio',
+        rnc_kilometraje: 50400,
+        rnc_nivel_combustible_lineas: 16,
+        rnc_sugerencia: 'Tanque lleno',
+        fcke_gata_botella: 'B',
+        fiv_puertas_capo_cajuela: 'B',
+      }),
+    );
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    await waitFor(() => {
+      expect(recordVehicleOperationalFormatMock).toHaveBeenCalledWith(
+        expect.any(String),
+        'veh-1',
+        expect.objectContaining({
+          formatType: 'FORMATO_02_FIV',
+          processType: 'RENTAL',
+          processId: 'rent-1',
+        }),
+        'rental-rent-1-fiv',
+      );
+      expect(recordVehicleOperationalFormatMock).toHaveBeenCalledWith(
+        expect.any(String),
+        'veh-1',
+        expect.objectContaining({
+          formatType: 'FORMATO_08_FCKE',
+          processType: 'RENTAL',
+          processId: 'rent-1',
+        }),
+        'rental-rent-1-fcke',
+      );
+      expect(recordVehicleOperationalFormatMock).toHaveBeenCalledWith(
+        expect.any(String),
+        'veh-1',
+        expect.objectContaining({
+          formatType: 'FORMATO_06_RNC',
+          processType: 'RENTAL',
+          processId: 'rent-1',
+          odometerKm: 50400,
+          fuelLevelLines: 16,
+        }),
+        'rental-rent-1-rnc',
+      );
+    });
+  });
+
+  it('carga datos previos de formatos operativos guardados para este alquiler (C2)', async () => {
+    listVehicleOperationalRecordsMock.mockResolvedValueOnce({
+      items: [
+        {
+          id: 'rec-fiv-1',
+          formatType: 'FORMATO_02_FIV',
+          processType: 'RENTAL',
+          processId: 'rent-1',
+          odometerKm: 42000,
+          fuelLevelLines: 12,
+          data: { fiv_puertas_capo_cajuela: 'B', rnc_sugerencia: '3/4 de tanque' },
+        },
+      ],
+      total: 1,
+    });
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    await waitFor(() => {
+      expect(listVehicleOperationalRecordsMock).toHaveBeenCalledWith(
+        expect.any(String),
+        'veh-1',
+        expect.objectContaining({ companyId: 'c1', branchId: 'b1' }),
+      );
+    });
+  });
 });
+
+

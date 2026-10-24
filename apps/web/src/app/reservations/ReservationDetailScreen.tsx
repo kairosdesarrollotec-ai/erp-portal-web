@@ -46,6 +46,12 @@ export function ReservationDetailScreen() {
   const [uploadingContract, setUploadingContract] = useState(false);
   const [contractUploadError, setContractUploadError] = useState<string | null>(null);
   const contractFileRef = useRef<HTMLInputElement>(null);
+  const [uploadingVideo360, setUploadingVideo360] = useState(false);
+  const [video360UploadError, setVideo360UploadError] = useState<string | null>(null);
+  const video360FileRef = useRef<HTMLInputElement>(null);
+  const [uploadingSignedAcceptance, setUploadingSignedAcceptance] = useState(false);
+  const [signedAcceptanceUploadError, setSignedAcceptanceUploadError] = useState<string | null>(null);
+  const signedAcceptanceFileRef = useRef<HTMLInputElement>(null);
 
   /** Decision 22-oct #8: sube el comprobante y envia metodo, nº de operacion y pagador junto con el registro del pago. */
   async function handlePaymentProof(draft: PaymentProofDraft) {
@@ -123,6 +129,74 @@ export function ReservationDetailScreen() {
     }
   }
 
+  async function handleVideo360File(file: File) {
+    if (!reservation || !context) return;
+    setUploadingVideo360(true);
+    setVideo360UploadError(null);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible.');
+      const idToken = await user.getIdToken();
+      const session = await requestReservationDocumentUploadSession(
+        idToken,
+        reservation.id,
+        context.companyId,
+        context.branchId,
+        'VIDEO_360',
+        file.type as 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf',
+        file.size,
+      );
+      await uploadReservationFileToGcs(session.uploadUrl, file);
+      await recordReservationDocument(
+        idToken,
+        reservation.id,
+        context.companyId,
+        context.branchId,
+        'VIDEO_360',
+        session.objectUrl,
+      );
+      await reload();
+    } catch {
+      setVideo360UploadError('No pudimos subir el video 360°. Intenta de nuevo.');
+    } finally {
+      setUploadingVideo360(false);
+    }
+  }
+
+  async function handleSignedAcceptanceFile(file: File) {
+    if (!reservation || !context) return;
+    setUploadingSignedAcceptance(true);
+    setSignedAcceptanceUploadError(null);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible.');
+      const idToken = await user.getIdToken();
+      const session = await requestReservationDocumentUploadSession(
+        idToken,
+        reservation.id,
+        context.companyId,
+        context.branchId,
+        'SIGNED_ACCEPTANCE',
+        file.type as 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf',
+        file.size,
+      );
+      await uploadReservationFileToGcs(session.uploadUrl, file);
+      await recordReservationDocument(
+        idToken,
+        reservation.id,
+        context.companyId,
+        context.branchId,
+        'SIGNED_ACCEPTANCE',
+        session.objectUrl,
+      );
+      await reload();
+    } catch {
+      setSignedAcceptanceUploadError('No pudimos subir el documento de aceptación firmado. Intenta de nuevo.');
+    } finally {
+      setUploadingSignedAcceptance(false);
+    }
+  }
+
   if (state === 'LOADING') {
     return (
       <main className={styles.wrapper}>
@@ -143,8 +217,19 @@ export function ReservationDetailScreen() {
   }
 
   const isConfirmed = reservation.status === 'CONFIRMED';
+  const isRemote = Boolean(
+    reservation.requirements?.isRemote ||
+      reservation.channelMode === 'VIRTUAL' ||
+      reservation.customerLocation === 'FUERA_DE_AYACUCHO' ||
+      reservation.canComeToOffice === false,
+  );
   const paymentDone = Boolean(reservation.requirements.paymentValidatedAt);
   const documentsDone = Boolean(reservation.requirements.documentsCompletedAt);
+  const video360Done = Boolean(reservation.requirements?.video360Uploaded);
+  const signedAcceptanceDone = Boolean(reservation.requirements?.signedAcceptanceUploaded);
+  const allRequirementsMet = isRemote
+    ? paymentDone && documentsDone && video360Done && signedAcceptanceDone
+    : paymentDone && documentsDone;
   // Decision 22-oct #3: Reserva -> Alquiler solo desde la fecha pactada (dia calendario en hora de Lima).
   const beforeAgreedDate = limaToday() < toLimaDateOnly(reservation.startAt);
 
@@ -185,7 +270,16 @@ export function ReservationDetailScreen() {
             </div>
             <div>
               <dt>Modalidad</dt>
-              <dd>{reservation.channelMode === 'PRESENCIAL' ? 'Presencial' : 'Remota'}</dd>
+              <dd>
+                {isRemote ? (
+                  <>
+                    <span>Remota </span>
+                    <span className={styles.badgeRemote}>Modalidad Remota (BR-RES-005)</span>
+                  </>
+                ) : (
+                  'Presencial'
+                )}
+              </dd>
             </div>
           </dl>
         </div>
@@ -194,6 +288,12 @@ export function ReservationDetailScreen() {
           <span className={`${styles.badge} ${isConfirmed ? styles.badgeConfirmed : styles.badgeDraft}`}>
             {RESERVATION_STATUS_LABELS[reservation.status]}
           </span>
+
+          {isRemote && !isConfirmed && reservation.status === 'DRAFT' && (
+            <div className={styles.remoteNotice}>
+              El vehículo permanece disponible para otros clientes hasta completar el pago y la aceptación firmada (SC-RES-004).
+            </div>
+          )}
 
           {actionError && <p className={styles.errorText}>{actionError}</p>}
           {vehicleUnavailable && (
@@ -249,11 +349,31 @@ export function ReservationDetailScreen() {
                   onUpload={() => setShowPaymentForm(true)}
                   uploadLabel="Registrar pago"
                 />
+                {isRemote && (
+                  <>
+                    <ChecklistItem
+                      label="Video 360° del vehículo"
+                      detail="Video en 360° para validación del estado del vehículo (SC-RES-007)"
+                      done={video360Done}
+                      saving={uploadingVideo360}
+                      onUpload={() => video360FileRef.current?.click()}
+                      uploadLabel="Subir video"
+                    />
+                    <ChecklistItem
+                      label="Documento de aceptación firmado"
+                      detail="Documento de aceptación y términos firmado por el cliente (SC-RES-007)"
+                      done={signedAcceptanceDone}
+                      saving={uploadingSignedAcceptance}
+                      onUpload={() => signedAcceptanceFileRef.current?.click()}
+                      uploadLabel="Subir documento"
+                    />
+                  </>
+                )}
                 <ChecklistItem
                   label="Documentos / contrato"
                   detail={
-                    reservation.channelMode === 'VIRTUAL'
-                      ? 'Incluye video 360° y documento de aceptación remota'
+                    isRemote
+                      ? 'Documento de identidad / licencia de conducir'
                       : undefined
                   }
                   done={documentsDone}
@@ -284,10 +404,34 @@ export function ReservationDetailScreen() {
                   e.target.value = '';
                 }}
               />
+              <input
+                ref={video360FileRef}
+                type="file"
+                accept="video/mp4,video/webm,image/jpeg,image/png"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleVideo360File(file);
+                  e.target.value = '';
+                }}
+              />
+              <input
+                ref={signedAcceptanceFileRef}
+                type="file"
+                accept="application/pdf,image/jpeg,image/png"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleSignedAcceptanceFile(file);
+                  e.target.value = '';
+                }}
+              />
               {voucherUploadError && <p className={styles.errorText}>{voucherUploadError}</p>}
               {contractUploadError && <p className={styles.errorText}>{contractUploadError}</p>}
+              {video360UploadError && <p className={styles.errorText}>{video360UploadError}</p>}
+              {signedAcceptanceUploadError && <p className={styles.errorText}>{signedAcceptanceUploadError}</p>}
 
-              {paymentDone && documentsDone && can('RESERVATION', 'CONFIRM') ? (
+              {allRequirementsMet && can('RESERVATION', 'CONFIRM') ? (
                 <button
                   type="button"
                   className={styles.confirmButton}
@@ -299,7 +443,9 @@ export function ReservationDetailScreen() {
                 </button>
               ) : (
                 <p className={styles.helperText}>
-                  La reserva se confirma automáticamente al completar los 2 requisitos.
+                  {isRemote
+                    ? 'Para confirmar una reserva remota se requiere completar el pago, documentos, video 360° y documento de aceptación firmado (BR-RES-005).'
+                    : 'La reserva se confirma automáticamente al completar los 2 requisitos.'}
                 </p>
               )}
             </>

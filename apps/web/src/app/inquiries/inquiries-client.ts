@@ -41,6 +41,7 @@ export interface InquirySummary {
   estimatedDays: number | null;
   travelStartDate: string | null;
   partySize?: number | null;
+  isDirtRoad?: boolean;
 }
 
 export interface InquiryQuotation {
@@ -209,6 +210,7 @@ export async function createInquiry(
     estimatedDays: number;
     travelStartDate?: string;
     partySize?: number;
+    isDirtRoad?: boolean;
   },
 ): Promise<InquirySummary> {
   const { data, error, response } = await inquiriesApiClient.POST('/inquiries', {
@@ -233,6 +235,7 @@ export async function quoteInquiry(
   vehicleId: string,
   destination: string,
   estimatedDays: number,
+  plan?: 'NORMAL' | 'PLUS' | 'LIBRE',
 ): Promise<InquirySummary> {
   const { data, error, response } = await inquiriesApiClient.POST('/inquiries/{id}/commands/quote', {
     params: {
@@ -240,7 +243,7 @@ export async function quoteInquiry(
       header: { 'If-Match': `"${version}"`, 'Idempotency-Key': crypto.randomUUID() },
     },
     headers: { Authorization: `Bearer ${idToken}` },
-    body: { companyId, branchId, vehicleId, destination, estimatedDays } as unknown as QuoteBody,
+    body: { companyId, branchId, vehicleId, destination, estimatedDays, plan } as unknown as QuoteBody,
   });
   if (error || !data) {
     const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;

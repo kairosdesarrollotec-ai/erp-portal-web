@@ -260,6 +260,32 @@ export function NewInquiryScreen() {
               onChange={(event) => updateForm({ travelDays: Number(event.target.value) || 1 })}
             />
           </label>
+          <label className={styles.field}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={form.isDirtRoad}
+                onChange={(event) => updateForm({ isDirtRoad: event.target.checked })}
+              />
+              Trocha / afirmado (ruta no asfaltada)
+            </span>
+          </label>
+          <div className={styles.field}>
+            <span>Plan tarifario deseado</span>
+            <div className={styles.chipGroup} role="radiogroup" aria-label="Plan tarifario deseado">
+              {(['NORMAL', 'PLUS', 'LIBRE'] as const).map((planKey) => (
+                <button
+                  key={planKey}
+                  type="button"
+                  className={`${styles.chip} ${form.plan === planKey ? styles.chipSelected : ''}`}
+                  aria-pressed={form.plan === planKey}
+                  onClick={() => updateForm({ plan: planKey })}
+                >
+                  {planKey === 'NORMAL' ? 'Normal' : planKey === 'PLUS' ? 'Plus' : 'Libre'}
+                </button>
+              ))}
+            </div>
+          </div>
         </section>
 
         <section className={styles.section}>

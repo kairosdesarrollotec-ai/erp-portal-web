@@ -493,6 +493,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/leaves": {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        /** Listar solicitudes de permiso del colaborador autenticado (autoservicio) */
+        get: operations["listMyLeaves"];
+        put?: never;
+        /** Registrar solicitud de permiso propia (autoservicio) */
+        post: operations["requestMyLeave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/vacations": {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        /** Listar solicitudes de vacaciones del colaborador autenticado (autoservicio) */
+        get: operations["listMyVacations"];
+        put?: never;
+        /** Solicitar vacaciones propias (autoservicio, estado SOLICITADA) */
+        post: operations["requestMyVacation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trainings": {
         parameters: {
             query?: never;
@@ -555,6 +581,18 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/vacations/{id}/resolve": {
+        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Resolver solicitud de vacaciones (Gerencia aprueba con grantedDays, reprograma o rechaza) */
+        patch: operations["resolveVacation"];
         trace?: never;
     };
     "/me/attendance": {
@@ -671,6 +709,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hr-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publicar nueva versión de documento de Talento Humano (solo Gerencia) */
+        post: operations["publishHrDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr-documents/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar documentos de Talento Humano vigentes para la empresa */
+        get: operations["listActiveHrDocuments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hr-documents/{id}/confirm-read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirmar la lectura de un documento de Talento Humano vigente */
+        post: operations["confirmHrDocumentRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -760,6 +849,12 @@ export interface components {
             /** Format: date */
             hireDate: string;
             baseSalary?: number | null;
+            bankName?: string | null;
+            bankAccountNumber?: string | null;
+            bankAccountCci?: string | null;
+            contractType?: string | null;
+            contractUrl?: string | null;
+            contractNotes?: string | null;
         };
         UpdateEmployeeRequest: {
             /** Format: uuid */
@@ -778,6 +873,12 @@ export interface components {
             jobTitle?: string;
             /** @description Solo Gerencia (HR_ADMINISTRATION.MANAGE_SALARY) puede cambiarlo; otro rol con un valor distinto al vigente -> 403 EMPLOYEE_SALARY_GERENCIA_ONLY. Reenviar el mismo valor es válido. */
             baseSalary?: number | null;
+            bankName?: string | null;
+            bankAccountNumber?: string | null;
+            bankAccountCci?: string | null;
+            contractType?: string | null;
+            contractUrl?: string | null;
+            contractNotes?: string | null;
             status?: components["schemas"]["EmployeeStatus"];
             probationPassed?: boolean | null;
             /** Format: date-time */
@@ -817,10 +918,16 @@ export interface components {
             terminationNoticeDays?: number | null;
             fieldTripLateCount: number;
             isFieldTripObserved: boolean;
-            /** @description null = pendiente O restringido: solo lo ve quien tiene HR_ADMINISTRATION.MANAGE_SALARY (ver restrictedFields). */
+            /** @description null = pendiente O restringido: solo lo ve quien tiene HR_ADMINISTRATION.MANAGE_SALARY o VIEW_EMPLOYEE_SENSITIVE_DATA (ver restrictedFields). */
             baseSalary?: number | null;
+            bankName?: string | null;
+            bankAccountNumber?: string | null;
+            bankAccountCci?: string | null;
+            contractType?: string | null;
+            contractUrl?: string | null;
+            contractNotes?: string | null;
             /** @description Campos enmascarados para el rol del solicitante (HU-35). Vacío si ve todo. */
-            restrictedFields?: ("documentNumber" | "baseSalary")[];
+            restrictedFields?: ("documentNumber" | "baseSalary" | "bankName" | "bankAccountNumber" | "bankAccountCci" | "contractType" | "contractUrl" | "contractNotes")[];
             /** @description La ficha está vinculada a una cuenta de usuario por correo (DEC-ADP-LINK-EMAIL-001) */
             accountLinked: boolean;
             /** @description Versión optimista de la ficha (DEC-ADP-EDIT-ETAG-001); mismo valor que el header ETag */
@@ -1060,6 +1167,13 @@ export interface components {
             endDate: string;
             notes?: string | null;
         };
+        ResolveVacationRequest: {
+            status: "PROGRAMADA" | "REPROGRAMADA" | "CANCELADA";
+            /** @description Días otorgados por Gerencia (permite conceder menos días de los solicitados) */
+            grantedDays?: number;
+            /** @description Motivo obligatorio si se rechaza o reprograma */
+            statusReason?: string;
+        };
         VacationRequestResponse: {
             /** Format: uuid */
             id: string;
@@ -1079,6 +1193,7 @@ export interface components {
             /** Format: date-time */
             approvedAt?: string | null;
             notes?: string | null;
+            grantedDays?: number | null;
             /** Format: date */
             originalStartDate?: string | null;
             /** Format: date */
@@ -1389,6 +1504,55 @@ export interface components {
             /** @example VACATION_OVERLAP */
             code: string;
             detail: string;
+        };
+        HrDocumentCategory: "REGULATION" | "POLICY" | "FORMAT";
+        PublishHrDocumentRequest: {
+            /** Format: uuid */
+            companyId: string;
+            code: string;
+            title: string;
+            category: components["schemas"]["HrDocumentCategory"];
+            fileUrl: string;
+            fileHash?: string | null;
+            fileName?: string | null;
+            mimeType?: string;
+            sizeBytes?: number | null;
+        };
+        HrDocumentResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            companyId: string;
+            code: string;
+            title: string;
+            category: components["schemas"]["HrDocumentCategory"];
+            version: number;
+            fileUrl: string;
+            fileHash?: string | null;
+            fileName?: string | null;
+            mimeType: string;
+            sizeBytes?: number | null;
+            isActive: boolean;
+            publishedBy: string;
+            /** Format: date-time */
+            publishedAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            hasRead: boolean;
+            /** Format: date-time */
+            readAt?: string | null;
+        };
+        ActiveHrDocumentsListResponse: {
+            items: components["schemas"]["HrDocumentResponse"][];
+            total: number;
+        };
+        ConfirmHrDocumentReadResponse: {
+            /** Format: uuid */
+            documentId: string;
+            /** Format: uuid */
+            employeeId: string;
+            /** Format: date-time */
+            readAt: string;
         };
     };
     responses: never;
@@ -3321,6 +3485,56 @@ export interface operations {
             };
         };
     };
+    listMyLeaves: {
+        parameters: { query: { companyId: string; branchId: string }; header?: never; path?: never; cookie?: never };
+        requestBody?: never;
+        responses: {
+            200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["LeaveRequestResponse"][] } };
+            401: { headers: { [name: string]: unknown }; content?: never };
+            403: { headers: { [name: string]: unknown }; content?: never };
+        };
+    };
+    requestMyLeave: {
+        parameters: { query: { companyId: string; branchId: string }; header?: { "Idempotency-Key"?: string }; path?: never; cookie?: never };
+        requestBody: { content: { "application/json": components["schemas"]["RequestLeaveRequest"] } };
+        responses: {
+            201: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["LeaveRequestResponse"] } };
+            400: { headers: { [name: string]: unknown }; content?: never };
+            401: { headers: { [name: string]: unknown }; content?: never };
+            403: { headers: { [name: string]: unknown }; content?: never };
+        };
+    };
+    listMyVacations: {
+        parameters: { query: { companyId: string; branchId: string }; header?: never; path?: never; cookie?: never };
+        requestBody?: never;
+        responses: {
+            200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["VacationRequestResponse"][] } };
+            401: { headers: { [name: string]: unknown }; content?: never };
+            403: { headers: { [name: string]: unknown }; content?: never };
+        };
+    };
+    requestMyVacation: {
+        parameters: { query: { companyId: string; branchId: string }; header?: { "Idempotency-Key"?: string }; path?: never; cookie?: never };
+        requestBody: { content: { "application/json": components["schemas"]["ScheduleVacationRequest"] } };
+        responses: {
+            201: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["VacationRequestResponse"] } };
+            400: { headers: { [name: string]: unknown }; content?: never };
+            401: { headers: { [name: string]: unknown }; content?: never };
+            403: { headers: { [name: string]: unknown }; content?: never };
+        };
+    };
+    resolveVacation: {
+        parameters: { query?: never; header?: never; path: { id: string }; cookie?: never };
+        requestBody: { content: { "application/json": components["schemas"]["ResolveVacationRequest"] } };
+        responses: {
+            200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["VacationRequestResponse"] } };
+            400: { headers: { [name: string]: unknown }; content?: never };
+            401: { headers: { [name: string]: unknown }; content?: never };
+            403: { headers: { [name: string]: unknown }; content?: never };
+            404: { headers: { [name: string]: unknown }; content?: never };
+            409: { headers: { [name: string]: unknown }; content?: never };
+        };
+    };
     listTrainings: {
         parameters: {
             query: {
@@ -3413,4 +3627,128 @@ export interface operations {
             };
         };
     };
+    publishHrDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishHrDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Documento publicado exitosamente */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrDocumentResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listActiveHrDocuments: {
+        parameters: {
+            query: {
+                companyId: string;
+                category?: components["schemas"]["HrDocumentCategory"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Documentos vigentes con estado de lectura del colaborador */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveHrDocumentsListResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirmHrDocumentRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lectura confirmada y auditada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmHrDocumentReadResponse"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
 }
+

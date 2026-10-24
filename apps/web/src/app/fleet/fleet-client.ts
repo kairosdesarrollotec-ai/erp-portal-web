@@ -206,3 +206,83 @@ export async function updateVehicle(
   }
   return data;
 }
+
+export interface RecordVehicleOperationalFormatInput {
+  companyId: string;
+  branchId: string;
+  formatType: string;
+  processType?: string;
+  processId?: string;
+  odometerKm?: number;
+  fuelLevelLines?: number;
+  data: Record<string, unknown>;
+  observations?: string;
+  performedBy: string;
+  performedAt?: string;
+}
+
+export async function recordVehicleOperationalFormat(
+  idToken: string,
+  vehicleId: string,
+  payload: RecordVehicleOperationalFormatInput,
+  idempotencyKey?: string,
+): Promise<Record<string, unknown>> {
+  const { data, error, response } = await fleetApiClient.POST('/fleet/vehicles/{id}/operational-records', {
+    params: {
+      path: { id: vehicleId },
+      header: idempotencyKey ? ({ 'Idempotency-Key': idempotencyKey } as any) : undefined,
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+    body: payload,
+  });
+  if (error || !data) {
+    throw new FleetCommandError(
+      (response as any)?.status ?? 500,
+      (error as unknown as KairosErrorResponse | null) ?? null,
+    );
+  }
+  return data;
+}
+
+export async function listVehicleOperationalRecords(
+  idToken: string,
+  vehicleId: string,
+  params: { companyId: string; branchId: string; formatType?: string; limit?: number; offset?: number },
+): Promise<{ items: any[]; total: number }> {
+  const { data, error, response } = await fleetApiClient.GET('/fleet/vehicles/{id}/operational-records', {
+    params: {
+      path: { id: vehicleId },
+      query: params as any,
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (error || !data) {
+    const status = (response as any)?.status ?? 500;
+    throw new FleetApiError(
+      `No se pudieron cargar los registros operativos (${status})`,
+      status,
+    );
+  }
+  return data as any;
+}
+
+export async function listVehicleOperationalReminders(
+  idToken: string,
+  params: { companyId: string; branchId: string; vehicleId?: string; status?: 'COMPLETED' | 'PENDING' | 'OVERDUE' | string },
+): Promise<{ items: any[]; total: number }> {
+  const { data, error, response } = await fleetApiClient.GET('/fleet/operational-reminders', {
+    params: {
+      query: params as any,
+    },
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (error || !data) {
+    const status = (response as any)?.status ?? 500;
+    throw new FleetApiError(
+      `No se pudieron cargar los recordatorios (${status})`,
+      status,
+    );
+  }
+  return data as any;
+}
+

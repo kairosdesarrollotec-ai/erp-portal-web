@@ -24,6 +24,10 @@ export type UpdateEmployeeInput = components['schemas']['UpdateEmployeeRequest']
 /** Respuesta del PATCH: la ficha + `accountRelink` solo si la edicion cambio el vinculo con la cuenta (DEC-ADP-RELINK-001). */
 export type UpdateEmployeeResult = components['schemas']['UpdateEmployeeResponse'];
 export type AccountRelinkNotice = components['schemas']['AccountRelinkNotice'];
+export type HrDocument = components['schemas']['HrDocumentResponse'];
+export type HrDocumentCategory = components['schemas']['HrDocumentCategory'];
+export type PublishHrDocumentInput = components['schemas']['PublishHrDocumentRequest'];
+export type ConfirmHrDocumentReadResult = components['schemas']['ConfirmHrDocumentReadResponse'];
 
 /** Error HTTP de lectura (GET) - mismo patron que RecruitmentApiError. */
 export class HrApiError extends Error {
@@ -459,6 +463,73 @@ export async function cancelVacation(
   return data;
 }
 
+/** R4: Gerencia resuelve vacaciones: aprueba con grantedDays (soporta menos días), reprograma o rechaza/cancela */
+export async function resolveVacation(
+  idToken: string,
+  vacationId: string,
+  input: { status: 'PROGRAMADA' | 'REPROGRAMADA' | 'CANCELADA'; grantedDays?: number; statusReason?: string },
+): Promise<VacationRequest> {
+  const { data, error, response } = await hrAdministrationApiClient.PATCH('/vacations/{id}/resolve', {
+    params: { path: { id: vacationId } },
+    headers: authHeaders(idToken),
+    body: input,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** R4: Listar solicitudes de permiso del propio colaborador */
+export async function listMyLeaves(idToken: string, scope: HrScope): Promise<LeaveRequest[]> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/me/leaves', {
+    params: { query: scope },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data;
+}
+
+/** R4: Solicitar permiso propio (autoservicio) */
+export async function requestMyLeave(
+  idToken: string,
+  scope: HrScope,
+  input: { type: LeaveType; date: string; reason: string; startTime?: string; endTime?: string },
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<LeaveRequest> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/me/leaves', {
+    params: { query: scope, header: { 'Idempotency-Key': idempotencyKey } },
+    headers: authHeaders(idToken),
+    body: input,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** R4: Listar solicitudes de vacaciones del propio colaborador */
+export async function listMyVacations(idToken: string, scope: HrScope): Promise<VacationRequest[]> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/me/vacations', {
+    params: { query: scope },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data;
+}
+
+/** R4: Solicitar vacaciones propias (autoservicio, estado SOLICITADA) */
+export async function requestMyVacation(
+  idToken: string,
+  scope: HrScope,
+  input: { startDate: string; endDate: string; notes?: string },
+  idempotencyKey: string = crypto.randomUUID(),
+): Promise<VacationRequest> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/me/vacations', {
+    params: { query: scope, header: { 'Idempotency-Key': idempotencyKey } },
+    headers: authHeaders(idToken),
+    body: input,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
 export async function getEmployeeVacations(idToken: string, employeeId: string): Promise<VacationRequest[]> {
   const { data, error, response } = await hrAdministrationApiClient.GET('/employees/{id}/vacations', {
     params: { path: { id: employeeId } },
@@ -789,6 +860,55 @@ export async function setBranchGeofence(
 export async function deleteBranchGeofence(idToken: string, scope: HrScope): Promise<BranchGeofence> {
   const { data, error, response } = await hrAdministrationApiClient.DELETE('/branches/{branchId}/geofence', {
     params: { path: { branchId: scope.branchId }, query: { companyId: scope.companyId } },
+    headers: authHeaders(idToken),
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+// --- HU-31: Documentos de Talento Humano ----------------------------------------
+
+/** GET /hr-documents/active: listar documentos vigentes (con estado de lectura para el usuario). */
+export async function listActiveHrDocuments(
+  idToken: string,
+  scope: HrScope,
+  category?: HrDocumentCategory,
+  signal?: AbortSignal,
+): Promise<HrDocument[]> {
+  const { data, error, response } = await hrAdministrationApiClient.GET('/hr-documents/active', {
+    params: {
+      query: {
+        companyId: scope.companyId,
+        ...(category ? { category } : {}),
+      },
+    },
+    headers: authHeaders(idToken),
+    signal,
+  });
+  if (error || !data) throw new HrApiError(response.status);
+  return data.items;
+}
+
+/** POST /hr-documents: publicar o actualizar documento institucional (solo Gerencia General). */
+export async function publishHrDocument(
+  idToken: string,
+  input: PublishHrDocumentInput,
+): Promise<HrDocument> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/hr-documents', {
+    headers: authHeaders(idToken),
+    body: input,
+  });
+  if (error || !data) throw toCommandError(error, response.status);
+  return data;
+}
+
+/** POST /hr-documents/{id}/confirm-read: registrar confirmación de lectura del colaborador. */
+export async function confirmHrDocumentRead(
+  idToken: string,
+  documentId: string,
+): Promise<ConfirmHrDocumentReadResult> {
+  const { data, error, response } = await hrAdministrationApiClient.POST('/hr-documents/{id}/confirm-read', {
+    params: { path: { id: documentId } },
     headers: authHeaders(idToken),
   });
   if (error || !data) throw toCommandError(error, response.status);

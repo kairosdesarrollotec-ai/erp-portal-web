@@ -565,5 +565,28 @@ describe('FleetListScreen', () => {
       await screen.findByRole('dialog');
       expect(await axe(container)).toHaveNoViolations();
     });
+
+    it('muestra avisos de falta tarifa de planes en las filas de vehículos (DEC-R1-FIX-001)', async () => {
+      listVehiclesMock.mockResolvedValue({
+        items: [
+          {
+            ...baseVehicle,
+            id: 'v-no-rates',
+            plate: 'NOR-001',
+            dailyRate: null,
+            rateNormal: null,
+            ratePlus: null,
+            rateLibre: null,
+          },
+        ],
+        total: 1,
+      });
+      renderScreen();
+      await waitFor(() => expect(screen.getByTestId('missing-rate-normal-v-no-rates')).toBeInTheDocument());
+      expect(screen.getByTestId('missing-rate-normal-v-no-rates')).toHaveTextContent('Falta tarifa del plan Normal');
+      expect(screen.getByTestId('missing-rate-plus-v-no-rates')).toHaveTextContent('Falta tarifa del plan Plus');
+      expect(screen.getByTestId('missing-rate-libre-v-no-rates')).toHaveTextContent('Falta tarifa del plan Libre');
+    });
   });
 });
+

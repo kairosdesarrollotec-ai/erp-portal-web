@@ -157,4 +157,57 @@ describe('EmployeeFileScreen (ADP-01 ficha)', () => {
     renderScreen();
     expect(await screen.findByText(/45678912/)).toBeInTheDocument();
   });
+
+  it('HU-35: muestra datos bancarios y de contrato cuando están disponibles', async () => {
+    getEmployeeMock.mockResolvedValue(
+      makeDetail({
+        baseSalary: 2800,
+        bankName: 'BCP',
+        bankAccountNumber: '191-12345678-0-12',
+        bankAccountCci: '00219100123456780012',
+        contractType: 'PLAZO_INDETERMINADO',
+        contractUrl: 'https://storage.veloxrent.pe/contratos/emp-1.pdf',
+        contractNotes: 'Contrato firmado a tiempo indeterminado',
+      }),
+    );
+    renderScreen();
+    expect(await screen.findByText('S/ 2,800.00')).toBeInTheDocument();
+    expect(screen.getByText('BCP')).toBeInTheDocument();
+    expect(screen.getByText('191-12345678-0-12')).toBeInTheDocument();
+    expect(screen.getByText('00219100123456780012')).toBeInTheDocument();
+    expect(screen.getByText('PLAZO_INDETERMINADO')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver contrato' })).toHaveAttribute(
+      'href',
+      'https://storage.veloxrent.pe/contratos/emp-1.pdf',
+    );
+    expect(screen.getByText('Contrato firmado a tiempo indeterminado')).toBeInTheDocument();
+  });
+
+  it('HU-35: muestra indicador [Restringido] cuando los campos sensibles están en restrictedFields', async () => {
+    getEmployeeMock.mockResolvedValue(
+      makeDetail({
+        baseSalary: null,
+        bankName: null,
+        bankAccountNumber: null,
+        bankAccountCci: null,
+        contractType: null,
+        contractUrl: null,
+        contractNotes: null,
+        restrictedFields: [
+          'baseSalary',
+          'bankName',
+          'bankAccountNumber',
+          'bankAccountCci',
+          'contractType',
+          'contractUrl',
+          'contractNotes',
+        ],
+      }),
+    );
+    renderScreen();
+    await screen.findByRole('heading', { name: 'Carlos Pérez' });
+    const restrictedBadges = screen.getAllByText('Restringido');
+    expect(restrictedBadges.length).toBeGreaterThanOrEqual(6);
+  });
 });
+
