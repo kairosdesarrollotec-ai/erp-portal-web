@@ -345,6 +345,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/returns/{id}/commands/record-mechanic-report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registrar aceptación del cliente del informe mecánico / Motrix (DEC-DEV-REPORT-001) */
+        post: operations["recordMechanicReport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/returns/{id}/commands/escalate-legal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Anotación y escalamiento a Gerencia por vía legal (DEC-DEV-LEGAL-001) */
+        post: operations["escalateLegal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/returns/{id}/evidence/upload-url": {
         parameters: {
             query?: never;
@@ -755,6 +789,22 @@ export interface components {
             signatureData?: string;
             generateWarrantyAct?: boolean;
             notes?: string;
+            hasPendingOfflineChanges?: boolean;
+        };
+        RecordMechanicReportRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            accepted: boolean;
+            notes?: string;
+        };
+        EscalateLegalRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            notes: string;
         };
         RequestReturnEvidenceUploadSessionRequest: {
             /** Format: uuid */
@@ -922,6 +972,14 @@ export interface components {
             etag: string;
             damages: components["schemas"]["ReturnDamageResponse"][];
             immobilizationCharges: components["schemas"]["ImmobilizationChargeResponse"][];
+            mechanicReportAccepted?: boolean | null;
+            mechanicReportAcceptedAt?: string | null;
+            mechanicReportAcceptedBy?: string | null;
+            mechanicReportNotes?: string | null;
+            legalEscalated?: boolean | null;
+            legalEscalatedAt?: string | null;
+            legalEscalatedBy?: string | null;
+            legalNotes?: string | null;
         };
     };
     responses: never;
@@ -2264,6 +2322,134 @@ export interface operations {
             };
             /** @description Error interno del servidor */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordMechanicReport: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordMechanicReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Aceptación del informe mecánico registrada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    escalateLegal: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EscalateLegalRequest"];
+            };
+        };
+        responses: {
+            /** @description Escalamiento legal registrado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            428: {
                 headers: {
                     [name: string]: unknown;
                 };

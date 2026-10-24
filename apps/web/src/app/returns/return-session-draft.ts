@@ -58,6 +58,7 @@ export interface ReturnChecklistDraft {
   fckeDone: boolean;
   responsibilityDocument: ResponsibilityDocumentDraft;
   notes: string;
+  [key: string]: unknown;
 }
 
 export const EMPTY_RETURN_CHECKLIST: ReturnChecklistDraft = {

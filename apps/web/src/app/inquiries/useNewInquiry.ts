@@ -25,6 +25,8 @@ export interface NewInquiryFormData {
   travelers: number;
   travelDays: number;
   touristUse: boolean | null;
+  isDirtRoad: boolean;
+  plan: 'NORMAL' | 'PLUS' | 'LIBRE';
 }
 
 const INITIAL_FORM: NewInquiryFormData = {
@@ -40,6 +42,8 @@ const INITIAL_FORM: NewInquiryFormData = {
   travelers: 1,
   travelDays: 1,
   touristUse: null,
+  isDirtRoad: false,
+  plan: 'NORMAL',
 };
 
 /**
@@ -191,6 +195,7 @@ export function useNewInquiry() {
         estimatedDays: number;
         travelStartDate?: string;
         partySize?: number;
+        isDirtRoad?: boolean;
       } = {
         companyId: context.companyId,
         branchId: context.branchId,
@@ -200,6 +205,7 @@ export function useNewInquiry() {
         estimatedDays: form.travelDays,
         travelStartDate: form.travelDate || undefined,
         partySize: form.travelers,
+        isDirtRoad: form.isDirtRoad,
       };
 
       // Rediseño CON-02: `validateNewInquiryForm` ya exige `customerId` antes
@@ -223,6 +229,8 @@ export function useNewInquiry() {
           channel: effectiveInquiryChannel(form),
           touristUse: created.touristUse,
           version: created.version,
+          isDirtRoad: form.isDirtRoad,
+          plan: form.plan,
         },
       });
     } catch (err) {

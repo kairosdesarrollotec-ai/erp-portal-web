@@ -21,6 +21,8 @@ const flowMock = vi.fn();
 const closeFinancialMock = vi.fn();
 const closeReturnMock = vi.fn();
 const getRentalMock = vi.fn();
+const recordMechanicReportMock = vi.fn();
+const escalateLegalMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -41,6 +43,8 @@ vi.mock('./returns-client', async () => {
     ...actual,
     closeFinancial: (...args: unknown[]) => closeFinancialMock(...args),
     closeReturn: (...args: unknown[]) => closeReturnMock(...args),
+    recordMechanicReport: (...args: unknown[]) => recordMechanicReportMock(...args),
+    escalateLegal: (...args: unknown[]) => escalateLegalMock(...args),
     getCosmeticTariff: () => Promise.resolve([{ code: 'CAPOT', name: 'Paño en el capot', pricePen: 200 }]),
   };
 });
@@ -59,7 +63,7 @@ const conDanos = (damages: ReturnDamageResponse[] = [], extra = {}) => makeRetur
 const sinDanos = () => makeReturn({ status: 'SIN_DANOS', receivedAt: new Date().toISOString() });
 
 beforeEach(() => {
-  [flowMock, closeFinancialMock, closeReturnMock, getRentalMock].forEach((m) => m.mockReset());
+  [flowMock, closeFinancialMock, closeReturnMock, getRentalMock, recordMechanicReportMock, escalateLegalMock].forEach((m) => m.mockReset());
   sessionStorage.clear();
   clearCosmeticTariffCache();
   setPermissions(RETURN_CLOSE);
@@ -318,6 +322,82 @@ describe('ClosureScreen (DEV-10)', () => {
     mount();
     expect(screen.getByRole('status')).toHaveTextContent('Expediente cerrado');
     expect(screen.queryByRole('button', { name: 'Cerrar y archivar expediente' })).not.toBeInTheDocument();
+  });
+
+  it('bloquea el cierre si hay cambios offline pendientes', () => {
+    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ ...financial(), hasPendingOfflineChanges: true }) }));
+    mount();
+    expect(screen.getByTestId('offline-changes-banner')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cerrar y archivar expediente' })).toBeDisabled();
+  });
+
+  it('con daños exige aceptacion del informe mecanico antes de cerrar', async () => {
+    const setRet = vi.fn();
+    const returnWithDamages = makeReturn({
+      ...financial(),
+      damages: [dmg()],
+      mechanicReportAccepted: false,
+    });
+    flowMock.mockReturnValue(makeFlow({ ret: returnWithDamages, setRet }));
+    recordMechanicReportMock.mockResolvedValue({ ...returnWithDamages, mechanicReportAccepted: true });
+    mount();
+
+    expect(screen.getByTestId('mechanic-report-section')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cerrar y archivar expediente' })).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('mechanic-report-accept-btn'));
+    await waitFor(() =>
+      expect(recordMechanicReportMock).toHaveBeenCalledWith('tok', 'ret-1', 'c1', 'b1', 2, {
+        accepted: true,
+        observation: 'Aceptado por el cliente',
+      }),
+    );
+    expect(setRet).toHaveBeenCalled();
+  });
+
+  it('permite anotar escalacion legal abriendo modal y registrando motivo', async () => {
+    const setRet = vi.fn();
+    flowMock.mockReturnValue(makeFlow({ ret: financial(), setRet }));
+    escalateLegalMock.mockResolvedValue({
+      ...financial(),
+      legalEscalatedAt: '2026-10-23T15:00:00Z',
+      legalEscalationReason: 'Negativa de pago de franquicia',
+      legalCaseNumber: 'EXP-1234',
+    });
+    mount();
+
+    fireEvent.click(screen.getByTestId('open-legal-escalation-modal-btn'));
+    const dialog = screen.getByRole('dialog', { name: 'Anotar escalación legal' });
+    expect(dialog).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('legal-reason-input'), { target: { value: 'Negativa de pago de franquicia' } });
+    fireEvent.change(screen.getByTestId('legal-case-number-input'), { target: { value: 'EXP-1234' } });
+
+    fireEvent.click(screen.getByTestId('submit-legal-escalation-btn'));
+    await waitFor(() =>
+      expect(escalateLegalMock).toHaveBeenCalledWith('tok', 'ret-1', 'c1', 'b1', 2, {
+        reason: 'Negativa de pago de franquicia',
+        legalCaseNumber: 'EXP-1234',
+      }),
+    );
+    expect(setRet).toHaveBeenCalled();
+  });
+
+  it('muestra banner si el expediente ya fue escalado a legal', () => {
+    flowMock.mockReturnValue(
+      makeFlow({
+        ret: makeReturn({
+          ...financial(),
+          legalEscalatedAt: '2026-10-23T15:00:00Z',
+          legalEscalationReason: 'Apropiación ilícita',
+          legalCaseNumber: 'CASO-99',
+        }),
+      }),
+    );
+    mount();
+    expect(screen.getByTestId('legal-escalated-banner')).toHaveTextContent('Expediente escalado a Legal');
+    expect(screen.getByTestId('legal-escalated-banner')).toHaveTextContent('Caso N° CASO-99');
+    expect(screen.getByTestId('legal-escalated-banner')).toHaveTextContent('Apropiación ilícita');
   });
 
   it('no tiene violaciones de accesibilidad (axe)', async () => {

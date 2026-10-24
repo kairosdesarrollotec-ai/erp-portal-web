@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useRentalWizard } from './useRentalWizard';
@@ -14,6 +14,8 @@ import {
   RentalEvidenceType,
   RentalEvidenceZone,
 } from './rentals-client';
+import { recordVehicleOperationalFormat, listVehicleOperationalRecords } from '../fleet/fleet-client';
+import { FIV_ITEMS, FCKE_ITEMS } from '../shared/vehicle-checklist-items';
 import { RequestEvidenceDeletionButton } from '../evidence/RequestEvidenceDeletionButton';
 import { useOpenEvidenceDeletions } from '../evidence/useOpenEvidenceDeletions';
 import { addEvidenceToQueue } from '../../offline/queue/evidence-upload-queue';
@@ -32,6 +34,7 @@ import {
   deriveEvidenceSyncState,
   type EvidenceSyncInput,
 } from '../shared/evidence-sync-state';
+import { VehicleChecklistForm } from '../shared/VehicleChecklistForm';
 
 const REQUIRED_PHOTOS = REQUIRED_EVIDENCE_PHOTOS;
 const REQUIRED_VIDEOS = REQUIRED_EVIDENCE_VIDEOS;
@@ -224,11 +227,110 @@ export function Stage4ChecklistScreen() {
     if (file) void handleFileSelected('VIDEO', file);
   }
 
+  // Cargar datos previos de formatos FIV, FCKE y RNC guardados (C2)
+  useEffect(() => {
+    if (!context || !id || !rental?.vehicleId || !isOnline) return;
+    let cancelled = false;
+    getIdToken()
+      .then((token) =>
+        listVehicleOperationalRecords(token, rental.vehicleId, {
+          companyId: context.companyId,
+          branchId: context.branchId,
+        }),
+      )
+      .then((res) => {
+        if (cancelled || !res?.items?.length) return;
+        const rentalRecords = res.items.filter(
+          (r: any) => r.processType === 'RENTAL' && r.processId === id,
+        );
+        if (!rentalRecords.length) return;
+        const patch: Record<string, unknown> = {};
+        for (const rec of rentalRecords) {
+          if (rec.odometerKm !== null && rec.odometerKm !== undefined) patch.rnc_kilometraje = rec.odometerKm;
+          if (rec.fuelLevelLines !== null && rec.fuelLevelLines !== undefined) patch.rnc_nivel_combustible_lineas = rec.fuelLevelLines;
+          if (rec.data && typeof rec.data === 'object') {
+            Object.assign(patch, rec.data);
+          }
+        }
+        setDraft((prev) => ({ ...patch, ...prev }));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, context, rental?.vehicleId, isOnline, getIdToken]);
+
+  async function persistChecklistFormats() {
+    if (!context || !id || !rental?.vehicleId) return;
+    try {
+      const idToken = await getIdToken();
+      const vehicleId = rental.vehicleId;
+      const companyId = context.companyId;
+      const branchId = context.branchId;
+
+      const fivData: Record<string, unknown> = {};
+      for (const item of FIV_ITEMS) {
+        if (draft[item.key] !== undefined) fivData[item.key] = draft[item.key];
+      }
+
+      const fckeData: Record<string, unknown> = {};
+      for (const item of FCKE_ITEMS) {
+        if (draft[item.key] !== undefined) fckeData[item.key] = draft[item.key];
+      }
+
+      const fuelLines = typeof draft.rnc_nivel_combustible_lineas === 'number' ? Number(draft.rnc_nivel_combustible_lineas) : undefined;
+      const odometer = typeof draft.rnc_kilometraje === 'number' ? Number(draft.rnc_kilometraje) : undefined;
+      const performedBy = (context as any)?.firebaseUid || 'operador';
+
+      await Promise.all([
+        recordVehicleOperationalFormat(idToken, vehicleId, {
+          companyId,
+          branchId,
+          formatType: 'FORMATO_02_FIV',
+          processType: 'RENTAL',
+          processId: id,
+          odometerKm: odometer,
+          fuelLevelLines: fuelLines,
+          data: fivData,
+          observations: draft.notes || undefined,
+          performedBy,
+        }, `rental-${id}-fiv`).catch(() => undefined),
+
+        recordVehicleOperationalFormat(idToken, vehicleId, {
+          companyId,
+          branchId,
+          formatType: 'FORMATO_08_FCKE',
+          processType: 'RENTAL',
+          processId: id,
+          data: fckeData,
+          observations: draft.notes || undefined,
+          performedBy,
+        }, `rental-${id}-fcke`).catch(() => undefined),
+
+        recordVehicleOperationalFormat(idToken, vehicleId, {
+          companyId,
+          branchId,
+          formatType: 'FORMATO_06_RNC',
+          processType: 'RENTAL',
+          processId: id,
+          odometerKm: odometer,
+          fuelLevelLines: fuelLines,
+          data: { sugerencia: draft.rnc_sugerencia ?? null },
+          observations: draft.notes || undefined,
+          performedBy,
+        }, `rental-${id}-rnc`).catch(() => undefined),
+      ]);
+    } catch {
+      // Fallback a borrador local
+    }
+  }
+
   function handleContinue() {
     if (timeBelowMinimum && !draft.exceptionReason.trim()) {
       setShowExceptionModal(true);
       return;
     }
+    void persistChecklistFormats();
     navigate(`/alquileres/${id}/entrega-05`, { state: context ?? undefined });
   }
 
@@ -440,6 +542,11 @@ export function Stage4ChecklistScreen() {
         </label>
       </fieldset>
 
+      <VehicleChecklistForm
+        values={draft}
+        onChange={(k, v) => update({ [k]: v })}
+      />
+
       <label className={styles.fieldLabel}>
         Notas (FIV / FCKE)
         <textarea className={styles.textarea} rows={3} value={draft.notes} onChange={(e) => update({ notes: e.target.value })} />
@@ -468,6 +575,7 @@ export function Stage4ChecklistScreen() {
                 disabled={!draft.exceptionReason.trim()}
                 onClick={() => {
                   setShowExceptionModal(false);
+                  void persistChecklistFormats();
                   navigate(`/alquileres/${id}/entrega-05`, { state: context ?? undefined });
                 }}
               >

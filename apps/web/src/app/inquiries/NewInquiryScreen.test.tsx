@@ -197,6 +197,7 @@ describe('NewInquiryScreen (CON-02)', () => {
       estimatedDays: 1,
       travelStartDate: '2099-01-01',
       partySize: 1,
+      isDirtRoad: false,
     });
   });
 

@@ -180,12 +180,15 @@ export interface components {
             travelStartDate?: string;
             /** @description CON-02 personas (opcional) */
             partySize?: number;
+            /** @description DEC-CON-TROCHA-001: indica si la ruta incluye trocha / afirmado */
+            isDirtRoad?: boolean;
         };
         QuoteRequest: components["schemas"]["CommandScopeRequest"] & {
             /** Format: uuid */
             vehicleId: string;
             destination: string;
             estimatedDays: number;
+            plan?: "NORMAL" | "PLUS" | "LIBRE";
         };
         CloseInquiryRequest: components["schemas"]["CommandScopeRequest"] & {
             reason: string;
@@ -229,6 +232,7 @@ export interface components {
             travelStartDate: string | null;
             partySize: number | null;
             dataOrigin: components["schemas"]["InquiryDataOrigin"];
+            isDirtRoad?: boolean;
             closedReason: string | null;
             version: number;
             /** Format: date-time */
@@ -262,6 +266,7 @@ export interface components {
                 estimatedDays: number;
                 amount: string;
                 currency: string;
+                plan?: string | null;
                 /** Format: date-time */
                 validUntil: string;
                 /** Format: date-time */

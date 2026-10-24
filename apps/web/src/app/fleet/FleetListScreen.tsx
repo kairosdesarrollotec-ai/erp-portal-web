@@ -3,6 +3,7 @@ import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useFleetList, type VehicleFormData } from './useFleetList';
 import { NewVehicleModal } from './NewVehicleModal';
+import { OperationalRemindersModal } from './operational-formats/OperationalRemindersModal';
 import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
 import type { FleetVehicle, VehicleStatus } from './fleet-client';
@@ -52,8 +53,10 @@ export function FleetListScreen() {
   } = useFleetList();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [remindersModalOpen, setRemindersModalOpen] = useState(false);
   const [deactivatingConfirmId, setDeactivatingConfirmId] = useState<string | null>(null);
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
+  const canRegisterOperationalFormat = can('FLEET', 'REGISTER_VEHICLE_OPERATIONAL_FORMAT') || canWrite;
 
   function openEditModal(vehicle: FleetVehicle) {
     setEditingVehicle(vehicle);
@@ -87,14 +90,35 @@ export function FleetListScreen() {
       <AppHeader
         pageTitle="Flota Vehicular"
         actions={
-          context && canWrite ? (
-            <button
-              type="button"
-              className={styles.newButton}
-              onClick={() => setModalOpen(true)}
-            >
-              + Nuevo Vehículo
-            </button>
+          context ? (
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                style={{
+                  background: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+                onClick={() => setRemindersModalOpen(true)}
+                data-testid="btn-open-reminders-modal"
+              >
+                Recordatorios de Inspección
+              </button>
+              {canWrite && (
+                <button
+                  type="button"
+                  className={styles.newButton}
+                  onClick={() => setModalOpen(true)}
+                >
+                  + Nuevo Vehículo
+                </button>
+              )}
+            </div>
           ) : undefined
         }
       />
@@ -207,6 +231,27 @@ export function FleetListScreen() {
                           )}
                         </div>
                       )}
+                      {v.rateNormal == null && v.dailyRate == null && (
+                        <div>
+                          <span className={styles.missingCapacity} data-testid={`missing-rate-normal-${v.id}`}>
+                            Falta tarifa del plan Normal
+                          </span>
+                        </div>
+                      )}
+                      {v.ratePlus == null && (
+                        <div>
+                          <span className={styles.missingCapacity} data-testid={`missing-rate-plus-${v.id}`}>
+                            Falta tarifa del plan Plus
+                          </span>
+                        </div>
+                      )}
+                      {v.rateLibre == null && (
+                        <div>
+                          <span className={styles.missingCapacity} data-testid={`missing-rate-libre-${v.id}`}>
+                            Falta tarifa del plan Libre
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <span className={styles.categoryBadge}>{v.category}</span>
@@ -310,6 +355,16 @@ export function FleetListScreen() {
         onClearError={() => (editingVehicle ? setEditError(null) : setCreateError(null))}
         vehicle={editingVehicle}
       />
+
+      {context && (
+        <OperationalRemindersModal
+          isOpen={remindersModalOpen}
+          onClose={() => setRemindersModalOpen(false)}
+          companyId={context.companyId}
+          branchId={context.branchId}
+          canRegister={canRegisterOperationalFormat}
+        />
+      )}
     </main>
   );
 }

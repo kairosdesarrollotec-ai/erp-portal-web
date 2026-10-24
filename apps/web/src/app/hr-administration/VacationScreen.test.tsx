@@ -13,6 +13,7 @@ const calendarMock = vi.fn();
 const scheduleMock = vi.fn();
 const rescheduleMock = vi.fn();
 const cancelMock = vi.fn();
+const resolveMock = vi.fn();
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
@@ -31,6 +32,7 @@ vi.mock('./hr-client', async () => {
     scheduleVacation: (...a: unknown[]) => scheduleMock(...a),
     rescheduleVacation: (...a: unknown[]) => rescheduleMock(...a),
     cancelVacation: (...a: unknown[]) => cancelMock(...a),
+    resolveVacation: (...a: unknown[]) => resolveMock(...a),
   };
 });
 
@@ -206,6 +208,38 @@ describe('VacationScreen (ADP-05)', () => {
       expect(await screen.findByTestId('vacation-rescheduled-note')).toHaveTextContent('motivo: Cruce');
       expect(screen.getByTestId('vacation-cancelled-note')).toHaveTextContent('Ya no viajo');
       expect(screen.getAllByRole('button', { name: 'Reprogramar' })).toHaveLength(1);
+    });
+
+    it('R4: Gerencia aprueba vacaciones solicitadas concediendo menos días (grantedDays)', async () => {
+      const requested = makeVacation({
+        id: 'vac-solicitada',
+        employeeId: 'emp-1',
+        status: 'SOLICITADA' as never,
+        startDate: '2026-12-01',
+        endDate: '2026-12-10', // 10 días
+      });
+      getVacationsMock.mockResolvedValue([requested]);
+      resolveMock.mockResolvedValue({ ...requested, status: 'PROGRAMADA', grantedDays: 7 });
+
+      renderScreen();
+      const resolveBtn = await screen.findByTestId('resolve-vacation-btn');
+      expect(resolveBtn).toBeInTheDocument();
+      fireEvent.click(resolveBtn);
+
+      expect(screen.getByText('Resolver solicitud de vacaciones')).toBeInTheDocument();
+      const grantedDaysInput = screen.getByLabelText('Días otorgados');
+      expect(grantedDaysInput).toHaveValue(10);
+
+      fireEvent.change(grantedDaysInput, { target: { value: '7' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Aprobar' }));
+
+      await waitFor(() =>
+        expect(resolveMock).toHaveBeenCalledWith('tok', 'vac-solicitada', {
+          status: 'PROGRAMADA',
+          grantedDays: 7,
+          statusReason: undefined,
+        }),
+      );
     });
   });
 });

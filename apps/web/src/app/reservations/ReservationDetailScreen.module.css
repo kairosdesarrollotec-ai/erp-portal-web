@@ -100,6 +100,22 @@
   color: var(--color-success);
 }
 
+.badgeRemote {
+  background: #EBF3FF;
+  color: #1A56DB;
+  margin-left: 0.5rem;
+}
+
+.remoteNotice {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1E40AF;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  margin: 0 0 1rem;
+}
+
 .errorText {
   color: var(--color-error);
   font-size: 13px;

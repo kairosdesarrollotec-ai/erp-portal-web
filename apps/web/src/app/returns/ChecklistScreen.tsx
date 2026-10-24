@@ -26,6 +26,9 @@ import { saveFieldEdit } from '../../offline/queue/sync-draft-store';
 import { SyncConflictPanel } from '../sync/SyncConflictPanel';
 import { useChecklistSyncStatus } from '../sync/useChecklistSyncStatus';
 import { canSyncAction } from '../sync/sync-permissions';
+import { recordVehicleOperationalFormat, listVehicleOperationalRecords } from '../fleet/fleet-client';
+import { FIV_ITEMS, FCKE_ITEMS } from '../shared/vehicle-checklist-items';
+import { VehicleChecklistForm } from '../shared/VehicleChecklistForm';
 import styles from './ReturnForms.module.css';
 
 /**
@@ -168,9 +171,10 @@ export function ChecklistScreen() {
   function update(patch: Partial<ReturnChecklistDraft>) {
     // Sin conexion los campos escalares del checklist tambien quedan en el borrador Dexie para /sync.
     if (id && !online) {
-      for (const key of ['fivDone', 'fckeDone', 'notes'] as const) {
-        const value = patch[key];
-        if (value !== undefined) void saveFieldEdit('RECEPCION', id, { key, value }).catch(() => undefined);
+      for (const [key, value] of Object.entries(patch)) {
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          void saveFieldEdit('RECEPCION', id, { key, value }).catch(() => undefined);
+        }
       }
     }
     setDraft((prev) => {
@@ -224,11 +228,111 @@ export function ChecklistScreen() {
 
   const photoPct = Math.min(100, Math.round((photosCount / REQUIRED_PHOTOS) * 100));
 
+  // Cargar datos previos de formatos FIV, FCKE y RNC guardados para esta devolución (C2)
+  useEffect(() => {
+    if (!context || !id || !ret?.vehicleId || !online) return;
+    let cancelled = false;
+    getIdToken()
+      .then((token) =>
+        listVehicleOperationalRecords(token, ret.vehicleId, {
+          companyId: context.companyId,
+          branchId: context.branchId,
+        }),
+      )
+      .then((res) => {
+        if (cancelled || !res?.items?.length) return;
+        const returnRecords = res.items.filter(
+          (r: any) => r.processType === 'RETURN' && r.processId === id,
+        );
+        if (!returnRecords.length) return;
+        const patch: Record<string, unknown> = {};
+        for (const rec of returnRecords) {
+          if (rec.odometerKm !== null && rec.odometerKm !== undefined) patch.rnc_kilometraje = rec.odometerKm;
+          if (rec.fuelLevelLines !== null && rec.fuelLevelLines !== undefined) patch.rnc_nivel_combustible_lineas = rec.fuelLevelLines;
+          if (rec.data && typeof rec.data === 'object') {
+            Object.assign(patch, rec.data);
+          }
+        }
+        setDraft((prev) => ({ ...patch, ...prev }));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, context, ret?.vehicleId, online, getIdToken]);
+
+  async function persistReturnFormats() {
+    if (!context || !id || !ret?.vehicleId) return;
+    try {
+      const idToken = await getIdToken();
+      const vehicleId = ret.vehicleId;
+      const companyId = context.companyId;
+      const branchId = context.branchId;
+
+      const fivData: Record<string, unknown> = {};
+      for (const item of FIV_ITEMS) {
+        if (draft[item.key] !== undefined) fivData[item.key] = draft[item.key];
+      }
+
+      const fckeData: Record<string, unknown> = {};
+      for (const item of FCKE_ITEMS) {
+        if (draft[item.key] !== undefined) fckeData[item.key] = draft[item.key];
+      }
+
+      const fuelLines = typeof draft.rnc_nivel_combustible_lineas === 'number' ? Number(draft.rnc_nivel_combustible_lineas) : undefined;
+      const odometer = typeof draft.rnc_kilometraje === 'number' ? Number(draft.rnc_kilometraje) : undefined;
+      const performedBy = (context as any)?.firebaseUid || 'operador';
+
+      await Promise.all([
+        recordVehicleOperationalFormat(idToken, vehicleId, {
+          companyId,
+          branchId,
+          formatType: 'FORMATO_02_FIV',
+          processType: 'RETURN',
+          processId: id,
+          odometerKm: odometer,
+          fuelLevelLines: fuelLines,
+          data: fivData,
+          performedBy,
+        }, `return-${id}-fiv`).catch(() => undefined),
+
+        recordVehicleOperationalFormat(idToken, vehicleId, {
+          companyId,
+          branchId,
+          formatType: 'FORMATO_08_FCKE',
+          processType: 'RETURN',
+          processId: id,
+          data: fckeData,
+          performedBy,
+        }, `return-${id}-fcke`).catch(() => undefined),
+
+        recordVehicleOperationalFormat(idToken, vehicleId, {
+          companyId,
+          branchId,
+          formatType: 'FORMATO_06_RNC',
+          processType: 'RETURN',
+          processId: id,
+          odometerKm: odometer,
+          fuelLevelLines: fuelLines,
+          data: { sugerencia: draft.rnc_sugerencia ?? null },
+          performedBy,
+        }, `return-${id}-rnc`).catch(() => undefined),
+      ]);
+    } catch {
+      // Fallback a borrador local
+    }
+  }
+
+  function handleContinue() {
+    void persistReturnFormats();
+    navigate(`/devoluciones/${id}/resultado`, { state: context });
+  }
+
   return (
     <ReturnFlowShell
       step={3}
       title="Checklist de recepción"
-      onContinue={() => navigate(`/devoluciones/${id}/resultado`, { state: context })}
+      onContinue={handleContinue}
       continueLabel="Continuar a Resultado"
       continueDisabled={continueDisabled}
       lateness={ret.lateness}
@@ -438,17 +542,11 @@ export function ChecklistScreen() {
         </fieldset>
       )}
 
-      <fieldset className={styles.fieldset}>
-        <legend>Formatos</legend>
-        <label className={styles.checkboxRow}>
-          <input type="checkbox" checked={draft.fivDone} onChange={(e) => update({ fivDone: e.target.checked })} />
-          FIV — inspección vehicular completada
-        </label>
-        <label className={styles.checkboxRow}>
-          <input type="checkbox" checked={draft.fckeDone} onChange={(e) => update({ fckeDone: e.target.checked })} />
-          FCKE — control de kit de emergencia completado
-        </label>
-      </fieldset>
+      <VehicleChecklistForm
+        values={draft}
+        onChange={(k, v) => update({ [k]: v, fivDone: true, fckeDone: true })}
+        disabled={wrongState}
+      />
 
       <fieldset className={styles.fieldset}>
         <legend>Documento de responsabilidad</legend>
