@@ -29,7 +29,7 @@ export function EmployeeFileScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { can } = useHrPermissions();
-  const { state, data: employee, context, reload } = useHrResource<EmployeeDetail>(id ? (token) => getEmployee(token, id) : null, id ?? '');
+  const { state, data: employee, context, reload } = useHrResource<EmployeeDetail>(id ? (token, scope) => getEmployee(token, id, scope) : null, id ?? '');
 
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);

@@ -48,8 +48,8 @@ export function LeavesScreen() {
   const { can } = useHrPermissions();
   const { state, data, context, reload } = useHrResource<Loaded>(
     id
-      ? async (token) => {
-          const [employee, leaves] = await Promise.all([getEmployee(token, id), getEmployeeLeaves(token, id)]);
+      ? async (token, scope) => {
+          const [employee, leaves] = await Promise.all([getEmployee(token, id, scope), getEmployeeLeaves(token, id)]);
           const entries = await Promise.all(leaves.map(async (leave) => [leave.id, await listLeaveEvidence(token, leave.id).catch(() => [] as LeaveEvidence[])] as const));
           return { employee, leaves, evidence: Object.fromEntries(entries) };
         }

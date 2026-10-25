@@ -29,7 +29,7 @@ describe('VehicleDigitalFileSection (C4: Ficha Digital por Vehículo)', () => {
 
   it('muestra la lista de registros operativos guardados con odómetro, combustible y formato', async () => {
     vi.mocked(fleetClient.listVehicleOperationalRecords).mockResolvedValue({
-      records: [
+      items: [
         {
           id: 'rec-1',
           vehicleId: 'veh-1',
@@ -60,11 +60,12 @@ describe('VehicleDigitalFileSection (C4: Ficha Digital por Vehículo)', () => {
         },
       ],
       total: 2,
-    } as any);
+    });
 
     vi.mocked(fleetClient.listVehicleOperationalReminders).mockResolvedValue({
-      reminders: [],
-    } as any);
+      items: [],
+      total: 0,
+    });
 
     render(
       <VehicleDigitalFileSection
@@ -94,7 +95,7 @@ describe('VehicleDigitalFileSection (C4: Ficha Digital por Vehículo)', () => {
 
   it('permite filtrar registros por tipo de formato operativo', async () => {
     vi.mocked(fleetClient.listVehicleOperationalRecords).mockResolvedValue({
-      records: [
+      items: [
         {
           id: 'rec-rio',
           vehicleId: 'veh-1',
@@ -125,11 +126,12 @@ describe('VehicleDigitalFileSection (C4: Ficha Digital por Vehículo)', () => {
         },
       ],
       total: 2,
-    } as any);
+    });
 
     vi.mocked(fleetClient.listVehicleOperationalReminders).mockResolvedValue({
-      reminders: [],
-    } as any);
+      items: [],
+      total: 0,
+    });
 
     render(
       <VehicleDigitalFileSection
@@ -156,18 +158,19 @@ describe('VehicleDigitalFileSection (C4: Ficha Digital por Vehículo)', () => {
 
   it('muestra aviso destacado si existen recordatorios in-app pendientes o vencidos (FIVI o FITVM)', async () => {
     vi.mocked(fleetClient.listVehicleOperationalRecords).mockResolvedValue({
-      records: [],
+      items: [],
       total: 0,
-    } as any);
+    });
 
     vi.mocked(fleetClient.listVehicleOperationalReminders).mockResolvedValue({
-      reminders: [
+      items: [
         {
           id: 'rem-1',
           vehicleId: 'veh-1',
           formatType: 'FORMATO_01_FIVI',
           dueDate: '2026-10-24T00:00:00Z',
           status: 'PENDING',
+          createdAt: '2026-10-20T00:00:00Z',
         },
         {
           id: 'rem-2',
@@ -175,9 +178,11 @@ describe('VehicleDigitalFileSection (C4: Ficha Digital por Vehículo)', () => {
           formatType: 'FORMATO_03_FITVM',
           dueDate: '2026-10-20T00:00:00Z',
           status: 'OVERDUE',
+          createdAt: '2026-10-20T00:00:00Z',
         },
       ],
-    } as any);
+      total: 2,
+    });
 
     render(
       <VehicleDigitalFileSection
@@ -201,12 +206,13 @@ describe('VehicleDigitalFileSection (C4: Ficha Digital por Vehículo)', () => {
 
   it('permite registrar un nuevo formato operativo (Formato 05 RIO) y lo envía al API', async () => {
     vi.mocked(fleetClient.listVehicleOperationalRecords).mockResolvedValue({
-      records: [],
+      items: [],
       total: 0,
-    } as any);
+    });
     vi.mocked(fleetClient.listVehicleOperationalReminders).mockResolvedValue({
-      reminders: [],
-    } as any);
+      items: [],
+      total: 0,
+    });
     vi.mocked(fleetClient.recordVehicleOperationalFormat).mockResolvedValue({
       id: 'new-rec-id',
       vehicleId: 'veh-1',

@@ -60,7 +60,7 @@ export function AbsenceScreen() {
     id && date
       ? async (token, scope) => {
           const [employee, records, summary] = await Promise.all([
-            getEmployee(token, id),
+            getEmployee(token, id, scope),
             getEmployeeAttendance(token, id, month),
             getAttendanceSummary(token, scope, month).catch(() => null),
           ]);

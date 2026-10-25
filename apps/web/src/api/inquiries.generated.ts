@@ -171,6 +171,11 @@ export interface components {
             };
             /** @description DAT-CON-003 */
             destination: string;
+            /**
+             * @description DEC-CON-TROCHA-001. Indica si la ruta incluye trocha.
+             * @default false
+             */
+            isDirtRoad: boolean;
             /** @description DAT-CON-003 - tiempo estimado */
             estimatedDays: number;
             /**
@@ -180,15 +185,18 @@ export interface components {
             travelStartDate?: string;
             /** @description CON-02 personas (opcional) */
             partySize?: number;
-            /** @description DEC-CON-TROCHA-001: indica si la ruta incluye trocha / afirmado */
-            isDirtRoad?: boolean;
         };
         QuoteRequest: components["schemas"]["CommandScopeRequest"] & {
             /** Format: uuid */
             vehicleId: string;
             destination: string;
             estimatedDays: number;
-            plan?: "NORMAL" | "PLUS" | "LIBRE";
+            /**
+             * @description DEC-CON-PLANS-001. Plan de tarifas elegido.
+             * @default NORMAL
+             * @enum {string}
+             */
+            plan: "NORMAL" | "PLUS" | "LIBRE";
         };
         CloseInquiryRequest: components["schemas"]["CommandScopeRequest"] & {
             reason: string;
@@ -203,7 +211,10 @@ export interface components {
             startAt: string;
             /** @description PEND-08 (BR-RES-005, PROPUESTO). Opcional. Si es false con channelMode=PRESENCIAL -> 422 CHANNEL_MODE_MISMATCH. */
             canComeToOffice?: boolean;
-            /** @description PEND-08 (DAT-RES-001). Opcional. FUERA_DE_AYACUCHO con PRESENCIAL -> 422 CHANNEL_MODE_MISMATCH. */
+            /**
+             * @description PEND-08 (DAT-RES-001). Opcional. FUERA_DE_AYACUCHO con PRESENCIAL -> 422 CHANNEL_MODE_MISMATCH.
+             * @enum {string}
+             */
             customerLocation?: "AYACUCHO" | "FUERA_DE_AYACUCHO";
         };
         ConvertToRentalRequest: components["schemas"]["CommandScopeRequest"] & {
@@ -227,25 +238,31 @@ export interface components {
             /** Format: uuid */
             customerId: string | null;
             destination: string | null;
+            /** @description DEC-CON-TROCHA-001 */
+            isDirtRoad: boolean;
             estimatedDays: number | null;
             /** Format: date */
             travelStartDate: string | null;
             partySize: number | null;
             dataOrigin: components["schemas"]["InquiryDataOrigin"];
-            isDirtRoad?: boolean;
             closedReason: string | null;
             version: number;
             /** Format: date-time */
             createdAt: string;
         };
         InquiryResponse: components["schemas"]["InquirySummaryResponse"] & {
-            requiredDocuments?: {
+            /** @description BR-CON-004 / CON-P06. Documentos que se informan al cliente segun su nacionalidad (solo informativo; Consulta no recibe documentos). Vacio si el cliente no tiene nacionalidad registrada. */
+            requiredDocuments: {
                 /** @enum {string} */
                 code: "RECIBO_AGUA_O_LUZ" | "CONSTANCIA_HOSPEDAJE";
                 label: string;
             }[];
-            /** Format: uuid */
-            latestQuotationId?: string | null;
+            /**
+             * Format: uuid
+             * @description Id de la cotizacion mas reciente (la vigente si validUntil es futuro); null si no hay cotizaciones. Usar este campo en vez de depender del orden de `quotations`.
+             */
+            latestQuotationId: string | null;
+            /** @description Cronologico ascendente (la ultima es la mas reciente). Append-only. */
             interactions: {
                 /** Format: uuid */
                 id: string;
@@ -255,7 +272,7 @@ export interface components {
                 outcome: string | null;
                 note: string | null;
             }[];
-            /** @description Ordenadas de la mas reciente a la mas antigua; la primera es la vigente si validUntil es futuro */
+            /** @description Ordenadas de la mas reciente a la mas antigua (indice 0 = ultima); la primera es la vigente si validUntil es futuro. NO leer length-1. */
             quotations: {
                 /** Format: uuid */
                 id: string;
@@ -266,7 +283,12 @@ export interface components {
                 estimatedDays: number;
                 amount: string;
                 currency: string;
-                plan?: string | null;
+                /**
+                 * @description DEC-CON-PLANS-001. Plan cotizado.
+                 * @default NORMAL
+                 * @enum {string}
+                 */
+                plan: "NORMAL" | "PLUS" | "LIBRE";
                 /** Format: date-time */
                 validUntil: string;
                 /** Format: date-time */
@@ -517,7 +539,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description INQUIRY_NOT_TRANSITIONABLE, o VEHICLE_NOT_ELIGIBLE (no existe en la empresa / no elegible segun Flota) */
+            /** @description INQUIRY_NOT_TRANSITIONABLE, INQUIRY_NOT_TOURIST_USE (touristUse=false: solo se puede cerrar), VEHICLE_NOT_SUITABLE_FOR_TROCHA (isDirtRoad=true pero el vehículo no es apto para trocha), PLAN_RATE_NOT_CONFIGURED (falta tarifa para el plan elegido), o VEHICLE_NOT_ELIGIBLE (no existe en la empresa / no elegible segun Flota / ocupado en las fechas del viaje; el detail indica las fechas) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -630,7 +652,7 @@ export interface operations {
                     "application/json": components["schemas"]["ConvertToReservationResponse"];
                 };
             };
-            /** @description CUSTOMER_REQUIRED_FOR_CONVERSION, RESERVATION_START_NOT_IN_FUTURE */
+            /** @description CUSTOMER_REQUIRED_FOR_CONVERSION, RESERVATION_START_NOT_IN_FUTURE, INVALID_PERIOD (startAt >= endAt calculado) */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -667,7 +689,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description INQUIRY_NOT_TRANSITIONABLE - la consulta no esta COTIZADA */
+            /** @description INQUIRY_NOT_TRANSITIONABLE - la consulta no esta COTIZADA; INQUIRY_NOT_TOURIST_USE; CUSTOMER_BLOCKED (cliente ROJO, igual que convert-to-rental); CHANNEL_MODE_MISMATCH (PRESENCIAL con canComeToOffice=false o cliente fuera de Ayacucho); RESERVATION_EXCEEDS_GUARANTEE - el monto de la reserva (politica ADM-03) supera la garantia del vehiculo cotizado (F-01) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -750,7 +772,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description INQUIRY_NOT_TRANSITIONABLE (la consulta no esta COTIZADA) o CUSTOMER_BLOCKED (cliente ROJO) */
+            /** @description INQUIRY_NOT_TRANSITIONABLE (la consulta no esta COTIZADA), INQUIRY_NOT_TOURIST_USE o CUSTOMER_BLOCKED (cliente ROJO) */
             422: {
                 headers: {
                     [name: string]: unknown;

@@ -40,7 +40,8 @@ export interface OperationalReminderItem {
   status: 'PENDING' | 'OVERDUE' | 'COMPLETED';
   completedRecordId?: string | null;
   completedAt?: string | null;
-  vehiclePlate?: string | null;
+  plate?: string | null;
+  createdAt: string;
 }
 
 // ── FORMATO 03 & 04 (FITVM & FIVUN) INSPECTION ITEMS ──

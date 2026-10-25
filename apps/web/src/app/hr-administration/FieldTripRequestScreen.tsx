@@ -33,7 +33,7 @@ function FieldTripRequest() {
   // El area es informativa: si la ficha no se puede leer (p. ej. rol de campo sin VIEW_EMPLOYEES) igual se puede solicitar.
   const { state, data, context } = useHrResource<RequestTarget>(async (token, scope) => {
     if (id) {
-      const employee = await getEmployee(token, id).catch(() => null);
+      const employee = await getEmployee(token, id, scope).catch(() => null);
       return { employeeId: id, areaName: employee?.areaName ?? null, linkError: null };
     }
     try {

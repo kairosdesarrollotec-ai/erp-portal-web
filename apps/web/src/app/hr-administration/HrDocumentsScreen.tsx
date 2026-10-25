@@ -52,10 +52,15 @@ export function HrDocumentsScreen() {
       (token) =>
         publishHrDocument(token, {
           companyId: context!.companyId,
+          branchId: context!.branchId,
           code: code.trim().toUpperCase(),
           title: title.trim(),
           category,
           fileUrl: fileUrl.trim(),
+          // La publicación actual acepta una URL; el backend aplica este
+          // valor por defecto si no se proporciona, pero enviarlo hace el
+          // contrato explícito para el cliente tipado.
+          mimeType: 'application/pdf',
         }),
       'No pudimos publicar el documento. Intenta de nuevo.',
     );
@@ -73,7 +78,7 @@ export function HrDocumentsScreen() {
   async function handleConfirmRead(doc: HrDocument) {
     setConfirmingId(doc.id);
     const res = await command.run(
-      (token) => confirmHrDocumentRead(token, doc.id),
+      (token) => confirmHrDocumentRead(token, doc.id, context!),
       'No pudimos registrar la confirmación de lectura. Intenta de nuevo.',
     );
     setConfirmingId(null);

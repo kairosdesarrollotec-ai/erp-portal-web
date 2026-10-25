@@ -1,4 +1,4 @@
-import type { components } from '../../api/fleet.generated';
+import type { components, operations } from '../../api/fleet.generated';
 import { fleetApiClient } from '../../api/fleet-api-client';
 
 export type VehicleStatus = components['schemas']['VehicleStatus'];
@@ -81,7 +81,7 @@ export async function listVehicles(
   if (error || !data) {
     throw new FleetApiError(
       `No se pudo obtener el catálogo de vehículos (${response.status})`,
-      response.status,
+      500,
     );
   }
   return data;
@@ -100,7 +100,7 @@ export async function getVehicle(
   if (error || !data) {
     throw new FleetApiError(
       `No se pudo obtener el detalle del vehículo (${response.status})`,
-      response.status,
+      500,
     );
   }
   return data;
@@ -111,7 +111,7 @@ export async function createVehicle(
   payload: CreateVehiclePayload,
   idempotencyKey?: string,
 ): Promise<FleetVehicle> {
-  const { data, error, response } = await fleetApiClient.POST('/fleet/vehicles', {
+  const { data, error } = await fleetApiClient.POST('/fleet/vehicles', {
     params: {
       header: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
     },
@@ -120,7 +120,7 @@ export async function createVehicle(
   });
   if (error || !data) {
     throw new FleetCommandError(
-      response.status,
+      500,
       (error as unknown as KairosErrorResponse | null) ?? null,
     );
   }
@@ -207,19 +207,14 @@ export async function updateVehicle(
   return data;
 }
 
-export interface RecordVehicleOperationalFormatInput {
-  companyId: string;
-  branchId: string;
-  formatType: string;
-  processType?: string;
-  processId?: string;
-  odometerKm?: number;
-  fuelLevelLines?: number;
-  data: Record<string, unknown>;
-  observations?: string;
-  performedBy: string;
-  performedAt?: string;
-}
+export type RecordVehicleOperationalFormatInput =
+  operations['recordVehicleOperationalFormat']['requestBody']['content']['application/json'];
+export type VehicleOperationalRecordList =
+  operations['listVehicleOperationalRecords']['responses'][200]['content']['application/json'];
+export type VehicleOperationalReminderList =
+  operations['listVehicleOperationalReminders']['responses'][200]['content']['application/json'];
+type VehicleOperationalRecordsQuery = NonNullable<operations['listVehicleOperationalRecords']['parameters']['query']>;
+type VehicleOperationalRemindersQuery = operations['listVehicleOperationalReminders']['parameters']['query'];
 
 export async function recordVehicleOperationalFormat(
   idToken: string,
@@ -227,17 +222,17 @@ export async function recordVehicleOperationalFormat(
   payload: RecordVehicleOperationalFormatInput,
   idempotencyKey?: string,
 ): Promise<Record<string, unknown>> {
-  const { data, error, response } = await fleetApiClient.POST('/fleet/vehicles/{id}/operational-records', {
+  const { data, error } = await fleetApiClient.POST('/fleet/vehicles/{id}/operational-records', {
     params: {
       path: { id: vehicleId },
-      header: idempotencyKey ? ({ 'Idempotency-Key': idempotencyKey } as any) : undefined,
+      header: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
     },
     headers: { Authorization: `Bearer ${idToken}` },
     body: payload,
   });
   if (error || !data) {
     throw new FleetCommandError(
-      (response as any)?.status ?? 500,
+      500,
       (error as unknown as KairosErrorResponse | null) ?? null,
     );
   }
@@ -247,42 +242,41 @@ export async function recordVehicleOperationalFormat(
 export async function listVehicleOperationalRecords(
   idToken: string,
   vehicleId: string,
-  params: { companyId: string; branchId: string; formatType?: string; limit?: number; offset?: number },
-): Promise<{ items: any[]; total: number }> {
-  const { data, error, response } = await fleetApiClient.GET('/fleet/vehicles/{id}/operational-records', {
+  params: VehicleOperationalRecordsQuery,
+): Promise<VehicleOperationalRecordList> {
+  const { data, error } = await fleetApiClient.GET('/fleet/vehicles/{id}/operational-records', {
     params: {
       path: { id: vehicleId },
-      query: params as any,
+      query: params,
     },
     headers: { Authorization: `Bearer ${idToken}` },
   });
   if (error || !data) {
-    const status = (response as any)?.status ?? 500;
+    const status = 500;
     throw new FleetApiError(
       `No se pudieron cargar los registros operativos (${status})`,
       status,
     );
   }
-  return data as any;
+  return data;
 }
 
 export async function listVehicleOperationalReminders(
   idToken: string,
-  params: { companyId: string; branchId: string; vehicleId?: string; status?: 'COMPLETED' | 'PENDING' | 'OVERDUE' | string },
-): Promise<{ items: any[]; total: number }> {
-  const { data, error, response } = await fleetApiClient.GET('/fleet/operational-reminders', {
+  params: VehicleOperationalRemindersQuery,
+): Promise<VehicleOperationalReminderList> {
+  const { data, error } = await fleetApiClient.GET('/fleet/operational-reminders', {
     params: {
-      query: params as any,
+      query: params,
     },
     headers: { Authorization: `Bearer ${idToken}` },
   });
   if (error || !data) {
-    const status = (response as any)?.status ?? 500;
+    const status = 500;
     throw new FleetApiError(
       `No se pudieron cargar los recordatorios (${status})`,
       status,
     );
   }
-  return data as any;
+  return data;
 }
-

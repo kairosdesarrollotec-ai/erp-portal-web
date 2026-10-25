@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { act, cleanup, render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { useSessionTimeout, SESSION_EXPIRED_PATH } from './useSessionTimeout';
 import { useWorkSession } from './useWorkSession';
@@ -43,16 +43,23 @@ describe('useSessionTimeout (SEC-F3)', () => {
     lastSignInTime = new Date(Date.now()).toUTCString();
     useWorkSession.setState({ role: roleOf('FRONT_OFFICE') });
   });
-  afterEach(() => {
+  afterEach(async () => {
+    // Desmontar antes de modificar el store: de lo contrario un Probe aun
+    // suscrito recibe esta actualizacion fuera de act durante el teardown.
+    await act(async () => {
+      cleanup();
+    });
     vi.useRealTimers();
-    useWorkSession.setState({ role: null });
+    await act(async () => {
+      useWorkSession.setState({ role: null });
+    });
   });
 
   it('cierra la sesion tras 30 min sin actividad (rol general) y redirige con el aviso', async () => {
     mount();
-    await vi.advanceTimersByTimeAsync(29 * MIN);
+    await act(async () => { await vi.advanceTimersByTimeAsync(29 * MIN); });
     expect(signOutMock).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(2 * MIN);
+    await act(async () => { await vi.advanceTimersByTimeAsync(2 * MIN); });
     expect(signOutMock).toHaveBeenCalledTimes(1);
     expect(navigateMock).toHaveBeenCalledWith(SESSION_EXPIRED_PATH, { replace: true });
     expect(useWorkSession.getState().role).toBeNull();
@@ -61,34 +68,34 @@ describe('useSessionTimeout (SEC-F3)', () => {
   it('un rol privilegiado (GERENCIA) se cierra a los 15 min', async () => {
     useWorkSession.setState({ role: roleOf('GERENCIA') });
     mount();
-    await vi.advanceTimersByTimeAsync(14 * MIN);
+    await act(async () => { await vi.advanceTimersByTimeAsync(14 * MIN); });
     expect(signOutMock).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(2 * MIN);
+    await act(async () => { await vi.advanceTimersByTimeAsync(2 * MIN); });
     expect(signOutMock).toHaveBeenCalledTimes(1);
   });
 
   it('con rol desconocido aplica 15 min (falla cerrado)', async () => {
     useWorkSession.setState({ role: null });
     mount();
-    await vi.advanceTimersByTimeAsync(16 * MIN);
+    await act(async () => { await vi.advanceTimersByTimeAsync(16 * MIN); });
     expect(signOutMock).toHaveBeenCalledTimes(1);
   });
 
   it('la actividad del usuario reinicia el contador', async () => {
     mount();
-    await vi.advanceTimersByTimeAsync(20 * MIN);
-    window.dispatchEvent(new Event('keydown'));
-    await vi.advanceTimersByTimeAsync(20 * MIN);
+    await act(async () => { await vi.advanceTimersByTimeAsync(20 * MIN); });
+    await act(async () => { window.dispatchEvent(new Event('keydown')); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20 * MIN); });
     expect(signOutMock).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(11 * MIN);
+    await act(async () => { await vi.advanceTimersByTimeAsync(11 * MIN); });
     expect(signOutMock).toHaveBeenCalledTimes(1);
   });
 
   it('la actividad en otra pestana (localStorage) evita el cierre', async () => {
     mount();
-    await vi.advanceTimersByTimeAsync(25 * MIN);
-    window.localStorage.setItem('kairos.session.lastActivity', String(Date.now()));
-    await vi.advanceTimersByTimeAsync(20 * MIN);
+    await act(async () => { await vi.advanceTimersByTimeAsync(25 * MIN); });
+    await act(async () => { window.localStorage.setItem('kairos.session.lastActivity', String(Date.now())); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(20 * MIN); });
     expect(signOutMock).not.toHaveBeenCalled();
   });
 
@@ -96,8 +103,10 @@ describe('useSessionTimeout (SEC-F3)', () => {
     lastSignInTime = new Date(Date.now() - 8 * 60 * MIN + 5 * MIN).toUTCString();
     mount();
     for (let i = 0; i < 10; i += 1) {
-      window.dispatchEvent(new Event('pointerdown'));
-      await vi.advanceTimersByTimeAsync(MIN);
+      await act(async () => {
+        window.dispatchEvent(new Event('pointerdown'));
+        await vi.advanceTimersByTimeAsync(MIN);
+      });
     }
     expect(signOutMock).toHaveBeenCalledTimes(1);
   });
@@ -105,7 +114,7 @@ describe('useSessionTimeout (SEC-F3)', () => {
   it('cierra la sesion una sola vez y navega aunque signOut falle', async () => {
     signOutMock.mockRejectedValueOnce(new Error('offline'));
     mount();
-    await vi.advanceTimersByTimeAsync(31 * MIN);
+    await act(async () => { await vi.advanceTimersByTimeAsync(31 * MIN); });
     expect(signOutMock).toHaveBeenCalledTimes(1);
     expect(navigateMock).toHaveBeenCalledTimes(1);
   });

@@ -26,26 +26,28 @@ describe('OperationalRemindersModal (C4: Interfaz in-app de recordatorios)', () 
 
   it('lista recordatorios in-app de FIVI (interdiaria) y FITVM (mensual) pendientes y vencidos', async () => {
     vi.mocked(fleetClient.listVehicleOperationalReminders).mockResolvedValue({
-      reminders: [
+      items: [
         {
           id: 'rem-fivi-1',
           vehicleId: 'veh-1',
-          vehiclePlate: 'ABC-123',
+          plate: 'ABC-123',
           formatType: 'FORMATO_01_FIVI',
           dueDate: '2026-10-24T00:00:00Z',
           status: 'PENDING',
+          createdAt: '2026-10-20T00:00:00Z',
         },
         {
           id: 'rem-fitvm-2',
           vehicleId: 'veh-2',
-          vehiclePlate: 'XYZ-789',
+          plate: 'XYZ-789',
           formatType: 'FORMATO_03_FITVM',
           dueDate: '2026-10-21T00:00:00Z',
           status: 'OVERDUE',
+          createdAt: '2026-10-20T00:00:00Z',
         },
       ],
       total: 2,
-    } as any);
+    });
 
     render(
       <OperationalRemindersModal
@@ -74,9 +76,9 @@ describe('OperationalRemindersModal (C4: Interfaz in-app de recordatorios)', () 
 
   it('muestra estado vacío cuando no hay recordatorios pendientes', async () => {
     vi.mocked(fleetClient.listVehicleOperationalReminders).mockResolvedValue({
-      reminders: [],
+      items: [],
       total: 0,
-    } as any);
+    });
 
     render(
       <OperationalRemindersModal
@@ -98,21 +100,22 @@ describe('OperationalRemindersModal (C4: Interfaz in-app de recordatorios)', () 
 
   it('permite abrir el formulario de resolución y al registrar formato re-consulta los recordatorios', async () => {
     vi.mocked(fleetClient.listVehicleOperationalReminders).mockResolvedValueOnce({
-      reminders: [
+      items: [
         {
           id: 'rem-fivi-1',
           vehicleId: 'veh-1',
-          vehiclePlate: 'ABC-123',
+          plate: 'ABC-123',
           formatType: 'FORMATO_01_FIVI',
           dueDate: '2026-10-24T00:00:00Z',
           status: 'PENDING',
+          createdAt: '2026-10-20T00:00:00Z',
         },
       ],
       total: 1,
-    } as any).mockResolvedValueOnce({
-      reminders: [],
+    }).mockResolvedValueOnce({
+      items: [],
       total: 0,
-    } as any);
+    });
 
     vi.mocked(fleetClient.recordVehicleOperationalFormat).mockResolvedValue({
       id: 'rec-fivi-done',

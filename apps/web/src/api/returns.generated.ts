@@ -71,7 +71,7 @@ export interface paths {
         };
         /**
          * Alertas operativas de devolución - garantía por liberar (24 h) e inmovilización > 24 h (DEV-07 / DEV-08)
-         * @description Calculadas con el reloj en cada consulta (sin estado propio). WARRANTY_RELEASE: devolución SIN_DANOS sin cierre financiero a la que le faltan 4 h o menos (DUE_SOON) o ya venció (OVERDUE) el plazo MÁXIMO de 24 h naturales desde la recepción (BR-DEV-001); un daño suspende ese plazo. IMMOBILIZATION: más de 24 h naturales desde el cierre con daño TÉCNICO y días de paralización aún sin cobrar (BR-DEV-011; desde 1.10.0 el reloj corre desde el CIERRE de la devolución, no desde la recepción: devolución sin cerrar = sin alerta). SOLO ALERTAN: el reembolso y el cobro siguen siendo manuales (close-financial / charge-immobilization). Sin `type` devuelve ambos tipos. Solo lectura; no requiere If-Match.
+         * @description Calculadas con el reloj en cada consulta (sin estado propio). WARRANTY_RELEASE: devolución SIN_DANOS sin cierre financiero a la que le faltan 4 h o menos (DUE_SOON) o ya venció (OVERDUE) el plazo MÁXIMO de 24 h naturales desde la recepción (BR-DEV-001); un daño suspende ese plazo. IMMOBILIZATION: más de 24 h naturales desde el cierre con daño TÉCNICO y días de paralización aún sin cobrar (BR-DEV-011; desde 1.10.0 el reloj corre desde el CIERRE de la devolución, no desde la recepción: devolución sin cerrar = sin alerta). SOLO ALERTAN: el reembolso y el cobro siguen siendo manuales (close-financial / charge-immobilization). LATE_CHARGE (1.8.0): recibida con retraso mayor que la tolerancia de 30 min y sin cargo por retraso registrado; SUGERENCIA de registrarlo (sin monto: lo digita el usuario autorizado). Sin `type` devuelve todos los tipos. Solo lectura; no requiere If-Match.
          */
         get: operations["listReturnAlerts"];
         put?: never;
@@ -156,7 +156,7 @@ export interface paths {
         put?: never;
         /**
          * Registrar las marcas por zona de DEV-05 y la ruta tomada (PD-07)
-         * @description Upsert por zona (solo las zonas enviadas cambian; las 5 zonas: FRONTAL, LATERAL_IZQUIERDO, LATERAL_DERECHO, POSTERIOR, INTERIOR).
+         * @description Upsert por zona (solo las zonas enviadas cambian; las 5 zonas: FRONTAL, LATERAL_IZQUIERDO, LATERAL_DERECHO, POSTERIOR, INTERIOR). Cada marca nueva o cambiada emite el evento auditable RETURN_ZONE_MARKED; cuando las 5 zonas quedan marcadas por primera vez, o la ruta resultante cambia, emite RETURN_ROUTE_TAKEN (route = NO_DAMAGE | DAMAGE, zonas con daño). La ruta "incidente" la audita el módulo de Incidencias. Mismo permiso que completar la inspección. Solo con la devolución en RECEPCION_PROVISIONAL | INSPECCION (resuelta ya la inspección -> 409 RETURN_STATE_CONFLICT). NO lleva If-Match (no cambia el agregado) y es idempotente (repetir las mismas marcas no escribe ni audita). No bloquea ni condiciona complete-inspection.
          */
         post: operations["recordReturnZoneMarks"];
         delete?: never;
@@ -176,7 +176,7 @@ export interface paths {
         put?: never;
         /**
          * Registrar resultado de prueba de alcolímetro de salida (DEV-04 / BR-DEV-005)
-         * @description DESFAVORABLE = check "no cumple el rango del alcoholímetro" + foto de la prueba OBLIGATORIA: antes de registrar, subir la foto como evidencia PHOTO con zona ALCOHOL_TEST (upload-url -> PUT -> POST evidence). Sin foto -> 422 ALCOHOL_TEST_PHOTO_REQUIRED. No se registra hora ni más campos. RECHAZADO no exige foto.
+         * @description DESFAVORABLE = check "no cumple el rango del alcoholímetro" + foto de la prueba OBLIGATORIA: antes de registrar, subir la foto como evidencia PHOTO con zona ALCOHOL_TEST (upload-url -> PUT -> POST evidence). Sin foto -> 422 ALCOHOL_TEST_PHOTO_REQUIRED. No se registra hora ni más campos. RECHAZADO tambien exige la foto (evidencia por si acaso).
          */
         post: operations["registerAlcoholTest"];
         delete?: never;
@@ -354,7 +354,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Registrar aceptación del cliente del informe mecánico / Motrix (DEC-DEV-REPORT-001) */
+        /**
+         * Registrar aceptación del cliente del informe mecánico / Motrix (DEC-DEV-REPORT-001)
+         * @description Permite a un usuario con permiso de cierre registrar que el cliente aceptó el informe mecánico y se compromete al pago de los daños. Requisito obligatorio para poder cerrar una devolución con daños.
+         */
         post: operations["recordMechanicReport"];
         delete?: never;
         options?: never;
@@ -371,7 +374,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Anotación y escalamiento a Gerencia por vía legal (DEC-DEV-LEGAL-001) */
+        /**
+         * Anotación y escalamiento a Gerencia por vía legal (DEC-DEV-LEGAL-001)
+         * @description Registra la anotación de caso legal y escala la notificación a Gerencia.
+         */
         post: operations["escalateLegal"];
         delete?: never;
         options?: never;
@@ -426,7 +432,8 @@ export interface paths {
         post?: never;
         /**
          * Eliminar una evidencia de recepción registrada por error (DEV-04)
-         * @description Solo en los estados que admiten evidencia (RECEPCION_PROVISIONAL, INSPECCION o CON_DANOS) y con la misma acción de matriz que subirla (UPLOAD_EVIDENCE). Se elimina el registro; el archivo del bucket no se toca.
+         * @deprecated
+         * @description DEPRECADO (DEC-EVID-DELETE-002): usar POST /evidence/deletion-requests (doble aprobación, evidence.yaml). Este atajo exige EVIDENCE.DELETE_DIRECT (v0: solo PLATFORM_ADMIN) y responde con el header `Deprecation: true`. Solo en los estados que admiten evidencia (RECEPCION_PROVISIONAL, INSPECCION o CON_DANOS). Se elimina el registro; el archivo del bucket no se toca.
          */
         delete: operations["deleteReturnEvidence"];
         options?: never;
@@ -446,7 +453,7 @@ export interface components {
         /** @enum {string} */
         ReturnReminderResult: "SENT" | "FAILED";
         /** @enum {string} */
-        ReturnAlertType: "WARRANTY_RELEASE" | "IMMOBILIZATION";
+        ReturnAlertType: "WARRANTY_RELEASE" | "IMMOBILIZATION" | "LATE_CHARGE";
         RegisterReturnReminderRequest: {
             /** Format: uuid */
             companyId: string;
@@ -516,7 +523,7 @@ export interface components {
         ImmobilizationAlert: {
             /**
              * Format: date-time
-             * @description Recepción del vehículo (inicio del reloj)
+             * @description Cierre de la devolución (inicio del reloj de paralización
              */
             since: string;
             hoursElapsed: number;
@@ -591,6 +598,17 @@ export interface components {
             warrantyRelease: components["schemas"]["WarrantyReleaseAlert"] | null;
             /** @description Presente cuando type = IMMOBILIZATION */
             immobilization: components["schemas"]["ImmobilizationAlert"] | null;
+            /** @description Presente cuando type = LATE_CHARGE (sugerencia de registrar el cargo por retraso manual; sin monto) */
+            lateCharge: components["schemas"]["LateChargeSuggestion"] | null;
+        };
+        LateChargeSuggestion: {
+            /** @description Minutos enteros de retraso real (recepción menos hora pactada) */
+            lateMinutes: number;
+            /**
+             * @description Tolerancia sin sanción (BR-DEV-003)
+             * @example 30
+             */
+            lateToleranceMinutes: number;
         };
         ResponsibilityTemplateResponse: {
             /**
@@ -607,40 +625,6 @@ export interface components {
             content: string;
             /** @description Versión activa de la plantilla */
             version: number;
-        };
-        ReturnZoneMark: {
-            /** @enum {string} */
-            zone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR";
-            /** @enum {string} */
-            mark: "NO_DAMAGE" | "DAMAGE";
-            /** @description Usuario que marcó por última vez */
-            markedBy: string;
-            /** Format: date-time */
-            markedAt: string;
-        };
-        ReturnZoneMarksResponse: {
-            /** Format: uuid */
-            returnId: string;
-            marks: components["schemas"]["ReturnZoneMark"][];
-            /** @description true = las 5 zonas tienen marca */
-            complete: boolean;
-            /**
-             * @description NO_DAMAGE = las 5 sin daño (DEV-09); DAMAGE = al menos una con daño (DEV-06); null = faltan zonas
-             * @enum {string|null}
-             */
-            route: "NO_DAMAGE" | "DAMAGE" | null;
-        };
-        RecordReturnZoneMarksRequest: {
-            /** Format: uuid */
-            companyId: string;
-            /** Format: uuid */
-            branchId: string;
-            marks: {
-                /** @enum {string} */
-                zone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR";
-                /** @enum {string} */
-                mark: "NO_DAMAGE" | "DAMAGE";
-            }[];
         };
         /** @enum {string} */
         ReturnStatus: "PROGRAMADA" | "RECEPCION_PROVISIONAL" | "INSPECCION" | "SIN_DANOS" | "CON_DANOS" | "CIERRE_FINANCIERO" | "CERRADA" | "CANCELADA";
@@ -781,6 +765,40 @@ export interface components {
             retainedAmount: number;
             notes?: string;
         };
+        ReturnZoneMark: {
+            /** @enum {string} */
+            zone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR";
+            /** @enum {string} */
+            mark: "NO_DAMAGE" | "DAMAGE";
+            /** @description Usuario que marcó por última vez */
+            markedBy: string;
+            /** Format: date-time */
+            markedAt: string;
+        };
+        ReturnZoneMarksResponse: {
+            /** Format: uuid */
+            returnId: string;
+            marks: components["schemas"]["ReturnZoneMark"][];
+            /** @description true = las 5 zonas tienen marca */
+            complete: boolean;
+            /**
+             * @description NO_DAMAGE = las 5 sin daño (DEV-09); DAMAGE = al menos una con daño (DEV-06); null = faltan zonas
+             * @enum {string|null}
+             */
+            route: "NO_DAMAGE" | "DAMAGE" | null;
+        };
+        RecordReturnZoneMarksRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            marks: {
+                /** @enum {string} */
+                zone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR";
+                /** @enum {string} */
+                mark: "NO_DAMAGE" | "DAMAGE";
+            }[];
+        };
         CloseReturnRequest: {
             /** Format: uuid */
             companyId: string;
@@ -789,7 +807,11 @@ export interface components {
             signatureData?: string;
             generateWarrantyAct?: boolean;
             notes?: string;
-            hasPendingOfflineChanges?: boolean;
+            /**
+             * @description Si es true responde 422 RETURN_OFFLINE_CHANGES_PENDING
+             * @default false
+             */
+            hasPendingOfflineChanges: boolean;
         };
         RecordMechanicReportRequest: {
             /** Format: uuid */
@@ -973,10 +995,12 @@ export interface components {
             damages: components["schemas"]["ReturnDamageResponse"][];
             immobilizationCharges: components["schemas"]["ImmobilizationChargeResponse"][];
             mechanicReportAccepted?: boolean | null;
+            /** Format: date-time */
             mechanicReportAcceptedAt?: string | null;
             mechanicReportAcceptedBy?: string | null;
             mechanicReportNotes?: string | null;
             legalEscalated?: boolean | null;
+            /** Format: date-time */
             legalEscalatedAt?: string | null;
             legalEscalatedBy?: string | null;
             legalNotes?: string | null;
@@ -1549,7 +1573,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Zona o marca fuera del catálogo, zona repetida o lista vacía (INVALID_ZONE_MARK) */
+            /** @description Zona o marca fuera del catálogo */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1626,7 +1650,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Resultado DESFAVORABLE sin la foto de la prueba (evidencia PHOTO con zona ALCOHOL_TEST) -> ALCOHOL_TEST_PHOTO_REQUIRED */
+            /** @description Resultado DESFAVORABLE o RECHAZADO sin la foto de la prueba (evidencia PHOTO con zona ALCOHOL_TEST) -> ALCOHOL_TEST_PHOTO_REQUIRED */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1949,7 +1973,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Estado incompatible (debe estar en CON_DANOS o CIERRE_FINANCIERO) */
+            /** @description Estado incompatible (debe estar en CON_DANOS, CIERRE_FINANCIERO o CERRADA; solo CERRADA arranca el reloj) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2306,7 +2330,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Existen incidencias técnicas abiertas pendientes (INCIDENT_STILL_OPEN, TDD §11.4) */
+            /** @description Existen incidencias técnicas abiertas pendientes (INCIDENT_STILL_OPEN, TDD §11.4), el cliente no ha aceptado el informe mecánico (MECHANIC_REPORT_NOT_ACCEPTED), o hay cambios offline pendientes de sincronización (RETURN_OFFLINE_CHANGES_PENDING) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2355,36 +2379,42 @@ export interface operations {
                     "application/json": components["schemas"]["ReturnResponse"];
                 };
             };
+            /** @description Datos inválidos */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description Token no autenticado */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description No autorizado para el contexto o permiso insuficiente (RETURN.CLOSE) */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description Devolución no encontrada */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description Versión no coincide (If-Match) */
             412: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description Falta header If-Match */
             428: {
                 headers: {
                     [name: string]: unknown;
@@ -2419,36 +2449,42 @@ export interface operations {
                     "application/json": components["schemas"]["ReturnResponse"];
                 };
             };
+            /** @description Datos inválidos */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description Token no autenticado */
             401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description No autorizado para el contexto o permiso insuficiente (RETURN.CLOSE) */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description Devolución no encontrada */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description Versión no coincide (If-Match) */
             412: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            /** @description Falta header If-Match */
             428: {
                 headers: {
                     [name: string]: unknown;

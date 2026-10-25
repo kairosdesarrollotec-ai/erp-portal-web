@@ -52,20 +52,21 @@ export function VehicleDigitalFileSection({
 
       const [recsRes, remsRes] = await Promise.all([
         listVehicleOperationalRecords(token, vehicleId, { companyId, branchId }),
-        listVehicleOperationalReminders(token, { companyId, branchId, vehicleId }),
+        listVehicleOperationalReminders(token, { companyId, branchId }),
       ]);
 
-      setRecords((recsRes as any)?.records || (recsRes as any) || []);
-      setReminders((remsRes as any)?.reminders || (remsRes as any) || []);
+      setRecords(recsRes.items as unknown as OperationalRecordItem[]);
+      setReminders((remsRes.items as unknown as OperationalReminderItem[]).filter((reminder) => reminder.vehicleId === vehicleId));
       setIsLoading(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsLoading(false);
-      setErrorMessage(err?.detail || err?.message || 'Error al cargar la ficha digital operativa.');
+      setErrorMessage(err instanceof Error ? err.message : 'Error al cargar la ficha digital operativa.');
     }
-  }, [initialIdToken, vehicleId, companyId, branchId]);
+  }, [initialIdToken, resolvedToken, vehicleId, companyId, branchId]);
 
   useEffect(() => {
-    void loadData();
+    const timer = window.setTimeout(() => { void loadData(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadData]);
 
   const activeReminders = reminders.filter(

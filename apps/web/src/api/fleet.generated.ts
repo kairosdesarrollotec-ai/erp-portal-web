@@ -95,8 +95,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Listar fichas operativas del vehículo */
         get: operations["listVehicleOperationalRecords"];
         put?: never;
+        /** Registrar ficha operativa digital del vehículo (Formatos 01 al 09) */
         post: operations["recordVehicleOperationalFormat"];
         delete?: never;
         options?: never;
@@ -111,6 +113,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Listar recordatorios de formatos operativos periódicos (FIVI/FITVM) */
         get: operations["listVehicleOperationalReminders"];
         put?: never;
         post?: never;
@@ -181,15 +184,23 @@ export interface components {
             dailyRate?: number | null;
             /** @description Monto mínimo de garantía para este vehículo (PEN). Opcional; se puede completar después con PATCH. */
             depositMinimum?: number;
-            /** @description Cantidad de pasajeros que admite el vehículo; es el máximo de acompañantes de un alquiler (G-05). Obligatorio en el alta (G-05); si falta, es null, 0, negativa, no entera o > 60 responde 400 PASSENGER_CAPACITY_REQUIRED (fleet.yaml 0.7.0). */
+            /** @description Cantidad de pasajeros que admite el vehículo; es el máximo de acompañantes de un alquiler (G-05). Obligatorio en el alta (G-05); si falta o es null responde 400 PASSENGER_CAPACITY_REQUIRED. */
             passengerCapacity: number;
             /** @description Precio del combustible por unidad para este vehículo (PEN). Insumo de la multa por combustible (aún no calculada). Opcional; se completa cuando exista la tarifa. */
             fuelPrice?: number;
-            suitableForTrocha?: boolean;
-            rateNormal?: number | null;
-            ratePlus?: number | null;
-            rateLibre?: number | null;
-            fuelPenaltyPerLine?: number | null;
+            /**
+             * @description Indica si el vehículo es apto para circular por trochas o caminos no afirmados.
+             * @default false
+             */
+            suitableForTrocha: boolean;
+            /** @description Tarifa diaria para el plan Normal (200 km/24 h) en PEN. */
+            rateNormal?: number;
+            /** @description Tarifa diaria para el plan Plus (300 km/24 h) en PEN. */
+            ratePlus?: number;
+            /** @description Tarifa diaria para el plan Libre (km libre/24 h) en PEN. */
+            rateLibre?: number;
+            /** @description Monto de penalidad por línea faltante de combustible (PEN) según tarifario VR.01. */
+            fuelPenaltyPerLine?: number;
             /**
              * Format: uri
              * @description URL HTTPS de Google Cloud Storage del objeto ya cargado. Obtener previamente via POST /fleet/vehicles/photo-upload-sessions. No se acepta data: URI ni URL de otro proveedor.
@@ -214,17 +225,22 @@ export interface components {
             dailyRate?: number | null;
             /** @description Monto mínimo de garantía (PEN). Si se omite, el valor existente no cambia. */
             depositMinimum?: number | null;
-            /** @description Capacidad de pasajeros (1..60). Si se omite, el valor existente no cambia. No puede vaciarse (enviar null, 0, negativa, no entera o > 60 responde 400 PASSENGER_CAPACITY_REQUIRED; fleet.yaml 0.7.0). */
+            /** @description Marca de tercera via notarial (BR-ALQ-004). Requiere FLEET.MANAGE_THIRD_PATH (solo Gerencia). Si se omite no cambia. */
+            thirdPathEligible?: boolean;
+            /** @description Marca de apto para trocha. Si se omite no cambia. */
+            suitableForTrocha?: boolean;
+            /** @description Tarifa diaria Plan Normal (200 km). */
+            rateNormal?: number | null;
+            /** @description Tarifa diaria Plan Plus (300 km). */
+            ratePlus?: number | null;
+            /** @description Tarifa diaria Plan Libre. */
+            rateLibre?: number | null;
+            /** @description Monto por línea faltante de combustible (PEN). */
+            fuelPenaltyPerLine?: number | null;
+            /** @description Capacidad de pasajeros (1..60). Si se omite, el valor existente no cambia. No puede vaciarse (enviar null responde 400 PASSENGER_CAPACITY_REQUIRED). */
             passengerCapacity?: number;
             /** @description Precio del combustible por unidad (PEN). Si se omite, el valor existente no cambia. */
             fuelPrice?: number;
-            /** @description DEC-ALQ-THIRDPATH-001 (22-oct-2026): vehículo elegible para la tercera vía notarial. Solo lo puede cambiar Gerencia (FLEET.MANAGE_THIRD_PATH); de otro modo 403. Si se omite no cambia. */
-            thirdPathEligible?: boolean;
-            suitableForTrocha?: boolean;
-            rateNormal?: number | null;
-            ratePlus?: number | null;
-            rateLibre?: number | null;
-            fuelPenaltyPerLine?: number | null;
             /**
              * Format: uri
              * @description URL HTTPS de GCS del objeto ya cargado. Si no se proporciona, la foto existente del vehículo no cambia.
@@ -267,17 +283,22 @@ export interface components {
             dailyRate?: number | null;
             /** @description Monto mínimo de garantía configurado para este vehículo (PEN). */
             depositMinimum?: number | null;
+            /** @description Vehiculo de menor costo elegible para tercera via notarial (marca de Gerencia). */
+            thirdPathEligible?: boolean;
+            /** @description Apto para circular por trochas o caminos no afirmados. */
+            suitableForTrocha?: boolean;
+            /** @description Tarifa diaria Plan Normal (PEN). */
+            rateNormal?: number | null;
+            /** @description Tarifa diaria Plan Plus (PEN). */
+            ratePlus?: number | null;
+            /** @description Tarifa diaria Plan Libre (PEN). */
+            rateLibre?: number | null;
+            /** @description Penalidad por línea faltante de combustible (PEN). */
+            fuelPenaltyPerLine?: number | null;
             /** @description Pasajeros que admite el vehículo (1..60). null en vehículos anteriores a 0.5.0 (sin tope de acompañantes); la UI indica «Falta registrar la capacidad» y permite completarla con PATCH. */
             passengerCapacity?: number | null;
             /** @description Precio del combustible por unidad (PEN). null en vehículos anteriores a 0.5.0. */
             fuelPrice?: number | null;
-            /** @description DEC-ALQ-THIRDPATH-001: vehículo «de menor costo relativo» elegible para la tercera vía notarial (BR-ALQ-004). false por defecto. */
-            thirdPathEligible?: boolean;
-            suitableForTrocha?: boolean;
-            rateNormal?: number | null;
-            ratePlus?: number | null;
-            rateLibre?: number | null;
-            fuelPenaltyPerLine?: number | null;
             photoUrl?: string | null;
             /**
              * Format: date-time
@@ -330,6 +351,71 @@ export interface components {
             code: string;
             /** @description Descripción legible del error para el usuario o el log. */
             detail?: string;
+        };
+        RecordVehicleOperationalFormatRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /**
+             * @description Código del formato (FORMATO_01_FIVI .. FORMATO_09_MANTENIMIENTO)
+             * @example FORMATO_01_FIVI
+             */
+            formatType: string;
+            /** @example FLEET_ROUTINE */
+            processType?: string | null;
+            processId?: string | null;
+            odometerKm?: number | null;
+            fuelLevelLines?: number | null;
+            /** @description Mapa de campos y evaluaciones (B/M/NA) del formato según ficha técnica */
+            data: Record<string, unknown>;
+            observations?: string | null;
+            performedBy: string;
+            /** Format: date-time */
+            performedAt?: string | null;
+        };
+        VehicleOperationalRecordResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            vehicleId: string;
+            formatType: string;
+            processType?: string | null;
+            processId?: string | null;
+            odometerKm?: number | null;
+            fuelLevelLines?: number | null;
+            data: Record<string, unknown>;
+            observations?: string | null;
+            performedBy: string;
+            /** Format: date-time */
+            performedAt: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        VehicleOperationalRecordsListResponse: {
+            items: components["schemas"]["VehicleOperationalRecordResponse"][];
+            total: number;
+        };
+        VehicleOperationalReminderResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            vehicleId: string;
+            plate?: string | null;
+            formatType: string;
+            /** Format: date-time */
+            dueDate: string;
+            /** @enum {string} */
+            status: "PENDING" | "COMPLETED" | "OVERDUE";
+            completedRecordId?: string | null;
+            /** Format: date-time */
+            completedAt?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        VehicleOperationalRemindersListResponse: {
+            items: components["schemas"]["VehicleOperationalReminderResponse"][];
+            total: number;
         };
     };
     responses: never;
@@ -499,13 +585,13 @@ export interface operations {
                     "application/json": components["schemas"]["VehicleResponse"];
                 };
             };
-            /** @description Validación fallida (class-validator) */
+            /** @description Validación fallida (class-validator) o PASSENGER_CAPACITY_REQUIRED (passengerCapacity ausente, null, 0, negativa o > 60 en el alta). */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NestErrorResponse"];
+                    "application/json": components["schemas"]["NestErrorResponse"] | components["schemas"]["KairosErrorResponse"];
                 };
             };
             /** @description Token de Firebase ausente o inválido */
@@ -623,13 +709,13 @@ export interface operations {
                     "application/json": components["schemas"]["VehicleResponse"];
                 };
             };
-            /** @description Validación fallida (class-validator) */
+            /** @description Validación fallida (class-validator) o PASSENGER_CAPACITY_REQUIRED (passengerCapacity enviada en null, 0, negativa, no entera o > 60). */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NestErrorResponse"];
+                    "application/json": components["schemas"]["NestErrorResponse"] | components["schemas"]["KairosErrorResponse"];
                 };
             };
             /** @description Token de Firebase ausente o inválido */
@@ -723,57 +809,107 @@ export interface operations {
             };
         };
     };
-    recordVehicleOperationalFormat: {
+    listVehicleOperationalRecords: {
         parameters: {
+            query: {
+                /** @description Filtrar por tipo de formato (p. ej. FORMATO_01_FIVI) */
+                formatType?: string;
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
             path: {
+                /** @description UUID del vehículo */
                 id: components["parameters"]["VehicleId"];
             };
+            cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": {
-                    companyId: string;
-                    branchId: string;
-                    formatType: string;
-                    processType?: string;
-                    processId?: string;
-                    odometerKm?: number;
-                    fuelLevelLines?: number;
-                    data: Record<string, unknown>;
-                    observations?: string;
-                    performedBy: string;
-                    performedAt?: string;
+        requestBody?: never;
+        responses: {
+            /** @description Listado de fichas operativas del vehículo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleOperationalRecordsListResponse"];
                 };
             };
-        };
-        responses: {
-            201: {
-                content: {
-                    "application/json": Record<string, unknown>;
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
                 };
+                content?: never;
+            };
+            /** @description Permiso insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
-    listVehicleOperationalRecords: {
+    recordVehicleOperationalFormat: {
         parameters: {
-            query?: {
-                companyId: string;
-                branchId: string;
-                formatType?: string;
-                limit?: number;
-                offset?: number;
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
+                /** @description UUID del vehículo */
                 id: components["parameters"]["VehicleId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordVehicleOperationalFormatRequest"];
             };
         };
         responses: {
-            200: {
+            /** @description Ficha operativa registrada exitosamente */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": {
-                        items: Array<Record<string, unknown>>;
-                        total: number;
-                    };
+                    "application/json": components["schemas"]["VehicleOperationalRecordResponse"];
+                };
+            };
+            /** @description Datos de ficha inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NestErrorResponse"];
+                };
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Permiso insuficiente para registrar fichas operativas */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KairosErrorResponse"];
+                };
+            };
+            /** @description Vehículo no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KairosErrorResponse"];
                 };
             };
         };
@@ -785,15 +921,34 @@ export interface operations {
                 branchId: string;
                 status?: "PENDING" | "COMPLETED" | "OVERDUE";
             };
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
+        requestBody?: never;
         responses: {
+            /** @description Listado de recordatorios de formatos operativos */
             200: {
-                content: {
-                    "application/json": {
-                        items: Array<Record<string, unknown>>;
-                        total: number;
-                    };
+                headers: {
+                    [name: string]: unknown;
                 };
+                content: {
+                    "application/json": components["schemas"]["VehicleOperationalRemindersListResponse"];
+                };
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Permiso insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

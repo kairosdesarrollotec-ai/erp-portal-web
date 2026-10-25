@@ -33,8 +33,8 @@ export function PersonAttendanceScreen() {
 
   const { state, data, context, reload } = useHrResource<Loaded>(
     id
-      ? async (token) => {
-          const [employee, records] = await Promise.all([getEmployee(token, id), getEmployeeAttendance(token, id, month)]);
+      ? async (token, scope) => {
+          const [employee, records] = await Promise.all([getEmployee(token, id, scope), getEmployeeAttendance(token, id, month)]);
           return { employee, records };
         }
       : null,

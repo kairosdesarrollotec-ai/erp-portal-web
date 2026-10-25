@@ -109,7 +109,12 @@ describe('HrDocumentsScreen (HU-31 Documentación de Talento Humano)', () => {
     fireEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(confirmReadMock).toHaveBeenCalledWith('tok', 'doc-1');
+      expect(confirmReadMock).toHaveBeenCalledWith('tok', 'doc-1', {
+        companyId: 'c1',
+        companyName: 'VeloxRent',
+        branchId: 'b1',
+        branchName: 'Sede Central',
+      });
     });
 
     expect(await screen.findByTestId('read-status-doc-1')).toHaveTextContent('Lectura confirmada');
@@ -145,10 +150,12 @@ describe('HrDocumentsScreen (HU-31 Documentación de Talento Humano)', () => {
     await waitFor(() => {
       expect(publishDocMock).toHaveBeenCalledWith('tok', {
         companyId: 'c1',
+        branchId: 'b1',
         code: 'FMT-VAC',
         title: 'Formato Único de Solicitud de Vacaciones',
         category: 'FORMAT',
         fileUrl: 'https://storage.veloxrent.pe/fmt-vac.pdf',
+        mimeType: 'application/pdf',
       });
     });
   });

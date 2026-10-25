@@ -121,9 +121,29 @@ export interface paths {
         };
         /**
          * Resuelve el rol del usuario para el contexto elegido y el estado del tablero (TR-06).
-         * @description PROVISIONAL (HU-24/TR-06, hallazgo medio de revision PR#5 "dashboard siempre EMPTY"): esta operacion es infraestructura de enrutamiento por rol, no la funcionalidad completa de TR-06. Los modulos de dominio (Consulta, Reserva, Alquiler, Devolucion, Reclutamiento, Administracion de Personal) todavia no existen, asi que hoy `state` solo puede ser EMPTY - no hay tareas ni alertas reales que calcular. No se cierra HU-24/TR-06 como funcionalidad terminada mientras este endpoint no calcule datos reales por rol.
+         * @description Ruta OFICIAL del tablero por rol (TR-06): `GET /users/me/dashboard` (el diseno inicial TR-06/07/08 proponia `/dashboard/me`; se conserva esta ruta, ya consumida por el front - Auditoria TR P-06, 22-oct-2026). `state` es READY con las tareas y alertas proyectadas a `dashboard_items` por los modulos de dominio (Consulta, Reserva, Alquiler, Devolucion, Reclutamiento, Personal), filtradas por rol, empresa y sede, o EMPTY si no hay ninguna. La nota PROVISIONAL de PR#5 ("siempre EMPTY") queda superada.
          */
         get: operations["getDashboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Perfil consolidado del usuario autenticado (TR-09)
+         * @description Devuelve el perfil consolidado del usuario autenticado: datos basicos de identidad (email, displayName), organizacion, estado de activacion (cambio de contrasena y enrolamiento MFA) y asignaciones vigentes de empresa/sede.
+         */
+        get: operations["getMyProfile"];
         put?: never;
         post?: never;
         delete?: never;
@@ -198,6 +218,17 @@ export interface components {
         ActivationStatusResponse: {
             requiresPasswordChange: boolean;
             requiresMfaEnrollment: boolean;
+        };
+        UserProfileResponse: {
+            firebaseUid: string;
+            email: string | null;
+            displayName: string | null;
+            organizationId: string;
+            requiresPasswordChange: boolean;
+            mfaEnrolled: boolean;
+            /** Format: date-time */
+            mfaEnrolledAt: string | null;
+            assignments: components["schemas"]["WorkContextAssignment"][];
         };
         /** @description Forma real y actual del error (no problem+json todavia): el formato default que NestJS serializa para toda HttpException sin un ExceptionFilter global (no existe uno en este backend por ahora). Migrar a application/problem+json (RFC 9457, ya usado como convencion objetivo en TDD-KAIROS-*.md) es un cambio transversal a todos los modulos, fuera de alcance de PR#4 - pendiente como su propio cambio. */
         NestErrorResponse: {
@@ -441,6 +472,33 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["NestErrorResponse"];
                 };
+            };
+        };
+    };
+    getMyProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Perfil del usuario autenticado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserProfileResponse"];
+                };
+            };
+            /** @description Token de Firebase ausente o invalido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

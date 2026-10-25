@@ -56,26 +56,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/vacancies/{id}/commands/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cancelar una vacante con motivo obligatorio (REC-02, 22-oct)
-         * @description NECESIDAD_REGISTRADA / PUBLICADA / PAUSADA -> CANCELADA. Exige `reason` (5 a 500 caracteres) y el permiso RECRUITMENT.CANCEL_VACANCY. No borra nada: los candidatos siguen consultables.
-         */
-        post: operations["cancelVacancy"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/vacancies/{id}/commands/pause": {
         parameters: {
             query?: never;
@@ -110,6 +90,26 @@ export interface paths {
          * @description PAUSADA -> PUBLICADA. Conserva el perfil, el sueldo base y los canales. Auditoría VACANCY_RESUMED.
          */
         post: operations["resumeVacancy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vacancies/{id}/commands/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancelar una vacante con motivo obligatorio (REC-02, 22-oct)
+         * @description NECESIDAD_REGISTRADA / PUBLICADA / PAUSADA -> CANCELADA (ALLOWED_VACANCY_TRANSITIONS). Exige `reason` (5 a 500 caracteres) y el permiso RECRUITMENT.CANCEL_VACANCY (v0: Gerencia y RRHH, editable en ADM-02). No borra nada: los candidatos de la vacante siguen consultables. Auditoria VACANCY_CANCELLED (motivo, estado previo, version).
+         */
+        post: operations["cancelVacancy"];
         delete?: never;
         options?: never;
         head?: never;
@@ -407,7 +407,7 @@ export interface components {
             companyId: string;
             /** Format: uuid */
             branchId: string;
-            /** @description Motivo obligatorio de la cancelacion (5 a 500 caracteres) */
+            /** @description Motivo obligatorio de la cancelacion (queda en la auditoria y en la vacante) */
             reason: string;
         };
         ResumeVacancyRequest: {
@@ -530,6 +530,7 @@ export interface components {
             /** Format: uuid */
             branchId: string;
             title: string;
+            /** @description Area del catalogo hr_areas activo de la empresa (nombre, codigo o alias como RRHH); si no existe: 422 VACANCY_AREA_NOT_FOUND. Se guarda el nombre oficial. */
             department: string;
             source: components["schemas"]["VacancySource"];
             /** @default false */
@@ -543,6 +544,7 @@ export interface components {
             profileDescription: string;
             baseSalary: number;
             scheduleDetails: string;
+            /** @description Canales de difusion. Vacante de mecanico: al menos uno tecnico (SENATI, TECSUP o «Institutos tecnicos», sin importar mayusculas ni tildes); si no, 422 MECHANIC_TECHNICAL_CHANNELS_REQUIRED. */
             channels: string[];
         };
         RegisterCandidateRequest: {
@@ -887,6 +889,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description El area (department) no existe o esta inactiva en el catalogo de la empresa (VACANCY_AREA_NOT_FOUND) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Error interno */
             500: {
                 headers: {
@@ -1007,90 +1016,6 @@ export interface operations {
             };
             /** @description Conflicto de versión (VERSION_CONFLICT) o estado no transicionable */
             409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Error interno */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    cancelVacancy: {
-        parameters: {
-            query?: never;
-            header: {
-                "If-Match": string;
-            };
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CancelVacancyRequest"];
-            };
-        };
-        responses: {
-            /** @description Vacante transicionada a CANCELADA */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VacancyDetailResponse"];
-                };
-            };
-            /** @description Datos inválidos o If-Match mal formado */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Token ausente o inválido */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Rol sin permiso RECRUITMENT.CANCEL_VACANCY o contexto no autorizado */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Vacante no encontrada */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Conflicto de versión (VERSION_CONFLICT) */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Motivo ausente o muy corto (VACANCY_CANCEL_REASON_REQUIRED) o la vacante no admite cancelación en su estado (VACANCY_NOT_CANCELLABLE) */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Falta If-Match */
-            428: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1251,6 +1176,90 @@ export interface operations {
                 content?: never;
             };
             /** @description La vacante no está pausada (VACANCY_NOT_PAUSABLE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancelVacancy: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelVacancyRequest"];
+            };
+        };
+        responses: {
+            /** @description Vacante transicionada a CANCELADA */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacancyDetailResponse"];
+                };
+            };
+            /** @description Datos inválidos o If-Match mal formado */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso RECRUITMENT.CANCEL_VACANCY o contexto no autorizado */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Vacante no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflicto de versión (VERSION_CONFLICT) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Motivo ausente o muy corto (VACANCY_CANCEL_REASON_REQUIRED) o la vacante no admite cancelación en su estado (VACANCY_NOT_CANCELLABLE) */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -2079,6 +2088,15 @@ export interface operations {
                     "application/json": components["schemas"]["ProblemDetail"];
                 };
             };
+            /** @description CV y pretensión salarial son obligatorios antes de registrar el resultado de la entrevista (CANDIDATE_REQUIREMENTS_INCOMPLETE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetail"];
+                };
+            };
             /** @description Error interno */
             500: {
                 headers: {
@@ -2093,6 +2111,7 @@ export interface operations {
             query?: never;
             header: {
                 "If-Match": string;
+                "Idempotency-Key"?: string;
             };
             path: {
                 id: string;
@@ -2172,7 +2191,9 @@ export interface operations {
     completeOnboarding: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: string;
             };
@@ -2249,7 +2270,9 @@ export interface operations {
     evaluateProbation: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 id: string;
             };
@@ -2261,7 +2284,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Evaluación registrada. Aprobada -> candidato PLANILLA y evento PasoAPlanilla.v1; no aprobada -> candidato TERMINADO (sin evento nuevo, ver preguntas abiertas del BDD) */
+            /** @description Evaluación registrada. Aprobada -> candidato PLANILLA y evento PasoAPlanilla.v1; no aprobada -> candidato TERMINADO y evento RelacionLaboralTerminada.v1 (source PROBATION_NEGATIVE), que a su vez crea la vacante de reemplazo en NECESIDAD_REGISTRADA */
             200: {
                 headers: {
                     [name: string]: unknown;

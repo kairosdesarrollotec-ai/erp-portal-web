@@ -21,11 +21,6 @@ import { InquiryVehiclesScreen } from '../inquiries/InquiryVehiclesScreen';
 import { InquiryDetailScreen } from '../inquiries/InquiryDetailScreen';
 import { CustomersListScreen } from '../customers/CustomersListScreen';
 import { CustomerDetailScreen } from '../customers/CustomerDetailScreen';
-import { AdminUsersScreen } from '../admin/AdminUsersScreen';
-import { AuditEventsScreen } from '../admin/AuditEventsScreen';
-import { ReservationDepositPolicyScreen } from '../admin/ReservationDepositPolicyScreen';
-import { NotificationTemplatesScreen } from '../admin/NotificationTemplatesScreen';
-import { DocumentTemplatesScreen } from '../admin/DocumentTemplatesScreen';
 import { ModuleHubScreen } from '../modules/ModuleHubScreen';
 import { FleetListScreen } from '../fleet/FleetListScreen';
 import { VehicleDetailScreen } from '../fleet/VehicleDetailScreen';
@@ -90,6 +85,11 @@ const SyncCenterScreen = lazyNamed(() => import('../sync/SyncCenterScreen'), 'Sy
 const AreasScreen = lazyNamed(() => import('../hr-administration/AreasScreen'), 'AreasScreen');
 const NewEmployeeScreen = lazyNamed(() => import('../hr-administration/NewEmployeeScreen'), 'NewEmployeeScreen');
 const RolePermissionMatrixScreen = lazyNamed(() => import('../admin/RolePermissionMatrixScreen'), 'RolePermissionMatrixScreen');
+const AdminUsersScreen = lazyNamed(() => import('../admin/AdminUsersScreen'), 'AdminUsersScreen');
+const AuditEventsScreen = lazyNamed(() => import('../admin/AuditEventsScreen'), 'AuditEventsScreen');
+const ReservationDepositPolicyScreen = lazyNamed(() => import('../admin/ReservationDepositPolicyScreen'), 'ReservationDepositPolicyScreen');
+const NotificationTemplatesScreen = lazyNamed(() => import('../admin/NotificationTemplatesScreen'), 'NotificationTemplatesScreen');
+const DocumentTemplatesScreen = lazyNamed(() => import('../admin/DocumentTemplatesScreen'), 'DocumentTemplatesScreen');
 const ReportsDashboardScreen = lazyNamed(() => import('../reporting/ReportsDashboardScreen'), 'ReportsDashboardScreen');
 const HrDocumentsScreen = lazyNamed(() => import('../hr-administration/HrDocumentsScreen'), 'HrDocumentsScreen');
 

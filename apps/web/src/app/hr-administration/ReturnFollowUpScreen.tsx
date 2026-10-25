@@ -27,9 +27,9 @@ function ReturnFollowUp() {
   const { can } = useHrPermissions();
   const { state, data, context, reload } = useHrResource<Loaded>(
     tripId
-      ? async (token) => {
+      ? async (token, scope) => {
           const trip = await getFieldTrip(token, tripId);
-          const employee = await getEmployee(token, trip.employeeId).catch(() => null);
+          const employee = await getEmployee(token, trip.employeeId, scope).catch(() => null);
           return { trip, employee };
         }
       : null,

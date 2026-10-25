@@ -47,23 +47,23 @@ export function OperationalRemindersModal({
         }
       }
       const res = await listVehicleOperationalReminders(token, { companyId, branchId });
-      const items = (res as any)?.reminders || (res as any) || [];
+      const items = res.items as unknown as OperationalReminderItem[];
       // Filtramos solo los pendientes y vencidos
       const pendingAndOverdue = items.filter(
         (r: OperationalReminderItem) => r.status === 'PENDING' || r.status === 'OVERDUE',
       );
       setReminders(pendingAndOverdue);
       setIsLoading(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsLoading(false);
-      setErrorMessage(err?.detail || err?.message || 'Error al cargar recordatorios operativos.');
+      setErrorMessage(err instanceof Error ? err.message : 'Error al cargar recordatorios operativos.');
     }
-  }, [initialIdToken, companyId, branchId]);
+  }, [initialIdToken, resolvedToken, companyId, branchId]);
 
   useEffect(() => {
-    if (isOpen) {
-      void loadReminders();
-    }
+    if (!isOpen) return;
+    const timer = window.setTimeout(() => { void loadReminders(); }, 0);
+    return () => window.clearTimeout(timer);
   }, [isOpen, loadReminders]);
 
   if (!isOpen) return null;
@@ -135,7 +135,7 @@ export function OperationalRemindersModal({
                       <td>
                         <strong>{OPERATIONAL_FORMAT_LABELS[rem.formatType] ?? rem.formatType}</strong>
                       </td>
-                      <td>{rem.vehiclePlate || rem.vehicleId}</td>
+                      <td>{rem.plate || rem.vehicleId}</td>
                       <td>{rem.dueDate ? new Date(rem.dueDate).toLocaleDateString('es-PE') : '-'}</td>
                       <td>
                         {canRegister && (
@@ -175,7 +175,7 @@ export function OperationalRemindersModal({
             void loadReminders();
           }}
           vehicleId={selectedReminder.vehicleId}
-          vehiclePlate={selectedReminder.vehiclePlate || selectedReminder.vehicleId}
+          vehiclePlate={selectedReminder.plate || selectedReminder.vehicleId}
           companyId={companyId}
           branchId={branchId}
           idToken={initialIdToken || resolvedToken}

@@ -194,7 +194,7 @@ export function useFleetList() {
           depositMinimum: formData.depositMinimum,
           passengerCapacity: formData.passengerCapacity,
           fuelPrice: formData.fuelPrice,
-          suitableForTrocha: formData.suitableForTrocha,
+          suitableForTrocha: formData.suitableForTrocha ?? false,
           rateNormal: formData.rateNormal,
           ratePlus: formData.ratePlus,
           rateLibre: formData.rateLibre,

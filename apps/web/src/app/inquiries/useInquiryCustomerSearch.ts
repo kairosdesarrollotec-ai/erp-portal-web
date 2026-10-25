@@ -17,14 +17,14 @@ export function useInquiryCustomerSearch(
   useEffect(() => {
     const q = customerSearchQuery.trim();
     if (q.length < 2 || !context) {
-      queueMicrotask(() => {
-        setCustomerSearchResults([]);
-        setSearchingCustomers(false);
-      });
+      // La lista y el indicador son derivados de una búsqueda inválida; se
+      // restablecen juntos, sin dejar tareas pendientes tras una selección.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCustomerSearchResults((current) => (current.length === 0 ? current : []));
+      setSearchingCustomers(false);
       return;
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSearchingCustomers(true);
     const timer = setTimeout(async () => {
       try {

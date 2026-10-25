@@ -126,11 +126,12 @@ export function registerPayment(
   version: number,
   payment?: ReservationPaymentBody,
 ): Promise<ReservationSummary> {
+  if (!payment) return Promise.reject(new ReservationCommandError(422, { code: 'PAYMENT_REQUIRED', detail: 'Completa los datos del pago antes de registrarlo.' }));
   return reservationsApiClient
     .POST('/reservations/{id}/commands/register-payment', {
       params: { path: { id }, header: { 'If-Match': `"${version}"` } },
       headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-      body: { companyId, branchId, ...(payment ?? {}) } as { companyId: string; branchId: string },
+      body: { companyId, branchId, ...payment },
     })
     .then(({ data, error, response }) => {
       if (error || !data) {

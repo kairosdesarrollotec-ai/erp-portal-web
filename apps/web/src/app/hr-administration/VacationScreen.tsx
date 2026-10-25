@@ -31,8 +31,8 @@ export function VacationScreen() {
   const { can } = useHrPermissions();
   const { state, data, context, reload } = useHrResource<Loaded>(
     id
-      ? async (token) => {
-          const [employee, vacations] = await Promise.all([getEmployee(token, id), getEmployeeVacations(token, id).catch(() => [])]);
+      ? async (token, scope) => {
+          const [employee, vacations] = await Promise.all([getEmployee(token, id, scope), getEmployeeVacations(token, id).catch(() => [])]);
           return { employee, vacations };
         }
       : null,
