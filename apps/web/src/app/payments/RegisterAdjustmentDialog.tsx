@@ -13,10 +13,10 @@ import styles from './RegisterAdjustmentDialog.module.css';
 
 const schema = z.object({
   type: z.enum(['DISCOUNT', 'FULL_RETENTION', 'RELEASE', 'IMMOBILIZATION_CHARGE'] as const, {
-    required_error: 'Selecciona el tipo de ajuste',
+    error: 'Selecciona el tipo de ajuste',
   }),
   amount: z
-    .number({ invalid_type_error: 'Ingresa un monto válido' })
+    .number({ error: 'Ingresa un monto válido' })
     .min(0.01, 'El monto debe ser mayor a 0'),
   reason: z
     .string()

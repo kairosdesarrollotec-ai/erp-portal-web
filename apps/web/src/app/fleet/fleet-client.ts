@@ -81,7 +81,7 @@ export async function listVehicles(
   if (error || !data) {
     throw new FleetApiError(
       `No se pudo obtener el catálogo de vehículos (${response.status})`,
-      500,
+      response.status,
     );
   }
   return data;
