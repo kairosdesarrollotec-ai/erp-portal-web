@@ -108,6 +108,41 @@
   font-size: 13px;
 }
 
+.forgotPasswordContainer {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.forgotPasswordButton {
+  background: none;
+  border: none;
+  color: var(--color-ink);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.forgotPasswordButton:hover {
+  color: var(--color-accent, #0066cc);
+}
+
+.forgotPasswordButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.resetSuccessNotice {
+  color: #15803d;
+  background: #f0fdf4;
+  border-left: 4px solid #16a34a;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  margin-top: 0.75rem;
+  border-radius: 2px;
+  text-align: center;
+}
+
 /* Banner de alerta inline (RECOVERABLE_ERROR) - PROTO-TR-01-CREDENCIALES-INVALIDAS:
    caja con fondo tenue, borde izquierdo de acento y icono, no texto suelto. */
 .alertBanner {

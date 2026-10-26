@@ -238,6 +238,19 @@ export interface ReturnResponse {
   /** Fuente de verdad de danos y cargos de paralizacion del expediente. */
   damages: ReturnDamageResponse[];
   immobilizationCharges: ImmobilizationChargeResponse[];
+  hasPendingOfflineChanges?: boolean;
+  mechanicReportAccepted?: boolean | null;
+  mechanicReportAcceptedAt?: string | null;
+  mechanicReportAcceptedBy?: string | null;
+  mechanicReportNotes?: string | null;
+  mechanicReportObservation?: string | null;
+  legalEscalated?: boolean;
+  legalEscalatedAt?: string | null;
+  legalEscalatedBy?: string | null;
+  legalNotes?: string | null;
+  legalEscalationReason?: string | null;
+  legalCaseNumber?: string | null;
+  vehicleFuelPenaltyPerLine?: number | null;
 }
 
 export type ReturnEvidenceType = 'PHOTO' | 'VIDEO';

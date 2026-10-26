@@ -14,6 +14,8 @@ export interface ReservationSummary {
   id: string;
   status: ReservationStatus;
   channelMode: ChannelMode;
+  canComeToOffice?: boolean | null;
+  customerLocation?: 'AYACUCHO' | 'FUERA_DE_AYACUCHO' | null;
   version: number;
   customer: { id: string; name: string };
   vehicle: { id: string; plate: string; label: string };
@@ -22,7 +24,13 @@ export interface ReservationSummary {
   startAt: string;
   endAt: string;
   requiredPayment: { amount: string; currency: string };
-  requirements: { paymentValidatedAt: string | null; documentsCompletedAt: string | null };
+  requirements: {
+    paymentValidatedAt: string | null;
+    documentsCompletedAt: string | null;
+    isRemote?: boolean;
+    video360Uploaded?: boolean;
+    signedAcceptanceUploaded?: boolean;
+  };
   missingRequirements: string[];
   confirmedAt: string | null;
   createdAt: string;
@@ -118,11 +126,12 @@ export function registerPayment(
   version: number,
   payment?: ReservationPaymentBody,
 ): Promise<ReservationSummary> {
+  if (!payment) return Promise.reject(new ReservationCommandError(422, { code: 'PAYMENT_REQUIRED', detail: 'Completa los datos del pago antes de registrarlo.' }));
   return reservationsApiClient
     .POST('/reservations/{id}/commands/register-payment', {
       params: { path: { id }, header: { 'If-Match': `"${version}"` } },
       headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-      body: { companyId, branchId, ...(payment ?? {}) } as { companyId: string; branchId: string },
+      body: { companyId, branchId, ...payment },
     })
     .then(({ data, error, response }) => {
       if (error || !data) {
@@ -201,8 +210,14 @@ export function cancelReservation(
     });
 }
 
-export type ReservationDocumentType = 'PAYMENT_VOUCHER' | 'ID_DOCUMENT' | 'OTHER';
-export type ReservationDocumentContentType = 'image/jpeg' | 'image/webp' | 'image/png' | 'application/pdf';
+export type ReservationDocumentType = 'PAYMENT_VOUCHER' | 'ID_DOCUMENT' | 'VIDEO_360' | 'SIGNED_ACCEPTANCE' | 'OTHER';
+export type ReservationDocumentContentType =
+  | 'image/jpeg'
+  | 'image/webp'
+  | 'image/png'
+  | 'application/pdf'
+  | 'video/mp4'
+  | 'video/webm';
 
 export interface ReservationDocumentRecord {
   id: string;
@@ -291,6 +306,8 @@ export const RESERVATION_ERROR_MESSAGES: Record<string, string> = {
     'La fecha pactada de la reserva ya pasó. Aplica el protocolo de no-show.',
   INQUIRY_CONVERSION_REQUIRED:
     'La reserva solo se crea desde una Consulta (botón "Reservar este vehículo" en su detalle).',
+  RESERVATION_REQUIREMENTS_NOT_MET:
+    'Para confirmar una reserva remota se requiere el video 360° del vehículo y el documento de aceptación firmado (BR-RES-005, SC-RES-007).',
 };
 
 /** Codigos cuyo mensaje de negocio (decisiones 22-oct) prevalece sobre el `detail` tecnico del backend. */
@@ -300,6 +317,7 @@ const PREFERRED_MESSAGE_CODES = new Set([
   'RESERVATION_START_NOT_REACHED',
   'RESERVATION_START_DATE_PASSED',
   'INQUIRY_CONVERSION_REQUIRED',
+  'RESERVATION_REQUIREMENTS_NOT_MET',
 ]);
 
 export function describeReservationError(error: ReservationCommandError): string {

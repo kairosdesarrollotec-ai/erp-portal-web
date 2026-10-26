@@ -198,7 +198,7 @@ export interface paths {
         put?: never;
         /**
          * Digitar la tarifa diaria del conductor de la empresa en el alquiler (DEC-ALQ-DRIVERRATE-001, F-02)
-         * @description El monto de la tarifa diaria aún no está definido por negocio: un usuario autorizado lo digita a mano en el expediente cuando se requiera (cuando no hay tarifa de entorno, o para sobrescribirla en este alquiler). Prioridad: valor manual > env COMPANY_DRIVER_DAILY_RATE > «tarifa no definida». `dailyRate` es en PEN, > 0, máximo 2 decimales (hasta 99999999.99). Solo aplica a alquileres con contrato formalizado «con conductor de la empresa» (la variante se conoce al formalizar) y en estados PENDING_DELIVERY, ACTIVE, EXTENSION_PENDING o RETURN_IN_PROGRESS. Volver a enviarlo corrige el valor (queda en auditoría el valor anterior). Incrementa la versión (If-Match) y publica el evento TarifaConductorEmpresaDefinida.v1. La respuesta trae `companyDriverCharge` (tarifa × días, con `source`). Permiso: RENTAL.FORMALIZE_CONTRACT.
+         * @description El monto de la tarifa diaria aún no está definido por negocio: un usuario autorizado lo digita a mano en el expediente cuando se requiera (cuando no hay tarifa de entorno, o para sobrescribirla en este alquiler). Prioridad: valor manual > env COMPANY_DRIVER_DAILY_RATE > «tarifa no definida». `dailyRate` es en PEN, > 0, máximo 2 decimales (hasta 99999999.99). Solo aplica a alquileres con contrato formalizado «con conductor de la empresa» (la variante se conoce al formalizar) y en estados PENDING_DELIVERY (se puede corregir hasta completar la entrega; después 409 COMPANY_DRIVER_RATE_CLOSED). Es OBLIGATORIA para completar la entrega. Volver a enviarlo corrige el valor (queda en auditoría el valor anterior). Incrementa la versión (If-Match) y publica el evento TarifaConductorEmpresaDefinida.v1. La respuesta trae `companyDriverCharge` (tarifa × días, con `source`). Permiso: RENTAL.FORMALIZE_CONTRACT.
          */
         post: operations["setCompanyDriverDailyRate"];
         delete?: never;
@@ -227,6 +227,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rentals/{id}/commands/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancelar el alquiler antes de la entrega con motivo (DEC-ALQ-CANCEL-001)
+         * @description Permite cancelar por documentos invalidos, cliente rechaza la notaria u otro motivo (OTHER exige nota >= 10). Libera el compromiso del vehiculo y publica AlquilerCancelado.v1. Si ya habia garantia cobrada queda `depositPendingRefund` en la auditoria/evento (el reembolso es un flujo pendiente).
+         */
+        post: operations["cancelRental"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rentals/{id}/company-expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar gasto de la empresa asociado al alquiler (gasto notarial) (DEC-ALQ-NOTARY-001)
+         * @description Registra un gasto asumido por la empresa (BR-ALQ-002, HU-28, SC-ALQ-001). PROHIBIDO clasificarlo como pago del cliente (responde 422 NOTARY_EXPENSE_CANNOT_BE_CUSTOMER_PAYMENT).
+         */
+        post: operations["recordRentalCompanyExpense"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rentals/{id}/commands/complete-delivery": {
         parameters: {
             query?: never;
@@ -238,7 +278,7 @@ export interface paths {
         put?: never;
         /**
          * Completar entrega física del vehículo con checklist (BR-INS-003/004)
-         * @description Alquiler directo (sin reserva): fija startAt = ahora y, si viene de una consulta, expectedEndAt = startAt + estimatedDays de la cotizacion vinculada, re-chequeando la disponibilidad del vehiculo. Alquiler de origen Reserva: conserva las fechas acordadas.
+         * @description Alquiler directo (sin reserva): fija startAt = ahora y, si viene de una consulta, expectedEndAt = startAt + estimatedDays de la cotizacion vinculada, re-chequeando la disponibilidad del vehiculo. Alquiler de origen Reserva: conserva las fechas acordadas. Con conductor de la empresa exige la tarifa diaria digitada (422 COMPANY_DRIVER_RATE_REQUIRED).
          */
         post: operations["completeDelivery"];
         delete?: never;
@@ -300,7 +340,8 @@ export interface paths {
         post?: never;
         /**
          * Elimina una evidencia (foto/video) de entrega registrada por error
-         * @description Solo mientras el alquiler esté en PENDING_DELIVERY; una vez completada la entrega la evidencia no se puede alterar. Misma acción de matriz que subirla (RENTAL.UPLOAD_EVIDENCE). Se elimina el registro; el archivo del bucket no se toca.
+         * @deprecated
+         * @description DEPRECADO (DEC-EVID-DELETE-002): usar POST /evidence/deletion-requests (doble aprobación, evidence.yaml). Este atajo exige EVIDENCE.DELETE_DIRECT (v0: solo PLATFORM_ADMIN) y responde con el header `Deprecation: true`. Solo mientras el alquiler esté en PENDING_DELIVERY; una vez completada la entrega la evidencia no se puede alterar. Se elimina el registro; el archivo del bucket no se toca.
          */
         delete: operations["deleteRentalEvidence"];
         options?: never;
@@ -458,12 +499,15 @@ export interface components {
              */
             planCode: "NORMAL" | "PLUS" | "LIBRE";
         };
+        /** @description BR-CON-004. PERUANO: identityDocumentValid + driverLicenseValid + addressOrStayProofValid (recibo agua/luz). EXTRANJERO: passportValid + foreignerCardValid + driverLicenseValid + addressOrStayProofValid (constancia de hospedaje) + fecha de ingreso en el cliente. Un cuerpo sin detalle ya no valida nada. */
         ValidateDocumentsRequest: {
             /** Format: uuid */
             companyId: string;
             /** Format: uuid */
             branchId: string;
             identityDocumentValid?: boolean;
+            passportValid?: boolean;
+            foreignerCardValid?: boolean;
             driverLicenseValid?: boolean;
             addressOrStayProofValid?: boolean;
             notes?: string;
@@ -481,6 +525,73 @@ export interface components {
             companyId: string;
             /** Format: uuid */
             branchId: string;
+            /**
+             * @description Casilla que marca el personal tras la verificacion biometrica; se audita con quien la marco (DEC-ALQ-THIRDPATH-001).
+             * @default false
+             */
+            biometricVerified: boolean;
+        };
+        RequiredGuarantee: {
+            /** @description Garantia del vehiculo en Flota */
+            baseAmount: string;
+            /** @enum {integer} */
+            multiplier: 1 | 2;
+            amount: string;
+        };
+        CancelRentalRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @enum {string} */
+            reason: "DOCUMENTS_INVALID" | "CUSTOMER_REJECTED_NOTARY" | "OTHER";
+            /** @description Obligatoria (min 10) con OTHER */
+            note?: string;
+        };
+        GuaranteePaymentRequest: {
+            /** @enum {string} */
+            method: "TRANSFERENCIA" | "DEPOSITO" | "PLIN" | "YAPE" | "EFECTIVO" | "POS";
+            /** @description Nro de operacion; en EFECTIVO, nro de recibo */
+            operationNumber?: string;
+            payerName: string;
+            /** @description Obligatorio si paga un agente externo */
+            payerDocumentNumber?: string;
+            payerIsExternalAgent: boolean;
+            /** @description Debe ser true si payerIsExternalAgent (BR-ALQ-011) */
+            externalAgentVerified?: boolean;
+            /**
+             * Format: uuid
+             * @description Documento PAYMENT_VOUCHER de este alquiler
+             */
+            voucherDocumentId?: string;
+        };
+        GuaranteePayment: {
+            amount: string;
+            /** @enum {string} */
+            method: "TRANSFERENCIA" | "DEPOSITO" | "PLIN" | "YAPE" | "EFECTIVO" | "POS";
+            operationNumber?: string | null;
+            payerName: string;
+            payerDocumentNumber?: string | null;
+            payerIsExternalAgent: boolean;
+            externalAgentVerifiedBy?: string | null;
+            /** Format: uuid */
+            voucherDocumentId?: string | null;
+            registeredBy?: string | null;
+        };
+        RequiredDocument: {
+            code: string;
+            label: string;
+            /** @enum {string} */
+            kind: "DOCUMENT" | "DATA";
+            /** @description Campo de validate-documents (null para DATA) */
+            field: string | null;
+        };
+        RentalCancellation: {
+            reason: string;
+            note?: string | null;
+            /** Format: date-time */
+            cancelledAt: string;
+            cancelledBy: string;
         };
         ApproveNotaryExceptionRequest: {
             /** Format: uuid */
@@ -542,7 +653,7 @@ export interface components {
             /** @description Tarifa diaria del conductor de la empresa en PEN; > 0, máximo 2 decimales. Ej. "120" o "120.50". */
             dailyRate: string;
         };
-        /** @description `depositAmount` y `depositCurrency` son obligatorios SALVO con conductor de la empresa (`withCompanyDriver=true`), donde no hay garantía y se omiten (DEC-ALQ-COMPANY-DRIVER-004). */
+        /** @description Con conductor de la empresa (`withCompanyDriver=true`) no hay garantía (DEC-ALQ-COMPANY-DRIVER-004). En el resto, `depositAmount`/`depositCurrency` son opcionales si Flota define la garantía del vehículo (el servidor usa la exigida, x2 con DOUBLE_DEPOSIT); si se envían no pueden ser menores; si Flota no la define son obligatorios (400). Si hay diferencia a cobrar, `payment` es obligatorio (DEC-ALQ-PAYPROOF-001). */
         FormalizeContractRequest: {
             /** Format: uuid */
             companyId: string;
@@ -556,6 +667,7 @@ export interface components {
              * @enum {string}
              */
             depositCurrency?: "PEN" | "USD";
+            payment?: components["schemas"]["GuaranteePaymentRequest"];
             holderType?: components["schemas"]["ContractHolderType"];
             /** @description BR-DOC-003. El cliente pide que la empresa le OFREZCA un conductor (servicio). No es el conductor distinto del titular de BR-ALQ-015. Obligatorio si se envía holderType. */
             withCompanyDriver?: boolean;
@@ -581,9 +693,7 @@ export interface components {
             videosCount?: number;
             notes?: string;
         };
-        /** @enum {string} */
-        RentalEvidenceZone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR" | "ALCOHOL_TEST";
-        /** @description DEC-ALQ-VEHDATA-001 (rentals.yaml 1.12.0). Aviso por cada dato del vehiculo que falta en Flota; no bloquea. */
+        /** @description DEC-ALQ-VEHDATA-001 (Respuestas 2026-10-20 #5). Aviso estructurado por cada dato del vehículo que falta en Flota (capacidad de pasajeros, garantía, precio del combustible). NO bloquea; el front pide completarlo con PATCH /fleet/vehicles/{id}. */
         VehicleDataWarning: {
             /** @enum {string} */
             code: "VEHICLE_PASSENGER_CAPACITY_MISSING" | "VEHICLE_DEPOSIT_MINIMUM_MISSING" | "VEHICLE_FUEL_PRICE_MISSING";
@@ -591,6 +701,11 @@ export interface components {
             field: "passengerCapacity" | "depositMinimum" | "fuelPrice";
             message: string;
         };
+        /**
+         * @description ALCOHOL_TEST = foto de la prueba de alcoholímetro (ENTREGA-02; solo en VALIDATION; no cuenta para las 35 fotos del checklist).
+         * @enum {string}
+         */
+        RentalEvidenceZone: "FRONTAL" | "LATERAL_IZQUIERDO" | "LATERAL_DERECHO" | "POSTERIOR" | "INTERIOR" | "ALCOHOL_TEST";
         RequestEvidenceUploadSessionRequest: {
             /** Format: uuid */
             companyId: string;
@@ -696,6 +811,11 @@ export interface components {
             evaluatedAt: string;
             approvedBy?: string | null;
             justification?: string | null;
+            biometricVerified?: boolean;
+            biometricVerifiedBy?: string | null;
+            previousRentalsCount?: number | null;
+            /** @description true = falta aprobacion de Gerencia (THIRD_PATH_ELIGIBLE / MANUAL_REVIEW sin approvedBy) */
+            pendingApproval?: boolean;
         };
         RentalContractResponse: {
             /** Format: uuid */
@@ -760,6 +880,7 @@ export interface components {
             reservationCreditExcess: string;
             /** @description Diferencia cobrada al formalizar = originalAmount - reservationCreditAmount. */
             amountCollected: string;
+            payment?: components["schemas"]["GuaranteePayment"] | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -835,11 +956,18 @@ export interface components {
             vehicleModel: string;
             /** @description Monto mínimo de garantía configurado para el vehículo (PEN). */
             vehicleDepositMinimum?: number | null;
+            /** @description Marca de Gerencia en Flota (tercera via notarial) */
+            vehicleThirdPathEligible?: boolean;
+            /** @enum {string} */
+            customerNationality?: "PERUANO" | "EXTRANJERO";
+            requiredDocuments?: components["schemas"]["RequiredDocument"][];
+            requiredGuarantee?: components["schemas"]["RequiredGuarantee"] | null;
+            cancellation?: components["schemas"]["RentalCancellation"] | null;
             /** @description Capacidad de pasajeros del vehículo (máximo de acompañantes). Null = sin capacidad registrada en Flota (DEC-FLT-CAP-002); en ese caso el máximo no se valida. */
             vehiclePassengerCapacity: number | null;
-            /** @description Precio del combustible del vehiculo (PEN). Null = no registrado en Flota (aviso VEHICLE_FUEL_PRICE_MISSING). */
+            /** @description Precio del combustible del vehículo (PEN). Null = no registrado en Flota (genera aviso VEHICLE_FUEL_PRICE_MISSING). */
             vehicleFuelPrice: number | null;
-            /** @description Un aviso por cada dato del vehiculo que falta (capacidad, garantia, combustible). Vacio si esta completo. No bloquea. */
+            /** @description Un aviso por cada dato del vehículo que falta (capacidad, garantía, combustible). Vacío si está completo. No bloquea. */
             vehicleWarnings: components["schemas"]["VehicleDataWarning"][];
             /** @description Acompañantes registrados en el alquiler (parties con rol RESPONSIBLE). Se compara contra vehiclePassengerCapacity. */
             companionsCount: number;
@@ -878,7 +1006,7 @@ export interface components {
          * @description Tipo de documento del cliente adjunto a un alquiler.
          * @enum {string}
          */
-        RentalDocumentType: "LICENSE" | "ID_DOCUMENT" | "PROOF_OF_ADDRESS" | "BANK_STATEMENT" | "OTHER";
+        RentalDocumentType: "LICENSE" | "ID_DOCUMENT" | "PROOF_OF_ADDRESS" | "BANK_STATEMENT" | "PAYMENT_VOUCHER" | "RESPONSIBILITY_DOCUMENT" | "OTHER";
         RequestRentalDocumentUploadSessionRequest: {
             /** Format: uuid */
             companyId: string;
@@ -924,6 +1052,43 @@ export interface components {
             documentType: components["schemas"]["RentalDocumentType"];
             /** Format: uri */
             objectUrl: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @enum {string} */
+        CompanyExpenseType: "GASTO_NOTARIAL";
+        RecordCompanyExpenseRequest: {
+            /** Format: uuid */
+            companyId: string;
+            expenseType: components["schemas"]["CompanyExpenseType"];
+            amount: number;
+            /** @default PEN */
+            currency: string;
+            /** Format: date-time */
+            expenseDate: string;
+            reference: string;
+            notes?: string;
+            /**
+             * @description Debe ser false. Si es true responde 422 NOTARY_EXPENSE_CANNOT_BE_CUSTOMER_PAYMENT
+             * @default false
+             */
+            paidByCustomer: boolean;
+        };
+        CompanyExpenseResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            rentalId: string | null;
+            expenseType: components["schemas"]["CompanyExpenseType"];
+            amount: number;
+            currency: string;
+            /** Format: date-time */
+            expenseDate: string;
+            reference: string;
+            notes?: string | null;
+            createdBy: string;
             /** Format: date-time */
             createdAt: string;
         };
@@ -1048,7 +1213,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Período de alquiler inválido, CUSTOMER_BLOCKED (cliente ROJO) o INQUIRY_NOT_TRANSITIONABLE (inquiryId no está COTIZADA) */
+            /** @description INQUIRY_REQUIRED (sin inquiryId), Período de alquiler inválido, CUSTOMER_BLOCKED (cliente ROJO), INQUIRY_NOT_TRANSITIONABLE (la consulta no está COTIZADA), QUOTATION_EXPIRED, INQUIRY_VEHICLE_MISMATCH o INQUIRY_CUSTOMER_MISMATCH */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1239,7 +1404,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Documentos incompletos */
+            /** @description DOCUMENTS_INCOMPLETE - faltan documentos requeridos por la nacionalidad del cliente (BR-CON-004); el cuerpo trae missingDocuments y requiredDocuments */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1309,6 +1474,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description ALCOHOL_TEST_PHOTO_REQUIRED (DESFAVORABLE o RECHAZADO sin foto ALCOHOL_TEST subida antes) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Falta header If-Match */
             428: {
                 headers: {
@@ -1349,6 +1521,15 @@ export interface operations {
                             reason: string;
                             requiresApproval: boolean;
                             approverRole?: string;
+                            /** @description Tercera via: se firma el documento de responsabilidad (RESPONSIBILITY_DOCUMENT) y no se duplica la garantia. */
+                            requiresResponsibilityDocument?: boolean;
+                            /** @description Alquileres previos CERRADOS del cliente; cliente antiguo = mas de 2. */
+                            previousRentalsCount: number;
+                            biometricVerified: boolean;
+                            vehicleThirdPathEligible: boolean;
+                            /** @enum {integer} */
+                            depositMultiplier: 1 | 2;
+                            requiredGuarantee: components["schemas"]["RequiredGuarantee"] | null;
                         };
                     };
                 };
@@ -1759,7 +1940,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description COMPANY_DRIVER_RATE_CLOSED (alquiler CLOSED o CANCELLED) */
+            /** @description COMPANY_DRIVER_RATE_CLOSED (el proceso de alquiler ya terminó - ACTIVE, EXTENSION_PENDING, RETURN_IN_PROGRESS - o está CLOSED/CANCELLED) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -1861,7 +2042,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description DEPOSIT_NOT_APPLICABLE_WITH_COMPANY_DRIVER (se envió garantía con conductor de la empresa). RESERVATION_CREDIT_CURRENCY_MISMATCH (moneda distinta). Un monto de reserva mayor que la garantía ya NO es error (queda en deposit.reservationCreditExcess). */
+            /** @description DEPOSIT_NOT_APPLICABLE_WITH_COMPANY_DRIVER (se envió garantía con conductor de la empresa). RESERVATION_CREDIT_CURRENCY_MISMATCH (moneda distinta). INVALID_DEPOSIT_AMOUNT (garantia menor a la exigida; tarifa de Flota, x2 con DOUBLE_DEPOSIT). PAYMENT_PROOF_REQUIRED (hay cobro y falta payment/comprobante; en EFECTIVO basta nro de recibo o comprobante). EXTERNAL_AGENT_VERIFICATION_REQUIRED (BR-ALQ-011). GUARANTEE_VOUCHER_NOT_FOUND. RESPONSIBILITY_DOCUMENT_REQUIRED (tercera via sin documento de responsabilidad). Un monto de reserva mayor que la garantia no es posible: se rechaza al crear el alquiler desde la reserva (RESERVATION_EXCEEDS_GUARANTEE). */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -1874,6 +2055,139 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    cancelRental: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelRentalRequest"];
+            };
+        };
+        responses: {
+            /** @description Alquiler cancelado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RentalResponse"];
+                };
+            };
+            /** @description No autorizado (RENTAL.CANCEL) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Estado incompatible (INVALID_RENTAL_STATE_TRANSITION) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INVALID_CANCEL_REASON */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordRentalCompanyExpense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordCompanyExpenseRequest"];
+            };
+        };
+        responses: {
+            /** @description Gasto de la empresa registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyExpenseResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso RENTAL.MANAGE o RENTAL.FORMALIZE_CONTRACT */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description NOTARY_EXPENSE_CANNOT_BE_CUSTOMER_PAYMENT (el gasto notarial lo asume la empresa, no puede cobrarse al cliente) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["RentalErrorResponse"];
+                };
             };
         };
     };
@@ -1931,7 +2245,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Falta evidencia obligatoria (mínimo 35 fotos y 3 videos) */
+            /** @description Falta evidencia obligatoria (mínimo 35 fotos y 3 videos), o COMPANY_DRIVER_RATE_REQUIRED (con conductor de la empresa sin tarifa diaria digitada) */
             422: {
                 headers: {
                     [name: string]: unknown;

@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { HrFrame } from './HrFrame';
-import { cancelVacation, getEmployee, getEmployeeVacations, rescheduleVacation, scheduleVacation, type EmployeeDetail, type VacationRequest } from './hr-client';
+import { cancelVacation, getEmployee, getEmployeeVacations, rescheduleVacation, resolveVacation, scheduleVacation, type EmployeeDetail, type VacationRequest } from './hr-client';
 import { ACTIVE_VACATION_STATUSES, rangeLengthDays, suggestFreeRange, VACATION_STATUS_LABEL } from './hr-domain';
 import { AreaFreeDaysCalendar } from './AreaFreeDaysCalendar';
 import { VacationChangeDialog } from './VacationChangeDialog';
+import { VacationResolveDialog } from './VacationResolveDialog';
 import { useAreaOccupiedDays } from './useAreaOccupiedDays';
 import { limaToday } from '../shared/lima-time';
 import { VACATION_CONFLICT_MESSAGE } from './hr-errors';
@@ -30,8 +31,8 @@ export function VacationScreen() {
   const { can } = useHrPermissions();
   const { state, data, context, reload } = useHrResource<Loaded>(
     id
-      ? async (token) => {
-          const [employee, vacations] = await Promise.all([getEmployee(token, id), getEmployeeVacations(token, id).catch(() => [])]);
+      ? async (token, scope) => {
+          const [employee, vacations] = await Promise.all([getEmployee(token, id, scope), getEmployeeVacations(token, id).catch(() => [])]);
           return { employee, vacations };
         }
       : null,
@@ -45,6 +46,7 @@ export function VacationScreen() {
   const startRef = useRef<HTMLInputElement>(null);
   const [pickOther, setPickOther] = useState(false);
   const [change, setChange] = useState<{ mode: 'RESCHEDULE' | 'CANCEL'; vacation: VacationRequest } | null>(null);
+  const [resolveTarget, setResolveTarget] = useState<VacationRequest | null>(null);
 
   const employee = data?.employee;
   const check = useVacationConflict({ scope: context ? { companyId: context.companyId, branchId: context.branchId } : undefined, areaId: employee?.areaId, employeeId: id, startDate, endDate });
@@ -58,6 +60,7 @@ export function VacationScreen() {
     employeeId: id,
   });
   const canRequest = can('SCHEDULE_VACATION') && employee?.status !== 'TERMINADO';
+  const canResolve = (can('AUTHORIZE_LEAVE') || can('SCHEDULE_VACATION')) && employee?.status !== 'TERMINADO';
 
   useEffect(() => {
     if (canRequest && data) startRef.current?.focus();
@@ -94,6 +97,19 @@ export function VacationScreen() {
     if (res.ok) {
       command.setNotice(change.mode === 'RESCHEDULE' ? 'Vacaciones reprogramadas.' : 'Vacaciones canceladas.');
       setChange(null);
+      await reload();
+    }
+  }
+
+  async function submitResolve(input: { status: 'PROGRAMADA' | 'CANCELADA'; grantedDays?: number; statusReason?: string }) {
+    if (!resolveTarget) return;
+    const res = await command.run(
+      (token) => resolveVacation(token, resolveTarget.id, input),
+      'No pudimos resolver la solicitud de vacaciones. Intenta de nuevo.',
+    );
+    if (res.ok) {
+      command.setNotice(input.status === 'PROGRAMADA' ? 'Vacaciones aprobadas.' : 'Solicitud de vacaciones rechazada.');
+      setResolveTarget(null);
       await reload();
     }
   }
@@ -250,6 +266,7 @@ export function VacationScreen() {
                 {vacations.map((v) => (
                   <li key={v.id} className={styles.listItem}>
                     Del {formatDate(v.startDate)} al {formatDate(v.endDate)} · {VACATION_STATUS_LABEL[v.status]}
+                    {v.grantedDays && <span data-testid="vacation-granted-days"> · {v.grantedDays} días otorgados</span>}
                     {v.status === 'REPROGRAMADA' && v.originalStartDate && v.originalEndDate && (
                       <span data-testid="vacation-rescheduled-note">
                         {' '}
@@ -258,16 +275,28 @@ export function VacationScreen() {
                       </span>
                     )}
                     {v.status === 'CANCELADA' && v.statusReason && <span data-testid="vacation-cancelled-note"> (motivo: {v.statusReason})</span>}
-                    {canRequest && ACTIVE_VACATION_STATUSES.includes(v.status) && (
-                      <span className={styles.rowActions}>
-                        <button type="button" className={styles.smallButton} onClick={() => { command.clearError(); setChange({ mode: 'RESCHEDULE', vacation: v }); }}>
-                          Reprogramar
+                    <span className={styles.rowActions}>
+                      {canResolve && v.status === 'SOLICITADA' && (
+                        <button
+                          type="button"
+                          className={styles.smallButton}
+                          data-testid="resolve-vacation-btn"
+                          onClick={() => { command.clearError(); setResolveTarget(v); }}
+                        >
+                          Resolver / Aprobar
                         </button>
-                        <button type="button" className={styles.smallButton} onClick={() => { command.clearError(); setChange({ mode: 'CANCEL', vacation: v }); }}>
-                          Cancelar
-                        </button>
-                      </span>
-                    )}
+                      )}
+                      {canRequest && ACTIVE_VACATION_STATUSES.includes(v.status) && (
+                        <>
+                          <button type="button" className={styles.smallButton} onClick={() => { command.clearError(); setChange({ mode: 'RESCHEDULE', vacation: v }); }}>
+                            Reprogramar
+                          </button>
+                          <button type="button" className={styles.smallButton} onClick={() => { command.clearError(); setChange({ mode: 'CANCEL', vacation: v }); }}>
+                            Cancelar
+                          </button>
+                        </>
+                      )}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -283,6 +312,15 @@ export function VacationScreen() {
               error={command.error}
               onSubmit={(input) => void submitChange(input)}
               onClose={() => setChange(null)}
+            />
+          )}
+          {resolveTarget && (
+            <VacationResolveDialog
+              vacation={resolveTarget}
+              saving={command.saving}
+              error={command.error}
+              onSubmit={(input) => void submitResolve(input)}
+              onClose={() => setResolveTarget(null)}
             />
           )}
         </>

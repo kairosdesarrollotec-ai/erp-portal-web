@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ReservationDetailScreen } from './ReservationDetailScreen';
 import { ReservationCommandError } from './reservations-client';
@@ -304,5 +304,129 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
     renderScreen();
     await screen.findByText('Borrador / No confirmada');
     expect(screen.queryByTestId('vehicle-data-warnings')).not.toBeInTheDocument();
+  });
+
+  describe('HU-04 / BDD-RES-001 (Reserva Remota)', () => {
+    it('muestra badge de Modalidad Remota (BR-RES-005) y aviso de bloqueo atómico (SC-RES-004)', async () => {
+      getReservationMock.mockResolvedValue(
+        buildReservation({
+          channelMode: 'VIRTUAL',
+          customerLocation: 'FUERA_DE_AYACUCHO',
+          canComeToOffice: false,
+          requirements: {
+            paymentValidatedAt: null,
+            documentsCompletedAt: null,
+            isRemote: true,
+            video360Uploaded: false,
+            signedAcceptanceUploaded: false,
+          },
+        }),
+      );
+      renderScreen();
+
+      expect(await screen.findByText('Modalidad Remota (BR-RES-005)')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'El vehículo permanece disponible para otros clientes hasta completar el pago y la aceptación firmada (SC-RES-004).',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Video 360° del vehículo')).toBeInTheDocument();
+      expect(screen.getByText('Documento de aceptación firmado')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Subir video' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Subir documento' })).toBeInTheDocument();
+    });
+
+    it('exige video 360 y aceptación firmada además de pago y documentos para confirmar reserva remota', async () => {
+      // Solo pago y documentos completos (sin video 360 ni aceptación)
+      getReservationMock.mockResolvedValue(
+        buildReservation({
+          channelMode: 'VIRTUAL',
+          requirements: {
+            paymentValidatedAt: '2026-09-16T00:00:00Z',
+            documentsCompletedAt: '2026-09-16T00:00:00Z',
+            isRemote: true,
+            video360Uploaded: false,
+            signedAcceptanceUploaded: false,
+          },
+        }),
+      );
+      renderScreen();
+
+      await screen.findByText('Modalidad Remota (BR-RES-005)');
+      expect(screen.queryByRole('button', { name: 'Confirmar reserva' })).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Para confirmar una reserva remota se requiere completar el pago, documentos, video 360° y documento de aceptación firmado (BR-RES-005).',
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('habilita "Confirmar reserva" cuando los 4 requisitos remotos están completos', async () => {
+      getReservationMock.mockResolvedValue(
+        buildReservation({
+          channelMode: 'VIRTUAL',
+          requirements: {
+            paymentValidatedAt: '2026-09-16T00:00:00Z',
+            documentsCompletedAt: '2026-09-16T00:00:00Z',
+            isRemote: true,
+            video360Uploaded: true,
+            signedAcceptanceUploaded: true,
+          },
+        }),
+      );
+      confirmReservationMock.mockResolvedValue(
+        buildReservation({
+          status: 'CONFIRMED',
+          version: 2,
+          channelMode: 'VIRTUAL',
+          requirements: {
+            paymentValidatedAt: '2026-09-16T00:00:00Z',
+            documentsCompletedAt: '2026-09-16T00:00:00Z',
+            isRemote: true,
+            video360Uploaded: true,
+            signedAcceptanceUploaded: true,
+          },
+          confirmedAt: '2026-09-16T00:00:00Z',
+        }),
+      );
+      renderScreen();
+
+      const confirmBtn = await screen.findByRole('button', { name: 'Confirmar reserva' });
+      expect(confirmBtn).toBeEnabled();
+      fireEvent.click(confirmBtn);
+      await waitFor(() => {
+        expect(confirmReservationMock).toHaveBeenCalledWith('fake-id-token', 'res-1', 'c1', 'b1', 1);
+      });
+    });
+
+    it('muestra error cuando backend rechaza con RESERVATION_REQUIREMENTS_NOT_MET', async () => {
+      getReservationMock.mockResolvedValue(
+        buildReservation({
+          channelMode: 'VIRTUAL',
+          requirements: {
+            paymentValidatedAt: '2026-09-16T00:00:00Z',
+            documentsCompletedAt: '2026-09-16T00:00:00Z',
+            isRemote: true,
+            video360Uploaded: true,
+            signedAcceptanceUploaded: true,
+          },
+        }),
+      );
+      confirmReservationMock.mockRejectedValue(
+        new ReservationCommandError(422, {
+          code: 'RESERVATION_REQUIREMENTS_NOT_MET',
+          detail: 'Requisitos remotos incompletos',
+        }),
+      );
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirmar reserva' }));
+
+      expect(
+        await screen.findByText(
+          'Para confirmar una reserva remota se requiere el video 360° del vehículo y el documento de aceptación firmado (BR-RES-005, SC-RES-007).',
+        ),
+      ).toBeInTheDocument();
+    });
   });
 });

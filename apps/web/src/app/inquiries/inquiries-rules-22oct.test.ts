@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { effectiveInquiryChannel } from './useNewInquiry';
-import { fallbackRequiredDocuments, inquiryChannelLabel, requiredDocumentLabel, INQUIRY_CHANNEL_LABELS } from './inquiry-status';
+import { fallbackRequiredDocuments, inquiryChannelLabel, requiredDocumentLabel, INQUIRY_CHANNEL_LABELS, interactionOutcomeLabel } from './inquiry-status';
 import { inquiryCommandErrorMessage, InquiryCommandError } from './inquiries-client';
 import { vehicleFitsParty } from './useInquiryVehicles';
 
@@ -16,6 +16,17 @@ describe('reglas de Consulta (decisiones 22-oct)', () => {
     expect(inquiryChannelLabel('REDES')).toBe('Redes sociales');
     expect(inquiryChannelLabel(null)).toBe('Sin canal');
     expect(inquiryChannelLabel('OTRO')).toBe('OTRO');
+  });
+
+  it('interactionOutcomeLabel formatea los resultados de interacciones de la consulta', () => {
+    expect(interactionOutcomeLabel('REGISTRADA')).toBe('Consulta registrada');
+    expect(interactionOutcomeLabel('COTIZADA')).toBe('Cotizada');
+    expect(interactionOutcomeLabel('CONVERTIDA_A_RESERVA')).toBe('Convertida a reserva');
+    expect(interactionOutcomeLabel('CONVERTIDA_A_ALQUILER')).toBe('Convertida a alquiler');
+    expect(interactionOutcomeLabel('CERRADA_SIN_CONVERSION')).toBe('Cerrada sin conversión');
+    expect(interactionOutcomeLabel(null)).toBe('Interacción');
+    expect(interactionOutcomeLabel(undefined)).toBe('Interacción');
+    expect(interactionOutcomeLabel('OTRO_ESTADO')).toBe('OTRO_ESTADO');
   });
 
   it('documentos requeridos por nacionalidad', () => {
@@ -42,3 +53,4 @@ describe('reglas de Consulta (decisiones 22-oct)', () => {
     expect(inquiryCommandErrorMessage(new Error('boom'), 'x')).toBe('boom');
   });
 });
+

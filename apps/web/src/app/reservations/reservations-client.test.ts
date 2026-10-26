@@ -64,7 +64,7 @@ describe('reservations-client', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    await registerPayment('token', 'res-1', 'c1', 'b1', 1);
+    await registerPayment('token', 'res-1', 'c1', 'b1', 1, { amount: '100', method: 'EFECTIVO', payerName: 'Cliente' });
     await confirmReservation('token', 'res-1', 'c1', 'b1', 2);
 
     const firstRequest = fetchMock.mock.calls[0][0] as Request;
@@ -78,7 +78,7 @@ describe('reservations-client', () => {
   it('un comando mutable que falla lanza ReservationCommandError con el problem+json (finding #7)', async () => {
     vi.stubGlobal('fetch', mockFetchOnce(422, { code: 'REQUIREMENTS_INCOMPLETE', detail: 'faltan', missingRequirements: ['DOCUMENTS_COMPLETE'] }));
 
-    await expect(registerPayment('token', 'res-1', 'c1', 'b1', 1)).rejects.toMatchObject({
+    await expect(registerPayment('token', 'res-1', 'c1', 'b1', 1, { amount: '100', method: 'EFECTIVO', payerName: 'Cliente' })).rejects.toMatchObject({
       status: 422,
       problem: { code: 'REQUIREMENTS_INCOMPLETE', missingRequirements: ['DOCUMENTS_COMPLETE'] },
     });

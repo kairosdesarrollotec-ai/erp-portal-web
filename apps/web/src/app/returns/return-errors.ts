@@ -42,6 +42,12 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   RETURN_NOT_FOUND: 'No encontramos esta devolución en tu empresa y sede.',
   ROLE_NOT_ALLOWED: 'Tu rol no tiene permiso para realizar esta acción.',
   CUSTOMER_BLOCKED: 'El cliente está bloqueado (semáforo rojo) y no puede realizar nuevas operaciones.',
+  MECHANIC_REPORT_NOT_ACCEPTED:
+    'El cierre requiere que el cliente acepte el informe del taller mecánico/Motrix debido a los daños registrados.',
+  RETURN_OFFLINE_CHANGES_PENDING:
+    'Hay cambios pendientes de sincronización local. Espera a que se sincronicen antes de cerrar el expediente.',
+  ACTIVE_INCIDENTS_BLOCK_CLOSE:
+    'No se puede cerrar la devolución mientras existan incidencias técnicas activas sin monto evaluado.',
 };
 
 const STATUS_MESSAGES: Record<number, string> = {
@@ -56,7 +62,15 @@ const STATUS_MESSAGES: Record<number, string> = {
 
 /** INCIDENT_STILL_OPEN (HTTP 422; se tolera 409 por compatibilidad): estado BLOCKED de DEV-09/DEV-10. */
 export function isIncidentOpenError(error: unknown): boolean {
-  return error instanceof ReturnCommandError && error.problem?.code === 'INCIDENT_STILL_OPEN';
+  return error instanceof ReturnCommandError && (error.problem?.code === 'INCIDENT_STILL_OPEN' || error.problem?.code === 'ACTIVE_INCIDENTS_BLOCK_CLOSE');
+}
+
+export function isMechanicReportNotAcceptedError(error: unknown): boolean {
+  return error instanceof ReturnCommandError && error.problem?.code === 'MECHANIC_REPORT_NOT_ACCEPTED';
+}
+
+export function isOfflineChangesPendingError(error: unknown): boolean {
+  return error instanceof ReturnCommandError && error.problem?.code === 'RETURN_OFFLINE_CHANGES_PENDING';
 }
 
 /** True si el error indica que el expediente cambio y hay que recargarlo. */

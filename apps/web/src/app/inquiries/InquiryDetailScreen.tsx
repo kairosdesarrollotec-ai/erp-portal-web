@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInquiryDetail } from './useInquiryDetail';
-import { INQUIRY_STATUS_LABELS, inquiryChannelLabel, requiredDocumentLabel } from './inquiry-status';
+import { INQUIRY_STATUS_LABELS, inquiryChannelLabel, requiredDocumentLabel, interactionOutcomeLabel } from './inquiry-status';
 import { rentalWizardPathForStatus } from '../rentals/rental-status';
 import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
@@ -75,7 +75,11 @@ export function InquiryDetailScreen() {
   async function handleReserve() {
     if (!startAt || canComeToOffice === null) return;
     const channelMode = canComeToOffice ? 'PRESENCIAL' : 'VIRTUAL';
-    const reservationId = await convertToReservation(channelMode, limaDateTimeToInstant(startAt) ?? startAt);
+    const reservationId = await convertToReservation(
+      channelMode,
+      limaDateTimeToInstant(startAt) ?? startAt,
+      canComeToOffice,
+    );
     if (reservationId) navigate(`/reservas/${reservationId}`, { state: context ?? undefined });
   }
 
@@ -107,7 +111,10 @@ export function InquiryDetailScreen() {
     );
   }
 
-  const latestQuotation = inquiry.quotations?.[inquiry.quotations.length - 1] ?? null;
+  const latestQuotation =
+    (inquiry.latestQuotationId ? inquiry.quotations?.find((q) => q.id === inquiry.latestQuotationId) : null) ??
+    inquiry.quotations?.[0] ??
+    null;
   const canReserve = Boolean(latestQuotation) && inquiry.status !== 'CONVERTIDA' && inquiry.status !== 'CERRADA_SIN_CONVERSION';
   const isTerminal = inquiry.status === 'CERRADA_SIN_CONVERSION' || inquiry.status === 'CONVERTIDA';
 
@@ -131,8 +138,8 @@ export function InquiryDetailScreen() {
   const timelineEvents = [
     ...(inquiry.interactions ?? []).map((item) => ({
       id: item.id,
-      label: item.type,
-      detail: item.note,
+      label: interactionOutcomeLabel(item.outcome),
+      detail: item.note ?? undefined,
       at: item.occurredAt,
     })),
     ...(inquiry.quotations ?? []).map((item) => ({
@@ -201,9 +208,11 @@ export function InquiryDetailScreen() {
                 <dt>Documentos requeridos</dt>
                 <dd>
                   <ul data-testid="required-documents">
-                    {inquiry.requiredDocuments.map((code) => (
-                      <li key={code}>{requiredDocumentLabel(code)}</li>
-                    ))}
+                    {inquiry.requiredDocuments.map((doc) => {
+                      const code = typeof doc === 'string' ? doc : doc.code;
+                      const label = typeof doc === 'string' ? requiredDocumentLabel(doc) : doc.label || requiredDocumentLabel(doc.code);
+                      return <li key={code}>{label}</li>;
+                    })}
                   </ul>
                 </dd>
               </div>

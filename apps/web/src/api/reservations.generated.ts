@@ -17,7 +17,7 @@ export interface paths {
         /**
          * DESHABILITADO - crear una reserva se hace con POST /inquiries/{id}/commands/convert-to-reservation
          * @deprecated
-         * @description Revalidacion PR#7 (hallazgo CRITICO "cardinalidad Inquiry -> Reservation"): este endpoint permitia crear una reserva citando una consulta en cualquier estado sin transicionarla (varias reservas por consulta, reservas de consultas cerradas). Decision interina (docs/conflicts/CONFLICT-CON-001.md, pendiente de aprobacion): la unica via es convert-to-reservation de Consulta. Este endpoint conserva autenticacion, contexto y rol y responde 409 INQUIRY_CONVERSION_REQUIRED.
+         * @description DEC-CON-001-FINAL (decision 22-oct-2026): toda reserva nace de una Consulta COTIZADA. Este endpoint se conserva como shim permanente: autentica, valida contexto y rol (RESERVATION.CREATE) y responde siempre 422 INQUIRY_REQUIRED (sin inquiryId) o 409 INQUIRY_CONVERSION_REQUIRED (con inquiryId, usar convert-to-reservation). Ya no existe la reserva directa; el monto, la moneda y la version de politica los decide el servidor.
          */
         post: operations["createReservation"];
         delete?: never;
@@ -55,7 +55,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Marca el pago del monto de reserva vigente (RES-P09, BR-RES-001) */
+        /** Registra el pago del monto de reserva con su comprobante (RES-P09, BR-RES-001, DEC-RES-PAYPROOF-001) */
         post: operations["registerReservationPayment"];
         delete?: never;
         options?: never;
@@ -225,31 +225,66 @@ export interface components {
         ReservationStatus: "DRAFT" | "CONFIRMED" | "PENDING_SALE_RESOLUTION" | "CONVERTED" | "CANCELLED";
         /** @enum {string} */
         ChannelMode: "PRESENCIAL" | "VIRTUAL";
+        /**
+         * @description DAT-RES-001. Ubicacion declarada del cliente.
+         * @enum {string}
+         */
+        CustomerLocation: "AYACUCHO" | "FUERA_DE_AYACUCHO";
         CommandScopeRequest: {
             /** Format: uuid */
             companyId: string;
             /** Format: uuid */
             branchId: string;
         };
+        /** @description DEPRECADO (DEC-CON-001-FINAL). Solo inquiryId se interpreta; el resto se ignora. Ver POST /reservations. */
         CreateReservationRequest: components["schemas"]["CommandScopeRequest"] & {
+            /** Format: uuid */
+            inquiryId?: string;
             /**
              * Format: uuid
-             * @description CONFLICT-CON-001: opcional. Si se omite, se crea una reserva directa sin consulta previa.
+             * @deprecated
              */
-            inquiryId?: string;
+            customerId?: string;
+            /**
+             * Format: uuid
+             * @deprecated
+             */
+            vehicleId?: string;
+            channelMode?: components["schemas"]["ChannelMode"];
+            /**
+             * Format: date-time
+             * @deprecated
+             */
+            startAt?: string;
+            /**
+             * Format: date-time
+             * @deprecated
+             */
+            endAt?: string;
+        };
+        /** @enum {string} */
+        PaymentMethod: "TRANSFERENCIA" | "DEPOSITO" | "PLIN" | "YAPE" | "EFECTIVO" | "POS";
+        RegisterReservationPaymentRequest: components["schemas"]["CommandScopeRequest"] & {
+            /** @description Decimal (ej. "300.00"). Debe ser igual al monto exigido por la politica vigente; menor o mayor -> 422 INVALID_DEPOSIT_AMOUNT. */
+            amount: string;
+            method: components["schemas"]["PaymentMethod"];
+            /** @description Nro de operacion o de recibo */
+            operationNumber?: string;
+            payerName: string;
+            /**
+             * Format: uuid
+             * @description Documento PAYMENT_VOUCHER de esta reserva
+             */
+            voucherDocumentId?: string;
+        };
+        ReservationPayment: {
+            amount: string;
+            method: components["schemas"]["PaymentMethod"];
+            operationNumber?: string | null;
+            payerName: string;
             /** Format: uuid */
-            customerId: string;
-            /** Format: uuid */
-            vehicleId: string;
-            channelMode: components["schemas"]["ChannelMode"];
-            /** Format: date-time */
-            startAt: string;
-            /** Format: date-time */
-            endAt: string;
-            /** @description Importe de pago requerido en formato decimal (ej. "300.00"). Si la reserva llega a alquiler, este monto se TRASLADA ÍNTEGRO a la garantía del alquiler y solo se cobra la diferencia (P0-03 opción a; ver rentals.yaml formalize-contract). Una reserva cancelada (incluye no-show) no traslada nada. */
-            requiredPaymentAmount: string;
-            currency: string;
-            paymentPolicyVersion: number;
+            voucherDocumentId?: string | null;
+            registeredBy?: string | null;
         };
         CancelReservationRequest: components["schemas"]["CommandScopeRequest"] & {
             /** @enum {string} */
@@ -311,7 +346,7 @@ export interface components {
             /** Format: date-time */
             resolvedAt: string | null;
         };
-        /** @description DEC-ALQ-VEHDATA-001 (reservations.yaml 0.9.0). Aviso por cada dato del vehiculo que falta en Flota; no bloquea. */
+        /** @description DEC-ALQ-VEHDATA-001 (Respuestas 2026-10-20 #5). Aviso estructurado por cada dato del vehículo que falta en Flota (capacidad de pasajeros, garantía, precio del combustible). NO bloquea; el front pide completarlo con PATCH /fleet/vehicles/{id}. */
         VehicleDataWarning: {
             /** @enum {string} */
             code: "VEHICLE_PASSENGER_CAPACITY_MISSING" | "VEHICLE_DEPOSIT_MINIMUM_MISSING" | "VEHICLE_FUEL_PRICE_MISSING";
@@ -324,6 +359,10 @@ export interface components {
             id: string;
             status: components["schemas"]["ReservationStatus"];
             channelMode: components["schemas"]["ChannelMode"];
+            /** @description BR-RES-005. Si el cliente puede acercarse a la oficina para entrega/firma presencial (null en reservas antiguas). */
+            canComeToOffice?: boolean | null;
+            /** @description DAT-RES-001. Ubicacion declarada del cliente al reservar (null en reservas antiguas). */
+            customerLocation?: components["schemas"]["CustomerLocation"] | null;
             version: number;
             customer: {
                 /** Format: uuid */
@@ -336,7 +375,7 @@ export interface components {
                 plate: string;
                 label: string;
             };
-            /** @description Un aviso por cada dato del vehiculo que falta (capacidad, garantia, combustible). Vacio si esta completo. No bloquea. */
+            /** @description Un aviso por cada dato del vehículo que falta (capacidad, garantía, combustible). Vacío si está completo. No bloquea. */
             vehicleWarnings: components["schemas"]["VehicleDataWarning"][];
             /** Format: date-time */
             startAt: string;
@@ -351,8 +390,15 @@ export interface components {
                 paymentValidatedAt: string | null;
                 /** Format: date-time */
                 documentsCompletedAt: string | null;
+                /** @description BR-RES-005. True si la reserva es remota. */
+                isRemote?: boolean;
+                /** @description SC-RES-003. True si se subio el video 360 del vehiculo. */
+                video360Uploaded?: boolean;
+                /** @description SC-RES-003. True si se subio el documento de aceptacion firmado. */
+                signedAcceptanceUploaded?: boolean;
             };
             missingRequirements?: string[];
+            payment?: components["schemas"]["ReservationPayment"] | null;
             /** Format: date-time */
             confirmedAt?: string | null;
             /** Format: date-time */
@@ -366,16 +412,16 @@ export interface components {
          * @description Tipo de documento adjunto a una reserva.
          * @enum {string}
          */
-        ReservationDocumentType: "PAYMENT_VOUCHER" | "ID_DOCUMENT" | "OTHER";
+        ReservationDocumentType: "PAYMENT_VOUCHER" | "ID_DOCUMENT" | "VIDEO_360" | "SIGNED_ACCEPTANCE" | "OTHER";
         RequestReservationDocumentUploadSessionRequest: {
             /** Format: uuid */
             companyId: string;
             /** Format: uuid */
             branchId: string;
             documentType: components["schemas"]["ReservationDocumentType"];
-            /** @description MIME type del archivo (image/jpeg, image/png, application/pdf). */
+            /** @description MIME type del archivo (image/jpeg, image/png, application/pdf, video/mp4, video/webm). */
             contentType: string;
-            /** @description Tamaño en bytes. Máximo 10 MB. */
+            /** @description Tamaño en bytes. Máximo 100 MB. */
             contentLength: number;
         };
         ReservationDocumentUploadSessionResponse: {
@@ -491,6 +537,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description INQUIRY_REQUIRED - no hay reserva sin consulta previa */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     getReservation: {
@@ -546,7 +599,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CommandScopeRequest"];
+                "application/json": components["schemas"]["RegisterReservationPaymentRequest"];
             };
         };
         responses: {
@@ -575,6 +628,13 @@ export interface operations {
             };
             /** @description RESERVATION_VERSION_CONFLICT - If-Match no coincide con la version actual */
             412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INVALID_DEPOSIT_AMOUNT (reason BELOW_REQUIRED/ABOVE_REQUIRED; el monto exigido lo fija el servidor) | PAYMENT_PROOF_REQUIRED (comprobante obligatorio; en EFECTIVO basta nro de recibo o comprobante) | PAYMENT_VOUCHER_NOT_FOUND */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -636,6 +696,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description DOCUMENTS_NOT_UPLOADED - hay que subir al menos un documento del cliente (distinto de PAYMENT_VOUCHER) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description IF_MATCH_REQUIRED */
             428: {
                 headers: {
@@ -692,7 +759,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description REQUIREMENTS_INCOMPLETE - falta pago o documentos */
+            /** @description REQUIREMENTS_INCOMPLETE - falta pago o documentos; RESERVATION_EXCEEDS_GUARANTEE - el monto de la reserva supera la garantia del vehiculo; RESERVATION_REQUIREMENTS_NOT_MET - para reservas remotas falta video 360 o documento de aceptacion firmado */
             422: {
                 headers: {
                     [name: string]: unknown;
@@ -961,7 +1028,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description ALTERNATIVE_VEHICLE_INVALID - el mismo vehiculo, de otra empresa/sede o no esta AVAILABLE */
+            /** @description ALTERNATIVE_VEHICLE_INVALID - el mismo vehiculo, de otra empresa/sede o no esta AVAILABLE; RESERVATION_EXCEEDS_GUARANTEE - el monto de la reserva supera la garantia del vehiculo nuevo (F-01) */
             422: {
                 headers: {
                     [name: string]: unknown;

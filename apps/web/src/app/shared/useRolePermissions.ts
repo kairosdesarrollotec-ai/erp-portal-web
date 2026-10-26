@@ -20,7 +20,13 @@ type ReservationAction =
   | 'CHANGE_VEHICLE'
   | 'FLAG_SALE'
   | 'RESOLVE_SALE';
-type FleetAction = 'READ' | 'WRITE' | 'CROSS_BRANCH' | 'MANAGE_THIRD_PATH';
+type FleetAction =
+  | 'READ'
+  | 'WRITE'
+  | 'CROSS_BRANCH'
+  | 'MANAGE_THIRD_PATH'
+  | 'REGISTER_VEHICLE_OPERATIONAL_FORMAT'
+  | 'VIEW_VEHICLE_OPERATIONAL_FORMAT';
 type CustomerAction = 'READ' | 'WRITE';
 
 export type PermissionModule = 'FLEET' | 'CUSTOMER' | 'INQUIRY' | 'RESERVATION';

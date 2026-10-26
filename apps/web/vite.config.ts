@@ -31,6 +31,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // Las rutas de negocio se importan desde el router; agruparlas por
+          // dominio evita que la navegación inicial descargue todo el ERP.
+          if (id.includes('/src/app/rentals/')) return 'rentals';
+          if (id.includes('/src/app/reservations/')) return 'reservations';
+          if (id.includes('/src/app/inquiries/')) return 'inquiries';
           if (!id.includes('node_modules')) return undefined;
           if (id.includes('/firebase/') || id.includes('/@firebase/')) return 'firebase';
           if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/react-router')) return 'react';

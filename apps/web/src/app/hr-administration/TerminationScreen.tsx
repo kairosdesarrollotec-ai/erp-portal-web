@@ -20,7 +20,7 @@ const REASONS: readonly TerminationReason[] = ['RENUNCIA', 'DESPIDO'];
  */
 function Termination() {
   const { id } = useParams();
-  const { state, data: employee, context, reload } = useHrResource<EmployeeDetail>(id ? (token) => getEmployee(token, id) : null, id ?? '');
+  const { state, data: employee, context, reload } = useHrResource<EmployeeDetail>(id ? (token, scope) => getEmployee(token, id, scope) : null, id ?? '');
   const command = useHrCommand({ context, reload });
 
   const [reason, setReason] = useState<TerminationReason | ''>('');

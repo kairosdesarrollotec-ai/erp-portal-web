@@ -24,7 +24,7 @@ const step1Schema = z.object({
     .min(1, 'El nombre es obligatorio.')
     .max(200, 'Máximo 200 caracteres.'),
   type: z.enum(['RENTAL_CONTRACT', 'RENTAL_CONTRACT_NATURAL', 'RENTAL_CONTRACT_NATURAL_DRIVER', 'RENTAL_CONTRACT_LEGAL', 'RENTAL_CONTRACT_LEGAL_DRIVER', 'RESERVATION_CONTRACT', 'RETURN_RESPONSIBILITY'], {
-    errorMap: () => ({ message: 'Selecciona un tipo de plantilla.' }),
+    error: 'Selecciona un tipo de plantilla.',
   }),
   effectiveFrom: z.string().optional(),
 });

@@ -11,7 +11,7 @@ import { useState } from 'react';
  *   - PROTO-DEV-04-CHECKLIST-RECEPCION-CONFIRMADO-POR-SERVIDOR-MOVIL (SYNCED mobile)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ChecklistScreen } from './ChecklistScreen';
 import { baseContext, makeFlow, makeReturn } from './test-utils';
@@ -77,6 +77,18 @@ vi.mock('./returns-client', async () => {
     recordReturnEvidence: (...args: unknown[]) => recordEvidenceMock(...args),
     deleteReturnEvidence: (...args: unknown[]) => deleteEvidenceMock(...args),
     getResponsibilityTemplate: (...args: unknown[]) => getResponsibilityTemplateMock(...args),
+  };
+});
+
+const recordVehicleOperationalFormatMock = vi.fn().mockResolvedValue({ id: 'rec-ret-1' });
+const listVehicleOperationalRecordsMock = vi.fn().mockResolvedValue({ items: [], total: 0 });
+
+vi.mock('../fleet/fleet-client', async () => {
+  const actual = await vi.importActual<typeof import('../fleet/fleet-client')>('../fleet/fleet-client');
+  return {
+    ...actual,
+    recordVehicleOperationalFormat: (...args: unknown[]) => recordVehicleOperationalFormatMock(...args),
+    listVehicleOperationalRecords: (...args: unknown[]) => listVehicleOperationalRecordsMock(...args),
   };
 });
 
@@ -406,4 +418,112 @@ describe('ChecklistScreen — solicitar eliminación de evidencia', () => {
     const btn = await screen.findByRole('button', { name: /^Solicitar eliminación de video/i });
     expect(btn).toBeDisabled();
   });
+
+  it('renders FIV (02), FCKE (08) and RNC (06) operational sections and updates return draft', async () => {
+    renderChecklist();
+
+    expect(await screen.findByText(/Control de Kit de Emergencia \(FCKE - Formato 08/)).toBeInTheDocument();
+    expect(screen.getByText(/Inspección Vehicular Completa \(FIV - Formato 02\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Registro de Combustible y Kilometraje \(RNC - Formato 06\)/)).toBeInTheDocument();
+
+    const gataRow = screen.getByText(/Gata hidráulica tipo botella/).closest('div');
+    expect(gataRow).toBeInTheDocument();
+    const btnM = within(gataRow!).getByRole('button', { name: 'M' });
+    fireEvent.click(btnM);
+
+    const saved = JSON.parse(sessionStorage.getItem('kairos.devolucion.ret-1.checklist') || '{}');
+    expect(saved.fcke_gata_botella).toBe('M');
+  });
+
+  it('persiste formatos FIV, FCKE y RNC en el servidor al continuar con la devolución (C2)', async () => {
+    saveReturnChecklist('ret-1', {
+      ...EMPTY_RETURN_CHECKLIST,
+      rnc_kilometraje: 51200,
+      rnc_nivel_combustible_lineas: 8,
+      rnc_sugerencia: '1/2 tanque al recibir',
+      fcke_gata_botella: 'B',
+      fiv_puertas_capo_cajuela: 'B',
+      responsibilityDocument: {
+        signerName: 'Ana Torres',
+        signerIsHolder: true,
+        signerRelationToHolder: '',
+        signatureData: 'data:image/png;base64,abc',
+      },
+    });
+
+    listReturnEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidence('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidence('VIDEO', i)),
+    ]);
+
+    renderChecklist();
+
+    const continueBtn = await screen.findByRole('button', { name: /Continuar a Resultado/i });
+    await waitFor(() => expect(continueBtn).not.toBeDisabled());
+    fireEvent.click(continueBtn);
+
+    await waitFor(() => {
+      expect(recordVehicleOperationalFormatMock).toHaveBeenCalledWith(
+        expect.any(String),
+        'veh-1',
+        expect.objectContaining({
+          formatType: 'FORMATO_02_FIV',
+          processType: 'RETURN',
+          processId: 'ret-1',
+        }),
+        'return-ret-1-fiv',
+      );
+      expect(recordVehicleOperationalFormatMock).toHaveBeenCalledWith(
+        expect.any(String),
+        'veh-1',
+        expect.objectContaining({
+          formatType: 'FORMATO_08_FCKE',
+          processType: 'RETURN',
+          processId: 'ret-1',
+        }),
+        'return-ret-1-fcke',
+      );
+      expect(recordVehicleOperationalFormatMock).toHaveBeenCalledWith(
+        expect.any(String),
+        'veh-1',
+        expect.objectContaining({
+          formatType: 'FORMATO_06_RNC',
+          processType: 'RETURN',
+          processId: 'ret-1',
+          odometerKm: 51200,
+          fuelLevelLines: 8,
+        }),
+        'return-ret-1-rnc',
+      );
+    });
+  });
+
+  it('carga datos previos de formatos operativos guardados para esta devolución (C2)', async () => {
+    listVehicleOperationalRecordsMock.mockResolvedValueOnce({
+      items: [
+        {
+          id: 'rec-fiv-ret-1',
+          formatType: 'FORMATO_02_FIV',
+          processType: 'RETURN',
+          processId: 'ret-1',
+          odometerKm: 51200,
+          fuelLevelLines: 8,
+          data: { fiv_puertas_capo_cajuela: 'B' },
+        },
+      ],
+      total: 1,
+    });
+
+    renderChecklist();
+
+    await waitFor(() => {
+      expect(listVehicleOperationalRecordsMock).toHaveBeenCalledWith(
+        expect.any(String),
+        'veh-1',
+        expect.objectContaining({ companyId: 'c1', branchId: 'b1' }),
+      );
+    });
+  });
 });
+
+

@@ -209,12 +209,72 @@ export interface paths {
         /** Listar vacaciones del colaborador */
         get: operations["getEmployeeVacations"];
         put?: never;
-        /** Programar vacaciones con verificación de capacidad de área (máximo 1 persona a la vez, BR-ADP-002, DR-ADP-001) */
+        /** Programar vacaciones con verificación de capacidad por empresa (máximo 1 persona a la vez por empresa, DEC-ADP-VAC-001, BR-ADP-002, DR-ADP-001) */
         post: operations["scheduleVacation"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/vacations/{id}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reprogramar vacaciones en conflicto a otra fecha libre (22-oct,
+         * @description Mueve las vacaciones (SOLICITADA / PROGRAMADA / REPROGRAMADA) a nuevas fechas y las deja en estado REPROGRAMADA, conservando las fechas originales (`originalStartDate/EndDate`) y contando el cambio (`rescheduleCount`). Valida con la MISMA regla de capacidad que programar (BR-ADP-002), ignorando la propia solicitud; si las nuevas fechas chocan: 409 VACATION_OVERLAP. Motivo obligatorio. Permiso SCHEDULE_VACATION. Auditoria VACATION_RESCHEDULED.
+         */
+        post: operations["rescheduleVacation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vacations/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancelar vacaciones (22-oct,
+         * @description SOLICITADA / PROGRAMADA / REPROGRAMADA -> CANCELADA con motivo obligatorio. Permiso SCHEDULE_VACATION. Auditoria VACATION_CANCELLED.
+         */
+        post: operations["cancelVacation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/vacations/{id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Resolver solicitud de vacaciones (Gerencia aprueba con grantedDays, reprograma o rechaza)
+         * @description Gerencia aprueba vacaciones (pasa a PROGRAMADA respetando cupo de 1 persona a la vez por empresa, soportando conceder menos días de los solicitados con grantedDays), reprograma (REPROGRAMADA con motivo) o rechaza (CANCELADA con motivo).
+         */
+        patch: operations["resolveVacation"];
         trace?: never;
     };
     "/vacations/calendar": {
@@ -407,6 +467,83 @@ export interface paths {
         patch: operations["reclassifyAttendance"];
         trace?: never;
     };
+    "/me/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mis marcas de asistencia y la geocerca de mi sede (22-oct, */
+        get: operations["getMyAttendance"];
+        put?: never;
+        /**
+         * Marcar la propia asistencia desde la cuenta personal (22-oct,
+         * @description El colaborador (ficha vinculada a su cuenta, GET /me/employee) marca ENTRADA (`type=CHECK_IN`, estado PRESENTE o TARDANZA, foto OBLIGATORIA) o SALIDA (`type=CHECK_OUT`). La ubicacion (latitude, longitude, accuracy) es OBLIGATORIA y solo se captura en el momento de marcar (nunca seguimiento). Se compara con la geocerca de la sede (GET|PUT /branches/{branchId}/geofence): si queda fuera de rango la marca se guarda con `outsideGeofence=true` y `reviewStatus=PENDING` hasta que Gerencia/Administracion la aprueben o corrijan (PATCH /attendance/{id}/review); si la sede no tiene geocerca configurada la marca se acepta sin evaluar. Una sola marca por dia y tipo (409 ATTENDANCE_ALREADY_LOGGED / ATTENDANCE_MARK_ALREADY_LOGGED). `capturedAt` es la hora del dispositivo (admite marcas offline): no puede estar en el futuro ni tener mas de 24 h de antigüedad (422 ATTENDANCE_CAPTURE_TOO_OLD); el dia de la marca es el dia de Lima de `capturedAt`. Permiso HR_ADMINISTRATION.LOG_OWN_ATTENDANCE (v0 todos los roles de colaborador). Foto: subirla con POST /employees/{employeeId}/attendance/evidence/upload-url (el colaborador puede pedirla para si mismo) y enviar su `storageRef`.
+         */
+        post: operations["logMyAttendance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/pending-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Marcas de asistencia fuera de la geocerca pendientes de revisión (22-oct, */
+        get: operations["listAttendancePendingReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/attendance/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Aprobar o corregir una marca fuera de la geocerca (22-oct,
+         * @description Solo marcas con reviewStatus=PENDING (409 ATTENDANCE_NOT_PENDING_REVIEW si no). APPROVE deja la marca tal cual (APPROVED). CORRECT exige `note` y al menos un cambio (`status`, `minutesLate`); recalcula el descuento y deja CORRECTED. No se corrige si el descuento del mes ya se aplicó. Permiso HR_ADMINISTRATION.REVIEW_ATTENDANCE. Auditoria ATTENDANCE_REVIEWED.
+         */
+        patch: operations["reviewAttendance"];
+        trace?: never;
+    };
+    "/branches/{branchId}/geofence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Geocerca de la sede para las marcas de asistencia (22-oct, */
+        get: operations["getBranchGeofence"];
+        /** Configurar coordenadas y radio de la geocerca de la sede (solo Gerencia/Administración por permiso) */
+        put: operations["setBranchGeofence"];
+        post?: never;
+        /** Quitar la geocerca de la sede (las marcas propias dejan de evaluarse contra la sede) */
+        delete: operations["clearBranchGeofence"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/leaves/{id}/evidence/upload-url": {
         parameters: {
             query?: never;
@@ -493,6 +630,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/me/leaves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar solicitudes de permiso del colaborador autenticado (autoservicio) */
+        get: operations["listMyLeaves"];
+        put?: never;
+        /** Registrar solicitud de permiso propia (autoservicio) */
+        post: operations["requestMyLeave"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/vacations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listar solicitudes de vacaciones del colaborador autenticado (autoservicio) */
+        get: operations["listMyVacations"];
+        put?: never;
+        /** Solicitar vacaciones propias (autoservicio, estado SOLICITADA) */
+        post: operations["requestMyVacation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/trainings": {
         parameters: {
             query?: never;
@@ -511,95 +684,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/vacations/{id}/reschedule": {
-        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+    "/hr-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         get?: never;
         put?: never;
-        /** Reprogramar vacaciones en conflicto a otra fecha libre (22-oct, #10) */
-        post: {
-            parameters: { query?: never; header?: { "Idempotency-Key"?: string }; path: { id: string }; cookie?: never };
-            requestBody: { content: { "application/json": components["schemas"]["RescheduleVacationRequest"] } };
-            responses: {
-                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["VacationRequestResponse"] } };
-                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                409: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-            };
-        };
+        /** Publicar nueva versión de documento de Talento Humano (solo Gerencia) */
+        post: operations["publishHrDocument"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/vacations/{id}/cancel": {
-        parameters: { query?: never; header?: never; path?: never; cookie?: never };
-        get?: never;
-        put?: never;
-        /** Cancelar vacaciones liberando el cupo del área (22-oct, #10) */
-        post: {
-            parameters: { query?: never; header?: { "Idempotency-Key"?: string }; path: { id: string }; cookie?: never };
-            requestBody: { content: { "application/json": components["schemas"]["CancelVacationRequest"] } };
-            responses: {
-                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["VacationRequestResponse"] } };
-                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                409: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-            };
+    "/hr-documents/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/me/attendance": {
-        parameters: { query?: never; header?: never; path?: never; cookie?: never };
-        /** Mis marcas de asistencia y la geocerca de mi sede (22-oct, #9) */
-        get: {
-            parameters: { query: { companyId: string; branchId: string; month?: string }; header?: never; path?: never; cookie?: never };
-            requestBody?: never;
-            responses: {
-                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["MyAttendanceResponse"] } };
-                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-            };
-        };
-        put?: never;
-        /** Marcar la propia asistencia desde la cuenta personal (22-oct, #9) */
-        post: {
-            parameters: { query?: never; header?: { "Idempotency-Key"?: string }; path?: never; cookie?: never };
-            requestBody: { content: { "application/json": components["schemas"]["LogMyAttendanceRequest"] } };
-            responses: {
-                201: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["AttendanceRecordResponse"] } };
-                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                409: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/attendance/pending-review": {
-        parameters: { query?: never; header?: never; path?: never; cookie?: never };
-        /** Marcas fuera de la geocerca pendientes de revisión (22-oct, #9) */
-        get: {
-            parameters: { query: { companyId: string; branchId: string; limit?: number }; header?: never; path?: never; cookie?: never };
-            requestBody?: never;
-            responses: {
-                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["AttendanceRecordResponse"][] } };
-                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-            };
-        };
+        /** Listar documentos de Talento Humano vigentes para la empresa */
+        get: operations["listActiveHrDocuments"];
         put?: never;
         post?: never;
         delete?: never;
@@ -608,64 +718,18 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/attendance/{id}/review": {
-        parameters: { query?: never; header?: never; path?: never; cookie?: never };
+    "/hr-documents/{id}/confirm-read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         get?: never;
         put?: never;
-        post?: never;
+        /** Confirmar la lectura de un documento de Talento Humano vigente */
+        post: operations["confirmHrDocumentRead"];
         delete?: never;
-        options?: never;
-        head?: never;
-        /** Aprobar o corregir una marca fuera de la geocerca (22-oct, #9) */
-        patch: {
-            parameters: { query?: never; header?: never; path: { id: string }; cookie?: never };
-            requestBody: { content: { "application/json": components["schemas"]["ReviewAttendanceRequest"] } };
-            responses: {
-                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["AttendanceRecordResponse"] } };
-                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                409: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-            };
-        };
-        trace?: never;
-    };
-    "/branches/{branchId}/geofence": {
-        parameters: { query?: never; header?: never; path?: never; cookie?: never };
-        /** Geocerca de la sede para las marcas de asistencia (22-oct, #9) */
-        get: {
-            parameters: { query: { companyId: string }; header?: never; path: { branchId: string }; cookie?: never };
-            requestBody?: never;
-            responses: {
-                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["BranchGeofenceResponse"] } };
-                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-            };
-        };
-        /** Configurar coordenadas y radio de la geocerca de la sede */
-        put: {
-            parameters: { query?: never; header?: never; path: { branchId: string }; cookie?: never };
-            requestBody: { content: { "application/json": components["schemas"]["SetBranchGeofenceRequest"] } };
-            responses: {
-                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["BranchGeofenceResponse"] } };
-                400: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                422: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-            };
-        };
-        post?: never;
-        /** Quitar la geocerca de la sede */
-        delete: {
-            parameters: { query: { companyId: string }; header?: never; path: { branchId: string }; cookie?: never };
-            requestBody?: never;
-            responses: {
-                200: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["BranchGeofenceResponse"] } };
-                403: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-                404: { headers: { [name: string]: unknown }; content: { "application/json": components["schemas"]["ProblemDetail"] } };
-            };
-        };
         options?: never;
         head?: never;
         patch?: never;
@@ -760,6 +824,12 @@ export interface components {
             /** Format: date */
             hireDate: string;
             baseSalary?: number | null;
+            bankName?: string | null;
+            bankAccountNumber?: string | null;
+            bankAccountCci?: string | null;
+            contractType?: string | null;
+            contractUrl?: string | null;
+            contractNotes?: string | null;
         };
         UpdateEmployeeRequest: {
             /** Format: uuid */
@@ -778,6 +848,12 @@ export interface components {
             jobTitle?: string;
             /** @description Solo Gerencia (HR_ADMINISTRATION.MANAGE_SALARY) puede cambiarlo; otro rol con un valor distinto al vigente -> 403 EMPLOYEE_SALARY_GERENCIA_ONLY. Reenviar el mismo valor es válido. */
             baseSalary?: number | null;
+            bankName?: string | null;
+            bankAccountNumber?: string | null;
+            bankAccountCci?: string | null;
+            contractType?: string | null;
+            contractUrl?: string | null;
+            contractNotes?: string | null;
             status?: components["schemas"]["EmployeeStatus"];
             probationPassed?: boolean | null;
             /** Format: date-time */
@@ -793,7 +869,7 @@ export interface components {
             /** Format: uuid */
             candidateId?: string | null;
             documentType: string;
-            /** @description null si el rol no tiene HR_ADMINISTRATION.VIEW_EMPLOYEE_DOCUMENT (ver restrictedFields). */
+            /** @description null si el rol no tiene HR_ADMINISTRATION.VIEW_EMPLOYEE_DOCUMENT o VIEW_EMPLOYEE_SENSITIVE_DATA (ver restrictedFields). */
             documentNumber: string | null;
             fullName: string;
             email?: string | null;
@@ -817,10 +893,16 @@ export interface components {
             terminationNoticeDays?: number | null;
             fieldTripLateCount: number;
             isFieldTripObserved: boolean;
-            /** @description null = pendiente O restringido: solo lo ve quien tiene HR_ADMINISTRATION.MANAGE_SALARY (ver restrictedFields). */
+            /** @description null = pendiente O restringido: solo lo ve quien tiene HR_ADMINISTRATION.MANAGE_SALARY o VIEW_EMPLOYEE_SENSITIVE_DATA (ver restrictedFields). */
             baseSalary?: number | null;
+            bankName?: string | null;
+            bankAccountNumber?: string | null;
+            bankAccountCci?: string | null;
+            contractType?: string | null;
+            contractUrl?: string | null;
+            contractNotes?: string | null;
             /** @description Campos enmascarados para el rol del solicitante (HU-35). Vacío si ve todo. */
-            restrictedFields?: ("documentNumber" | "baseSalary")[];
+            restrictedFields: ("documentNumber" | "baseSalary" | "bankName" | "bankAccountNumber" | "bankAccountCci" | "contractType" | "contractUrl" | "contractNotes")[];
             /** @description La ficha está vinculada a una cuenta de usuario por correo (DEC-ADP-LINK-EMAIL-001) */
             accountLinked: boolean;
             /** @description Versión optimista de la ficha (DEC-ADP-EDIT-ETAG-001); mismo valor que el header ETag */
@@ -861,6 +943,8 @@ export interface components {
             recentTrainings?: components["schemas"]["TrainingResponse"][];
         };
         LogAttendanceRequest: {
+            /** @description Registro «a nombre de» otro colaborador (22-oct, #9): motivo OBLIGATORIO en PRESENTE/TARDANZA (422 ATTENDANCE_REASON_REQUIRED); queda en el registro (source ON_BEHALF) y en la auditoría. */
+            reason?: string;
             /** Format: date */
             date: string;
             /** Format: date-time */
@@ -880,13 +964,11 @@ export interface components {
             accuracy?: number | null;
             /** @description DEC-ADP-ATT-EVIDENCE-001/002. Foto con reloj + hora + rostro que corrobora la marcación. OBLIGATORIA en PRESENTE/TARDANZA (422 ATTENDANCE_EVIDENCE_REQUIRED); opcional en faltas y permisos. Se sube con POST /employees/{id}/attendance/evidence/upload-url y su `storageRef` va aquí. */
             evidence?: components["schemas"]["AttendanceEvidenceRequest"] | null;
-            /** @description Registro «a nombre de» otro colaborador (22-oct): motivo OBLIGATORIO en PRESENTE/TARDANZA (422 ATTENDANCE_REASON_REQUIRED), 3-500 caracteres. */
-            reason?: string | null;
         };
         /** @description Requiere al menos uno de storageRef o url. Si viene storageRef debe empezar por companies/{companyId}/employees/{employeeId}/attendance/ (el que devuelve la URL de subida). */
         AttendanceEvidenceRequest: {
             /** @enum {string} */
-            kind: "WHATSAPP_PHOTO";
+            kind: "WHATSAPP_PHOTO" | "SELF_PHOTO";
             /** @description Referencia interna al objeto almacenado */
             storageRef?: string | null;
             url?: string | null;
@@ -913,7 +995,7 @@ export interface components {
         };
         AttendanceEvidenceResponse: {
             /** @enum {string} */
-            kind: "WHATSAPP_PHOTO";
+            kind: "WHATSAPP_PHOTO" | "SELF_PHOTO";
             storageRef?: string | null;
             url?: string | null;
             /** @description Hora de la foto en America/Lima sin offset (YYYY-MM-DDTHH:mm:ss) */
@@ -951,22 +1033,34 @@ export interface components {
             justification?: string | null;
             /** Format: date-time */
             reclassifiedAt?: string | null;
-            /** @description SELF = el colaborador marcó desde su cuenta; ON_BEHALF = Personal registró a nombre de otro. Registros históricos: ON_BEHALF. @enum {string} */
+            /**
+             * @description SELF = el colaborador marcó desde su cuenta; ON_BEHALF = Personal registró a nombre de otro (ver onBehalfReason). Registros históricos: ON_BEHALF.
+             * @enum {string}
+             */
             source?: "SELF" | "ON_BEHALF";
             onBehalfReason?: string | null;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description Hora del dispositivo al marcar la entrada (solo marcas propias)
+             */
             capturedAt?: string | null;
             /** @description La entrada quedó fuera del radio de la geocerca de la sede */
             outsideGeofence?: boolean;
+            /** @description Distancia a la sede al marcar la entrada (null si la sede no tenía geocerca) */
             distanceMeters?: number | null;
             geofenceRadiusMeters?: number | null;
-            /** @description PENDING = fuera de geocerca, espera revisión; null = no requiere revisión. */
-            reviewStatus?: ("PENDING" | "APPROVED" | "CORRECTED") | null;
+            /**
+             * @description PENDING = fuera de geocerca, espera revisión; null = no requiere revisión.
+             * @enum {string|null}
+             */
+            reviewStatus?: "PENDING" | "APPROVED" | "CORRECTED" | null;
+            /** @description true si reviewStatus es PENDING */
             requiresReview?: boolean;
             reviewedById?: string | null;
             /** Format: date-time */
             reviewedAt?: string | null;
             reviewNote?: string | null;
+            /** @description Datos de la salida marcada desde la cuenta personal (null si no hay salida propia) */
             checkOut?: components["schemas"]["AttendanceCheckOutResponse"] | null;
             evidence?: components["schemas"]["AttendanceEvidenceResponse"] | null;
             /** @description true si el registro no tiene evidencia fotográfica (incluye registros previos a 0.3.0) */
@@ -975,6 +1069,110 @@ export interface components {
             memo?: components["schemas"]["HrMemoResponse"] | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        AttendanceCheckOutResponse: {
+            /** Format: date-time */
+            capturedAt?: string | null;
+            latitude?: number | null;
+            longitude?: number | null;
+            accuracy?: number | null;
+            outsideGeofence: boolean;
+            distanceMeters?: number | null;
+        };
+        LogMyAttendanceRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /**
+             * Format: uuid
+             * @description Sede del contexto de trabajo; su geocerca es la que se evalúa
+             */
+            branchId: string;
+            /**
+             * @default CHECK_IN
+             * @enum {string}
+             */
+            type: "CHECK_IN" | "CHECK_OUT";
+            /**
+             * @description Solo en CHECK_IN. Faltas y permisos los registra Personal.
+             * @default PRESENTE
+             * @enum {string}
+             */
+            status: "PRESENTE" | "TARDANZA";
+            /** @description Obligatorio si status=TARDANZA */
+            minutesLate?: number;
+            /**
+             * Format: date-time
+             * @description Hora del dispositivo (ISO 8601 con offset/Z). Máx. 24 h de antigüedad (marcas offline) y no futura.
+             */
+            capturedAt: string;
+            latitude: number;
+            longitude: number;
+            /** @description Precisión horizontal en metros */
+            accuracy: number;
+            notes?: string | null;
+            /** @description Foto de la marca. OBLIGATORIA en CHECK_IN (422 ATTENDANCE_EVIDENCE_REQUIRED); se ignora en CHECK_OUT (solo la entrada guarda foto). */
+            evidence?: components["schemas"]["MyAttendanceEvidenceRequest"] | null;
+        };
+        /** @description Requiere al menos uno de storageRef o url. storageRef debe ser el que devolvió la URL de subida de ESTE colaborador. */
+        MyAttendanceEvidenceRequest: {
+            /**
+             * @default SELF_PHOTO
+             * @enum {string}
+             */
+            kind: "SELF_PHOTO" | "WHATSAPP_PHOTO";
+            storageRef?: string | null;
+            url?: string | null;
+            note?: string | null;
+        };
+        GeofenceInfo: {
+            configured: boolean;
+            latitude?: number | null;
+            longitude?: number | null;
+            radiusMeters?: number | null;
+        };
+        MyAttendanceResponse: {
+            /** Format: uuid */
+            employeeId: string;
+            geofence: components["schemas"]["GeofenceInfo"];
+            items: components["schemas"]["AttendanceRecordResponse"][];
+        };
+        ReviewAttendanceRequest: {
+            /** @enum {string} */
+            decision: "APPROVE" | "CORRECT";
+            /** @description Obligatoria en CORRECT; opcional al aprobar */
+            note?: string;
+            status?: components["schemas"]["AttendanceStatus"];
+            /** @description Para TARDANZA corregida */
+            minutesLate?: number;
+        };
+        SetBranchGeofenceRequest: {
+            /** Format: uuid */
+            companyId: string;
+            latitude: number;
+            longitude: number;
+            radiusMeters: number;
+        };
+        BranchGeofenceResponse: {
+            /** Format: uuid */
+            branchId: string;
+            branchName: string;
+            configured: boolean;
+            latitude?: number | null;
+            longitude?: number | null;
+            radiusMeters?: number | null;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            updatedBy?: string | null;
+        };
+        RescheduleVacationRequest: {
+            /** Format: date */
+            startDate: string;
+            /** Format: date */
+            endDate: string;
+            reason: string;
+        };
+        CancelVacationRequest: {
+            reason: string;
         };
         MonthlyAttendanceSummaryResponse: {
             /** Format: uuid */
@@ -1060,6 +1258,14 @@ export interface components {
             endDate: string;
             notes?: string | null;
         };
+        ResolveVacationRequest: {
+            /** @enum {string} */
+            status: "PROGRAMADA" | "REPROGRAMADA" | "CANCELADA";
+            /** @description Días otorgados por Gerencia (permite conceder menos días de los solicitados) */
+            grantedDays?: number;
+            /** @description Motivo obligatorio si se rechaza o reprograma */
+            statusReason?: string;
+        };
         VacationRequestResponse: {
             /** Format: uuid */
             id: string;
@@ -1079,7 +1285,12 @@ export interface components {
             /** Format: date-time */
             approvedAt?: string | null;
             notes?: string | null;
-            /** Format: date */
+            /** @description Días otorgados por Gerencia */
+            grantedDays?: number | null;
+            /**
+             * Format: date
+             * @description Fechas antes de la primera reprogramación (null si nunca se reprogramó)
+             */
             originalStartDate?: string | null;
             /** Format: date */
             originalEndDate?: string | null;
@@ -1189,7 +1400,7 @@ export interface components {
             createdAt: string;
             /**
              * Format: uuid
-             * @description Vacante creada automáticamente en Reclutamiento
+             * @description Vacante creada automáticamente en Reclutamiento (22-oct, #5). El consumo del evento es asíncrono: null en la respuesta inmediata de /terminate; el expediente GET /employees/{id} la informa cuando ya se creó.
              */
             vacancyCreatedId?: string | null;
         };
@@ -1301,94 +1512,69 @@ export interface components {
             fieldTripLateCount: number;
             isFieldTripObserved: boolean;
         };
-        AttendanceCheckOutResponse: {
-            /** Format: date-time */
-            capturedAt?: string | null;
-            latitude?: number | null;
-            longitude?: number | null;
-            accuracy?: number | null;
-            outsideGeofence: boolean;
-            distanceMeters?: number | null;
-        };
-        MyAttendanceEvidenceRequest: {
-            /** @enum {string} */
-            kind?: "SELF_PHOTO" | "WHATSAPP_PHOTO";
-            storageRef?: string | null;
-            url?: string | null;
-            note?: string | null;
-        };
-        LogMyAttendanceRequest: {
-            /** Format: uuid */
-            companyId: string;
-            /** Format: uuid */
-            branchId: string;
-            /** @default CHECK_IN @enum {string} */
-            type?: "CHECK_IN" | "CHECK_OUT";
-            /** @default PRESENTE @enum {string} */
-            status?: "PRESENTE" | "TARDANZA";
-            minutesLate?: number;
-            /** Format: date-time */
-            capturedAt: string;
-            latitude: number;
-            longitude: number;
-            accuracy: number;
-            notes?: string | null;
-            evidence?: components["schemas"]["MyAttendanceEvidenceRequest"] | null;
-        };
-        GeofenceInfo: {
-            configured: boolean;
-            latitude?: number | null;
-            longitude?: number | null;
-            radiusMeters?: number | null;
-        };
-        MyAttendanceResponse: {
-            /** Format: uuid */
-            employeeId: string;
-            geofence: components["schemas"]["GeofenceInfo"];
-            items: components["schemas"]["AttendanceRecordResponse"][];
-        };
-        ReviewAttendanceRequest: {
-            /** @enum {string} */
-            decision: "APPROVE" | "CORRECT";
-            note?: string;
-            status?: components["schemas"]["AttendanceStatus"];
-            minutesLate?: number;
-        };
-        SetBranchGeofenceRequest: {
-            /** Format: uuid */
-            companyId: string;
-            latitude: number;
-            longitude: number;
-            radiusMeters: number;
-        };
-        BranchGeofenceResponse: {
-            /** Format: uuid */
-            branchId: string;
-            branchName: string;
-            configured: boolean;
-            latitude?: number | null;
-            longitude?: number | null;
-            radiusMeters?: number | null;
-            /** Format: date-time */
-            updatedAt?: string | null;
-            updatedBy?: string | null;
-        };
-        RescheduleVacationRequest: {
-            /** Format: date */
-            startDate: string;
-            /** Format: date */
-            endDate: string;
-            reason: string;
-        };
-        CancelVacationRequest: {
-            reason: string;
-        };
         /** @description Cuerpo de error de dominio (DomainExceptionFilter). `code` es estable y apto para que el front decida el mensaje. */
         ProblemDetail: {
             statusCode: number;
             /** @example VACATION_OVERLAP */
             code: string;
             detail: string;
+        };
+        /** @enum {string} */
+        HrDocumentCategory: "REGULATION" | "POLICY" | "FORMAT";
+        PublishHrDocumentRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @example RIT-001 */
+            code: string;
+            /** @example Reglamento Interno de Trabajo 2026 */
+            title: string;
+            category: components["schemas"]["HrDocumentCategory"];
+            /** @example https://storage.kairos.pe/hr-docs/rit-001-v2.pdf */
+            fileUrl: string;
+            fileHash?: string | null;
+            fileName?: string | null;
+            /** @default application/pdf */
+            mimeType: string;
+            sizeBytes?: number | null;
+        };
+        HrDocumentResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            companyId: string;
+            code: string;
+            title: string;
+            category: components["schemas"]["HrDocumentCategory"];
+            version: number;
+            fileUrl: string;
+            fileHash?: string | null;
+            fileName?: string | null;
+            mimeType?: string;
+            sizeBytes?: number | null;
+            isActive: boolean;
+            publishedBy: string;
+            /** Format: date-time */
+            publishedAt: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Indica si el colaborador actual ya confirmó la lectura de esta versión vigente. */
+            hasRead: boolean;
+            /** Format: date-time */
+            readAt?: string | null;
+        };
+        ActiveHrDocumentsListResponse: {
+            items: components["schemas"]["HrDocumentResponse"][];
+            total: number;
+        };
+        ConfirmHrDocumentReadResponse: {
+            /** Format: uuid */
+            documentId: string;
+            /** Format: uuid */
+            employeeId: string;
+            /** Format: date-time */
+            readAt: string;
         };
     };
     responses: never;
@@ -1492,7 +1678,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_EMPLOYEES o contexto no autorizado */
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_EMPLOYEES o contexto no autorizado; o baseSalary enviado sin permiso HR_ADMINISTRATION.MANAGE_SALARY (EMPLOYEE_SALARY_GERENCIA_ONLY) */
             403: {
                 headers: {
                     [name: string]: unknown;
@@ -1717,7 +1903,10 @@ export interface operations {
     };
     getEmployee: {
         parameters: {
-            query?: never;
+            query: {
+                companyId: string;
+                branchId: string;
+            };
             header?: never;
             path: {
                 id: string;
@@ -2351,7 +2540,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Vacaciones programadas exitosamente (estado PROGRAMADA, sin superposición en el área) */
+            /** @description Vacaciones programadas exitosamente (estado PROGRAMADA, sin superposición en la empresa) */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -2388,7 +2577,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Conflicto de superposición de vacaciones en el área - máximo 1 persona a la vez, prioridad a quien solicitó primero (VACATION_OVERLAP) o colaborador terminado (EMPLOYEE_TERMINATED) */
+            /** @description Conflicto de superposición de vacaciones en la empresa - máximo 1 persona a la vez por empresa, prioridad a quien solicitó primero (VACATION_OVERLAP) o colaborador terminado (EMPLOYEE_TERMINATED) */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2396,6 +2585,209 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProblemDetail"];
                 };
+            };
+        };
+    };
+    rescheduleVacation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RescheduleVacationRequest"];
+            };
+        };
+        responses: {
+            /** @description Vacaciones reprogramadas (estado REPROGRAMADA) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacationRequestResponse"];
+                };
+            };
+            /** @description Datos inválidos o rango de fechas invertido (INVALID_DATE_RANGE) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.SCHEDULE_VACATION */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Vacaciones no encontradas (VACATION_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Las nuevas fechas chocan con otras vacaciones del área en la empresa (VACATION_OVERLAP), las vacaciones ya no se pueden modificar (VACATION_NOT_MODIFIABLE) o el colaborador está terminado (EMPLOYEE_TERMINATED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProblemDetail"];
+                };
+            };
+            /** @description Motivo ausente o corto (VACATION_CHANGE_REASON_REQUIRED), mismas fechas que las actuales (VACATION_RESCHEDULE_UNCHANGED) o fecha de inicio anterior a hoy en Lima (VACATION_DATE_IN_PAST) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    cancelVacation: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelVacationRequest"];
+            };
+        };
+        responses: {
+            /** @description Vacaciones canceladas (estado CANCELADA) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacationRequestResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.SCHEDULE_VACATION */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Vacaciones no encontradas (VACATION_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Las vacaciones ya no se pueden modificar (VACATION_NOT_MODIFIABLE) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Motivo ausente o corto (VACATION_CHANGE_REASON_REQUIRED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    resolveVacation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveVacationRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud de vacaciones resuelta exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacationRequestResponse"];
+                };
+            };
+            /** @description Días otorgados inválidos o datos incompletos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.SCHEDULE_VACATION o AUTHORIZE_LEAVE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Solicitud de vacaciones no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflicto de cupo por empresa o vacaciones ya resueltas */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -3019,6 +3411,377 @@ export interface operations {
             };
         };
     };
+    getMyAttendance: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+                /** @description Mes a listar (YYYY-MM); por defecto el mes actual en Lima. */
+                month?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marcas propias del mes y geocerca de la sede */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyAttendanceResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.LOG_OWN_ATTENDANCE o sin asignación vigente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El usuario no está vinculado a una ficha de colaborador (EMPLOYEE_NOT_LINKED) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    logMyAttendance: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogMyAttendanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Marca registrada (revisar `requiresReview` / `outsideGeofence`) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceRecordResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.LOG_OWN_ATTENDANCE o sin asignación vigente en esa empresa/sede */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description El usuario no está vinculado a una ficha de colaborador (EMPLOYEE_NOT_LINKED) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ya existe la marca del día (ATTENDANCE_ALREADY_LOGGED), la salida ya se marcó (ATTENDANCE_MARK_ALREADY_LOGGED), falta la entrada (ATTENDANCE_CHECK_IN_REQUIRED) o el colaborador está terminado (EMPLOYEE_TERMINATED) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ubicación ausente o inválida (ATTENDANCE_LOCATION_REQUIRED / INVALID_ATTENDANCE_RECORD), foto ausente en la entrada (ATTENDANCE_EVIDENCE_REQUIRED) o inválida (INVALID_ATTENDANCE_EVIDENCE), hora demasiado antigua (ATTENDANCE_CAPTURE_TOO_OLD) o estado no permitido en marca propia (ATTENDANCE_SELF_STATUS_NOT_ALLOWED) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listAttendancePendingReview: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Marcas con reviewStatus=PENDING de la empresa (más antiguas primero) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceRecordResponse"][];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.REVIEW_ATTENDANCE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    reviewAttendance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewAttendanceRequest"];
+            };
+        };
+        responses: {
+            /** @description Marca revisada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttendanceRecordResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.REVIEW_ATTENDANCE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Registro no encontrado (ATTENDANCE_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description La marca no está pendiente de revisión (ATTENDANCE_NOT_PENDING_REVIEW) o su descuento ya se aplicó (ATTENDANCE_NOT_RECLASSIFIABLE) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Corrección sin nota o sin cambios (INVALID_ATTENDANCE_REVIEW) o registro inválido (INVALID_ATTENDANCE_RECORD) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getBranchGeofence: {
+        parameters: {
+            query: {
+                companyId: string;
+            };
+            header?: never;
+            path: {
+                branchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Geocerca vigente (campos en null si no está configurada) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchGeofenceResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_GEOFENCE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sede no encontrada en la empresa (BRANCH_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setBranchGeofence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                branchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetBranchGeofenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Geocerca guardada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchGeofenceResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_GEOFENCE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sede no encontrada en la empresa (BRANCH_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Coordenadas fuera de rango o radio fuera de 10..5000 m (INVALID_GEOFENCE) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    clearBranchGeofence: {
+        parameters: {
+            query: {
+                companyId: string;
+            };
+            header?: never;
+            path: {
+                branchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Geocerca eliminada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchGeofenceResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_GEOFENCE */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sede no encontrada en la empresa (BRANCH_NOT_FOUND) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     requestLeaveEvidenceUploadUrl: {
         parameters: {
             query?: never;
@@ -3321,6 +4084,180 @@ export interface operations {
             };
         };
     };
+    listMyLeaves: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de solicitudes de permiso del propio colaborador */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestResponse"][];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin asignación vigente en esa empresa/sede */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestMyLeave: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestLeaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Permiso solicitado exitosamente (estado SOLICITADO) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaveRequestResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin asignación vigente en esa empresa/sede */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listMyVacations: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lista de solicitudes de vacaciones del propio colaborador */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacationRequestResponse"][];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin asignación vigente en esa empresa/sede */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestMyVacation: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: {
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleVacationRequest"];
+            };
+        };
+        responses: {
+            /** @description Vacaciones solicitadas exitosamente (estado SOLICITADA) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VacationRequestResponse"];
+                };
+            };
+            /** @description Rango de fechas inválido */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sin asignación vigente en esa empresa/sede */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     listTrainings: {
         parameters: {
             query: {
@@ -3406,6 +4343,141 @@ export interface operations {
             };
             /** @description Tema */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    publishHrDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishHrDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Documento publicado exitosamente */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrDocumentResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_HR_DOCUMENTS */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error de validación o documento ya existente con versión menor */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    listActiveHrDocuments: {
+        parameters: {
+            query: {
+                companyId: string;
+                category?: components["schemas"]["HrDocumentCategory"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Documentos vigentes con estado de lectura del colaborador */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveHrDocumentsListResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_HR_DOCUMENTS */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirmHrDocumentRead: {
+        parameters: {
+            query: {
+                companyId: string;
+                branchId: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lectura confirmada y auditada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfirmHrDocumentReadResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.CONFIRM_HR_DOCUMENT_READ */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Documento no encontrado o no está vigente */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

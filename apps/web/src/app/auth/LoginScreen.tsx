@@ -35,17 +35,40 @@ import styles from './LoginScreen.module.css';
  */
 export function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
   // SEC-F3 / TR-10 SESSION_EXPIRED: useSessionTimeout redirige aqui con ?motivo=sesion-expirada.
   const [searchParams] = useSearchParams();
   const sessionExpired = searchParams.get('motivo') === 'sesion-expirada';
-  const { state, submit, retryActivationCheck, mfaChallenge } = useLogin();
+  const { state, submit, sendPasswordReset, retryActivationCheck, mfaChallenge } = useLogin();
   const {
     register,
     handleSubmit,
+    getValues,
+    setError,
     formState: { errors },
   } = useForm<LoginFormValues>({ resolver: zodResolver(loginSchema) });
 
   const isValidating = state === 'VALIDATING';
+
+  const handleForgotPassword = async () => {
+    const email = getValues('emailOrUsername')?.trim();
+    if (!email) {
+      setError('emailOrUsername', { message: 'Ingresa tu correo para restablecer la contraseña' });
+      return;
+    }
+    setIsResetting(true);
+    setResetError(null);
+    try {
+      await sendPasswordReset(email);
+      setResetEmailSent(true);
+    } catch {
+      setResetError('No se pudo enviar el correo de recuperación. Inténtalo más tarde.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   // BLOCKING_ERROR y EXTERNAL_DEPENDENCY_PENDING reemplazan el formulario
   // por completo (tabla TR-01: EXTERNAL_DEPENDENCY_PENDING sigue "el mismo
@@ -181,11 +204,27 @@ export function LoginScreen() {
           </button>
         </form>
 
-        {/* TR-04 (recuperación de contraseña) aún no está construida: un botón sin función confunde, así que se avisa. */}
-        <p className={styles.forgotPassword} data-testid="forgot-password-notice">
-          ¿Olvidaste tu contraseña? La recuperación en línea estará disponible próximamente; mientras tanto, comunícate
-          con Administración.
-        </p>
+        <div className={styles.forgotPasswordContainer}>
+          <button
+            type="button"
+            className={styles.forgotPasswordButton}
+            onClick={handleForgotPassword}
+            disabled={isValidating || isResetting}
+          >
+            {isResetting ? 'Enviando enlace...' : '¿Olvidaste tu contraseña?'}
+          </button>
+        </div>
+
+        {resetEmailSent && (
+          <p role="status" className={styles.resetSuccessNotice} data-testid="reset-email-success">
+            Se envió un enlace para restablecer tu contraseña a tu correo.
+          </p>
+        )}
+        {resetError && (
+          <p role="alert" className={styles.fieldError} style={{ textAlign: 'center' }}>
+            {resetError}
+          </p>
+        )}
 
         <p className={`${styles.mobileFooter} ${styles.mobileOnly}`}>
           Kairos Corporation ERP v2.6 · Uso exclusivo para personal autorizado

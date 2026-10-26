@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { NewInquiryScreen } from './NewInquiryScreen';
 
@@ -58,12 +58,14 @@ function renderScreen() {
   );
 }
 
-async function waitForContext() {
-  await waitFor(() => expect(getWorkContextAssignmentsMock).toHaveBeenCalled());
+async function waitForContext(expectedCalls = 1) {
+  await waitFor(() => expect(getWorkContextAssignmentsMock.mock.calls.length).toBeGreaterThanOrEqual(expectedCalls));
   // Deja que la promesa de getWorkContextAssignments resuelva y el estado
   // `context` se actualice antes de interactuar - la resolucion del
   // contexto es asincrona (useWorkContextForInquiries.ts).
-  await waitFor(() => expect(getWorkContextAssignmentsMock).toHaveResolvedTimes(1));
+  await act(async () => {
+    await Promise.resolve();
+  });
 }
 
 /**
@@ -121,8 +123,9 @@ describe('NewInquiryScreen (CON-02)', () => {
   // Rediseño CON-02: "canal de contacto" (WhatsApp/Redes/etc) solo tiene
   // sentido cuando la modalidad es VIRTUAL - en PRESENCIAL el cliente ya
   // esta frente al asesor.
-  it('oculta el canal de contacto en modalidad Presencial y lo muestra en Virtual', () => {
+  it('oculta el canal de contacto en modalidad Presencial y lo muestra en Virtual', async () => {
     renderScreen();
+    await waitForContext();
 
     expect(screen.queryByLabelText('Canal de contacto')).not.toBeInTheDocument();
 
@@ -197,6 +200,7 @@ describe('NewInquiryScreen (CON-02)', () => {
       estimatedDays: 1,
       travelStartDate: '2099-01-01',
       partySize: 1,
+      isDirtRoad: false,
     });
   });
 
@@ -260,6 +264,7 @@ describe('NewInquiryScreen (CON-02)', () => {
   // un refresh).
   it('el indicador de autoguardado es honesto y el borrador sobrevive a un refresh', async () => {
     const { unmount } = renderScreen();
+    await waitForContext();
 
     fireEvent.change(screen.getByText('Destino').closest('label')!.querySelector('input')!, {
       target: { value: 'Ayacucho' },
@@ -268,8 +273,11 @@ describe('NewInquiryScreen (CON-02)', () => {
     expect(await screen.findByText('Guardado en este dispositivo')).toBeInTheDocument();
     expect(screen.queryByText('Guardado', { exact: true })).not.toBeInTheDocument();
 
-    unmount();
+    await act(async () => {
+      unmount();
+    });
     renderScreen();
+    await waitForContext(2);
 
     expect((screen.getByText('Destino').closest('label')!.querySelector('input') as HTMLInputElement).value).toBe(
       'Ayacucho',

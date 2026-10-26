@@ -33,4 +33,6 @@ export interface InquiryNavState extends InquiriesWorkContext {
   channel: InquiryChannel;
   touristUse: boolean;
   version: number;
+  isDirtRoad?: boolean;
+  plan?: 'NORMAL' | 'PLUS' | 'LIBRE';
 }
