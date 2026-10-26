@@ -38,6 +38,7 @@ import { DepositsListScreen } from '../payments/DepositsListScreen';
 import { DepositDetailScreen } from '../payments/DepositDetailScreen';
 import { UserProfileScreen } from '../profile/UserProfileScreen';
 import { EvidenceDeletionRequestsScreen } from '../evidence/EvidenceDeletionRequestsScreen';
+import { RouteErrorBoundary } from './RouteErrorBoundary';
 
 function lazyNamed<TModule extends Record<string, unknown>, TName extends keyof TModule>(
   load: () => Promise<TModule>,
@@ -100,11 +101,13 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <LoginScreen />,
+    errorElement: <RouteErrorBoundary />,
   },
   {
     // Hallazgo de revision (HU-21): ninguna ruta que asuma un usuario
     // autenticado debe ser accesible directo por URL sin guard central.
     element: <RequireAuthenticatedUser />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         path: '/activar-cuenta',
@@ -249,5 +252,6 @@ export const router = createBrowserRouter([
   {
     path: '/health',
     element: <HealthCheckScreen />,
+    errorElement: <RouteErrorBoundary />,
   },
 ]);
