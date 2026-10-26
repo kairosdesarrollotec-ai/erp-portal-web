@@ -99,11 +99,25 @@ export function ChecklistScreen() {
         const returnRecords = res.items as unknown as OperationalRecordItem[];
         const patch: Record<string, unknown> = {};
         for (const rec of returnRecords.filter((r) => r.processType === "RETURN" && r.processId === id)) {
-          if (rec.odometerKm !== null) patch.rnc_kilometraje = rec.odometerKm;
-          if (rec.fuelLevelLines !== null) patch.rnc_nivel_combustible_lineas = rec.fuelLevelLines;
-          Object.assign(patch, rec.data);
+          if (rec.odometerKm !== null && rec.odometerKm !== undefined) {
+            patch.odometerKm = rec.odometerKm;
+            patch.rnc_kilometraje = rec.odometerKm;
+          }
+          if (rec.fuelLevelLines !== null && rec.fuelLevelLines !== undefined) {
+            patch.rnc_nivel_combustible_lineas = rec.fuelLevelLines;
+          }
+          if (rec.data && typeof rec.data === "object") {
+            Object.assign(patch, rec.data);
+          }
+          if (rec.observations) {
+            patch.notes = rec.observations;
+          }
         }
-        setDraft((prev) => ({ ...patch, ...prev }));
+        setDraft((prev) => {
+          const next = { ...patch, ...prev };
+          if (!prev.notes && patch.notes) next.notes = patch.notes as string;
+          return next as ReturnChecklistDraft;
+        });
       })
       .catch(() => undefined);
     return () => {
@@ -207,7 +221,8 @@ export function ChecklistScreen() {
         if (draft[item.key] !== undefined) fckeData[item.key] = draft[item.key];
       }
       const fuelLines = typeof draft.rnc_nivel_combustible_lineas === "number" ? Number(draft.rnc_nivel_combustible_lineas) : undefined;
-      const odometer = typeof draft.rnc_kilometraje === "number" ? Number(draft.rnc_kilometraje) : undefined;
+      const rawOdometer = draft.odometerKm ?? draft.rnc_kilometraje;
+      const odometer = typeof rawOdometer === "number" ? Number(rawOdometer) : undefined;
       const performedBy = getFirebaseAuth().currentUser?.displayName ?? "operador";
       await Promise.all([
         recordVehicleOperationalFormat(
@@ -249,9 +264,19 @@ export function ChecklistScreen() {
             formatType: "FORMATO_06_RNC",
             processType: "RETURN",
             processId: id,
-            odometerKm: odometer,
             fuelLevelLines: fuelLines,
-            data: { sugerencia: draft.rnc_sugerencia ?? null },
+            data: {
+              responsable: performedBy,
+              unidad: {
+                code: ret.vehiclePlate || ret.vehicleId,
+                plate: ret.vehiclePlate || "",
+                model: "",
+              },
+              fuelLevelLines: fuelLines,
+              sugerencia: draft.rnc_sugerencia ?? null,
+              firmaConfirmada: true,
+            },
+            observations: draft.notes || undefined,
             performedBy,
           },
           `return-${id}-rnc`,

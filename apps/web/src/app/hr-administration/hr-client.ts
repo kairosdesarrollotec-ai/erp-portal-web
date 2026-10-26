@@ -166,3 +166,61 @@ export async function confirmHrDocumentRead(idToken: string, documentId: string,
   if (error || !data) throw toCommandError(error, response.status);
   return data;
 }
+
+// --- REC-P13 / BDD-05 / BDD-00: Documento de expectativas ------------------------
+export interface ExpectationDocument {
+  id: string;
+  employeeId: string;
+  companyId: string;
+  status: 'PENDIENTE' | 'FIRMADO';
+  deadlineDate: string;
+  isOverdue: boolean;
+  fileUrl: string | null;
+  signedAt: string | null;
+  registeredBy: string;
+  signedRegisteredBy: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecordExpectationDocumentInput {
+  fileUrl: string;
+  signedAt?: string;
+  notes?: string;
+}
+
+/** REC-P13 / BDD-05 / BDD-00 - Consultar documento de expectativas del colaborador */
+export async function getExpectationDocument(
+  idToken: string,
+  employeeId: string,
+): Promise<ExpectationDocument> {
+  const { data, error, response } = await (hrAdministrationApiClient as any).GET(
+    '/employees/{id}/expectation-document',
+    {
+      params: { path: { id: employeeId } },
+      headers: authHeaders(idToken),
+    },
+  );
+  if (error || !data) throw new HrApiError(response?.status ?? 500);
+  return data as unknown as ExpectationDocument;
+}
+
+/** REC-P13 / BDD-05 / BDD-00 - Registrar documento de expectativas firmado */
+export async function recordExpectationDocument(
+  idToken: string,
+  employeeId: string,
+  input: RecordExpectationDocumentInput,
+): Promise<ExpectationDocument> {
+  const { data, error, response } = await (hrAdministrationApiClient as any).POST(
+    '/employees/{id}/commands/record-expectation-document',
+    {
+      params: { path: { id: employeeId } },
+      headers: authHeaders(idToken),
+      body: input,
+    },
+  );
+  if (error || !data) throw toCommandError(error, response?.status ?? 500);
+  return data as unknown as ExpectationDocument;
+}
+

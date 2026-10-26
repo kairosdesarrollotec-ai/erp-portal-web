@@ -201,13 +201,29 @@ export function Stage4ChecklistScreen() {
         if (!rentalRecords.length) return;
         const patch: Record<string, unknown> = {};
         for (const rec of rentalRecords) {
-          if (rec.odometerKm !== null && rec.odometerKm !== undefined) patch.rnc_kilometraje = rec.odometerKm;
-          if (rec.fuelLevelLines !== null && rec.fuelLevelLines !== undefined) patch.rnc_nivel_combustible_lineas = rec.fuelLevelLines;
+          if (rec.odometerKm !== null && rec.odometerKm !== undefined) {
+            patch.odometerKm = rec.odometerKm;
+            patch.rnc_kilometraje = rec.odometerKm;
+          }
+          if (rec.fuelLevelLines !== null && rec.fuelLevelLines !== undefined) {
+            patch.rnc_nivel_combustible_lineas = rec.fuelLevelLines;
+          }
           if (rec.data && typeof rec.data === "object") {
             Object.assign(patch, rec.data);
+            const dataObj = rec.data as Record<string, unknown>;
+            if (typeof dataObj.technicalMinutes === "number") patch.technicalMinutes = dataObj.technicalMinutes;
+            if (typeof dataObj.documentaryMinutes === "number") patch.documentaryMinutes = dataObj.documentaryMinutes;
+            if (typeof dataObj.exceptionReason === "string") patch.exceptionReason = dataObj.exceptionReason;
+          }
+          if (rec.observations) {
+            patch.notes = rec.observations;
           }
         }
-        setDraft((prev) => ({ ...patch, ...prev }));
+        setDraft((prev) => {
+          const next = { ...patch, ...prev };
+          if (!prev.notes && patch.notes) next.notes = patch.notes as string;
+          return next;
+        });
       })
       .catch(() => undefined);
     return () => {
@@ -221,7 +237,11 @@ export function Stage4ChecklistScreen() {
       const vehicleId = rental.vehicleId;
       const companyId = context.companyId;
       const branchId = context.branchId;
-      const fivData: Record<string, unknown> = {};
+      const fivData: Record<string, unknown> = {
+        technicalMinutes: Number(draft.technicalMinutes || 0),
+        documentaryMinutes: Number(draft.documentaryMinutes || 0),
+        exceptionReason: draft.exceptionReason?.trim() || null,
+      };
       for (const item of FIV_ITEMS) {
         if (draft[item.key] !== undefined) fivData[item.key] = draft[item.key];
       }
@@ -230,7 +250,8 @@ export function Stage4ChecklistScreen() {
         if (draft[item.key] !== undefined) fckeData[item.key] = draft[item.key];
       }
       const fuelLines = typeof draft.rnc_nivel_combustible_lineas === "number" ? Number(draft.rnc_nivel_combustible_lineas) : undefined;
-      const odometer = typeof draft.rnc_kilometraje === "number" ? Number(draft.rnc_kilometraje) : undefined;
+      const rawOdometer = draft.odometerKm ?? draft.rnc_kilometraje;
+      const odometer = typeof rawOdometer === "number" ? Number(rawOdometer) : undefined;
       const performedBy = getFirebaseAuth().currentUser?.displayName ?? "operador";
       await Promise.all([
         recordVehicleOperationalFormat(
@@ -274,9 +295,18 @@ export function Stage4ChecklistScreen() {
             formatType: "FORMATO_06_RNC",
             processType: "RENTAL",
             processId: id,
-            odometerKm: odometer,
             fuelLevelLines: fuelLines,
-            data: { sugerencia: draft.rnc_sugerencia ?? null },
+            data: {
+              responsable: performedBy,
+              unidad: {
+                code: rental.vehiclePlate || rental.vehicleId,
+                plate: rental.vehiclePlate || "",
+                model: rental.vehicleModel || "",
+              },
+              fuelLevelLines: fuelLines,
+              sugerencia: draft.rnc_sugerencia ?? null,
+              firmaConfirmada: true,
+            },
             observations: draft.notes || undefined,
             performedBy,
           },
@@ -299,12 +329,21 @@ export function Stage4ChecklistScreen() {
   if (state === "RECOVERABLE_ERROR" || state === "NOT_FOUND" || !rental) {
     return <p className={styles.statusText}>No pudimos cargar el expediente. Intenta de nuevo.</p>;
   }
+  // Bloqueo por SOAT o Revisión Técnica marcados en 'M' (A3)
+  const legalDocsBlocked = draft.fiv_soat_vigente === "M" || draft.fiv_revision_tecnica_vigente === "M";
   // El botón Continuar se deshabilita si: el checklist no está completo,
   // o estamos offline, o hay sincronización en progreso, o hay items pendientes
-  // (ADR-KAI-004: complete-delivery solo online).
-  const continueDisabled = !checklistComplete || !isOnline || syncing || pendingCount > 0;
+  // (ADR-KAI-004: complete-delivery solo online), o documentación legal en 'M'.
+  const continueDisabled = !checklistComplete || !isOnline || syncing || pendingCount > 0 || legalDocsBlocked;
   return (
     <RentalWizardShell stage={4} title="Checklist y evidencias" cancelControl={<CancelRentalControl rental={rental} context={context} getIdToken={getIdToken} />} onContinue={handleContinue} continueDisabled={continueDisabled}>
+      {legalDocsBlocked && (
+        <div className={styles.offlineBanner} role="alert" style={{ background: "#fef2f2", borderColor: "#f87171", color: "#991b1b" }}>
+          <span>
+            Bloqueo de entrega: SOAT o Revisión Técnica marcados en Mal Estado ('M'). No se puede continuar con la entrega del vehículo.
+          </span>
+        </div>
+      )}
       {/* ── Banner de estado de conectividad ── */}
       {syncState === "OFFLINE" && (
         <div className={styles.offlineBanner} role="status" aria-live="polite">

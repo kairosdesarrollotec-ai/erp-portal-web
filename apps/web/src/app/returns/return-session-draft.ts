@@ -58,6 +58,10 @@ export interface ReturnChecklistDraft {
   fckeDone: boolean;
   responsibilityDocument: ResponsibilityDocumentDraft;
   notes: string;
+  odometerKm?: number;
+  rnc_kilometraje?: number;
+  rnc_nivel_combustible_lineas?: number;
+  rnc_sugerencia?: string;
   [key: string]: unknown;
 }
 

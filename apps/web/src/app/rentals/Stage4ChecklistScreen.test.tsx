@@ -642,6 +642,14 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
           formatType: 'FORMATO_02_FIV',
           processType: 'RENTAL',
           processId: 'rent-1',
+          odometerKm: 50400,
+          fuelLevelLines: 16,
+          data: expect.objectContaining({
+            technicalMinutes: 35,
+            documentaryMinutes: 20,
+            exceptionReason: null,
+            fiv_puertas_capo_cajuela: 'B',
+          }),
         }),
         'rental-rent-1-fiv',
       );
@@ -652,6 +660,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
           formatType: 'FORMATO_08_FCKE',
           processType: 'RENTAL',
           processId: 'rent-1',
+          data: expect.objectContaining({ fcke_gata_botella: 'B' }),
         }),
         'rental-rent-1-fcke',
       );
@@ -662,10 +671,76 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
           formatType: 'FORMATO_06_RNC',
           processType: 'RENTAL',
           processId: 'rent-1',
-          odometerKm: 50400,
           fuelLevelLines: 16,
+          data: expect.objectContaining({
+            responsable: expect.any(String),
+            unidad: expect.objectContaining({
+              plate: 'B2C-456',
+              model: 'Yaris',
+            }),
+            fuelLevelLines: 16,
+            sugerencia: 'Tanque lleno',
+            firmaConfirmada: true,
+          }),
         }),
         'rental-rent-1-rnc',
+      );
+    });
+  });
+
+  it('bloquea Continuar y muestra aviso de bloqueo cuando fiv_soat_vigente o fiv_revision_tecnica_vigente es M (A3)', async () => {
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
+    sessionStorage.setItem(
+      CHECKLIST_KEY,
+      JSON.stringify({
+        technicalMinutes: 35,
+        documentaryMinutes: 20,
+        exceptionReason: '',
+        notes: '',
+        fiv_soat_vigente: 'M',
+      }),
+    );
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    expect(await screen.findByText(/Bloqueo de entrega: SOAT o Revisión Técnica marcados en Mal Estado/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+  });
+
+  it('usa odometerKm como fallback sobre rnc_kilometraje para el odómetro de FIV (A2)', async () => {
+    recordVehicleOperationalFormatMock.mockClear();
+    listRentalEvidenceMock.mockResolvedValue([
+      ...Array.from({ length: 35 }, (_, i) => evidenceItem('PHOTO', i)),
+      ...Array.from({ length: 3 }, (_, i) => evidenceItem('VIDEO', i)),
+    ]);
+    sessionStorage.setItem(
+      CHECKLIST_KEY,
+      JSON.stringify({
+        technicalMinutes: 35,
+        documentaryMinutes: 20,
+        exceptionReason: '',
+        odometerKm: 65400,
+        rnc_nivel_combustible_lineas: 8,
+      }),
+    );
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled());
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+
+    await waitFor(() => {
+      expect(recordVehicleOperationalFormatMock).toHaveBeenCalledWith(
+        expect.any(String),
+        'veh-1',
+        expect.objectContaining({
+          formatType: 'FORMATO_02_FIV',
+          odometerKm: 65400,
+        }),
+        'rental-rent-1-fiv',
       );
     });
   });

@@ -8,6 +8,8 @@ import { setPermissions } from '../../test/permissions';
 
 const getEmployeeMock = vi.fn();
 const linkMock = vi.fn();
+const getExpectationDocumentMock = vi.fn();
+const recordExpectationDocumentMock = vi.fn();
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
@@ -18,7 +20,13 @@ vi.mock('../notifications/useNotifications', () => ({
 }));
 vi.mock('./hr-client', async () => {
   const actual = await vi.importActual<typeof import('./hr-client')>('./hr-client');
-  return { ...actual, getEmployee: (...a: unknown[]) => getEmployeeMock(...a), linkEmployeeAccount: (...a: unknown[]) => linkMock(...a) };
+  return {
+    ...actual,
+    getEmployee: (...a: unknown[]) => getEmployeeMock(...a),
+    linkEmployeeAccount: (...a: unknown[]) => linkMock(...a),
+    getExpectationDocument: (...a: unknown[]) => getExpectationDocumentMock(...a),
+    recordExpectationDocument: (...a: unknown[]) => recordExpectationDocumentMock(...a),
+  };
 });
 
 function renderScreen() {
@@ -208,6 +216,99 @@ describe('EmployeeFileScreen (ADP-01 ficha)', () => {
     await screen.findByRole('heading', { name: 'Carlos Pérez' });
     const restrictedBadges = screen.getAllByText('Restringido');
     expect(restrictedBadges.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('REC-P13: muestra sección de documento de expectativas con estado PENDIENTE y alerta si está vencido', async () => {
+    getEmployeeMock.mockResolvedValue(makeDetail());
+    getExpectationDocumentMock.mockResolvedValue({
+      id: 'pending-emp-1',
+      employeeId: 'emp-1',
+      companyId: 'comp-1',
+      status: 'PENDIENTE',
+      deadlineDate: '2026-10-22',
+      isOverdue: true,
+      fileUrl: null,
+      signedAt: null,
+      registeredBy: 'RECLUTAMIENTO',
+      signedRegisteredBy: null,
+      notes: null,
+      createdAt: '2026-10-20T10:00:00Z',
+      updatedAt: '2026-10-20T10:00:00Z',
+    });
+    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EXPECTATION_DOCUMENT']);
+
+    renderScreen();
+    await screen.findByRole('heading', { name: 'Carlos Pérez' });
+
+    expect(await screen.findByTestId('expectation-document-section')).toBeInTheDocument();
+    expect(screen.getByTestId('expectation-status')).toHaveTextContent('PENDIENTE');
+    expect(screen.getByTestId('expectation-overdue-alert')).toHaveTextContent(
+      'Documento de expectativas pendiente de firma y vencido',
+    );
+    expect(screen.getByTestId('open-record-expectation-modal-btn')).toHaveTextContent('Adjuntar documento firmado');
+  });
+
+  it('REC-P13: permite registrar el documento de expectativas firmado vía diálogo', async () => {
+    getEmployeeMock.mockResolvedValue(makeDetail());
+    getExpectationDocumentMock.mockResolvedValue({
+      id: 'pending-emp-1',
+      employeeId: 'emp-1',
+      companyId: 'comp-1',
+      status: 'PENDIENTE',
+      deadlineDate: '2026-10-26',
+      isOverdue: false,
+      fileUrl: null,
+      signedAt: null,
+      registeredBy: 'SISTEMA',
+      signedRegisteredBy: null,
+      notes: null,
+      createdAt: '2026-10-24T10:00:00Z',
+      updatedAt: '2026-10-24T10:00:00Z',
+    });
+    recordExpectationDocumentMock.mockResolvedValue({
+      id: 'doc-saved-1',
+      employeeId: 'emp-1',
+      companyId: 'comp-1',
+      status: 'FIRMADO',
+      deadlineDate: '2026-10-26',
+      isOverdue: false,
+      fileUrl: 'https://storage.kairos.pe/expectations/carlos.pdf',
+      signedAt: '2026-10-26T12:00:00Z',
+      registeredBy: 'SISTEMA',
+      signedRegisteredBy: 'u@veloxrent.pe',
+      notes: 'Firmado ok',
+      createdAt: '2026-10-24T10:00:00Z',
+      updatedAt: '2026-10-26T12:00:00Z',
+    });
+    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EXPECTATION_DOCUMENT']);
+
+    renderScreen();
+    await screen.findByRole('heading', { name: 'Carlos Pérez' });
+
+    fireEvent.click(await screen.findByTestId('open-record-expectation-modal-btn'));
+    expect(screen.getByRole('dialog', { name: 'Adjuntar documento de expectativas firmado' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('expectation-file-url-input'), {
+      target: { value: 'https://storage.kairos.pe/expectations/carlos.pdf' },
+    });
+    fireEvent.change(screen.getByTestId('expectation-notes-input'), {
+      target: { value: 'Firmado ok' },
+    });
+
+    fireEvent.click(screen.getByTestId('submit-expectation-doc-btn'));
+
+    await waitFor(() =>
+      expect(recordExpectationDocumentMock).toHaveBeenCalledWith('tok', 'emp-1', {
+        fileUrl: 'https://storage.kairos.pe/expectations/carlos.pdf',
+        notes: 'Firmado ok',
+      }),
+    );
+
+    expect(await screen.findByTestId('expectation-status')).toHaveTextContent('FIRMADO');
+    expect(screen.getByText('Ver documento firmado')).toHaveAttribute(
+      'href',
+      'https://storage.kairos.pe/expectations/carlos.pdf',
+    );
   });
 });
 

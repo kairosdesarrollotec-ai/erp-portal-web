@@ -251,6 +251,23 @@ export interface ReturnResponse {
   legalEscalationReason?: string | null;
   legalCaseNumber?: string | null;
   vehicleFuelPenaltyPerLine?: number | null;
+  holderNotification?: {
+    sent: boolean;
+    sentAt: string | null;
+    sentBy: string | null;
+    channel: string | null;
+    observations: string | null;
+    pending: boolean;
+  } | null;
+}
+
+export interface RecordHolderNotificationRequest {
+  companyId: string;
+  branchId: string;
+  channel: string;
+  contactedAt: string;
+  notifiedBy: string;
+  observations?: string;
 }
 
 export type ReturnEvidenceType = 'PHOTO' | 'VIDEO';

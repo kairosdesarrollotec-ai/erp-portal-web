@@ -1,11 +1,21 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EmployeeStatusBadge } from './EmployeeBadge';
 import { HrFrame } from './HrFrame';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getFirebaseAuth } from '../providers/firebase';
 import { describeHrError } from './hr-errors';
-import { getEmployee, linkEmployeeAccount, type EmployeeDetail, type UpdateEmployeeResult } from './hr-client';
+import {
+  getEmployee,
+  linkEmployeeAccount,
+  getExpectationDocument,
+  recordExpectationDocument,
+  type EmployeeDetail,
+  type UpdateEmployeeResult,
+  type ExpectationDocument,
+} from './hr-client';
 import { EditEmployeeDialog } from './EditEmployeeDialog';
+import { HrDialog } from './HrDialog';
+import dialogStyles from './HrDialog.module.css';
 import {
   FIELD_TRIP_STATUS_LABEL,
   LEAVE_STATUS_LABEL,
@@ -35,6 +45,56 @@ export function EmployeeFileScreen() {
   const [linkError, setLinkError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState<UpdateEmployeeResult | null>(null);
+  const [expectationDoc, setExpectationDoc] = useState<ExpectationDocument | null>(null);
+  const [docModalOpen, setDocModalOpen] = useState(false);
+  const [docUrl, setDocUrl] = useState('');
+  const [docNotes, setDocNotes] = useState('');
+  const [docSubmitting, setDocSubmitting] = useState(false);
+  const [docError, setDocError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!employee) return;
+    const employeeId: string = employee.id;
+    let active = true;
+    async function loadDoc(empId: string) {
+      try {
+        const user = getFirebaseAuth().currentUser;
+        if (!user) return;
+        const idToken = await user.getIdToken();
+        const doc = await getExpectationDocument(idToken, empId);
+        if (active) setExpectationDoc(doc);
+      } catch {
+        // Ignorado si no está disponible
+      }
+    }
+    loadDoc(employeeId);
+    return () => {
+      active = false;
+    };
+  }, [employee]);
+
+  async function handleRecordDoc() {
+    if (!employee || !docUrl.trim()) return;
+    setDocSubmitting(true);
+    setDocError(null);
+    try {
+      const user = getFirebaseAuth().currentUser;
+      if (!user) throw new Error('Sesión no disponible');
+      const idToken = await user.getIdToken();
+      const updated = await recordExpectationDocument(idToken, employee.id, {
+        fileUrl: docUrl.trim(),
+        notes: docNotes.trim() || undefined,
+      });
+      setExpectationDoc(updated);
+      setDocModalOpen(false);
+      setDocUrl('');
+      setDocNotes('');
+    } catch (err) {
+      setDocError(describeHrError(err, 'No pudimos registrar el documento de expectativas.'));
+    } finally {
+      setDocSubmitting(false);
+    }
+  }
 
   async function handleSaved(result: UpdateEmployeeResult) {
     setSaved(result);
@@ -247,6 +307,68 @@ export function EmployeeFileScreen() {
             </dl>
           </section>
 
+          <section className={styles.card} aria-labelledby="emp-expectativas" data-testid="expectation-document-section">
+            <h2 id="emp-expectativas" className={styles.sectionTitle}>
+              Documento de expectativas
+            </h2>
+            {expectationDoc?.isOverdue && (
+              <p className={styles.warning} role="alert" data-testid="expectation-overdue-alert">
+                <strong>Alerta:</strong> Documento de expectativas pendiente de firma y vencido (plazo de 2 días superado: límite {formatDate(expectationDoc.deadlineDate)}).
+              </p>
+            )}
+            <dl className={styles.grid}>
+              <div>
+                <dt>Estado</dt>
+                <dd data-testid="expectation-status">
+                  <span className={expectationDoc?.status === 'FIRMADO' ? styles.badgePositive : styles.badgeWarn}>
+                    {expectationDoc?.status === 'FIRMADO' ? 'FIRMADO' : 'PENDIENTE'}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt>Fecha límite (2 días de ingreso)</dt>
+                <dd data-testid="expectation-deadline">{expectationDoc ? formatDate(expectationDoc.deadlineDate) : '—'}</dd>
+              </div>
+              <div>
+                <dt>Documento firmado</dt>
+                <dd data-testid="expectation-file">
+                  {expectationDoc?.fileUrl ? (
+                    <a href={expectationDoc.fileUrl} target="_blank" rel="noopener noreferrer">
+                      Ver documento firmado
+                    </a>
+                  ) : (
+                    <span className={styles.hint}>Sin archivo adjunto</span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Registrado por</dt>
+                <dd data-testid="expectation-registered-by">
+                  {expectationDoc?.signedRegisteredBy || expectationDoc?.registeredBy || '—'}
+                  {expectationDoc?.signedAt ? ` (${formatDate(expectationDoc.signedAt)})` : ''}
+                </dd>
+              </div>
+              {expectationDoc?.notes && (
+                <div>
+                  <dt>Observaciones</dt>
+                  <dd data-testid="expectation-notes">{expectationDoc.notes}</dd>
+                </div>
+              )}
+            </dl>
+            {can('MANAGE_EXPECTATION_DOCUMENT') && !terminated && (
+              <div style={{ marginTop: '1rem' }}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => setDocModalOpen(true)}
+                  data-testid="open-record-expectation-modal-btn"
+                >
+                  {expectationDoc?.status === 'FIRMADO' ? 'Actualizar documento firmado' : 'Adjuntar documento firmado'}
+                </button>
+              </div>
+            )}
+          </section>
+
           {terminated && (
             <p className={styles.warning} role="status">
               La relación laboral terminó
@@ -395,6 +517,65 @@ export function EmployeeFileScreen() {
             </section>
           )}
           {editing && <EditEmployeeDialog employee={employee} onReload={reload} onSaved={(r) => void handleSaved(r)} onCancel={() => setEditing(false)} />}
+          {docModalOpen && (
+            <HrDialog
+              titleId="expectation-doc-modal-title"
+              title="Adjuntar documento de expectativas firmado"
+              onClose={() => {
+                if (!docSubmitting) setDocModalOpen(false);
+              }}
+            >
+              <p className={dialogStyles.consequence}>
+                (REC-P13 / BDD-05) Registra la URL del documento de expectativas firmado por el colaborador a los 2 días de ingreso.
+              </p>
+              {docError && (
+                <p className={dialogStyles.error} role="alert">
+                  {docError}
+                </p>
+              )}
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '0.75rem' }}>
+                <span>URL del archivo firmado *</span>
+                <input
+                  type="url"
+                  value={docUrl}
+                  onChange={(e) => setDocUrl(e.target.value)}
+                  placeholder="https://storage.kairos.pe/expectations/doc.pdf"
+                  data-testid="expectation-file-url-input"
+                  style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginBottom: '1rem' }}>
+                <span>Observaciones (opcional)</span>
+                <textarea
+                  rows={2}
+                  value={docNotes}
+                  onChange={(e) => setDocNotes(e.target.value)}
+                  placeholder="Notas adicionales..."
+                  data-testid="expectation-notes-input"
+                  style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                />
+              </label>
+              <div className={dialogStyles.actions}>
+                <button
+                  type="button"
+                  className={dialogStyles.secondaryButton}
+                  onClick={() => setDocModalOpen(false)}
+                  disabled={docSubmitting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className={dialogStyles.primarySolid}
+                  onClick={handleRecordDoc}
+                  disabled={docSubmitting || !docUrl.trim()}
+                  data-testid="submit-expectation-doc-btn"
+                >
+                  {docSubmitting ? 'Guardando…' : 'Guardar documento'}
+                </button>
+              </div>
+            </HrDialog>
+          )}
         </>
       )}
     </HrFrame>
