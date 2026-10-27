@@ -248,7 +248,7 @@ export async function registerReturnFuelPenalty(
   amount: number,
   reason: string,
 ): Promise<ReturnResponse> {
-  const { data, error, response } = await (returnsApiClient as any).POST('/returns/{id}/commands/register-fuel-penalty', {
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/register-fuel-penalty', {
     params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
     body: { companyId, branchId, amount, reason } as unknown as never,

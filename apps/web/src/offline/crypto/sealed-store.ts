@@ -35,7 +35,8 @@ export async function sealEvidenceRow<T extends { blob: Blob }>(
 export async function unsealEvidenceRow(row: EvidenceQueueRow): Promise<EvidenceQueueItem> {
   if (!row.blobSealed) return row as EvidenceQueueItem; // heredada en texto plano
   const blob = await decryptLocalBlob(requireLocalCryptoUserId(), row.blobSealed);
-  const { blobSealed: _sealed, ...rest } = row;
+  const { blobSealed, ...rest } = row;
+  void blobSealed;
   return { ...rest, blob } as EvidenceQueueItem;
 }
 
@@ -65,7 +66,9 @@ export async function unsealAttendanceRow(row: AttendanceQueueRow): Promise<Atte
   const userId = requireLocalCryptoUserId();
   const data = await decryptLocalPayload<AttendanceSealedData>(userId, row.sealed);
   const photoBlob = row.photoSealed ? await decryptLocalBlob(userId, row.photoSealed) : null;
-  const { sealed: _sealed, photoSealed: _photoSealed, ...clear } = row;
+  const { sealed, photoSealed, ...clear } = row;
+  void sealed;
+  void photoSealed;
   return { ...clear, ...data, photoBlob } as AttendanceQueueItem;
 }
 
@@ -83,7 +86,8 @@ export async function unsealFieldEditRow(row: SyncFieldEditStored): Promise<Sync
     requireLocalCryptoUserId(),
     row.valueSealed,
   );
-  const { valueSealed: _sealed, ...rest } = row;
+  const { valueSealed, ...rest } = row;
+  void valueSealed;
   return { ...rest, value };
 }
 

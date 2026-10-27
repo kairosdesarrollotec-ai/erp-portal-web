@@ -174,8 +174,8 @@ export function MyAttendanceScreen() {
         setMinutesLate('');
         setNotes('');
         setSubmitted(false);
-      } catch (err: any) {
-        command.setError(err.message || 'No se pudo guardar la marca localmente.');
+      } catch (err: unknown) {
+        command.setError((err as { message?: string } | null)?.message || 'No se pudo guardar la marca localmente.');
       }
       return;
     }

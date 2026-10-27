@@ -3,6 +3,7 @@ import {
   type AttendanceQueueItem,
   type AttendanceQueueStatus,
 } from '../database/kairos-db';
+import type { LogMyAttendanceInput } from '../../app/hr-administration/hr-field-trips-client';
 import { sealAttendanceRow, unsealAttendanceRow, unsealMany } from '../crypto/sealed-store';
 
 export type { AttendanceQueueItem, AttendanceQueueStatus };
@@ -33,8 +34,8 @@ export interface SyncAttendanceDeps {
   logAttendance: (
     idToken: string,
     scope: { companyId: string; branchId: string },
-    payload: any,
-  ) => Promise<any>;
+    payload: LogMyAttendanceInput,
+  ) => Promise<unknown>;
   now?: () => Date;
 }
 
@@ -176,9 +177,10 @@ export async function syncSingleAttendanceItem(
     }
 
     return syncedItem;
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const failure = err as { message?: string; detail?: unknown } | null;
     const errorMsg =
-      err?.message || (typeof err?.detail === 'string' ? err.detail : 'Error al sincronizar marca');
+      failure?.message || (typeof failure?.detail === 'string' ? failure.detail : 'Error al sincronizar marca');
     const erroredItem: AttendanceQueueItem = {
       ...item,
       queueStatus: 'error',
