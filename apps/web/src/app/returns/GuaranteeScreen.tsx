@@ -5,6 +5,7 @@ import { returnFlowGuard } from './ReturnGuards';
 import { useReturnFlow } from './useReturnFlow';
 import { DamageLog } from './DamageLog';
 import { ManualLateChargePanel } from './ManualLateChargePanel';
+import { ManualFuelPenaltyPanel } from './ManualFuelPenaltyPanel';
 import { useCosmeticTariff } from './useCosmeticTariff';
 import { damagesWithoutAmount, formatPen, hasGraveDamage, totalCharges } from './return-financial';
 import { closeFinancial } from './returns-client';
@@ -73,8 +74,12 @@ export function GuaranteeScreen() {
   const noDeposit = ret.depositRequired === false || rental?.depositRequired === false;
   const depositAmount = rental?.deposit && !noDeposit ? Number(rental.deposit.originalAmount) : null;
   const currency = rental?.deposit?.currency ?? 'PEN';
-  const computedRetained = ret.status === 'SIN_DANOS' ? 0 : totalCharges(damages, charges);
-  const hasRecordedCharges = damages.length > 0 || charges.length > 0;
+  const fuelPenaltyAmount = ret.fuelPenalty?.amount ?? 0;
+  const lateChargeAmount = ret.manualLateCharge?.amount ?? 0;
+  const baseDamageCharges = ret.status === 'SIN_DANOS' ? 0 : totalCharges(damages, charges);
+  const requiredCharges = round2(baseDamageCharges + lateChargeAmount + fuelPenaltyAmount);
+  const computedRetained = ret.status === 'SIN_DANOS' ? round2(lateChargeAmount + fuelPenaltyAmount) : requiredCharges;
+  const hasRecordedCharges = damages.length > 0 || charges.length > 0 || fuelPenaltyAmount > 0 || lateChargeAmount > 0;
   const pendingAmount = damagesWithoutAmount(damages).length;
   const retainedRaw = retainedInput === null ? computedRetained : Number(retainedInput);
   const retainedValid = Number.isFinite(retainedRaw) && retainedRaw >= 0;
@@ -88,7 +93,8 @@ export function GuaranteeScreen() {
   const elapsed = hoursSince(ret.receivedAt);
   const remaining = elapsed === null ? null : Math.ceil(GUARANTEE_WINDOW_HOURS - elapsed);
   const noRecordedDamages = ret.status === 'CON_DANOS' && !hasRecordedCharges;
-  const canConfirm = actionable && (depositAmount !== null || noDeposit) && retainedValid && can('CLOSE_FINANCIAL') && !blocked;
+  const retainedSufficient = noDeposit || retainedRaw >= Math.min(requiredCharges, depositAmount ?? 0);
+  const canConfirm = actionable && (depositAmount !== null || noDeposit) && retainedValid && retainedSufficient && can('CLOSE_FINANCIAL') && !blocked;
   const money = (n: number) => (currency === 'PEN' ? formatPen(n) : `${n.toFixed(2)} ${currency}`);
 
   async function handleConfirm() {
@@ -136,6 +142,13 @@ export function GuaranteeScreen() {
       <h1 className={styles.pageHeading}>Resolución de garantía — {ret.vehiclePlate ?? 'Vehículo'}</h1>
 
       <ManualLateChargePanel ret={ret} context={context} getIdToken={getIdToken} setRet={setRet} reload={reload} />
+      <ManualFuelPenaltyPanel ret={ret} context={context} getIdToken={getIdToken} setRet={setRet} reload={reload} />
+
+      {!retainedSufficient && (
+        <p className={`${styles.banner} ${styles.banner_error}`} role="alert" data-testid="insufficient-retained-banner">
+          Retención insuficiente: el monto a retener ({money(retained)}) no cubre los cargos requeridos ({money(requiredCharges)}).
+        </p>
+      )}
 
       {blocked && (
         <p className={`${styles.banner} ${styles.banner_error}`} role="alert">
@@ -188,10 +201,32 @@ export function GuaranteeScreen() {
                 <td>Garantía total</td>
                 <td>{money(depositAmount)}</td>
               </tr>
+              {baseDamageCharges > 0 && (
+                <tr>
+                  <td>Descuentos (daños y paralización)</td>
+                  <td>− {money(baseDamageCharges)}</td>
+                </tr>
+              )}
+              {lateChargeAmount > 0 && (
+                <tr>
+                  <td>Cargo por retraso</td>
+                  <td>− {money(lateChargeAmount)}</td>
+                </tr>
+              )}
+              {fuelPenaltyAmount > 0 && (
+                <tr>
+                  <td>Penalización por combustible faltante</td>
+                  <td>− {money(fuelPenaltyAmount)}</td>
+                </tr>
+              )}
+              {requiredCharges === 0 && (
+                <tr>
+                  <td>Sin descuentos — sin daños encontrados</td>
+                  <td>S/ 0.00</td>
+                </tr>
+              )}
               <tr>
-                <td>
-                  {ret.status === 'SIN_DANOS' ? 'Sin descuentos — sin daños encontrados' : 'Descuentos (daños y paralización)'}
-                </td>
+                <td>Total retención</td>
                 <td>− {money(retained)}</td>
               </tr>
               {extraToCollect > 0 && (

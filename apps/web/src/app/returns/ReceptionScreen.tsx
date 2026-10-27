@@ -39,6 +39,12 @@ export function ReceptionScreen() {
   const [responsible, setResponsible] = useState('');
   const [mileage, setMileage] = useState('');
   const [fuel, setFuel] = useState<ReturnFuelLevel | ''>('');
+  const [identityVerified, setIdentityVerified] = useState(false);
+  const [identityDocType, setIdentityDocType] = useState('');
+  const [identityDocNumber, setIdentityDocNumber] = useState('');
+  const [identityMatchesHolder, setIdentityMatchesHolder] = useState<boolean | null>(null);
+  const [identityResult, setIdentityResult] = useState<'CONFORME' | 'NO_CONFORME' | ''>('');
+  const [identityObservation, setIdentityObservation] = useState('');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,10 +79,21 @@ export function ReceptionScreen() {
   const mileageValue = Number(mileage);
   const mileageValid = mileage.trim() !== '' && Number.isInteger(mileageValue) && mileageValue >= 0;
   const thirdPartyComplete = !thirdParty || (returnerName.trim() && relation.trim() && responsible.trim());
-  const canSubmit = can('RECEIVE_PROVISIONAL') && mileageValid && fuel !== '' && Boolean(thirdPartyComplete);
+  const identityComplete =
+    identityVerified &&
+    identityDocType.trim() !== '' &&
+    identityDocNumber.trim() !== '' &&
+    identityMatchesHolder !== null &&
+    identityResult !== '';
+  const canSubmit =
+    can('RECEIVE_PROVISIONAL') &&
+    mileageValid &&
+    fuel !== '' &&
+    Boolean(thirdPartyComplete) &&
+    identityComplete;
 
   async function handleReceive() {
-    if (!context || !rental || fuel === '') return;
+    if (!context || !rental || fuel === '' || !identityComplete) return;
     setBusy(true);
     setError(null);
     try {
@@ -94,6 +111,12 @@ export function ReceptionScreen() {
         mileageAtReturn: mileageValue,
         fuelLevelAtReturn: fuel,
         customerPresent: !thirdParty,
+        identityVerified: true,
+        identityDocumentType: identityDocType,
+        identityDocumentNumber: identityDocNumber.trim(),
+        identityMatchesHolder: identityMatchesHolder === true,
+        identityResult: identityResult as 'CONFORME' | 'NO_CONFORME',
+        observation: identityObservation.trim() || undefined,
         notes: noteParts.join(' ') || undefined,
       });
       navigate(`/devoluciones/${created.id}/alcoholimetro`, { state: context });
@@ -156,6 +179,111 @@ export function ReceptionScreen() {
             Otra persona
           </label>
         </div>
+      </fieldset>
+
+      <fieldset className={styles.fieldset}>
+        <legend>Verificación de identidad (HU-03)</legend>
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            aria-label="Identidad verificada físicamente"
+            checked={identityVerified}
+            onChange={(e) => setIdentityVerified(e.target.checked)}
+          />
+          Identidad verificada físicamente con documento oficial (obligatorio)
+        </label>
+        {identityVerified && (
+          <div className={styles.radioRow} style={{ marginTop: '0.5rem', gap: '1rem', flexWrap: 'wrap' }}>
+            <label className={styles.fieldLabel} style={{ minWidth: '130px' }}>
+              Tipo documento *
+              <select
+                aria-label="Tipo documento identidad"
+                className={styles.select}
+                value={identityDocType}
+                onChange={(e) => setIdentityDocType(e.target.value)}
+              >
+                <option value="">Selecciona tipo…</option>
+                <option value="DNI">DNI</option>
+                <option value="CE">Carné Extranjería</option>
+                <option value="PASAPORTE">Pasaporte</option>
+              </select>
+            </label>
+            <label className={styles.fieldLabel} style={{ minWidth: '160px' }}>
+              N° Documento *
+              <input
+                aria-label="Número documento identidad"
+                className={styles.input}
+                value={identityDocNumber}
+                placeholder="Digitar número"
+                onChange={(e) => setIdentityDocNumber(e.target.value)}
+              />
+              {rental?.customerDocNumber && (
+                <button
+                  type="button"
+                  style={{
+                    fontSize: '0.8rem',
+                    marginTop: '0.25rem',
+                    textAlign: 'left',
+                    background: 'none',
+                    border: 'none',
+                    color: '#0969da',
+                    cursor: 'pointer',
+                    padding: 0,
+                  }}
+                  onClick={() => setIdentityDocNumber(rental.customerDocNumber!)}
+                >
+                  Sugerir doc. titular ({rental.customerDocNumber})
+                </button>
+              )}
+            </label>
+            <label className={styles.fieldLabel} style={{ minWidth: '160px' }}>
+              ¿Coincide con titular? *
+              <select
+                aria-label="Coincidencia con titular"
+                className={styles.select}
+                value={identityMatchesHolder === null ? '' : identityMatchesHolder ? 'SI' : 'NO'}
+                onChange={(e) => {
+                  if (e.target.value === '') setIdentityMatchesHolder(null);
+                  else setIdentityMatchesHolder(e.target.value === 'SI');
+                }}
+              >
+                <option value="">Selecciona coincidencia…</option>
+                <option value="SI">Sí, coincide con titular</option>
+                <option value="NO">No, persona distinta / tercero</option>
+              </select>
+            </label>
+            <label className={styles.fieldLabel} style={{ minWidth: '140px' }}>
+              Resultado verificación *
+              <select
+                aria-label="Resultado verificación identidad"
+                className={styles.select}
+                value={identityResult}
+                onChange={(e) => setIdentityResult(e.target.value as 'CONFORME' | 'NO_CONFORME' | '')}
+              >
+                <option value="">Selecciona resultado…</option>
+                <option value="CONFORME">Conforme</option>
+                <option value="NO_CONFORME">No conforme</option>
+              </select>
+            </label>
+          </div>
+        )}
+        {identityResult === 'NO_CONFORME' && (
+          <div style={{ marginTop: '0.5rem' }}>
+            <p className={styles.summaryLine} style={{ color: '#b06000' }}>
+              ⚠️ Advertencia: La verificación de identidad es NO CONFORME. Se notificará a Gerencia y quedará registrada la observación sin bloquear la recepción física (DEC-DEV-LEGAL-001).
+            </p>
+            <label className={styles.fieldLabel} style={{ marginTop: '0.25rem' }}>
+              Detalle de no conformidad / observación de identidad
+              <input
+                aria-label="Observación de identidad"
+                className={styles.input}
+                placeholder="Indica motivo (documento sospechoso, incongruencia de datos, etc.)"
+                value={identityObservation}
+                onChange={(e) => setIdentityObservation(e.target.value)}
+              />
+            </label>
+          </div>
+        )}
       </fieldset>
 
       {thirdParty && (

@@ -181,6 +181,12 @@ export async function receiveProvisional(
       mileageAtReturn: input.mileageAtReturn,
       fuelLevelAtReturn: input.fuelLevelAtReturn,
       customerPresent: input.customerPresent,
+      ...(input.identityVerified !== undefined ? { identityVerified: input.identityVerified } : {}),
+      ...(input.identityDocumentType ? { identityDocumentType: input.identityDocumentType } : {}),
+      ...(input.identityDocumentNumber ? { identityDocumentNumber: input.identityDocumentNumber } : {}),
+      ...(input.identityMatchesHolder !== undefined ? { identityMatchesHolder: input.identityMatchesHolder } : {}),
+      ...(input.identityResult ? { identityResult: input.identityResult } : {}),
+      ...(input.observation ? { observation: input.observation } : {}),
       ...(input.notes ? { notes: input.notes } : {}),
     } as unknown as never,
   });
@@ -225,6 +231,27 @@ export async function registerReturnLateCharge(
     params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
     body: { companyId, branchId, amount, ...(notes ? { notes } : {}) } as unknown as never,
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
+}
+
+/** DEC-DEV-FUEL-PENALTY-001 (BDD-04 §9.6.1) - multa por combustible faltante manual / ajustada. */
+export async function registerReturnFuelPenalty(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  amount: number,
+  reason: string,
+): Promise<ReturnResponse> {
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/register-fuel-penalty', {
+    params: { path: { id } } as unknown as never,
+    headers: commandHeaders(idToken, version),
+    body: { companyId, branchId, amount, reason } as unknown as never,
   });
   if (error || !data) {
     throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
@@ -585,6 +612,31 @@ export async function recordReturnZoneMarks(
     throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
   }
   return data as unknown as ReturnZoneMarksResult;
+}
+
+/** SC-DEV-004.01 / EX-DEV-001 - Notificación formal al titular ausente cuando devuelve un tercero. */
+export async function recordHolderNotification(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  body: {
+    channel: string;
+    contactedAt: string;
+    notifiedBy: string;
+    observations?: string;
+  },
+): Promise<ReturnResponse> {
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/record-holder-notification', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: commandHeaders(idToken, version),
+    body: { companyId, branchId, ...body },
+  });
+  if (error || !data) {
+    throw new ReturnCommandError(response?.status ?? 500, (error as unknown as { code?: string; detail?: string } | null) ?? null);
+  }
+  return data as unknown as ReturnResponse;
 }
 
 // --- DEV-04 / TR-08 - evidencia real (foto/video) de retorno ---

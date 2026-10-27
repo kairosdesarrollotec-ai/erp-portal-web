@@ -433,6 +433,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/employees/{id}/expectation-document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consultar documento de expectativas del colaborador (REC-P13, BDD-05, BDD-00)
+         * @description Devuelve el estado del documento de expectativas del colaborador (PENDIENTE o FIRMADO), el plazo legal de 2 días de ingreso (hireDate + 2 días), si se encuentra vencido (isOverdue), la URL del documento firmado y datos de registro.
+         */
+        get: operations["getExpectationDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{id}/commands/record-expectation-document": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar documento de expectativas firmado (REC-P13, BDD-05)
+         * @description Permite adjuntar el archivo firmado del documento de expectativas del colaborador, cambiando su estado a FIRMADO y auditando la acción.
+         */
+        post: operations["recordExpectationDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/field-trips/{id}/reject": {
         parameters: {
             query?: never;
@@ -1094,10 +1134,9 @@ export interface components {
             type: "CHECK_IN" | "CHECK_OUT";
             /**
              * @description Solo en CHECK_IN. Faltas y permisos los registra Personal.
-             * @default PRESENTE
              * @enum {string}
              */
-            status: "PRESENTE" | "TARDANZA";
+            status?: "PRESENTE" | "TARDANZA";
             /** @description Obligatorio si status=TARDANZA */
             minutesLate?: number;
             /**
@@ -1535,8 +1574,7 @@ export interface components {
             fileUrl: string;
             fileHash?: string | null;
             fileName?: string | null;
-            /** @default application/pdf */
-            mimeType: string;
+            mimeType?: string;
             sizeBytes?: number | null;
         };
         HrDocumentResponse: {
@@ -1575,6 +1613,36 @@ export interface components {
             employeeId: string;
             /** Format: date-time */
             readAt: string;
+        };
+        RecordExpectationDocumentRequest: {
+            /** @example https://storage.kairos.pe/expectations/doc-001.pdf */
+            fileUrl: string;
+            /** Format: date-time */
+            signedAt?: string | null;
+            notes?: string | null;
+        };
+        ExpectationDocumentResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            employeeId: string;
+            /** Format: uuid */
+            companyId: string;
+            /** @enum {string} */
+            status: "PENDIENTE" | "FIRMADO";
+            /** Format: date */
+            deadlineDate: string;
+            isOverdue: boolean;
+            fileUrl?: string | null;
+            /** Format: date-time */
+            signedAt?: string | null;
+            registeredBy?: string;
+            signedRegisteredBy?: string | null;
+            notes?: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
         };
     };
     responses: never;
@@ -3268,6 +3336,103 @@ export interface operations {
             };
             /** @description Reglas de BR-ADP-006 incumplidas - renuncia sin pago de la quincena pendiente (FINAL_SETTLEMENT_REQUIRED) */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getExpectationDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Documento de expectativas del colaborador */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpectationDocumentResponse"];
+                };
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.VIEW_EMPLOYEES */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Colaborador no encontrado */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordExpectationDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordExpectationDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description Documento de expectativas registrado exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpectationDocumentResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Rol sin permiso HR_ADMINISTRATION.MANAGE_EXPECTATION_DOCUMENT */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Colaborador no encontrado */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

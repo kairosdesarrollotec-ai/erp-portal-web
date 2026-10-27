@@ -64,7 +64,7 @@ export function DamageSeverityScreen() {
       title="Evaluación de daño"
       onContinue={wrongState ? undefined : handleContinue}
       continueLabel="Continuar"
-      continueDisabled={!ready || !can('ASSESS_DAMAGE')}
+      continueDisabled={!ready || !can('CLASSIFY_DAMAGE_SEVERITY')}
     >
       <h1 className={styles.pageHeading}>Evaluación de daño — {ret.vehiclePlate ?? 'Vehículo'}</h1>
       <p className={styles.pageSubtitle}>Clasifica el origen y la gravedad del daño encontrado.</p>
@@ -79,8 +79,8 @@ export function DamageSeverityScreen() {
         </p>
       )}
 
-      {!can('ASSESS_DAMAGE') && (
-        <p className={styles.blockedNotice}>Solo Administración o Gerencia pueden evaluar daños.</p>
+      {!can('CLASSIFY_DAMAGE_SEVERITY') && (
+        <p className={styles.blockedNotice}>Solo usuarios autorizados (por defecto Gerencia) pueden clasificar la gravedad del daño.</p>
       )}
 
       <fieldset className={styles.fieldset} disabled={wrongState}>

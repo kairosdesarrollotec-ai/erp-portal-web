@@ -253,6 +253,23 @@ describe('VehicleDetailScreen', () => {
     );
   });
 
+  it('HU-15: muestra mensaje claro de compromiso activo si se intenta cambiar a fuera de servicio (OUT_OF_SERVICE)', async () => {
+    updateVehicleStatusMock.mockRejectedValue(
+      new FleetCommandError(422, {
+        code: 'VEHICLE_HAS_ACTIVE_COMMITMENT',
+        detail: 'No se puede poner fuera de servicio el vehículo: tiene un contrato de alquiler activo.',
+      }),
+    );
+    renderScreen();
+    await waitFor(() => expect(screen.getByLabelText(/cambiar estado operativo/i)).toBeInTheDocument());
+    const select = screen.getByLabelText(/cambiar estado operativo/i);
+    fireEvent.change(select, { target: { value: 'OUT_OF_SERVICE' } });
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent(/tiene un contrato de alquiler activo/i);
+    });
+  });
+
   it('muestra el botón Editar vehículo', async () => {
     renderScreen();
     await waitFor(() => expect(screen.getByText('Toyota Hilux')).toBeInTheDocument());

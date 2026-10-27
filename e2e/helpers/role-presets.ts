@@ -55,8 +55,9 @@ const RETURN_ADMIN = [
   ...RETURN_FIELD,
   'RETURN.ASSESS_DAMAGE', 'RETURN.CHARGE_IMMOBILIZATION', 'RETURN.CLOSE_FINANCIAL', 'RETURN.CLOSE',
 ];
-// Todas las acciones de devolucion (solo GERENCIA tiene RESOLVE_ALCOHOL_ESCALATION)
-const RETURN_ALL = [...RETURN_ADMIN, 'RETURN.RESOLVE_ALCOHOL_ESCALATION'];
+// Todas las acciones de devolucion. Solo GERENCIA tiene, por defecto en la matriz ADM-02, RESOLVE_ALCOHOL_ESCALATION y
+// CLASSIFY_DAMAGE_SEVERITY (la gravedad del dano se controla por permiso, decision del 27-oct).
+const RETURN_ALL = [...RETURN_ADMIN, 'RETURN.RESOLVE_ALCOHOL_ESCALATION', 'RETURN.CLASSIFY_DAMAGE_SEVERITY'];
 
 /** Roles de sistema con una aproximacion de los permisos que siembra la matriz v0. */
 export const ROLE_PRESETS: Record<string, { role: E2eRole; permissions: string[] }> = {

@@ -182,6 +182,28 @@ describe('DashboardScreen (TR-06)', () => {
     expect(screen.getAllByTestId('task-alert-badge')).toHaveLength(2);
   });
 
+  it('la alerta de fin de periodo de prueba (HU-33) se marca como "Alerta" y enlaza a /periodo-de-prueba', async () => {
+    getDashboardMock.mockResolvedValue({
+      role: roleRef('GERENCIA', 'Gerencia'),
+      state: 'READY',
+      tasks: [
+        {
+          id: 'a-prob',
+          itemType: 'ALERT',
+          priority: 85,
+          title: 'Periodo de prueba por vencer: Juan Pérez (12 días restantes).',
+          detail: 'Requiere evaluación de Gerencia General antes de cumplir los 3 meses.',
+          deepLink: '/reclutamiento/candidatos/cand-123/periodo-de-prueba',
+        },
+      ],
+    });
+    renderScreen({ companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Ayacucho — Sede Central' });
+
+    const link = await screen.findByRole('link', { name: /Periodo de prueba por vencer: Juan Pérez/ });
+    expect(link).toHaveAttribute('href', '/reclutamiento/candidatos/cand-123/periodo-de-prueba');
+    expect(screen.getByTestId('task-alert-badge')).toBeInTheDocument();
+  });
+
   it('muestra el contador de notificaciones no leidas y abre el panel al hacer clic en la campana', async () => {
     getDashboardMock.mockResolvedValue({ role: roleRef('GERENCIA', 'Gerencia'), state: 'EMPTY' });
     getMyNotificationsMock.mockResolvedValue([

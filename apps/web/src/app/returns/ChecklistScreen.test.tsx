@@ -490,15 +490,28 @@ describe('ChecklistScreen — solicitar eliminación de evidencia', () => {
           formatType: 'FORMATO_06_RNC',
           processType: 'RETURN',
           processId: 'ret-1',
-          odometerKm: 51200,
           fuelLevelLines: 8,
+          data: expect.objectContaining({
+            responsable: expect.any(String),
+            unidad: expect.objectContaining({
+              plate: 'D0Y-704',
+            }),
+            fuelLevelLines: 8,
+            firmaConfirmada: true,
+          }),
         }),
         'return-ret-1-rnc',
       );
     });
   });
 
-  it('carga datos previos de formatos operativos guardados para esta devolución (C2)', async () => {
+  it('carga datos previos de formatos operativos guardados para esta devolución sin pisar edición del usuario (A5)', async () => {
+    saveReturnChecklist('ret-1', {
+      ...EMPTY_RETURN_CHECKLIST,
+      rnc_sugerencia: 'Edición previa del usuario',
+      notes: 'Nota digitada por operador',
+    });
+
     listVehicleOperationalRecordsMock.mockResolvedValueOnce({
       items: [
         {
@@ -508,7 +521,8 @@ describe('ChecklistScreen — solicitar eliminación de evidencia', () => {
           processId: 'ret-1',
           odometerKm: 51200,
           fuelLevelLines: 8,
-          data: { fiv_puertas_capo_cajuela: 'B' },
+          data: { fiv_puertas_capo_cajuela: 'B', rnc_sugerencia: 'Sugerencia del servidor' },
+          observations: 'Nota del servidor',
         },
       ],
       total: 1,
@@ -523,6 +537,25 @@ describe('ChecklistScreen — solicitar eliminación de evidencia', () => {
         expect.objectContaining({ companyId: 'c1', branchId: 'b1' }),
       );
     });
+
+    // La sugerencia editada por el usuario no se sobreescribe con la del servidor
+    const inputSugerencia = screen.getByLabelText(/Sugerencia \/ Observación de combustible/i) as HTMLInputElement;
+    expect(inputSugerencia.value).toBe('Edición previa del usuario');
+  });
+
+  it('D3: muestra la guia de toma fotografica segun la zona seleccionada en devolucion', async () => {
+    renderChecklist();
+
+    const guide = screen.getByTestId('zone-photo-guide');
+    expect(guide).toBeInTheDocument();
+    expect(guide).toHaveTextContent(/Parachoques delantero, capó/);
+
+    const select = screen.getByLabelText(/Zona del vehículo/);
+    fireEvent.change(select, { target: { value: 'LATERAL_DERECHO' } });
+    expect(screen.getByTestId('zone-photo-guide')).toHaveTextContent(/Puertas derechas, manijas/);
+
+    fireEvent.change(select, { target: { value: 'POSTERIOR' } });
+    expect(screen.getByTestId('zone-photo-guide')).toHaveTextContent(/Parachoques posterior, compuerta/);
   });
 });
 

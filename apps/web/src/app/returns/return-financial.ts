@@ -37,3 +37,21 @@ export function hasGraveDamage(damages: readonly ReturnDamageResponse[]): boolea
 export function damagesWithoutAmount(damages: readonly ReturnDamageResponse[]): ReturnDamageResponse[] {
   return damages.filter((d) => d.estimatedAmount === null || d.estimatedAmount === undefined);
 }
+
+export const FUEL_MISSING_LINES: Record<string, number> = {
+  FULL: 0,
+  THREE_QUARTERS: 1,
+  HALF: 2,
+  ONE_QUARTER: 3,
+  EMPTY: 4,
+};
+
+export function calculateFuelPenalty(
+  fuelLevel?: string | null,
+  ratePerLine: number = 50.00,
+): number {
+  if (!fuelLevel) return 0;
+  const lines = FUEL_MISSING_LINES[fuelLevel] ?? 0;
+  return round2(lines * ratePerLine);
+}
+

@@ -12,6 +12,12 @@ export interface RentalChecklistDraft {
   documentaryMinutes: number;
   exceptionReason: string;
   notes: string;
+  odometerKm?: number;
+  rnc_kilometraje?: number;
+  rnc_nivel_combustible_lineas?: number;
+  rnc_sugerencia?: string;
+  fiv_soat_vigente?: string;
+  fiv_revision_tecnica_vigente?: string;
   [key: string]: unknown;
 }
 

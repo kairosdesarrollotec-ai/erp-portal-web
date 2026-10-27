@@ -75,6 +75,7 @@ export function Stage3ContractScreen() {
   const [paymentDraft, setPaymentDraft] = useState<PaymentProofDraft>(() => emptyPaymentDraft());
   // DEC-ALQ-THIRDPATH-001: casilla de verificación biométrica favorable registrada por el personal.
   const [biometricVerified, setBiometricVerified] = useState(false);
+  const [fingerprintTaken, setFingerprintTaken] = useState(false);
 
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -180,6 +181,7 @@ export function Stage3ContractScreen() {
   const needsPaymentProof = !noDeposit && breakdown.toCollect > 0;
   const paymentReady = !needsPaymentProof || !hasPaymentErrors(paymentErrors);
   const canFormalize =
+    fingerprintTaken &&
     (!withCompanyDriver || (driverRateTrim !== '' && driverRateValid)) &&
     exceptionResolved &&
     !!signatureData &&
@@ -257,6 +259,7 @@ export function Stage3ContractScreen() {
         signatureData ?? undefined,
         { holderType, withCompanyDriver },
         payment,
+        fingerprintTaken,
       );
       // La tarifa digitada se guarda tras formalizar (antes no existe contrato con la variante del conductor).
       if (withCompanyDriver && driverRateTrim && canSetDriverRate) {
@@ -462,10 +465,22 @@ export function Stage3ContractScreen() {
       </fieldset>
 
       <fieldset className={styles.fieldset}>
-        <legend>Firma del contrato</legend>
+        <legend>Firma y huella dactilar</legend>
         <SignaturePad onChange={setSignatureData} />
         {!signatureData && (
           <p className={styles.fieldHint}>La firma del cliente es obligatoria para continuar.</p>
+        )}
+        <label className={styles.checkboxRow} style={{ marginTop: '0.75rem' }}>
+          <input
+            type="checkbox"
+            checked={fingerprintTaken}
+            onChange={(e) => setFingerprintTaken(e.target.checked)}
+            data-testid="fingerprint-taken-checkbox"
+          />
+          Toma de huella dactilar física en contrato impreso
+        </label>
+        {!fingerprintTaken && (
+          <p className={styles.fieldHint}>La toma de huella dactilar física es obligatoria para formalizar.</p>
         )}
       </fieldset>
 

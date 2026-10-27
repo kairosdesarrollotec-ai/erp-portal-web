@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({ db: null as unknown }));
@@ -7,6 +8,8 @@ vi.mock('../database/kairos-db', async () => {
   return { kairosDb: h.db };
 });
 
+import { unsealFieldEditRow } from '../crypto/sealed-store';
+import type { SyncFieldEditStored } from '../database/kairos-db';
 import type { createFakeKairosDb } from '../database/fake-kairos-db.test-utils';
 import {
   applyServerFieldRevisions,
@@ -59,8 +62,11 @@ describe('sync-draft-store', () => {
   });
 
   describe('applyServerFieldRevisions (1.1.0, DEC-SYNC-10)', () => {
-    const baseRevOf = async (key: string) =>
-      (db().sync_field_edits.all().find((r) => r.key === key) as { baseRev: number; value: unknown } | undefined);
+    // El valor local queda cifrado (SDD-00 §17.4): se lee a traves de la capa de descifrado.
+    const baseRevOf = async (key: string) => {
+      const row = db().sync_field_edits.all().find((r) => r.key === key) as SyncFieldEditStored | undefined;
+      return row ? await unsealFieldEditRow(row) : undefined;
+    };
 
     it('tras un sync exitoso, la siguiente edicion del mismo campo usa la revision nueva como baseRev', async () => {
       await saveFieldEdit('ENTREGA', 'a', { key: 'fuel', value: 'HALF' });

@@ -251,6 +251,41 @@ export interface ReturnResponse {
   legalEscalationReason?: string | null;
   legalCaseNumber?: string | null;
   vehicleFuelPenaltyPerLine?: number | null;
+  holderNotification?: {
+    sent: boolean;
+    sentAt: string | null;
+    sentBy: string | null;
+    channel: string | null;
+    observations: string | null;
+    pending: boolean;
+  } | null;
+  identityVerification?: ReturnIdentityVerification | null;
+  fuelPenalty?: {
+    amount: number;
+    notes?: string | null;
+    registeredById?: string | null;
+    registeredAt?: string | null;
+  } | null;
+}
+
+export interface ReturnIdentityVerification {
+  verified: boolean;
+  documentType: string | null;
+  documentNumber: string | null;
+  matchesHolder: boolean | null;
+  result: 'CONFORME' | 'NO_CONFORME' | null;
+  observation?: string | null;
+  verifiedAt: string | null;
+  verifiedBy: string | null;
+}
+
+export interface RecordHolderNotificationRequest {
+  companyId: string;
+  branchId: string;
+  channel: string;
+  contactedAt: string;
+  notifiedBy: string;
+  observations?: string;
 }
 
 export type ReturnEvidenceType = 'PHOTO' | 'VIDEO';
@@ -282,6 +317,12 @@ export interface ReceiveProvisionalInput {
   fuelLevelAtReturn: ReturnFuelLevel;
   customerPresent: boolean;
   notes?: string;
+  identityVerified: boolean;
+  identityDocumentType: string;
+  identityDocumentNumber: string;
+  identityMatchesHolder: boolean;
+  identityResult: 'CONFORME' | 'NO_CONFORME';
+  observation?: string;
 }
 
 export interface CompleteInspectionInput {

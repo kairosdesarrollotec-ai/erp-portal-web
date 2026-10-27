@@ -14,6 +14,7 @@ import {
   chargeImmobilization,
   closeFinancial,
   closeReturn,
+  registerReturnFuelPenalty,
   requestReturnEvidenceUploadSession,
   uploadReturnEvidenceToGcs,
   recordReturnEvidence,
@@ -136,6 +137,11 @@ describe('returns-client - comandos', () => {
       fuelLevelAtReturn: 'FULL',
       customerPresent: false,
       notes: 'otra persona',
+      identityVerified: true,
+      identityDocumentType: 'DNI',
+      identityDocumentNumber: '12345678',
+      identityMatchesHolder: true,
+      identityResult: 'CONFORME',
     });
     expect(capturedBody).toMatchObject({
       rentalId: 'rent-1',
@@ -143,6 +149,11 @@ describe('returns-client - comandos', () => {
       fuelLevelAtReturn: 'FULL',
       customerPresent: false,
       notes: 'otra persona',
+      identityVerified: true,
+      identityDocumentType: 'DNI',
+      identityDocumentNumber: '12345678',
+      identityMatchesHolder: true,
+      identityResult: 'CONFORME',
     });
   });
 
@@ -283,6 +294,26 @@ describe('returns-client - comandos', () => {
     );
     await closeFinancial('t', 'r1', 'c1', 'b1', 1, 1000, 0);
     expect(capturedBody).not.toHaveProperty('notes');
+  });
+
+  it('registerReturnFuelPenalty envia If-Match con la version, contexto de sede y motivo', async () => {
+    let capturedBody: unknown;
+    let capturedIfMatch: string | null = null;
+    server.use(
+      http.post(`${BASE_URL}/returns/r1/commands/register-fuel-penalty`, async ({ request }) => {
+        capturedBody = await request.json();
+        capturedIfMatch = request.headers.get('If-Match');
+        return HttpResponse.json({}, { status: 200 });
+      }),
+    );
+    await registerReturnFuelPenalty('t', 'r1', 'c1', 'b1', 4, 150, 'Faltan 3 líneas según odómetro');
+    expect(capturedIfMatch).toBe('"4"');
+    expect(capturedBody).toEqual({
+      companyId: 'c1',
+      branchId: 'b1',
+      amount: 150,
+      reason: 'Faltan 3 líneas según odómetro',
+    });
   });
 });
 

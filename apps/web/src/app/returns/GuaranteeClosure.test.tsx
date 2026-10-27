@@ -23,6 +23,7 @@ const closeReturnMock = vi.fn();
 const getRentalMock = vi.fn();
 const recordMechanicReportMock = vi.fn();
 const escalateLegalMock = vi.fn();
+const recordHolderNotificationMock = vi.fn();
 
 vi.mock('../providers/firebase', () => ({
   getFirebaseAuth: () => ({
@@ -45,6 +46,7 @@ vi.mock('./returns-client', async () => {
     closeReturn: (...args: unknown[]) => closeReturnMock(...args),
     recordMechanicReport: (...args: unknown[]) => recordMechanicReportMock(...args),
     escalateLegal: (...args: unknown[]) => escalateLegalMock(...args),
+    recordHolderNotification: (...args: unknown[]) => recordHolderNotificationMock(...args),
     getCosmeticTariff: () => Promise.resolve([{ code: 'CAPOT', name: 'Paño en el capot', pricePen: 200 }]),
   };
 });
@@ -219,6 +221,37 @@ describe('GuaranteeScreen (DEV-09)', () => {
     mount();
     expect(await screen.findByTestId('lateness-charge-card')).toHaveTextContent('S/ 100.00');
     expect(screen.getByTestId('late-guarantee-penalty')).toHaveTextContent('S/ 300.00');
+  });
+
+  it('descuenta la penalización por combustible registrada de la garantía (DEC-DEV-FUEL-PENALTY-001)', async () => {
+    flowMock.mockReturnValue(
+      makeFlow({
+        ret: makeReturn({
+          status: 'CON_DANOS',
+          fuelLevelAtReturn: 'ONE_QUARTER',
+          fuelPenalty: {
+            amount: 150,
+            notes: 'Faltan 3 líneas',
+            registeredById: 'uid-admin',
+            registeredAt: '2026-10-27T10:00:00Z',
+          },
+          damages: [dmg({ estimatedAmount: 200 })],
+        }),
+      }),
+    );
+    closeFinancialMock.mockResolvedValue(makeReturn({ status: 'CIERRE_FINANCIERO' }));
+    mount();
+
+    await screen.findByLabelText('Resumen de garantía');
+    // Depósito 1000 - (daños 200 + combustible 150 = 350) => 650
+    expect(screen.getByLabelText('Resumen de garantía')).toHaveTextContent('S/ 650.00');
+    expect(screen.getByText('Penalización por combustible faltante')).toBeInTheDocument();
+    expect(screen.getByTestId('fuel-penalty-registered-amount')).toHaveTextContent('S/ 150.00');
+
+    await confirmDialog();
+    await waitFor(() =>
+      expect(closeFinancialMock).toHaveBeenCalledWith('tok', 'ret-1', 'c1', 'b1', 2, 650, 350, undefined),
+    );
   });
 
   it('no tiene violaciones de accesibilidad (axe)', async () => {
@@ -398,6 +431,117 @@ describe('ClosureScreen (DEV-10)', () => {
     expect(screen.getByTestId('legal-escalated-banner')).toHaveTextContent('Expediente escalado a Legal');
     expect(screen.getByTestId('legal-escalated-banner')).toHaveTextContent('Caso N° CASO-99');
     expect(screen.getByTestId('legal-escalated-banner')).toHaveTextContent('Apropiación ilícita');
+  });
+
+  it('muestra aviso si la notificación al titular ausente está pendiente y permite registrarla vía modal (SC-DEV-004.01)', async () => {
+    const setRet = vi.fn();
+    flowMock.mockReturnValue(
+      makeFlow({
+        ret: makeReturn({
+          ...financial(),
+          holderNotification: {
+            pending: true,
+            sent: false,
+            sentAt: null,
+            sentBy: null,
+            channel: null,
+            observations: null,
+          },
+        }),
+        setRet,
+      }),
+    );
+    recordHolderNotificationMock.mockResolvedValue({
+      ...financial(),
+      holderNotification: {
+        pending: false,
+        sent: true,
+        sentAt: '2026-10-27T10:00:00Z',
+        sentBy: 'Asesor Juan',
+        channel: 'WHATSAPP',
+        observations: 'Se notificó por WhatsApp con fotos adjuntas.',
+      },
+    });
+    mount();
+
+    expect(screen.getByTestId('holder-notification-pending-banner')).toHaveTextContent(
+      'Notificación formal al titular ausente pendiente de registro',
+    );
+
+    fireEvent.click(screen.getByTestId('open-holder-notification-modal-btn'));
+    const dialog = screen.getByRole('dialog', { name: 'Registrar notificación formal al titular ausente' });
+    expect(dialog).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('notify-channel-select'), { target: { value: 'WHATSAPP' } });
+    fireEvent.change(screen.getByTestId('notified-by-input'), { target: { value: 'Asesor Juan' } });
+    fireEvent.change(screen.getByTestId('notify-obs-input'), { target: { value: 'Se notificó por WhatsApp con fotos adjuntas.' } });
+
+    fireEvent.click(screen.getByTestId('submit-holder-notification-btn'));
+    await waitFor(() =>
+      expect(recordHolderNotificationMock).toHaveBeenCalledWith('tok', 'ret-1', 'c1', 'b1', 2, {
+        channel: 'WHATSAPP',
+        contactedAt: expect.any(String),
+        notifiedBy: 'Asesor Juan',
+        observations: 'Se notificó por WhatsApp con fotos adjuntas.',
+      }),
+    );
+    expect(setRet).toHaveBeenCalled();
+  });
+
+  it('muestra banner de éxito cuando la notificación al titular ausente ya fue registrada', () => {
+    flowMock.mockReturnValue(
+      makeFlow({
+        ret: makeReturn({
+          ...financial(),
+          holderNotification: {
+            pending: false,
+            sent: true,
+            sentAt: '2026-10-27T10:00:00Z',
+            sentBy: 'Asesor Juan',
+            channel: 'WHATSAPP',
+            observations: 'Confirmó recepción de acta',
+          },
+        }),
+      }),
+    );
+    mount();
+    expect(screen.getByTestId('holder-notification-sent-banner')).toHaveTextContent(
+      'Notificación formal al titular registrada el',
+    );
+    expect(screen.getByTestId('holder-notification-sent-banner')).toHaveTextContent('WHATSAPP');
+    expect(screen.getByTestId('holder-notification-sent-banner')).toHaveTextContent('Asesor Juan');
+    expect(screen.getByTestId('holder-notification-sent-banner')).toHaveTextContent('Confirmó recepción de acta');
+  });
+
+  it('muestra banner de advertencia cuando la identidad fue no conforme (DEC-DEV-LEGAL-001)', async () => {
+    flowMock.mockReturnValue(
+      makeFlow({
+        ret: makeReturn({
+          ...financial(),
+          identityVerification: {
+            verified: true,
+            documentType: 'DNI',
+            documentNumber: '88776655',
+            matchesHolder: false,
+            result: 'NO_CONFORME',
+            observation: 'DNI con holograma alterado',
+            verifiedAt: '2026-10-27T10:00:00Z',
+            verifiedBy: 'Operador Carlos',
+          },
+        }),
+      }),
+    );
+    mount();
+
+    expect(await screen.findByTestId('identity-not-conforme-banner')).toHaveTextContent(
+      'Advertencia de Identidad: No Conforme',
+    );
+    expect(screen.getByTestId('identity-not-conforme-banner')).toHaveTextContent('DNI: 88776655');
+    expect(screen.getByTestId('identity-not-conforme-banner')).toHaveTextContent('DNI con holograma alterado');
+    expect(screen.getByTestId('identity-not-conforme-banner')).toHaveTextContent('DEC-DEV-LEGAL-001');
+
+    expect(screen.getByTestId('identity-verification-summary')).toHaveTextContent('DNI 88776655 (tercero)');
+    expect(screen.getByTestId('identity-verification-summary')).toHaveTextContent('NO_CONFORME');
   });
 
   it('no tiene violaciones de accesibilidad (axe)', async () => {

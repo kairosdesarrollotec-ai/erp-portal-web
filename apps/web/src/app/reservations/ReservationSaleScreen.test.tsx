@@ -13,11 +13,13 @@ vi.mock('../providers/firebase', () => ({
 const getReservationMock = vi.fn();
 const flagMock = vi.fn();
 const resolveMock = vi.fn();
+const confirmRefundMock = vi.fn();
 vi.mock('./reservations-client', async () => ({
   ...(await vi.importActual<typeof import('./reservations-client')>('./reservations-client')),
   getReservation: (...a: unknown[]) => getReservationMock(...a),
   flagVehicleSale: (...a: unknown[]) => flagMock(...a),
   resolveVehicleSale: (...a: unknown[]) => resolveMock(...a),
+  confirmSaleRefundTransfer: (...a: unknown[]) => confirmRefundMock(...a),
 }));
 const listVehiclesMock = vi.fn();
 vi.mock('../fleet/fleet-client', () => ({ listVehicles: (...a: unknown[]) => listVehiclesMock(...a) }));
@@ -37,6 +39,7 @@ describe('ReservationSaleScreen (RES-07)', () => {
     getReservationMock.mockReset().mockResolvedValue(buildReservation());
     flagMock.mockReset();
     resolveMock.mockReset();
+    confirmRefundMock.mockReset();
     canMock.mockReset().mockReturnValue(true);
     listVehiclesMock.mockReset().mockResolvedValue({ items: [buildVehicle('v-2', 'ABC-111')], total: 1 });
   });
@@ -112,9 +115,54 @@ describe('ReservationSaleScreen (RES-07)', () => {
     expect(await screen.findByText(/Solo Gerencia o Administración pueden resolver/)).toBeInTheDocument();
   });
 
-  it('estado no aplicable (DRAFT) muestra aviso', async () => {
-    getReservationMock.mockResolvedValue(buildReservation({ status: 'DRAFT' }));
+  it('CANCELLED con PENDING_TRANSFER: permite ingresar comprobante y confirmar la transferencia', async () => {
+    const cancelled = buildReservation({
+      status: 'CANCELLED',
+      saleResolution: { ...baseResolution, status: 'REJECTED', refundStatus: 'PENDING_TRANSFER' },
+    });
+    const transferred = buildReservation({
+      status: 'CANCELLED',
+      saleResolution: { ...baseResolution, status: 'REJECTED', refundStatus: 'TRANSFERRED', transferVoucher: 'OP-123456', transferredAt: '2026-10-26T14:00:00Z' },
+    });
+    getReservationMock.mockResolvedValueOnce(cancelled).mockResolvedValueOnce(transferred);
+    confirmRefundMock.mockResolvedValue(transferred);
+
     render();
-    expect(await screen.findByText(/no admite el registro ni la resolución/)).toBeInTheDocument();
+
+    expect(await screen.findByText(/Reembolso pendiente de transferencia/)).toBeInTheDocument();
+    const voucherInput = screen.getByTestId('transfer-voucher-input');
+    const confirmBtn = screen.getByTestId('confirm-transfer-btn');
+
+    expect(confirmBtn).toBeDisabled();
+    fireEvent.change(voucherInput, { target: { value: 'OP-123456' } });
+    expect(confirmBtn).toBeEnabled();
+
+    fireEvent.click(confirmBtn);
+    await waitFor(() => {
+      expect(confirmRefundMock).toHaveBeenCalledWith('tok', 'res-1', 'c1', 'b1', 3, 'OP-123456', undefined);
+    });
+    expect(await screen.findByText(/Reembolso transferido:/)).toBeInTheDocument();
+    expect(screen.getByText(/Comprobante: OP-123456/)).toBeInTheDocument();
+  });
+
+  it('CANCELLED con TRANSFERRED: muestra comprobante y fecha de transferencia', async () => {
+    const transferred = buildReservation({
+      status: 'CANCELLED',
+      saleResolution: {
+        ...baseResolution,
+        status: 'REJECTED',
+        refundStatus: 'TRANSFERRED',
+        transferVoucher: 'VOUCHER-789',
+        transferredAt: '2026-10-26',
+      },
+    });
+    getReservationMock.mockResolvedValue(transferred);
+
+    render();
+
+    expect(await screen.findByText(/Reembolso transferido:/)).toBeInTheDocument();
+    expect(screen.getByText(/Comprobante: VOUCHER-789/)).toBeInTheDocument();
+    expect(screen.getByText(/Fecha: 2026-10-26/)).toBeInTheDocument();
   });
 });
+

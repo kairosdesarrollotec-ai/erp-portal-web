@@ -13,6 +13,9 @@ const registerPaymentMock = vi.fn();
 const registerDocumentsMock = vi.fn();
 const confirmReservationMock = vi.fn();
 const cancelReservationMock = vi.fn();
+const registerReminderMock = vi.fn();
+const requestAirportMock = vi.fn();
+const getAirportMock = vi.fn();
 
 vi.mock('../shared/useRolePermissions', () => ({
   useRolePermissions: () => ({ can: () => true }),
@@ -37,6 +40,9 @@ vi.mock('./reservations-client', async () => {
     registerDocuments: (...args: unknown[]) => registerDocumentsMock(...args),
     confirmReservation: (...args: unknown[]) => confirmReservationMock(...args),
     cancelReservation: (...args: unknown[]) => cancelReservationMock(...args),
+    registerReservationReminder: (...args: unknown[]) => registerReminderMock(...args),
+    requestReservationAirportService: (...args: unknown[]) => requestAirportMock(...args),
+    getReservationAirportService: (...args: unknown[]) => getAirportMock(...args),
     requestReservationDocumentUploadSession: (...args: unknown[]) => requestReservationDocumentUploadSessionMock(...args),
     uploadReservationFileToGcs: (...args: unknown[]) => uploadReservationFileToGcsMock(...args),
     recordReservationDocument: (...args: unknown[]) => recordReservationDocumentMock(...args),
@@ -84,6 +90,9 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
     registerDocumentsMock.mockReset();
     confirmReservationMock.mockReset();
     cancelReservationMock.mockReset();
+    registerReminderMock.mockReset();
+    requestAirportMock.mockReset();
+    getAirportMock.mockReset().mockResolvedValue(null);
   });
 
   it('muestra el checklist en borrador con badge "Borrador / No confirmada"', async () => {
@@ -429,4 +438,129 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('C3: Recordatorio 3h antes y C1: Servicio de aeropuerto', () => {
+    const confirmedRes = buildReservation({
+      status: 'CONFIRMED',
+      version: 2,
+      startAt: '2026-10-30T10:00:00Z',
+      customer: { id: 'c1', name: 'Juan Pérez' },
+      vehicle: { id: 'v1', plate: 'ABC-123', label: 'Toyota Corolla - ABC-123' },
+    });
+
+    it('muestra tarjeta de recordatorio 3h antes con enlace WhatsApp y registra envío', async () => {
+      getReservationMock.mockResolvedValue(confirmedRes);
+      registerReminderMock.mockResolvedValue({ ...confirmedRes, version: 3 });
+
+      renderScreen();
+
+      expect(await screen.findByTestId('reservation-reminder-card')).toBeInTheDocument();
+      const link = screen.getByTestId('whatsapp-reminder-link');
+      expect(link).toHaveAttribute('href', expect.stringContaining('https://wa.me/?text='));
+      expect(link.getAttribute('href')).toContain('Juan%20P%C3%A9rez');
+
+      fireEvent.click(screen.getByTestId('reminder-sent-btn'));
+
+      await waitFor(() => {
+        expect(registerReminderMock).toHaveBeenCalledWith('fake-id-token', 'res-1', 'c1', 'b1', 2, 'WHATSAPP', 'HOURS_3_BEFORE', 'SENT', undefined);
+      });
+      expect(await screen.findByTestId('reminder-status-badge')).toHaveTextContent('Enviado con éxito');
+    });
+
+    it('permite registrar fallo de recordatorio con motivo', async () => {
+      getReservationMock.mockResolvedValue(confirmedRes);
+      registerReminderMock.mockResolvedValue({ ...confirmedRes, version: 3 });
+
+      renderScreen();
+
+      await screen.findByTestId('reservation-reminder-card');
+      fireEvent.click(screen.getByTestId('reminder-fail-toggle'));
+
+      const reasonInput = screen.getByTestId('reminder-failure-reason-input');
+      const submitBtn = screen.getByTestId('reminder-fail-submit-btn');
+
+      expect(submitBtn).toBeDisabled();
+      fireEvent.change(reasonInput, { target: { value: 'Número inválido' } });
+      expect(submitBtn).toBeEnabled();
+
+      fireEvent.click(submitBtn);
+
+      await waitFor(() => {
+        expect(registerReminderMock).toHaveBeenCalledWith('fake-id-token', 'res-1', 'c1', 'b1', 2, 'WHATSAPP', 'HOURS_3_BEFORE', 'FAILED', 'Número inválido');
+      });
+      expect(await screen.findByTestId('reminder-status-badge')).toHaveTextContent('Fallido');
+    });
+
+    it('permite solicitar servicio de aeropuerto en reserva confirmada', async () => {
+      getReservationMock.mockResolvedValue(confirmedRes);
+      requestAirportMock.mockResolvedValue({ ...confirmedRes, version: 3 });
+
+      renderScreen();
+
+      expect(await screen.findByTestId('airport-service-card')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('request-airport-btn'));
+
+      fireEvent.change(screen.getByTestId('airport-scheduled-at-input'), { target: { value: '2026-10-30T09:30' } });
+      fireEvent.change(screen.getByTestId('airport-location-input'), { target: { value: 'Aeropuerto Coronel FAP Alfredo Mendívil Duarte' } });
+      fireEvent.change(screen.getByTestId('airport-amount-input'), { target: { value: '60.00' } });
+      fireEvent.change(screen.getByTestId('airport-notes-input'), { target: { value: 'Vuelo LA2104' } });
+
+      fireEvent.click(screen.getByTestId('airport-submit-btn'));
+
+      await waitFor(() => {
+        expect(requestAirportMock).toHaveBeenCalledWith(
+          'fake-id-token',
+          'res-1',
+          'c1',
+          'b1',
+          2,
+          '2026-10-30T09:30',
+          'Aeropuerto Coronel FAP Alfredo Mendívil Duarte',
+          '60.00',
+          'Vuelo LA2104',
+        );
+      });
+      expect(await screen.findByTestId('airport-service-info')).toHaveTextContent('Aeropuerto Coronel FAP Alfredo Mendívil Duarte');
+    });
+
+    it('muestra información del servicio de aeropuerto si ya fue registrado previamente', async () => {
+      getReservationMock.mockResolvedValue(confirmedRes);
+      getAirportMock.mockResolvedValue({
+        id: 'as-1',
+        reservationId: 'res-1',
+        scheduledAt: '2026-10-30T09:30:00Z',
+        location: 'Aeropuerto AYP',
+        additionalAmount: '50.00',
+        currency: 'PEN',
+        notes: 'Recojo puntual',
+        requestedBy: 'user-admin',
+        createdAt: '2026-10-26T10:00:00Z',
+      });
+
+      renderScreen();
+
+      expect(await screen.findByTestId('airport-service-info')).toBeInTheDocument();
+      expect(screen.getByText(/Lugar: Aeropuerto AYP/)).toBeInTheDocument();
+      expect(screen.getByText(/Monto adicional: S\/ 50\.00/)).toBeInTheDocument();
+      expect(screen.getByText(/Notas: Recojo puntual/)).toBeInTheDocument();
+    });
+
+    it('muestra comprobante de reembolso transferido cuando CANCELLED y TRANSFERRED', async () => {
+      const cancelledTransferred = buildReservation({
+        status: 'CANCELLED',
+        saleResolution: {
+          id: 'sr-1',
+          status: 'REJECTED',
+          refundStatus: 'TRANSFERRED',
+          transferVoucher: 'TRANSFER-VOUCHER-999',
+        },
+      });
+      getReservationMock.mockResolvedValue(cancelledTransferred);
+
+      renderScreen();
+
+      expect(await screen.findByTestId('detail-refund-transferred')).toHaveTextContent('Comprobante: TRANSFER-VOUCHER-999');
+    });
+  });
 });
+

@@ -285,6 +285,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/returns/{id}/commands/register-fuel-penalty": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar o ajustar multa por combustible faltante (DEC-DEV-FUEL-PENALTY-001)
+         * @description Permite a un usuario autorizado (Administración, Gerencia o Finanzas) registrar o ajustar el monto de la penalización por combustible faltante. Se liquida contra la garantía en close-financial.
+         */
+        post: operations["registerReturnFuelPenalty"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/returns/{id}/commands/register-reminder": {
         parameters: {
             query?: never;
@@ -316,7 +336,7 @@ export interface paths {
         put?: never;
         /**
          * Realizar cierre y balance financiero de garantía y penalidades (DEV-08 / BR-DEV-001)
-         * @description refundAmount + retainedAmount debe ser igual a la garantía constituida del alquiler y retainedAmount debe cubrir los cargos de paralización ya imputados. finalSettlementAmount del expediente queda con el valor de retainedAmount. No procede con incidencias abiertas (INCIDENT_STILL_OPEN -> 422, DR-DEV-001).
+         * @description refundAmount + retainedAmount debe ser igual a la garantía constituida del alquiler y retainedAmount debe cubrir los cargos de paralización y retraso ya imputados. finalSettlementAmount del expediente queda con el valor de retainedAmount. No procede con incidencias abiertas (INCIDENT_STILL_OPEN -> 422, DR-DEV-001).
          */
         post: operations["closeFinancial"];
         delete?: never;
@@ -379,6 +399,26 @@ export interface paths {
          * @description Registra la anotación de caso legal y escala la notificación a Gerencia.
          */
         post: operations["escalateLegal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/returns/{id}/commands/record-holder-notification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar notificación formal al titular ausente (SC-DEV-004.01, EX-DEV-001)
+         * @description Permite a un usuario con permiso operativo registrar la notificación formal realizada al titular ausente del alquiler cuando la recepción vehicular fue efectuada por un tercero.
+         */
+        post: operations["recordHolderNotification"];
         delete?: never;
         options?: never;
         head?: never;
@@ -676,7 +716,39 @@ export interface components {
             mileageAtReturn: number;
             fuelLevelAtReturn: components["schemas"]["ReturnFuelLevel"];
             customerPresent?: boolean;
+            /** @description Indica si se verificó la identidad de quien entrega el vehículo (HU-03). */
+            identityVerified: boolean;
+            /** @description Tipo de documento (DNI */
+            identityDocumentType: string;
+            /** @description Número del documento de identidad presentado. */
+            identityDocumentNumber: string;
+            /** @description Si coincide con el titular del contrato o conductor autorizado. */
+            identityMatchesHolder: boolean;
+            /**
+             * @description Resultado de la verificación de identidad.
+             * @enum {string}
+             */
+            identityResult: "CONFORME" | "NO_CONFORME";
+            /** @description Observación o notas adicionales de la verificación de identidad (p. ej. doc apócrifo/sospechoso). */
+            observation?: string;
             notes?: string;
+        };
+        RegisterReturnFuelPenaltyRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /** @description Monto de la multa por combustible (S/.) */
+            amount: number;
+            /** @description Sustento o motivo del cobro/ajuste */
+            reason: string;
+        };
+        ReturnFuelPenaltyResponse: {
+            amount: number;
+            notes?: string | null;
+            registeredById?: string | null;
+            /** Format: date-time */
+            registeredAt?: string | null;
         };
         RegisterReturnAlcoholTestRequest: {
             /** Format: uuid */
@@ -827,6 +899,39 @@ export interface components {
             /** Format: uuid */
             branchId: string;
             notes: string;
+        };
+        RecordHolderNotificationRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /**
+             * @description Medio o canal utilizado fuera del sistema (WHATSAPP, TELEFONO, EMAIL, CARTA, etc.)
+             * @example WHATSAPP
+             */
+            channel: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora en que se contactó formalmente al titular
+             */
+            contactedAt: string;
+            /**
+             * @description Identificador o nombre de la persona que realizó la notificación
+             * @example Juan Operador
+             */
+            notifiedBy: string;
+            /** @description Observaciones o detalle de la comunicación con el titular */
+            observations?: string | null;
+        };
+        HolderNotificationResponse: {
+            sent: boolean;
+            /** Format: date-time */
+            sentAt?: string | null;
+            sentBy?: string | null;
+            channel?: string | null;
+            observations?: string | null;
+            /** @description True si el vehículo fue entregado por un tercero y aún no se formaliza la notificación al titular */
+            pending: boolean;
         };
         RequestReturnEvidenceUploadSessionRequest: {
             /** Format: uuid */
@@ -1004,6 +1109,24 @@ export interface components {
             legalEscalatedAt?: string | null;
             legalEscalatedBy?: string | null;
             legalNotes?: string | null;
+            /** @description Registro de la notificación formal al titular ausente (SC-DEV-004.01) */
+            holderNotification?: components["schemas"]["HolderNotificationResponse"] | null;
+            /** @description Verificación de identidad de quien entrega el vehículo (HU-03) */
+            identityVerification?: components["schemas"]["ReturnIdentityVerificationResponse"] | null;
+            /** @description Multa por combustible faltante registrada o ajustada (DEC-DEV-FUEL-PENALTY-001) */
+            fuelPenalty?: components["schemas"]["ReturnFuelPenaltyResponse"] | null;
+        };
+        ReturnIdentityVerificationResponse: {
+            verified: boolean;
+            documentType?: string | null;
+            documentNumber?: string | null;
+            matchesHolder?: boolean | null;
+            /** @enum {string|null} */
+            result?: "CONFORME" | "NO_CONFORME" | null;
+            observation?: string | null;
+            /** Format: date-time */
+            verifiedAt?: string | null;
+            verifiedBy?: string | null;
         };
     };
     responses: never;
@@ -1191,6 +1314,13 @@ export interface operations {
             };
             /** @description El alquiler no está en estado ACTIVE o RETURN_IN_PROGRESS (RENTAL_NOT_RETURNABLE), o su devolución ya avanzó más allá de PROGRAMADA (RENTAL_ALREADY_HAS_ACTIVE_RETURN) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Verificación de identidad obligatoria ausente o incompleta (RETURN_IDENTITY_REQUIRED, HU-03) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2094,6 +2224,97 @@ export interface operations {
             };
         };
     };
+    registerReturnFuelPenalty: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterReturnFuelPenaltyRequest"];
+            };
+        };
+        responses: {
+            /** @description Multa por combustible registrada o ajustada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token de autenticación ausente o inválido */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o rol insuficiente */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución no encontrada en la empresa/sede */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Estado incompatible (devolución debe estar recibida y no cerrada/cancelada) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Monto inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error interno del servidor */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     registerReturnReminder: {
         parameters: {
             query?: never;
@@ -2464,6 +2685,76 @@ export interface operations {
                 content?: never;
             };
             /** @description No autorizado para el contexto o permiso insuficiente (RETURN.CLOSE) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordHolderNotification: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordHolderNotificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Notificación formal registrada exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token no autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o permiso insuficiente (RETURN.COMPLETE_INSPECTION) */
             403: {
                 headers: {
                     [name: string]: unknown;

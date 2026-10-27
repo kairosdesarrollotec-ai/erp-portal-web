@@ -14,18 +14,19 @@ const item = (over: Partial<EvidenceQueueItem>): EvidenceQueueItem => ({
   ...over,
 });
 
-describe('kairos-db v2', () => {
-  it('declara la version 2 con indices de sync y las tablas nuevas, conservando la v1', () => {
-    expect(KAIROS_DB_VERSION).toBe(2);
-    expect(kairosDb.verno).toBe(2);
+describe('kairos-db', () => {
+  it('declara la version con indices de sync y las tablas nuevas, incluyendo attendance_queue', () => {
+    expect(KAIROS_DB_VERSION).toBe(3);
+    expect(kairosDb.verno).toBe(3);
     const queue = kairosDb.table('evidence_queue').schema;
     const indexes = queue.indexes.map((i) => i.name);
     expect(queue.primKey.name).toBe('id');
     expect(queue.primKey.auto).toBe(true);
     expect(indexes).toEqual(expect.arrayContaining(['rentalId', 'returnId', 'status', 'createdAt', 'clientCaptureId', 'contentHash']));
-    expect(kairosDb.tables.map((t) => t.name).sort()).toEqual(['evidence_queue', 'sync_drafts', 'sync_field_edits']);
+    expect(kairosDb.tables.map((t) => t.name).sort()).toEqual(['attendance_queue', 'evidence_queue', 'sync_drafts', 'sync_field_edits']);
     expect(kairosDb.table('sync_drafts').schema.primKey.keyPath).toEqual(['checklistType', 'sourceId']);
     expect(kairosDb.table('sync_field_edits').schema.primKey.keyPath).toEqual(['checklistType', 'sourceId', 'key']);
+    expect(kairosDb.table('attendance_queue').schema.primKey.name).toBe('id');
   });
 
   it('la migracion asigna clientCaptureId, slot secuencial por expediente+zona, baseRev, draftCreatedAt y deviceId', () => {

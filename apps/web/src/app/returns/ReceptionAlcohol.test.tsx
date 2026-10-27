@@ -119,6 +119,27 @@ describe('ReceptionScreen (DEV-02)', () => {
     expect(await screen.findByText(/No pudimos cargar el alquiler a devolver/)).toBeInTheDocument();
   });
 
+  function fillIdentity(options: {
+    docType?: string;
+    docNumber?: string;
+    matchesHolder?: string;
+    result?: string;
+  } = {}) {
+    fireEvent.click(screen.getByLabelText(/Identidad verificada físicamente/));
+    fireEvent.change(screen.getByLabelText('Tipo documento identidad'), {
+      target: { value: options.docType ?? 'DNI' },
+    });
+    fireEvent.change(screen.getByLabelText('Número documento identidad'), {
+      target: { value: options.docNumber ?? '12345678' },
+    });
+    fireEvent.change(screen.getByLabelText('Coincidencia con titular'), {
+      target: { value: options.matchesHolder ?? 'SI' },
+    });
+    fireEvent.change(screen.getByLabelText('Resultado verificación identidad'), {
+      target: { value: options.result ?? 'CONFORME' },
+    });
+  }
+
   it('recibe el vehiculo (titular presente) y navega al alcolimetro', async () => {
     receiveProvisionalMock.mockResolvedValue(makeReturn({ id: 'ret-77' }));
     renderReception();
@@ -126,6 +147,7 @@ describe('ReceptionScreen (DEV-02)', () => {
 
     fireEvent.change(screen.getByLabelText('Kilometraje al recibir'), { target: { value: '15000' } });
     fireEvent.change(screen.getByLabelText('Nivel de combustible'), { target: { value: 'HALF' } });
+    fillIdentity();
     fireEvent.click(screen.getByRole('button', { name: 'Recibir vehículo' }));
 
     await waitFor(() =>
@@ -134,7 +156,16 @@ describe('ReceptionScreen (DEV-02)', () => {
         'c1',
         'b1',
         'rent-1',
-        expect.objectContaining({ mileageAtReturn: 15000, fuelLevelAtReturn: 'HALF', customerPresent: true }),
+        expect.objectContaining({
+          mileageAtReturn: 15000,
+          fuelLevelAtReturn: 'HALF',
+          customerPresent: true,
+          identityVerified: true,
+          identityDocumentType: 'DNI',
+          identityDocumentNumber: '12345678',
+          identityMatchesHolder: true,
+          identityResult: 'CONFORME',
+        }),
       ),
     );
     expect(await screen.findByText('pantalla alcoholimetro')).toBeInTheDocument();
@@ -147,6 +178,7 @@ describe('ReceptionScreen (DEV-02)', () => {
 
     fireEvent.change(screen.getByLabelText('Kilometraje al recibir'), { target: { value: '100' } });
     fireEvent.change(screen.getByLabelText('Nivel de combustible'), { target: { value: 'FULL' } });
+    fillIdentity({ matchesHolder: 'NO' });
     fireEvent.click(screen.getByLabelText('Otra persona'));
     expect(screen.getByRole('button', { name: 'Recibir vehículo' })).toBeDisabled();
 
@@ -167,6 +199,96 @@ describe('ReceptionScreen (DEV-02)', () => {
     );
   });
 
+  it('HU-03: envía los datos de verificación de identidad de quien entrega el vehículo', async () => {
+    receiveProvisionalMock.mockResolvedValue(makeReturn());
+    renderReception();
+    await screen.findByText(/Cliente titular/);
+
+    fireEvent.change(screen.getByLabelText('Kilometraje al recibir'), { target: { value: '25000' } });
+    fireEvent.change(screen.getByLabelText('Nivel de combustible'), { target: { value: 'ONE_QUARTER' } });
+
+    fillIdentity({ docType: 'CE', docNumber: '00123456', matchesHolder: 'NO', result: 'CONFORME' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Recibir vehículo' }));
+
+    await waitFor(() =>
+      expect(receiveProvisionalMock).toHaveBeenCalledWith(
+        'fake-id-token',
+        'c1',
+        'b1',
+        'rent-1',
+        expect.objectContaining({
+          identityVerified: true,
+          identityDocumentType: 'CE',
+          identityDocumentNumber: '00123456',
+          identityMatchesHolder: false,
+          identityResult: 'CONFORME',
+        }),
+      ),
+    );
+  });
+
+  it('HU-03: mantiene deshabilitado Recibir vehículo si la verificación de identidad está incompleta', async () => {
+    renderReception();
+    await screen.findByText(/Cliente titular/);
+
+    fireEvent.change(screen.getByLabelText('Kilometraje al recibir'), { target: { value: '25000' } });
+    fireEvent.change(screen.getByLabelText('Nivel de combustible'), { target: { value: 'HALF' } });
+    expect(screen.getByRole('button', { name: 'Recibir vehículo' })).toBeDisabled();
+
+    // Marca la casilla pero sin llenar los selects
+    fireEvent.click(screen.getByLabelText(/Identidad verificada físicamente/));
+    expect(screen.getByRole('button', { name: 'Recibir vehículo' })).toBeDisabled();
+
+    // Llena tipo de documento pero falta doc number, coincidencia y resultado
+    fireEvent.change(screen.getByLabelText('Tipo documento identidad'), { target: { value: 'DNI' } });
+    expect(screen.getByRole('button', { name: 'Recibir vehículo' })).toBeDisabled();
+
+    // Llena doc number pero falta coincidencia y resultado
+    fireEvent.change(screen.getByLabelText('Número documento identidad'), { target: { value: '71234567' } });
+    expect(screen.getByRole('button', { name: 'Recibir vehículo' })).toBeDisabled();
+
+    // Llena coincidencia pero falta resultado
+    fireEvent.change(screen.getByLabelText('Coincidencia con titular'), { target: { value: 'SI' } });
+    expect(screen.getByRole('button', { name: 'Recibir vehículo' })).toBeDisabled();
+
+    // Llena resultado -> ahora sí se habilita
+    fireEvent.change(screen.getByLabelText('Resultado verificación identidad'), { target: { value: 'CONFORME' } });
+    expect(screen.getByRole('button', { name: 'Recibir vehículo' })).toBeEnabled();
+  });
+
+  it('HU-03: si identidad resulta NO_CONFORME, muestra advertencia pero permite recibir y registrar el resultado', async () => {
+    receiveProvisionalMock.mockResolvedValue(makeReturn());
+    renderReception();
+    await screen.findByText(/Cliente titular/);
+
+    fireEvent.change(screen.getByLabelText('Kilometraje al recibir'), { target: { value: '25000' } });
+    fireEvent.change(screen.getByLabelText('Nivel de combustible'), { target: { value: 'HALF' } });
+    fillIdentity({ result: 'NO_CONFORME' });
+
+    expect(screen.getByText(/Advertencia: La verificación de identidad es NO CONFORME/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Recibir vehículo' })).toBeEnabled();
+
+    fireEvent.change(screen.getByLabelText('Observación de identidad'), {
+      target: { value: 'DNI con firma discordante' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Recibir vehículo' }));
+    await waitFor(() =>
+      expect(receiveProvisionalMock).toHaveBeenCalledWith(
+        'fake-id-token',
+        'c1',
+        'b1',
+        'rent-1',
+        expect.objectContaining({
+          identityVerified: true,
+          identityResult: 'NO_CONFORME',
+          observation: 'DNI con firma discordante',
+        }),
+      ),
+    );
+  });
+
   it('muestra el error de dominio en lenguaje de negocio', async () => {
     receiveProvisionalMock.mockRejectedValue(
       new ReturnCommandError(409, { code: 'RENTAL_ALREADY_HAS_ACTIVE_RETURN', detail: 'x' }),
@@ -175,8 +297,24 @@ describe('ReceptionScreen (DEV-02)', () => {
     await screen.findByText(/Cliente titular/);
     fireEvent.change(screen.getByLabelText('Kilometraje al recibir'), { target: { value: '100' } });
     fireEvent.change(screen.getByLabelText('Nivel de combustible'), { target: { value: 'FULL' } });
+    fillIdentity();
     fireEvent.click(screen.getByRole('button', { name: 'Recibir vehículo' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('ya tiene una devolución en curso');
+  });
+
+  it('muestra el error RETURN_IDENTITY_REQUIRED en lenguaje de negocio', async () => {
+    receiveProvisionalMock.mockRejectedValue(
+      new ReturnCommandError(422, { code: 'RETURN_IDENTITY_REQUIRED', detail: 'Identidad requerida' }),
+    );
+    renderReception();
+    await screen.findByText(/Cliente titular/);
+    fireEvent.change(screen.getByLabelText('Kilometraje al recibir'), { target: { value: '100' } });
+    fireEvent.change(screen.getByLabelText('Nivel de combustible'), { target: { value: 'FULL' } });
+    fillIdentity();
+    fireEvent.click(screen.getByRole('button', { name: 'Recibir vehículo' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'La verificación de identidad de quien entrega el vehículo es obligatoria',
+    );
   });
 
   it('no tiene violaciones de accesibilidad (axe)', async () => {

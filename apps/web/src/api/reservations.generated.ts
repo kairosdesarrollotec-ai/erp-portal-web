@@ -179,6 +179,83 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reservations/{id}/commands/confirm-sale-refund-transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirma la transferencia bancaria del reembolso por venta del vehículo (C4, BR-RES-007)
+         * @description Roles: GERENCIA y FINANZAS (accion RESERVATION.CONFIRM_SALE_REFUND de la matriz ADM-02). Registra la fecha y voucher del reembolso para reservas canceladas por venta con cliente que rechazo alternativa. Pasa el refundStatus de PENDING_TRANSFER a TRANSFERRED y desestima la alerta del tablero.
+         */
+        post: operations["confirmReservationSaleRefundTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reservations/{id}/commands/register-reminder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registra el envío del recordatorio 3 h antes del recojo (C3, manual asistido por WhatsApp)
+         * @description Roles: FRONT_OFFICE, GERENCIA, ADMINISTRACION (accion RESERVATION.REGISTER_REMINDER de la matriz ADM-02). Reutiliza el patrón de return_reminders. Registra fecha-hora, quién y resultado (SENT o FAILED).
+         */
+        post: operations["registerReservationReminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reservations/{id}/commands/request-airport-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registra una solicitud de servicio de aeropuerto como cargo adicional manual (C1, EX-RES-003)
+         * @description Roles: ADMINISTRACION y GERENCIA (accion RESERVATION.REQUEST_AIRPORT_SERVICE de la matriz ADM-02). El monto adicional no altera la tarifa base ni la garantía; queda registrado como cargo adicional.
+         */
+        post: operations["requestReservationAirportService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reservations/{id}/airport-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obtiene la solicitud de servicio de aeropuerto de la reserva si existe (C1) */
+        get: operations["getReservationAirportService"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/reservations/{id}/documents/upload-url": {
         parameters: {
             query?: never;
@@ -341,7 +418,16 @@ export interface components {
              * @description Solo REJECTED: Gerencia debe transferir la devolucion inmediata (sin integracion de pagos)
              * @enum {string|null}
              */
-            refundStatus: "PENDING_TRANSFER" | null;
+            refundStatus: "PENDING_TRANSFER" | "TRANSFERRED" | null;
+            /** @description C4: Nro de comprobante o voucher de la transferencia */
+            transferVoucher?: string | null;
+            /**
+             * Format: date-time
+             * @description C4: Fecha y hora de confirmación de transferencia
+             */
+            transferredAt?: string | null;
+            /** @description C4: Identificador o nombre de quién registró la transferencia */
+            transferredBy?: string | null;
             resolutionNote: string | null;
             /** Format: date-time */
             resolvedAt: string | null;
@@ -407,6 +493,10 @@ export interface components {
             startDatePassed: boolean;
             /** @description RES-07: ultima resolucion por venta del vehiculo. Solo GET /reservations/{id} la incluye (null = nunca hubo venta); las demas respuestas la omiten. */
             saleResolution?: components["schemas"]["SaleResolution"] | null;
+            /** @description C3: Estado del recordatorio 3 h antes del recojo (null si aún no se ha registrado). */
+            reminder?: components["schemas"]["ReservationReminderResponse"] | null;
+            /** @description C1: Solicitud de servicio de aeropuerto si existe para esta reserva. */
+            airportService?: components["schemas"]["AirportServiceResponse"] | null;
         };
         /**
          * @description Tipo de documento adjunto a una reserva.
@@ -455,6 +545,81 @@ export interface components {
             documentType: components["schemas"]["ReservationDocumentType"];
             /** Format: uri */
             objectUrl: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        ConfirmSaleRefundTransferRequest: components["schemas"]["CommandScopeRequest"] & {
+            /** @description Nro de comprobante o voucher de la transferencia bancaria */
+            transferVoucher: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora en que se ejecutó la transferencia
+             */
+            transferredAt: string;
+            /** @description Nota u observación opcional de Gerencia o Finanzas */
+            note?: string;
+        };
+        RegisterReservationReminderRequest: components["schemas"]["CommandScopeRequest"] & {
+            /**
+             * @description Resultado del envío manual asistido por WhatsApp
+             * @enum {string}
+             */
+            result: "SENT" | "FAILED";
+            /** @description Observación (obligatoria si result=FAILED) */
+            note?: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora del envío (opcional, default ahora)
+             */
+            sentAt?: string;
+        };
+        ReservationReminderResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            reservationId: string;
+            /** @enum {string} */
+            status: "PENDING" | "SENT" | "FAILED";
+            /**
+             * Format: date-time
+             * @description Fecha y hora límite (3 h antes del inicio pactado)
+             */
+            dueAt: string;
+            messageText: string;
+            /** Format: date-time */
+            generatedAt: string;
+            /** Format: date-time */
+            sentAt?: string | null;
+            sentBy?: string | null;
+            resultNote?: string | null;
+            attempts: number;
+        };
+        RequestAirportServiceRequest: components["schemas"]["CommandScopeRequest"] & {
+            /**
+             * Format: date-time
+             * @description Fecha y hora programada para el servicio de aeropuerto
+             */
+            scheduledAt: string;
+            /** @description Lugar o descripción del servicio en aeropuerto */
+            location: string;
+            /** @description Monto adicional manual que se suma como cargo del expediente */
+            additionalAmount: string;
+            /** @description Notas u observaciones adicionales */
+            notes?: string;
+        };
+        AirportServiceResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            targetType: "RESERVATION" | "RENTAL";
+            /** Format: uuid */
+            targetId: string;
+            /** Format: date-time */
+            scheduledAt: string;
+            location: string;
+            additionalAmount: string;
+            notes?: string | null;
+            registeredBy: string;
             /** Format: date-time */
             createdAt: string;
         };
@@ -822,6 +987,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description RESERVATION_NO_SHOW_TOO_EARLY - el no-show solo puede marcarse una vez terminado el día pactado (hora de Lima) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description IF_MATCH_REQUIRED */
             428: {
                 headers: {
@@ -1037,6 +1209,234 @@ export interface operations {
             };
             /** @description IF_MATCH_REQUIRED */
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirmReservationSaleRefundTransfer: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmSaleRefundTransferRequest"];
+            };
+        };
+        responses: {
+            /** @description Reembolso confirmado; reserva actualizada con saleResolution.refundStatus = TRANSFERRED */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationResponse"];
+                };
+            };
+            /** @description ROLE_NOT_ALLOWED o empresa/sede no autorizada */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reserva no encontrada en el scope del usuario */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_STATE_CONFLICT (la resolucion no esta en PENDING_TRANSFER o no fue rechazada) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_VERSION_CONFLICT */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description IF_MATCH_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    registerReservationReminder: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterReservationReminderRequest"];
+            };
+        };
+        responses: {
+            /** @description Recordatorio registrado exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReservationResponse"];
+                };
+            };
+            /** @description ROLE_NOT_ALLOWED o empresa/sede no autorizada */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reserva no encontrada en el scope del usuario */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_STATE_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_VERSION_CONFLICT */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description INVALID_REMINDER_RESULT (nota obligatoria ante fallo o fecha futura) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description IF_MATCH_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestReservationAirportService: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestAirportServiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud de aeropuerto registrada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AirportServiceResponse"];
+                };
+            };
+            /** @description ROLE_NOT_ALLOWED o empresa/sede no autorizada */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Reserva no encontrada en el scope del usuario */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_STATE_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RESERVATION_VERSION_CONFLICT */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description IF_MATCH_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getReservationAirportService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud encontrada (o null) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AirportServiceResponse"];
+                };
+            };
+            /** @description No existe servicio de aeropuerto para esta reserva */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

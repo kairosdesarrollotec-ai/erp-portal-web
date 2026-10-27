@@ -140,6 +140,8 @@ test.describe('ENTREGA-03 Garantía y contrato', () => {
 
     await page.getByLabel(/Garantía total/i).fill('500');
     await attachGuaranteePaymentProof(page, { name: 'transferencia.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') });
+    // La huella digital del cliente en el contrato es obligatoria para formalizar.
+    await page.getByTestId('fingerprint-taken-checkbox').check();
 
     // SignaturePad usa canvas — simular trazo con eventos de ratón
     const canvas = page.locator('canvas').first();
@@ -254,6 +256,8 @@ test.describe('Flujo completo asistente de entrega', () => {
     await evaluateNotary(page);
     await page.getByLabel(/Garantía total/i).fill('500');
     await attachGuaranteePaymentProof(page, { name: 'transferencia.jpg', mimeType: 'image/jpeg', buffer: Buffer.from('fake') });
+    // La huella digital del cliente en el contrato es obligatoria para formalizar.
+    await page.getByTestId('fingerprint-taken-checkbox').check();
 
     // SignaturePad usa canvas — simular trazo con eventos de ratón
     const canvas3 = page.locator('canvas').first();

@@ -6,7 +6,7 @@ import { useReturnFlow } from './useReturnFlow';
 import { DamageLog } from './DamageLog';
 import { useCosmeticTariff } from './useCosmeticTariff';
 import { formatPen } from './return-financial';
-import { closeReturn, recordMechanicReport, escalateLegal } from './returns-client';
+import { closeReturn, recordMechanicReport, escalateLegal, recordHolderNotification } from './returns-client';
 import { describeReturnError, isIncidentOpenError, isStaleReturnError } from './return-errors';
 import { clearReturnDrafts } from './return-session-draft';
 import { ALCOHOL_RESULT_LABELS, FUEL_LEVEL_LABELS, RETURN_STATUS_LABELS } from './return-status';
@@ -36,6 +36,10 @@ export function ClosureScreen() {
   const [legalModalOpen, setLegalModalOpen] = useState(false);
   const [legalReason, setLegalReason] = useState('');
   const [legalCaseNumber, setLegalCaseNumber] = useState('');
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [notifyChannel, setNotifyChannel] = useState('WHATSAPP');
+  const [notifiedBy, setNotifiedBy] = useState('');
+  const [notifyObs, setNotifyObs] = useState('');
   const tariff = useCosmeticTariff(
     context,
     getIdToken,
@@ -118,6 +122,29 @@ export function ClosureScreen() {
     }
   }
 
+  async function handleRecordHolderNotification() {
+    if (!context || !ret || !notifiedBy.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const idToken = await getIdToken();
+      const updated = await recordHolderNotification(idToken, id, context.companyId, context.branchId, ret.version, {
+        channel: notifyChannel,
+        contactedAt: new Date().toISOString(),
+        notifiedBy: notifiedBy.trim(),
+        observations: notifyObs.trim() || undefined,
+      });
+      setRet(updated);
+      setNotifyModalOpen(false);
+      setNotifyObs('');
+    } catch (err) {
+      setError(describeReturnError(err, 'No pudimos registrar la notificación formal al titular ausente.'));
+      if (isStaleReturnError(err)) await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <ReturnFlowShell
       step={6}
@@ -143,6 +170,32 @@ export function ClosureScreen() {
           Expediente escalado a Legal ({formatLimaDateTime(ret.legalEscalatedAt)})
           {ret.legalCaseNumber ? ` · Caso N° ${ret.legalCaseNumber}` : ''}
           {ret.legalEscalationReason ? ` · Motivo: ${ret.legalEscalationReason}` : ''}
+        </p>
+      )}
+
+      {ret.holderNotification?.pending && (
+        <div className={`${styles.banner} ${styles.banner_warning}`} role="alert" data-testid="holder-notification-pending-banner">
+          <p>
+            <strong>Aviso:</strong> Notificación formal al titular ausente pendiente de registro. El vehículo fue devuelto por un tercero y debe notificarse formalmente al titular.
+          </p>
+          {!closed && (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => setNotifyModalOpen(true)}
+              data-testid="open-holder-notification-modal-btn"
+              style={{ marginTop: '0.5rem' }}
+            >
+              Registrar notificación al titular
+            </button>
+          )}
+        </div>
+      )}
+
+      {ret.holderNotification?.sent && (
+        <p className={`${styles.banner} ${styles.banner_success}`} data-testid="holder-notification-sent-banner">
+          ✓ Notificación formal al titular registrada el {formatLimaDateTime(ret.holderNotification.sentAt!)} vía {ret.holderNotification.channel} (por {ret.holderNotification.sentBy})
+          {ret.holderNotification.observations ? ` · ${ret.holderNotification.observations}` : ''}
         </p>
       )}
 
@@ -187,6 +240,19 @@ export function ClosureScreen() {
         </p>
       </section>
 
+      {ret.identityVerification?.result === 'NO_CONFORME' && (
+        <section className={`${styles.banner} ${styles.banner_warning}`} data-testid="identity-not-conforme-banner" role="alert">
+          <p className={styles.reviewSectionTitle} style={{ color: '#8a4b00' }}>⚠️ Advertencia de Identidad: No Conforme</p>
+          <p className={styles.summaryLine}>
+            La persona que entregó el vehículo presentó un documento registrado como NO CONFORME ({ret.identityVerification.documentType ?? 'DOC'}: {ret.identityVerification.documentNumber ?? 'S/N'}).
+            {ret.identityVerification.observation ? ` Detalle: ${ret.identityVerification.observation}` : ''}
+          </p>
+          <p className={styles.summaryLine}>
+            Conforme a DEC-DEV-LEGAL-001, la recepción física no se bloqueó, pero el caso ha sido notificado a Gerencia para seguimiento legal/administrativo.
+          </p>
+        </section>
+      )}
+
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>Recepción</p>
         <p className={styles.summaryLine}>
@@ -197,6 +263,12 @@ export function ClosureScreen() {
           Alcoholímetro: {ret.alcoholTestResult ? ALCOHOL_RESULT_LABELS[ret.alcoholTestResult] : 'sin registro'} · Cliente
           presente: {ret.customerPresent ? 'sí' : 'no (titular ausente)'}
         </p>
+        {ret.identityVerification && (
+          <p className={styles.summaryLine} data-testid="identity-verification-summary">
+            Identificación de entrega: {ret.identityVerification.documentType} {ret.identityVerification.documentNumber} ({ret.identityVerification.matchesHolder ? 'titular' : 'tercero'}) — Resultado: <strong>{ret.identityVerification.result}</strong>
+            {ret.identityVerification.observation ? ` (Obs: ${ret.identityVerification.observation})` : ''}
+          </p>
+        )}
       </section>
 
       <section className={styles.reviewSection}>
@@ -379,6 +451,74 @@ export function ClosureScreen() {
                 data-testid="submit-legal-escalation-btn"
               >
                 Guardar escalación legal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {notifyModalOpen && (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="notify-modal-title">
+          <div className={styles.modalCard}>
+            <p id="notify-modal-title" className={styles.modalTitle}>
+              Registrar notificación formal al titular ausente
+            </p>
+            <p className={styles.summaryLine}>
+              (SC-DEV-004.01, EX-DEV-001) El vehículo fue recibido por un tercero. Registra los datos de la comunicación formal realizada al titular.
+            </p>
+            <label className={styles.fieldLabel}>
+              Canal de comunicación *
+              <select
+                className={styles.select}
+                value={notifyChannel}
+                onChange={(e) => setNotifyChannel(e.target.value)}
+                data-testid="notify-channel-select"
+              >
+                <option value="WHATSAPP">WhatsApp</option>
+                <option value="CORREO">Correo electrónico</option>
+                <option value="TELEFONO">Llamada telefónica</option>
+                <option value="CARTA_NOTARIAL">Carta notarial</option>
+                <option value="PRESENCIAL">Presencial</option>
+              </select>
+            </label>
+            <label className={styles.fieldLabel}>
+              Persona que notificó (nombre o cargo) *
+              <input
+                className={styles.input}
+                value={notifiedBy}
+                onChange={(e) => setNotifiedBy(e.target.value)}
+                placeholder="Ej. Asesor Front Office Juan Pérez"
+                data-testid="notified-by-input"
+              />
+            </label>
+            <label className={styles.fieldLabel}>
+              Observaciones / detalle de la notificación (opcional)
+              <textarea
+                className={styles.textarea}
+                rows={3}
+                value={notifyObs}
+                onChange={(e) => setNotifyObs(e.target.value)}
+                placeholder="Ej. Se envió copia del acta de inspección, se confirmó recepción..."
+                data-testid="notify-obs-input"
+              />
+            </label>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setNotifyModalOpen(false)}
+                disabled={busy}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={handleRecordHolderNotification}
+                disabled={busy || !notifiedBy.trim()}
+                data-testid="submit-holder-notification-btn"
+              >
+                Guardar notificación
               </button>
             </div>
           </div>

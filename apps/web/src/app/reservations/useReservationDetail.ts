@@ -5,12 +5,15 @@ import {
   cancelReservation,
   changeReservationVehicle,
   confirmReservation,
+  confirmSaleRefundTransfer,
   describeReservationError,
   flagVehicleSale,
   resolveVehicleSale,
   getReservation,
   registerDocuments,
   registerPayment,
+  registerReservationReminder,
+  requestReservationAirportService,
   ReservationCommandError,
   ReservationSummary,
   VEHICLE_NOT_AVAILABLE_MESSAGE,
@@ -163,11 +166,85 @@ export function useReservationDetail() {
         )
       : Promise.resolve(null);
 
+  /** C4: confirmar transferencia de reembolso tras venta del vehículo rechazada. */
+  const confirmRefundTransfer = (transferVoucher: string, transferredAt?: string) =>
+    reservation && context
+      ? runCommand(
+          'CONFIRM_REFUND_TRANSFER',
+          (idToken) =>
+            confirmSaleRefundTransfer(
+              idToken,
+              reservation.id,
+              context.companyId,
+              context.branchId,
+              reservation.version,
+              transferVoucher,
+              transferredAt,
+            ),
+          true,
+        )
+      : Promise.resolve(null);
+
+  /** C3: registrar recordatorio 3 horas antes. */
+  const registerReminder = (
+    channel: 'WHATSAPP' | 'EMAIL',
+    reminderType: 'HOURS_3_BEFORE',
+    status: 'SENT' | 'FAILED',
+    failureReason?: string,
+  ) =>
+    reservation && context
+      ? runCommand(
+          'REGISTER_REMINDER',
+          (idToken) =>
+            registerReservationReminder(
+              idToken,
+              reservation.id,
+              context.companyId,
+              context.branchId,
+              reservation.version,
+              channel,
+              reminderType,
+              status,
+              failureReason,
+            ),
+          true,
+        )
+      : Promise.resolve(null);
+
+  /** C1: solicitar servicio de aeropuerto en reserva. */
+  const requestAirportService = (
+    scheduledAt: string,
+    location: string,
+    additionalAmount: string,
+    notes?: string,
+  ) =>
+    reservation && context
+      ? runCommand(
+          'REQUEST_AIRPORT_SERVICE',
+          (idToken) =>
+            requestReservationAirportService(
+              idToken,
+              reservation.id,
+              context.companyId,
+              context.branchId,
+              reservation.version,
+              scheduledAt,
+              location,
+              additionalAmount,
+              notes,
+            ),
+          true,
+        )
+      : Promise.resolve(null);
+
   return {
     state,
     changeVehicle,
     flagSale,
     resolveSale,
+    confirmRefundTransfer,
+    registerReminder,
+    requestAirportService,
     reservation,
     context,
     savingRequirement,

@@ -16,7 +16,7 @@ import { roleRef, setPermissions } from '../../test/permissions';
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 
 const RETURN_DAMAGE = [
-  'RETURN.READ', 'RETURN.ASSESS_DAMAGE', 'RETURN.CHARGE_IMMOBILIZATION',
+  'RETURN.READ', 'RETURN.CLASSIFY_DAMAGE_SEVERITY', 'RETURN.ASSESS_DAMAGE', 'RETURN.CHARGE_IMMOBILIZATION',
 ] as const;
 
 const flowMock = vi.fn();
@@ -116,11 +116,11 @@ describe('DamageSeverityScreen (DEV-06)', () => {
   });
 
   it('un rol sin permiso (Front-office) ve el aviso y no puede continuar', () => {
-    setPermissions(['RETURN.READ']); // Front-office: sin ASSESS_DAMAGE
+    setPermissions(['RETURN.READ']); // Front-office: sin CLASSIFY_DAMAGE_SEVERITY
     useWorkSession.getState().setRole(roleRef('FRONT_OFFICE'));
     flowMock.mockReturnValue(makeFlow({ ret: conDanos() }));
     mount();
-    expect(screen.getByText(/Solo Administración o Gerencia/)).toBeInTheDocument();
+    expect(screen.getByText(/Solo usuarios autorizados/)).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText(/Estético/));
     fireEvent.click(screen.getByLabelText(/Leve/));
     fireEvent.click(screen.getByLabelText(/Sí, acepta el costo/));

@@ -544,7 +544,7 @@ export interface components {
             profileDescription: string;
             baseSalary: number;
             scheduleDetails: string;
-            /** @description Canales de difusion. Vacante de mecanico: al menos uno tecnico (SENATI, TECSUP o «Institutos tecnicos», sin importar mayusculas ni tildes); si no, 422 MECHANIC_TECHNICAL_CHANNELS_REQUIRED. */
+            /** @description Canales de difusion. Vacante de mecanico: al menos uno tecnico (SENATI, TECSUP o «Institutos tecnicos», sin importar mayusculas ni tildes; si no, 422 MECHANIC_TECHNICAL_CHANNELS_REQUIRED) y PROHIBIDO portales generales (Bumeran, Computrabajo, LinkedIn, Portal UNCH; si incluye alguno, 422 MECHANIC_GENERAL_PORTALS_PROHIBITED). */
             channels: string[];
         };
         RegisterCandidateRequest: {

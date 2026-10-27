@@ -109,6 +109,7 @@ export interface RentalContractResponse {
   status: string;
   signedAt: string | null;
   contractVariant?: string | null;
+  fingerprintTaken?: boolean;
   createdAt: string;
 }
 
@@ -452,6 +453,8 @@ export async function formalizeContract(
   variant?: { holderType: ContractHolderType; withCompanyDriver: boolean },
   /** Decision 8 (BR-ALQ-011): comprobante del cobro de la garantia. Obligatorio si hay diferencia a cobrar. */
   payment?: GuaranteePaymentBody,
+  /** C5 (BR-CON-005): Toma de huella dactilar física en contrato impreso. */
+  fingerprintTaken?: boolean,
 ): Promise<RentalResponse> {
   const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/formalize-contract', {
     params: { path: { id }, header: { 'If-Match': `"${version}"` } },
@@ -466,6 +469,7 @@ export async function formalizeContract(
       ...(signatureData ? { signatureData } : {}),
       ...(variant ? { holderType: variant.holderType, withCompanyDriver: variant.withCompanyDriver } : {}),
       ...(payment && !variant?.withCompanyDriver ? { payment } : {}),
+      ...(fingerprintTaken !== undefined ? { fingerprintTaken } : {}),
     } as unknown as FormalizeContractBody,
   });
   if (error || !data) {
@@ -640,3 +644,55 @@ export {
   rejectExtension,
   reportExtensionBreach,
 } from './rentals-extensions-client';
+
+// --- C1 (BR-ALQ-014) - Servicio de aeropuerto en alquiler ---
+export interface RentalAirportServiceResponse {
+  id: string;
+  rentalId: string;
+  status: string;
+  scheduledAt: string;
+  location: string;
+  additionalAmount: string;
+  currency: string;
+  notes?: string | null;
+  requestedBy?: string;
+  createdAt?: string;
+}
+
+export async function requestRentalAirportService(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  scheduledAt: string,
+  location: string,
+  additionalAmount: string,
+  notes?: string,
+): Promise<RentalResponse> {
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/request-airport-service', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+    headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
+    body: { companyId, branchId, scheduledAt, location, additionalAmount, notes },
+  });
+  if (error || !data) {
+    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    throw new RentalCommandError(response.status, problem);
+  }
+  return data as unknown as RentalResponse;
+}
+
+export async function getRentalAirportService(
+  idToken: string,
+  id: string,
+  _companyId: string,
+  _branchId: string,
+): Promise<RentalAirportServiceResponse | null> {
+  const { data, error, response } = await rentalsApiClient.GET('/rentals/{id}/airport-service', {
+    params: { path: { id } },
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (response.status === 404) return null;
+  if (error || !data) throw new RentalApiError(response.status);
+  return data as unknown as RentalAirportServiceResponse;
+}

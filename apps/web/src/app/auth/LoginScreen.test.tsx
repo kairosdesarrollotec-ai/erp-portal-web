@@ -482,4 +482,16 @@ describe('LoginScreen (TR-01)', () => {
     expect(await screen.findByText('Tu cuenta está bloqueada')).toBeInTheDocument();
     expect(signInMock).toHaveBeenCalledTimes(5);
   });
+
+  it('C8: auth/too-many-requests muestra aviso de intentos excesivos en vez de error de conexion', async () => {
+    signInMock.mockRejectedValue({ code: 'auth/too-many-requests' });
+    renderScreen();
+
+    fireEvent.change(screen.getByLabelText('Correo o usuario'), { target: { value: 'user@veloxrent.pe' } });
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'wrong-pass' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    expect(await screen.findByText('Demasiados intentos fallidos')).toBeInTheDocument();
+    expect(screen.getByText('Demasiados intentos. Espera unos minutos e inténtalo de nuevo.')).toBeInTheDocument();
+  });
 });

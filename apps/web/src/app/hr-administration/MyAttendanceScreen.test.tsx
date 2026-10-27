@@ -1,3 +1,4 @@
+import 'fake-indexeddb/auto';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -6,6 +7,7 @@ import { HrApiError, HrCommandError } from './hr-client';
 import { baseContext, makeRecord } from './hr-test-utils';
 import { setPermissions } from '../../test/permissions';
 import { limaToday } from './hr-domain';
+import { kairosDb } from '../../offline/database/kairos-db';
 
 const getMyMock = vi.fn();
 const logMock = vi.fn();
@@ -48,7 +50,9 @@ function renderScreen() {
 const photo = () => new File(['x'], 'yo.jpg', { type: 'image/jpeg' });
 
 describe('MyAttendanceScreen (mi asistencia, 22-oct #9)', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    await kairosDb.open();
+    await kairosDb.attendance_queue.clear();
     getMyMock.mockReset().mockResolvedValue({ employeeId: 'emp-9', geofence: GEOFENCE, items: [] });
     logMock.mockReset().mockResolvedValue(makeRecord({ requiresReview: false }));
     uploadMock.mockReset().mockResolvedValue({ storageRef: 'gs://x/yo.jpg' });
@@ -136,12 +140,58 @@ describe('MyAttendanceScreen (mi asistencia, 22-oct #9)', () => {
     expect(await screen.findByText(/no está vinculado a una ficha/)).toBeInTheDocument();
   });
 
-  it('sin conexion: avisa y no deja marcar (marca offline NO HECHA)', async () => {
+  it('sin conexion: avisa modo offline y permite encolar la marca localmente', async () => {
     Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
     renderScreen();
     expect(await screen.findByTestId('my-attendance-offline')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Marcar entrada' })).toBeDisabled();
+    
+    // El botón está habilitado para marcar sin conexión
+    const button = screen.getByRole('button', { name: 'Marcar entrada (sin conexión)' });
+    expect(button).not.toBeDisabled();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Obtener mi ubicación/ }));
+    await screen.findByText(/Ubicación obtenida/);
+    fireEvent.change(screen.getByLabelText(/Foto de tu entrada/), { target: { files: [photo()] } });
+    fireEvent.click(button);
+
+    // No llama a los servicios de red
+    expect(uploadMock).not.toHaveBeenCalled();
+    expect(logMock).not.toHaveBeenCalled();
+
+    // Muestra aviso de guardado local
+    expect(await screen.findByText(/Marca guardada en el dispositivo \(sin conexión\)/)).toBeInTheDocument();
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+  });
+
+  it('al recuperar la señal, sincroniza automáticamente la marca en cola', async () => {
+    // Pre-insertar una marca pendiente en la cola de Dexie
+    await kairosDb.attendance_queue.add({
+      employeeId: 'emp-9',
+      companyId: 'comp-1',
+      branchId: 'branch-1',
+      type: 'CHECK_IN',
+      status: 'PRESENTE',
+      date: limaToday(),
+      capturedAt: new Date().toISOString(),
+      latitude: -12.0464,
+      longitude: -77.0428,
+      accuracy: 10,
+      queueStatus: 'pending',
+      errorMessage: null,
+      createdAt: Date.now(),
+      photoBlob: new Blob(['photo'], { type: 'image/jpeg' }),
+      photoMimeType: 'image/jpeg',
+    });
+
+    renderScreen();
+
+    // Al montar con online=true y una marca pendiente, el efecto dispara la sincronización
+    await waitFor(() => expect(uploadMock).toHaveBeenCalled());
+    await waitFor(() => expect(logMock).toHaveBeenCalled());
+    expect(await screen.findByText(/Marca sincronizada con el servidor/)).toBeInTheDocument();
+
+    const queued = await kairosDb.attendance_queue.toArray();
+    expect(queued[0].queueStatus).toBe('synced');
   });
 
   it('403 al cargar: sin permiso', async () => {

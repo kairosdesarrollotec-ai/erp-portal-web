@@ -1,5 +1,7 @@
 import { kairosDb, type SyncChecklistKind, type SyncFieldEditRow } from '../database/kairos-db';
 import { getDeviceId } from '../database/device-id';
+import { assertOfflineAllowed } from '../crypto/local-encryption';
+import { sealFieldEditRow, unsealFieldEditRow, unsealMany } from '../crypto/sealed-store';
 
 /**
  * Borrador offline del checklist (sync.yaml): ancla `draftCreatedAt` (TTL 72 h del servidor) y guarda las ediciones
@@ -30,23 +32,30 @@ export async function saveFieldEdit(
   edit: Pick<SyncFieldEditRow, 'key' | 'value'> & Partial<Pick<SyncFieldEditRow, 'dataType'>>,
   now: Date = new Date(),
 ): Promise<void> {
+  assertOfflineAllowed(edit.dataType);
   await ensureSyncDraft(checklistType, sourceId, now);
   const previous = await kairosDb.sync_field_edits.get([checklistType, sourceId, edit.key]);
-  await kairosDb.sync_field_edits.put({
-    checklistType,
-    sourceId,
-    key: edit.key,
-    dataType: edit.dataType ?? previous?.dataType,
-    value: edit.value,
-    baseRev: previous?.baseRev ?? 0,
-    editedAt: now.toISOString(),
-  });
+  // SDD-00 §17.4: el valor del campo se guarda cifrado (`valueSealed`); el resto son metadatos de sincronizacion.
+  await kairosDb.sync_field_edits.put(
+    await sealFieldEditRow({
+      checklistType,
+      sourceId,
+      key: edit.key,
+      dataType: edit.dataType ?? previous?.dataType,
+      value: edit.value,
+      baseRev: previous?.baseRev ?? 0,
+      editedAt: now.toISOString(),
+    }),
+  );
 }
 
 /** Ediciones aun no enviadas al servidor. */
 export async function getUnsentFieldEdits(checklistType: SyncChecklistKind, sourceId: string): Promise<SyncFieldEditRow[]> {
   const rows = await kairosDb.sync_field_edits.where('[checklistType+sourceId]').equals([checklistType, sourceId]).toArray();
-  return rows.filter((r) => !r.sentAt);
+  return unsealMany(
+    rows.filter((r) => !r.sentAt),
+    unsealFieldEditRow,
+  );
 }
 
 export async function markFieldEditsSent(
@@ -84,11 +93,10 @@ export async function applyServerFieldRevisions(
     const row = await kairosDb.sync_field_edits.get([checklistType, sourceId, revision.key]);
     if (!row || !row.sentAt) continue;
     if (options.onlyEditedAt && options.onlyEditedAt[revision.key] !== row.editedAt) continue;
-    if (row.baseRev === revision.rev && row.value === revision.value) continue;
-    await kairosDb.sync_field_edits.update([checklistType, sourceId, revision.key], {
-      baseRev: revision.rev,
-      value: revision.value,
-    });
+    const [current] = await unsealMany([row], unsealFieldEditRow);
+    if (!current) continue; // fila ilegible: no se toca
+    if (row.baseRev === revision.rev && current.value === revision.value) continue;
+    await kairosDb.sync_field_edits.put(await sealFieldEditRow({ ...current, baseRev: revision.rev, value: revision.value }));
   }
 }
 

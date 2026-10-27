@@ -46,12 +46,12 @@ export type LoginScreenState =
   | 'RECOVERABLE_ERROR'
   | 'BLOCKING_ERROR'
   | 'EXTERNAL_DEPENDENCY_PENDING'
-  | 'ACTIVATION_CHECK_FAILED';
+  | 'ACTIVATION_CHECK_FAILED'
+  | 'TOO_MANY_REQUESTS';
 
 const BLOCKING_ERROR_CODES = new Set(['auth/user-disabled']);
 const EXTERNAL_DEPENDENCY_CODES = new Set([
   'auth/network-request-failed',
-  'auth/too-many-requests',
 ]);
 const MFA_REQUIRED_CODE = 'auth/multi-factor-auth-required';
 
@@ -71,6 +71,7 @@ const MFA_SESSION_EXPIRED_ERROR_CODES = new Set([
 ]);
 
 function mapFirebaseErrorToState(error: AuthError): LoginScreenState {
+  if (error.code === 'auth/too-many-requests') return 'TOO_MANY_REQUESTS';
   if (BLOCKING_ERROR_CODES.has(error.code)) return 'BLOCKING_ERROR';
   if (EXTERNAL_DEPENDENCY_CODES.has(error.code)) return 'EXTERNAL_DEPENDENCY_PENDING';
   // auth/invalid-credential, auth/wrong-password, auth/user-not-found, etc.
@@ -96,8 +97,6 @@ export function useLogin() {
 
   // Compartido entre el login directo (sin MFA) y el paso final tras
   // resolver el reto MFA (TR-03) - ambos terminan igual: registrar la
-  // Compartido entre el login directo (sin MFA) y el paso final tras
-  // resolver el reto MFA (TR-03) - ambos terminan igual: registrar la
   // auditoria de exito, chequear (fail-closed) si requiere activacion
   // (TR-02/HU-21), y luego resolver el contexto de trabajo (TR-05/HU-23).
   const resolveActivation = useCallback(
@@ -107,7 +106,8 @@ export function useLogin() {
       try {
         idToken = await user.getIdToken();
         activationStatus = await getActivationStatus(idToken);
-      } catch {
+      } catch (err) {
+        console.error('Fallo en la verificacion de activacion de cuenta:', err);
         setPendingUser(user);
         setState('ACTIVATION_CHECK_FAILED');
         return;

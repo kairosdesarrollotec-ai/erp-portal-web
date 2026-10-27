@@ -368,7 +368,9 @@ export interface components {
             odometerKm?: number | null;
             fuelLevelLines?: number | null;
             /** @description Mapa de campos y evaluaciones (B/M/NA) del formato según ficha técnica */
-            data: Record<string, unknown>;
+            data: {
+                [key: string]: unknown;
+            };
             observations?: string | null;
             performedBy: string;
             /** Format: date-time */
@@ -384,7 +386,9 @@ export interface components {
             processId?: string | null;
             odometerKm?: number | null;
             fuelLevelLines?: number | null;
-            data: Record<string, unknown>;
+            data: {
+                [key: string]: unknown;
+            };
             observations?: string | null;
             performedBy: string;
             /** Format: date-time */
@@ -627,7 +631,9 @@ export interface operations {
                 companyId: string;
                 branchId: string;
             };
-            header?: never;
+            header?: {
+                "Idempotency-Key"?: string;
+            };
             path: {
                 /** @description UUID del vehículo */
                 id: components["parameters"]["VehicleId"];
@@ -807,6 +813,15 @@ export interface operations {
                     "application/json": components["schemas"]["KairosErrorResponse"];
                 };
             };
+            /** @description VEHICLE_HAS_ACTIVE_COMMITMENT - el vehículo tiene un alquiler activo o reserva confirmada y no puede pasar a OUT_OF_SERVICE. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KairosErrorResponse"];
+                };
+            };
         };
     };
     listVehicleOperationalRecords: {
@@ -855,6 +870,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
+                /** @description Clave de idempotencia para comandos de escritura. Si se envía, el backend reserva la clave atomicamente antes de ejecutar. Un reintento con la misma clave y cuerpo identico devuelve la respuesta almacenada sin re-ejecutar. Validez 24 h (implementado por IdempotencyInterceptor). */
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {

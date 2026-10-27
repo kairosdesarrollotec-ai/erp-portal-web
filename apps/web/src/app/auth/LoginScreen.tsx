@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Eye, EyeOff, Lock, WifiOff } from 'lucide-react';
+import { AlertCircle, Clock, Eye, EyeOff, Lock, WifiOff } from 'lucide-react';
 import { loginSchema, type LoginFormValues } from './login.schema';
 import { useLogin } from './useLogin';
 import { MfaChallengeModal } from './MfaChallengeModal';
@@ -70,6 +70,29 @@ export function LoginScreen() {
     }
   };
 
+  // C8: Bloqueo temporal por demasiados intentos en Firebase
+  if (state === 'TOO_MANY_REQUESTS') {
+    return (
+      <main className={styles.wrapper}>
+        <div className={styles.card}>
+          <p className={styles.brand}>Kairos Corporation</p>
+          <div className={styles.fullScreenNotice} role="alert">
+            <div className={styles.noticeIcon} style={{ color: 'var(--color-warning, #d97706)' }}>
+              <Clock size={40} />
+            </div>
+            <h1 className={styles.noticeTitle}>Demasiados intentos fallidos</h1>
+            <p className={styles.noticeSubtitle}>
+              Demasiados intentos. Espera unos minutos e inténtalo de nuevo.
+            </p>
+            <button type="button" className={styles.noticeAction} onClick={() => window.location.reload()}>
+              Volver
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   // BLOCKING_ERROR y EXTERNAL_DEPENDENCY_PENDING reemplazan el formulario
   // por completo (tabla TR-01: EXTERNAL_DEPENDENCY_PENDING sigue "el mismo
   // patron que BLOCKING_ERROR") - PROTO-TR-01-CUENTA-BLOQUEADA.
@@ -112,7 +135,7 @@ export function LoginScreen() {
           <p className={styles.brand}>Kairos Corporation</p>
           <div className={styles.fullScreenNotice} role="alert">
             <div className={styles.noticeIcon}>
-              <WifiOff size={40} />
+              <AlertCircle size={40} />
             </div>
             <h1 className={styles.noticeTitle}>No pudimos verificar tu cuenta</h1>
             <p className={styles.noticeSubtitle}>
@@ -213,6 +236,11 @@ export function LoginScreen() {
           >
             {isResetting ? 'Enviando enlace...' : '¿Olvidaste tu contraseña?'}
           </button>
+          <div style={{ marginTop: '0.25rem' }}>
+            <Link to="/recuperar-acceso" className={styles.forgotPasswordButton} style={{ fontSize: '12px', opacity: 0.8 }}>
+              Ir a recuperación de acceso
+            </Link>
+          </div>
         </div>
 
         {resetEmailSent && (

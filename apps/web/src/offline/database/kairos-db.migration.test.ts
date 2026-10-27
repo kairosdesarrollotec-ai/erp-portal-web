@@ -43,6 +43,7 @@ describe('kairos-db: migración Dexie v1 -> v2 (fake-indexeddb)', () => {
     expect(await kairosDb.evidence_queue.where('clientCaptureId').equals(rows[3].clientCaptureId as string).count()).toBe(1);
     expect(await kairosDb.sync_drafts.count()).toBe(0);
     expect(await kairosDb.sync_field_edits.count()).toBe(0);
+    expect(await kairosDb.attendance_queue.count()).toBe(0);
     kairosDb.close();
   });
 });

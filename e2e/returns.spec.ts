@@ -86,6 +86,13 @@ test.describe('DEV-02 / DEV-03 Recepción y alcoholímetro', () => {
     await expect(page.getByRole('button', { name: 'Recibir vehículo' })).toBeDisabled();
     await page.getByLabel('Kilometraje al recibir').fill('15000');
     await page.getByLabel('Nivel de combustible').selectOption('HALF');
+    // HU-03: la verificacion de identidad es obligatoria y no viene pre-marcada.
+    await expect(page.getByRole('button', { name: 'Recibir vehículo' })).toBeDisabled();
+    await page.getByLabel('Identidad verificada físicamente').check();
+    await page.getByLabel('Tipo documento identidad').selectOption('DNI');
+    await page.getByLabel('Número documento identidad').fill('12345678');
+    await page.getByLabel('Coincidencia con titular').selectOption('SI');
+    await page.getByLabel('Resultado verificación identidad').selectOption('CONFORME');
     await page.getByRole('button', { name: 'Recibir vehículo' }).click();
 
     await expect(page).toHaveURL(/\/devoluciones\/ret-e2e-001\/alcoholimetro/);
@@ -211,7 +218,7 @@ test.describe('DEV-04 Checklist de recepción', () => {
 
 test.describe('DEV-05 Resultado (hub) -> DEV-09 -> DEV-10', () => {
   test('sin daño: 5 zonas, Liberar garantía directo, confirmación con monto exacto y cierre', async ({ page }) => {
-    const intercepted = await setup(page, { initial: { status: 'INSPECCION' }, evidence: makeReturnEvidence() });
+    const intercepted = await setup(page, { role: 'GERENCIA', initial: { status: 'INSPECCION' }, evidence: makeReturnEvidence() });
     await completeChecklistAndGoToResult(page);
 
     await expect(page.getByRole('button', { name: 'Liberar garantía' })).toHaveCount(0);
@@ -287,7 +294,7 @@ test.describe('DEV-05 Resultado (hub) -> DEV-09 -> DEV-10', () => {
   });
 
   test('daño grave pide confirmar lista roja y deriva al informe técnico de Motrix', async ({ page }) => {
-    await setup(page, { initial: { status: 'CON_DANOS' } });
+    await setup(page, { role: 'GERENCIA', initial: { status: 'CON_DANOS' } });
     await page.goto('/devoluciones/ret-e2e-001/dano');
 
     await page.getByLabel(/Técnico/).check();
@@ -304,7 +311,7 @@ test.describe('DEV-05 Resultado (hub) -> DEV-09 -> DEV-10', () => {
 
 test.describe('DEV-08 Daño técnico y paralización', () => {
   test('el cargo de paralización no pide tarifa: la fija el servidor y se muestra en la respuesta', async ({ page }) => {
-    const intercepted = await setup(page, {
+    const intercepted = await setup(page, { role: 'GERENCIA',
       initial: { status: 'CON_DANOS', closedAt: new Date(Date.now() - 50 * 3600 * 1000).toISOString() },
     });
     await page.goto('/devoluciones/ret-e2e-001/dano');

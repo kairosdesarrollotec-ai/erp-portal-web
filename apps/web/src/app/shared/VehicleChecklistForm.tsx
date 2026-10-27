@@ -13,7 +13,8 @@ interface VehicleChecklistFormProps {
 
 export function VehicleChecklistForm({ values, onChange, disabled = false }: VehicleChecklistFormProps) {
   const fuelLines = typeof values['rnc_nivel_combustible_lineas'] === 'number' ? Number(values['rnc_nivel_combustible_lineas']) : 8;
-  const odometer = typeof values['rnc_kilometraje'] === 'number' ? Number(values['rnc_kilometraje']) : '';
+  const odometerVal = typeof values['odometerKm'] === 'number' ? values['odometerKm'] : values['rnc_kilometraje'];
+  const odometer = typeof odometerVal === 'number' ? Number(odometerVal) : '';
 
   function setStatus(key: string, status: ChecklistItemStatus) {
     if (disabled) return;
@@ -106,7 +107,11 @@ export function VehicleChecklistForm({ values, onChange, disabled = false }: Veh
               disabled={disabled}
               placeholder="Ej. 45210"
               className={styles.textInput}
-              onChange={(e) => onChange('rnc_kilometraje', Number(e.target.value))}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                onChange('odometerKm', val);
+                onChange('rnc_kilometraje', val);
+              }}
             />
           </div>
 

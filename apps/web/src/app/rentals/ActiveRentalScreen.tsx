@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppHeader } from '../shared/AppHeader';
 import { usePermissions } from '../shared/usePermissions';
@@ -9,6 +9,8 @@ import { GpsPanel } from './GpsPanel';
 import { RequestExtensionModal } from './RequestExtensionModal';
 import { SeriousBreachModal } from './SeriousBreachModal';
 import { ExtensionDecisionPanel } from './ExtensionDecisionPanel';
+import { RequestAirportServiceModal } from './RequestAirportServiceModal';
+import { getRentalAirportService, type RentalAirportServiceResponse } from './rentals-client';
 import styles from './ActiveRentalScreen.module.css';
 import { formatLimaDateTime } from '../shared/lima-time';
 
@@ -27,8 +29,33 @@ export function ActiveRentalScreen() {
   const navigate = useNavigate();
   const { can } = usePermissions();
   const canReportBreach = can('RENTAL', 'REPORT_EXTENSION_BREACH');
+  const canRequestAirport = can('RENTAL', 'REQUEST_AIRPORT_SERVICE');
   const [extOpen, setExtOpen] = useState(false);
   const [breachOpen, setBreachOpen] = useState(false);
+  const [airportModalOpen, setAirportModalOpen] = useState(false);
+  const [airportService, setAirportService] = useState<RentalAirportServiceResponse | null>(null);
+
+  const rentalId = rental?.id;
+  const companyId = context?.companyId;
+  const branchId = context?.branchId;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchAirport() {
+      if (!rentalId || !companyId || !branchId) return;
+      try {
+        const idToken = await getIdToken();
+        const res = await getRentalAirportService(idToken, rentalId, companyId, branchId);
+        if (!cancelled) setAirportService(res);
+      } catch {
+        // ignore
+      }
+    }
+    void fetchAirport();
+    return () => {
+      cancelled = true;
+    };
+  }, [rentalId, companyId, branchId, getIdToken]);
 
   if (state === 'LOADING') return <p className={styles.statusText}>Cargando alquiler…</p>;
   if (state === 'NOT_FOUND') return <p className={styles.statusText}>No encontramos este alquiler.</p>;
@@ -105,6 +132,19 @@ export function ActiveRentalScreen() {
           </section>
         )}
 
+        {airportService && (
+          <section className={styles.card} aria-labelledby="alq10-aeropuerto" data-testid="rental-airport-service-card">
+            <h2 id="alq10-aeropuerto" className={styles.cardTitle}>Servicio de Aeropuerto</h2>
+            <dl className={styles.grid}>
+              <div><dt>Estado</dt><dd>{airportService.status}</dd></div>
+              <div><dt>Fecha y hora pactada</dt><dd>{formatDate(airportService.scheduledAt)}</dd></div>
+              <div><dt>Lugar</dt><dd>{airportService.location}</dd></div>
+              <div><dt>Monto adicional</dt><dd>{formatPen(parseFloat(airportService.additionalAmount))}</dd></div>
+              {airportService.notes && <div><dt>Notas</dt><dd>{airportService.notes}</dd></div>}
+            </dl>
+          </section>
+        )}
+
         {isExtensionPending && (
           <ExtensionDecisionPanel rental={rental} context={context} getIdToken={getIdToken} onDone={() => void reload()} />
         )}
@@ -118,6 +158,16 @@ export function ActiveRentalScreen() {
             <button type="button" className={styles.primary} onClick={() => setExtOpen(true)} disabled={isExtensionPending}>
               Solicitar ampliación
             </button>
+            {canRequestAirport && !airportService && (
+              <button
+                type="button"
+                className={styles.secondary}
+                onClick={() => setAirportModalOpen(true)}
+                data-testid="request-rental-airport-btn"
+              >
+                Solicitar servicio de aeropuerto
+              </button>
+            )}
             <Link to={incidentsPath} state={context} className={styles.secondary}>
               Registrar incidencia
             </Link>
@@ -157,6 +207,26 @@ export function ActiveRentalScreen() {
           onClose={() => setBreachOpen(false)}
           onSuccess={() => {
             setBreachOpen(false);
+            void reload();
+          }}
+        />
+      )}
+      {airportModalOpen && (
+        <RequestAirportServiceModal
+          open
+          rental={rental}
+          companyId={context.companyId}
+          branchId={context.branchId}
+          onClose={() => setAirportModalOpen(false)}
+          onSuccess={async () => {
+            setAirportModalOpen(false);
+            try {
+              const idToken = await getIdToken();
+              const res = await getRentalAirportService(idToken, rental.id, context.companyId, context.branchId);
+              setAirportService(res);
+            } catch {
+              // ignore
+            }
             void reload();
           }}
         />
