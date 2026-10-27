@@ -223,6 +223,37 @@ describe('GuaranteeScreen (DEV-09)', () => {
     expect(screen.getByTestId('late-guarantee-penalty')).toHaveTextContent('S/ 300.00');
   });
 
+  it('descuenta la penalización por combustible registrada de la garantía (DEC-DEV-FUEL-PENALTY-001)', async () => {
+    flowMock.mockReturnValue(
+      makeFlow({
+        ret: makeReturn({
+          status: 'CON_DANOS',
+          fuelLevelAtReturn: 'ONE_QUARTER',
+          fuelPenalty: {
+            amount: 150,
+            notes: 'Faltan 3 líneas',
+            registeredById: 'uid-admin',
+            registeredAt: '2026-10-27T10:00:00Z',
+          },
+          damages: [dmg({ estimatedAmount: 200 })],
+        }),
+      }),
+    );
+    closeFinancialMock.mockResolvedValue(makeReturn({ status: 'CIERRE_FINANCIERO' }));
+    mount();
+
+    await screen.findByLabelText('Resumen de garantía');
+    // Depósito 1000 - (daños 200 + combustible 150 = 350) => 650
+    expect(screen.getByLabelText('Resumen de garantía')).toHaveTextContent('S/ 650.00');
+    expect(screen.getByText('Penalización por combustible faltante')).toBeInTheDocument();
+    expect(screen.getByTestId('fuel-penalty-registered-amount')).toHaveTextContent('S/ 150.00');
+
+    await confirmDialog();
+    await waitFor(() =>
+      expect(closeFinancialMock).toHaveBeenCalledWith('tok', 'ret-1', 'c1', 'b1', 2, 650, 350, undefined),
+    );
+  });
+
   it('no tiene violaciones de accesibilidad (axe)', async () => {
     flowMock.mockReturnValue(makeFlow({ ret: sinDanos() }));
     const { container } = mount();
@@ -480,6 +511,37 @@ describe('ClosureScreen (DEV-10)', () => {
     expect(screen.getByTestId('holder-notification-sent-banner')).toHaveTextContent('WHATSAPP');
     expect(screen.getByTestId('holder-notification-sent-banner')).toHaveTextContent('Asesor Juan');
     expect(screen.getByTestId('holder-notification-sent-banner')).toHaveTextContent('Confirmó recepción de acta');
+  });
+
+  it('muestra banner de advertencia cuando la identidad fue no conforme (DEC-DEV-LEGAL-001)', async () => {
+    flowMock.mockReturnValue(
+      makeFlow({
+        ret: makeReturn({
+          ...financial(),
+          identityVerification: {
+            verified: true,
+            documentType: 'DNI',
+            documentNumber: '88776655',
+            matchesHolder: false,
+            result: 'NO_CONFORME',
+            observation: 'DNI con holograma alterado',
+            verifiedAt: '2026-10-27T10:00:00Z',
+            verifiedBy: 'Operador Carlos',
+          },
+        }),
+      }),
+    );
+    mount();
+
+    expect(await screen.findByTestId('identity-not-conforme-banner')).toHaveTextContent(
+      'Advertencia de Identidad: No Conforme',
+    );
+    expect(screen.getByTestId('identity-not-conforme-banner')).toHaveTextContent('DNI: 88776655');
+    expect(screen.getByTestId('identity-not-conforme-banner')).toHaveTextContent('DNI con holograma alterado');
+    expect(screen.getByTestId('identity-not-conforme-banner')).toHaveTextContent('DEC-DEV-LEGAL-001');
+
+    expect(screen.getByTestId('identity-verification-summary')).toHaveTextContent('DNI 88776655 (tercero)');
+    expect(screen.getByTestId('identity-verification-summary')).toHaveTextContent('NO_CONFORME');
   });
 
   it('no tiene violaciones de accesibilidad (axe)', async () => {

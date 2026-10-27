@@ -2,6 +2,7 @@ import { kairosDb, type EvidenceQueueItem } from '../database/kairos-db';
 import { getDeviceId } from '../database/device-id';
 import { computeContentHash } from '../synchronization/content-hash';
 import { ensureSyncDraft } from './sync-draft-store';
+import { sealEvidenceRow, unsealEvidenceRow, unsealMany } from '../crypto/sealed-store';
 
 type NewQueueItem = Omit<EvidenceQueueItem, 'id' | 'status' | 'createdAt'> & Partial<Pick<EvidenceQueueItem, 'status' | 'createdAt'>>;
 
@@ -43,7 +44,8 @@ export async function addEvidenceToQueue(item: NewQueueItem): Promise<number> {
     }
   }
 
-  return kairosDb.evidence_queue.add({
+  // SDD-00 §17.4: la foto/video se guarda cifrada; el hash se calculo arriba sobre el contenido en claro.
+  return kairosDb.evidence_queue.add(await sealEvidenceRow({
     ...item,
     status: item.status ?? 'pending',
     createdAt,
@@ -53,7 +55,7 @@ export async function addEvidenceToQueue(item: NewQueueItem): Promise<number> {
     baseRev: item.baseRev ?? 0,
     draftCreatedAt: draftCreatedAt ?? new Date(createdAt).toISOString(),
     deviceId: item.deviceId ?? getDeviceId(),
-  });
+  }));
 }
 
 /** Completa y persiste el contentHash de un item que se encolo sin el (p.ej. migrado de v1). */
@@ -69,11 +71,12 @@ export async function getUnreportedEvidence(scope: { rentalId?: string | null; r
   const index = scope.rentalId ? 'rentalId' : scope.returnId ? 'returnId' : null;
   const value = scope.rentalId ?? scope.returnId;
   if (!index || !value) return [];
-  return kairosDb.evidence_queue
+  const rows = await kairosDb.evidence_queue
     .where(index)
     .equals(value)
     .filter((q) => q.status === 'synced' && !q.reportedAt)
     .toArray();
+  return unsealMany(rows, unsealEvidenceRow);
 }
 
 /** Guarda el slot definitivo que informo el servidor (`evidenceSlots`) para cada captura; ignora las desconocidas. */
@@ -102,20 +105,22 @@ export async function markEvidenceReported(ids: readonly number[], now: Date = n
 
 /** Obtiene items pendientes (pending/error) para un alquiler. */
 export async function getPendingEvidence(rentalId: string): Promise<EvidenceQueueItem[]> {
-  return kairosDb.evidence_queue
+  const rows = await kairosDb.evidence_queue
     .where('rentalId')
     .equals(rentalId)
     .filter((item) => item.status === 'pending' || item.status === 'error' || item.status === 'syncing')
     .toArray();
+  return unsealMany(rows, unsealEvidenceRow);
 }
 
 /** Obtiene items pendientes para una devolución. */
 export async function getPendingEvidenceForReturn(returnId: string): Promise<EvidenceQueueItem[]> {
-  return kairosDb.evidence_queue
+  const rows = await kairosDb.evidence_queue
     .where('returnId')
     .equals(returnId)
     .filter((item) => item.status === 'pending' || item.status === 'error' || item.status === 'syncing')
     .toArray();
+  return unsealMany(rows, unsealEvidenceRow);
 }
 
 /** Marca un item como sincronizado con el servidor. */

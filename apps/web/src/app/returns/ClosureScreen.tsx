@@ -240,6 +240,19 @@ export function ClosureScreen() {
         </p>
       </section>
 
+      {ret.identityVerification?.result === 'NO_CONFORME' && (
+        <section className={`${styles.banner} ${styles.banner_warning}`} data-testid="identity-not-conforme-banner" role="alert">
+          <p className={styles.reviewSectionTitle} style={{ color: '#8a4b00' }}>⚠️ Advertencia de Identidad: No Conforme</p>
+          <p className={styles.summaryLine}>
+            La persona que entregó el vehículo presentó un documento registrado como NO CONFORME ({ret.identityVerification.documentType ?? 'DOC'}: {ret.identityVerification.documentNumber ?? 'S/N'}).
+            {ret.identityVerification.observation ? ` Detalle: ${ret.identityVerification.observation}` : ''}
+          </p>
+          <p className={styles.summaryLine}>
+            Conforme a DEC-DEV-LEGAL-001, la recepción física no se bloqueó, pero el caso ha sido notificado a Gerencia para seguimiento legal/administrativo.
+          </p>
+        </section>
+      )}
+
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>Recepción</p>
         <p className={styles.summaryLine}>
@@ -250,6 +263,12 @@ export function ClosureScreen() {
           Alcoholímetro: {ret.alcoholTestResult ? ALCOHOL_RESULT_LABELS[ret.alcoholTestResult] : 'sin registro'} · Cliente
           presente: {ret.customerPresent ? 'sí' : 'no (titular ausente)'}
         </p>
+        {ret.identityVerification && (
+          <p className={styles.summaryLine} data-testid="identity-verification-summary">
+            Identificación de entrega: {ret.identityVerification.documentType} {ret.identityVerification.documentNumber} ({ret.identityVerification.matchesHolder ? 'titular' : 'tercero'}) — Resultado: <strong>{ret.identityVerification.result}</strong>
+            {ret.identityVerification.observation ? ` (Obs: ${ret.identityVerification.observation})` : ''}
+          </p>
+        )}
       </section>
 
       <section className={styles.reviewSection}>

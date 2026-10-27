@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import { getDeviceId } from './device-id';
+import type { EncryptedBlobPayload, EncryptedRecordPayload } from '../crypto/local-encryption';
 
 export interface EvidenceQueueItem {
   id?: number;
@@ -56,6 +57,18 @@ export interface SyncFieldEditRow {
   sentAt?: string;
 }
 
+/**
+ * SDD-00 §17.4: filas tal como se guardan en IndexedDB. Los datos sensibles (fotos/videos, ubicacion, valores de campos)
+ * van cifrados con AES-256-GCM (`*Sealed` / `sealed`); solo quedan en claro los metadatos de indexacion y de estado.
+ * Las filas heredadas en texto plano (sin `*Sealed`) siguen siendo legibles y se cifran al iniciar sesion
+ * (`sealLegacyLocalData`). Los modulos de cola exponen siempre los tipos de dominio (`EvidenceQueueItem`, etc.).
+ */
+export type EvidenceQueueRow = Omit<EvidenceQueueItem, 'blob'> & { blob?: Blob; blobSealed?: EncryptedBlobPayload };
+export type SyncFieldEditStored = Omit<SyncFieldEditRow, 'value'> & {
+  value?: SyncFieldEditRow['value'];
+  valueSealed?: EncryptedRecordPayload;
+};
+
 /** Contadores de slot por expediente+zona usados al migrar (puro, testeable). */
 export type SlotCounters = Map<string, number>;
 
@@ -86,18 +99,60 @@ function randomId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
 }
 
-export const KAIROS_DB_VERSION = 2;
+export type AttendanceQueueStatus = 'pending' | 'syncing' | 'synced' | 'error' | 'expired';
+
+export interface AttendanceQueueItem {
+  id?: number;
+  employeeId: string;
+  companyId: string;
+  branchId: string;
+  type: 'CHECK_IN' | 'CHECK_OUT';
+  status?: 'PRESENTE' | 'TARDANZA';
+  minutesLate?: number;
+  date: string; // YYYY-MM-DD en America/Lima
+  capturedAt: string; // ISO de captura en dispositivo
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  notes?: string;
+  photoBlob?: Blob | null;
+  photoMimeType?: string;
+  queueStatus: AttendanceQueueStatus;
+  errorMessage?: string | null;
+  createdAt: number;
+  syncedAt?: string | null;
+}
+
+/** Campos de la marca de asistencia que se cifran (ubicacion, foto y datos de la marca). */
+export type AttendanceSensitiveKeys =
+  | 'status'
+  | 'minutesLate'
+  | 'latitude'
+  | 'longitude'
+  | 'accuracy'
+  | 'notes'
+  | 'photoBlob'
+  | 'photoMimeType';
+export type AttendanceQueueRow = Omit<AttendanceQueueItem, AttendanceSensitiveKeys> &
+  Partial<Pick<AttendanceQueueItem, AttendanceSensitiveKeys>> & {
+    sealed?: EncryptedRecordPayload;
+    photoSealed?: EncryptedBlobPayload;
+  };
+
+export const KAIROS_DB_VERSION = 3;
 
 class KairosDatabase extends Dexie {
-  evidence_queue!: Table<EvidenceQueueItem, number>;
+  evidence_queue!: Table<EvidenceQueueRow, number>;
   sync_drafts!: Table<SyncDraftRow, [string, string]>;
-  sync_field_edits!: Table<SyncFieldEditRow, [string, string, string]>;
+  sync_field_edits!: Table<SyncFieldEditStored, [string, string, string]>;
+  attendance_queue!: Table<AttendanceQueueRow, number>;
+
   constructor() {
     super('kairos-erp-v1');
     this.version(1).stores({
       evidence_queue: '++id, rentalId, returnId, status, createdAt',
     });
-    this.version(KAIROS_DB_VERSION)
+    this.version(2)
       .stores({
         evidence_queue: '++id, rentalId, returnId, status, createdAt, clientCaptureId, contentHash',
         sync_drafts: '[checklistType+sourceId]',
@@ -111,6 +166,9 @@ class KairosDatabase extends Dexie {
           .orderBy('id')
           .modify((item) => backfillEvidenceItemV2(item, counters, deviceId, randomId));
       });
+    this.version(KAIROS_DB_VERSION).stores({
+      attendance_queue: '++id, employeeId, date, queueStatus, createdAt, [employeeId+date]',
+    });
   }
 }
 export const kairosDb = new KairosDatabase();

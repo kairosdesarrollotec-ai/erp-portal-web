@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { expect, vi } from 'vitest';
 import { toHaveNoViolations } from 'jest-axe';
 import { configure } from '@testing-library/dom';
+import { setLocalCryptoUserIdProvider } from '../offline/crypto/local-user';
 
 // Mock global de useGlobalSearch para evitar que GlobalSearch (renderizado dentro
 // de AppHeader en todas las pantallas) requiera un QueryClientProvider en cada test.
@@ -18,6 +19,9 @@ vi.mock('../app/shared/GlobalSearch/useGlobalSearch', () => ({
 }));
 
 configure({ asyncUtilTimeout: 4000 });
+
+// SDD-00 §17.4: los almacenes offline cifran con la clave del usuario autenticado; en pruebas hay un usuario por defecto.
+setLocalCryptoUserIdProvider(() => 'test-user');
 
 // SCA/accesibilidad (hallazgo MEDIO de revalidacion PR#4, "CI y
 // trazabilidad siguen incompletos" - falta evidencia automatizada de

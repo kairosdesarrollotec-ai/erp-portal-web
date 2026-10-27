@@ -14,6 +14,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
     'Un alcoholímetro desfavorable exige la foto de la prueba. Adjúntala y vuelve a registrar el resultado.',
   INVALID_LATE_CHARGE:
     'No se pudo registrar el cargo por retraso: el monto debe ser mayor que cero y la devolución debe haber superado la tolerancia de 30 minutos.',
+  RETURN_IDENTITY_REQUIRED:
+    'La verificación de identidad de quien entrega el vehículo es obligatoria antes de completar la recepción provisional.',
   MISSING_RESPONSIBILITY_DOCUMENT:
     'Falta el documento de responsabilidad firmado. Complétalo en el checklist de recepción antes de cerrar la inspección.',
   MISSING_REQUIRED_EVIDENCE: 'Falta evidencia obligatoria (fotos o videos). Completa el checklist antes de continuar.',

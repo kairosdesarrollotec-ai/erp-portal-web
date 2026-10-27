@@ -15,6 +15,7 @@
  * en UserMenuDropdown.tsx.
  */
 import { countPendingAll } from '../../offline/queue/evidence-upload-queue';
+import { countPendingUnsyncedItems } from '../../offline/crypto/local-encryption';
 
 let _cachedCount = 0;
 
@@ -23,5 +24,11 @@ export function getLocalDraftCount(): number {
 }
 
 export async function refreshLocalDraftCount(): Promise<void> {
-  _cachedCount = await countPendingAll();
+  try {
+    const pending = await countPendingUnsyncedItems();
+    _cachedCount = pending.total;
+  } catch {
+    _cachedCount = await countPendingAll();
+  }
 }
+

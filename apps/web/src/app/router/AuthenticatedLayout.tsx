@@ -4,6 +4,7 @@ import { AppSidebar } from '../shared/AppSidebar';
 import { useSyncPermissionsWithContext } from '../shared/useSyncPermissionsWithContext';
 import { GuardLoadingScreen } from './GuardScreens';
 import { useExpiredDraftPurge } from '../../offline/queue/use-expired-draft-purge';
+import { useLocalDataProtection } from '../../offline/crypto/use-local-data-protection';
 import styles from './AuthenticatedLayout.module.css';
 
 /**
@@ -17,6 +18,8 @@ import styles from './AuthenticatedLayout.module.css';
  */
 export function AuthenticatedLayout() {
   useSyncPermissionsWithContext();
+  // SDD-00 §17.4: cifra al iniciar lo que haya quedado en texto plano en este dispositivo.
+  useLocalDataProtection();
   // Respuestas 2026-10-20 #25: el borrador offline que no se termina en 72 h se borra (al iniciar y cada 30 min).
   const { notice, dismiss } = useExpiredDraftPurge();
 

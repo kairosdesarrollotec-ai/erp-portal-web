@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HrFrame } from './HrFrame';
 import { AttendanceMarkInfo } from './AttendanceMarkInfo';
 import { captureAttendanceLocation, type AttendanceLocation } from './attendance-location';
@@ -16,6 +16,14 @@ import { formatDate } from './hr-format';
 import { useHrCommand } from './useHrCommand';
 import { useHrResource } from './useHrResource';
 import { useOnlineStatus } from './useOnlineStatus';
+import {
+  enqueueAttendance,
+  getAttendanceQueue,
+  getTodayQueuedAttendance,
+  syncAttendanceQueue,
+  type AttendanceQueueItem,
+} from '../../offline/queue/attendance-queue';
+import { getFirebaseAuth } from '../providers/firebase';
 import styles from './HrFlow.module.css';
 
 function validatePhoto(file: File): string | null {
@@ -31,9 +39,10 @@ function formatTime(iso?: string | null): string {
 }
 
 /**
- * MI-ASISTENCIA (22-oct #9) - la persona marca su PROPIA entrada y salida: foto obligatoria en la entrada, ubicacion
- * obligatoria, indicador dentro / fuera de la geocerca de la sede. Una marca fuera de la geocerca se registra igual y queda
- * pendiente de revision. Marca sin conexion: NO HECHO (la foto y el envio necesitan internet; ver DEC-F2-ATT-004).
+ * MI-ASISTENCIA (22-oct #9, 27-oct P6) - la persona marca su PROPIA entrada y salida: foto obligatoria en la entrada,
+ * ubicación obligatoria, indicador dentro / fuera de la geocerca de la sede.
+ * Marca sin conexión (P6): se encola localmente en Dexie con la hora exacta del dispositivo y se sincroniza
+ * automáticamente en cuanto se recupera la señal.
  */
 export function MyAttendanceScreen() {
   const month = monthKey(new Date(`${limaToday()}T12:00:00`));
@@ -49,6 +58,8 @@ export function MyAttendanceScreen() {
   const [minutesLate, setMinutesLate] = useState('');
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [queuedItem, setQueuedItem] = useState<AttendanceQueueItem | undefined>(undefined);
+  const [syncingQueue, setSyncingQueue] = useState(false);
 
   const today = limaToday();
   const todayRecord = data?.items.find((r) => r.date.slice(0, 10) === today);
@@ -58,6 +69,54 @@ export function MyAttendanceScreen() {
   const verdict = data ? geofenceVerdict(data.geofence, location) : null;
   const minutesValue = Number(minutesLate);
   const lateInvalid = type === 'CHECK_IN' && late && (!Number.isInteger(minutesValue) || minutesValue < 1);
+
+  async function refreshQueue() {
+    try {
+      if (data?.employeeId) {
+        const item = await getTodayQueuedAttendance(data.employeeId, today);
+        setQueuedItem(item);
+      }
+    } catch {
+      // IndexedDB podría no estar disponible
+    }
+  }
+
+  useEffect(() => {
+    void refreshQueue();
+  }, [data?.employeeId, today]);
+
+  // Sincronización automática de la cola al volver la señal
+  useEffect(() => {
+    if (online && data?.employeeId) {
+      void (async () => {
+        try {
+          const queue = await getAttendanceQueue(data.employeeId);
+          const pending = queue.filter((i) => i.queueStatus === 'pending' || i.queueStatus === 'error');
+          if (pending.length === 0) return;
+
+          const user = getFirebaseAuth().currentUser;
+          if (!user) return;
+          const idToken = await user.getIdToken();
+          setSyncingQueue(true);
+          const result = await syncAttendanceQueue({
+            idToken,
+            employeeId: data.employeeId,
+            uploadEvidence: uploadAttendanceEvidence,
+            logAttendance: logMyAttendance,
+          });
+          await refreshQueue();
+          if (result.syncedCount > 0) {
+            command.setNotice('Marca sincronizada con el servidor.');
+            await reload();
+          }
+        } catch {
+          // Fallo no crítico de reconexión
+        } finally {
+          setSyncingQueue(false);
+        }
+      })();
+    }
+  }, [online, data?.employeeId, today]);
 
   async function locate() {
     setLocating(true);
@@ -81,6 +140,46 @@ export function MyAttendanceScreen() {
     setSubmitted(true);
     if (!data || !location || lateInvalid) return;
     if (type === 'CHECK_IN' && (!photo || validatePhoto(photo))) return;
+
+    if (!online) {
+      // Guardar en cola local Dexie sin conexión
+      try {
+        const queued = await enqueueAttendance({
+          employeeId: data.employeeId,
+          companyId: context?.companyId ?? '',
+          branchId: context?.branchId ?? '',
+          type,
+          ...(type === 'CHECK_IN'
+            ? {
+                status: late ? ('TARDANZA' as const) : ('PRESENTE' as const),
+                ...(late ? { minutesLate: minutesValue } : {}),
+              }
+            : {}),
+          date: today,
+          capturedAt: location.capturedAt,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy ?? 0,
+          ...(notes.trim() ? { notes: notes.trim() } : {}),
+          photoBlob: photo,
+          photoMimeType: photo?.type,
+        });
+        setQueuedItem(queued);
+        command.setNotice(
+          'Marca guardada en el dispositivo (sin conexión). Se sincronizará automáticamente cuando vuelva la señal.',
+        );
+        setPhoto(null);
+        setLocation(null);
+        setLate(false);
+        setMinutesLate('');
+        setNotes('');
+        setSubmitted(false);
+      } catch (err: any) {
+        command.setError(err.message || 'No se pudo guardar la marca localmente.');
+      }
+      return;
+    }
+
     const res = await command.run(async (token, scope) => {
       let evidence: { kind: 'SELF_PHOTO'; storageRef: string } | undefined;
       if (type === 'CHECK_IN' && photo) {
@@ -117,9 +216,13 @@ export function MyAttendanceScreen() {
   }
 
   const items = [...(data?.items ?? [])].sort((a, b) => b.date.localeCompare(a.date));
+  const hasPendingQueueCheckIn =
+    queuedItem &&
+    queuedItem.type === 'CHECK_IN' &&
+    (queuedItem.queueStatus === 'pending' || queuedItem.queueStatus === 'syncing');
 
   return (
-    <HrFrame pageTitle="Mi asistencia" context={context} state={state} hasData={!!data} subject="tu asistencia" busy={command.saving}>
+    <HrFrame pageTitle="Mi asistencia" context={context} state={state} hasData={!!data} subject="tu asistencia" busy={command.saving || syncingQueue}>
       {data && (
         <>
           <div aria-live="polite">
@@ -135,19 +238,53 @@ export function MyAttendanceScreen() {
             </p>
           )}
 
+          {queuedItem?.queueStatus === 'pending' && (
+            <p className={styles.notice} role="status" data-testid="queue-status-pending">
+              Marca local pendiente de sincronización (capturada a las {formatTime(queuedItem.capturedAt)}). Se enviará automáticamente cuando recuperes la conexión.
+            </p>
+          )}
+
+          {queuedItem?.queueStatus === 'syncing' && (
+            <p className={styles.hint} role="status" data-testid="queue-status-syncing">
+              Sincronizando marca local con el servidor…
+            </p>
+          )}
+
+          {queuedItem?.queueStatus === 'error' && (
+            <div className={styles.errorBanner} role="alert" data-testid="queue-status-error">
+              Error al sincronizar marca local: {queuedItem.errorMessage}.
+            </div>
+          )}
+
+          {queuedItem?.queueStatus === 'expired' && (
+            <p className={styles.errorBanner} role="alert" data-testid="queue-status-expired">
+              La marca local venció el tope de 24 horas y no puede ser sincronizada con el servidor.
+            </p>
+          )}
+
           <section className={styles.card} aria-labelledby="mi-marca">
             <h2 id="mi-marca" className={styles.sectionTitle}>
-              {hasCheckOut ? 'Hoy ya marcaste tu entrada y tu salida' : hasCheckIn ? 'Marcar mi salida' : 'Marcar mi entrada'}
+              {hasCheckOut
+                ? 'Hoy ya marcaste tu entrada y tu salida'
+                : hasPendingQueueCheckIn
+                  ? 'Entrada guardada en tu dispositivo (pendiente de sincronización)'
+                  : hasCheckIn
+                    ? 'Marcar mi salida'
+                    : 'Marcar mi entrada'}
             </h2>
             {hasCheckOut ? (
               <p className={styles.hint}>
                 Entrada {formatTime(todayRecord?.checkInTime)} · Salida {formatTime(todayRecord?.checkOutTime)}. Vuelve mañana para tu próxima marca.
               </p>
+            ) : hasPendingQueueCheckIn ? (
+              <p className={styles.hint}>
+                Ya marcaste tu entrada de hoy (capturada a las {formatTime(queuedItem.capturedAt)}). En cuanto vuelva la señal se registrará en el servidor.
+              </p>
             ) : (
               <div className={styles.stack}>
                 {!online && (
                   <p className={styles.banner} role="status" data-testid="my-attendance-offline">
-                    Sin conexión: para marcar necesitas internet (la foto y la marca se envían en el momento). Vuelve a intentarlo cuando tengas conexión.
+                    Modo sin conexión: tu marca se guardará en tu dispositivo con la hora actual y se sincronizará automáticamente cuando vuelva la señal.
                   </p>
                 )}
                 {!data.geofence.configured && (
@@ -238,8 +375,16 @@ export function MyAttendanceScreen() {
                 </label>
                 <textarea id="my-att-notes" className={styles.input} rows={2} maxLength={500} value={notes} onChange={(e) => setNotes(e.target.value)} />
                 <div className={styles.rowActions}>
-                  <button type="button" className={styles.primaryButton} onClick={() => void mark()} disabled={command.saving || !online}>
-                    {command.saving ? 'Enviando…' : type === 'CHECK_IN' ? 'Marcar entrada' : 'Marcar salida'}
+                  <button type="button" className={styles.primaryButton} onClick={() => void mark()} disabled={command.saving || syncingQueue}>
+                    {command.saving || syncingQueue
+                      ? 'Guardando…'
+                      : !online
+                        ? type === 'CHECK_IN'
+                          ? 'Marcar entrada (sin conexión)'
+                          : 'Marcar salida (sin conexión)'
+                        : type === 'CHECK_IN'
+                          ? 'Marcar entrada'
+                          : 'Marcar salida'}
                   </button>
                 </div>
               </div>
