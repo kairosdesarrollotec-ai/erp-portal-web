@@ -48,7 +48,10 @@ export interface SaleResolution {
   offerNote: string | null;
   flaggedAt: string;
   alternativeVehicleId: string | null;
-  refundStatus: 'PENDING_TRANSFER' | null;
+  refundStatus: 'PENDING_TRANSFER' | 'TRANSFERRED' | null;
+  transferVoucher?: string | null;
+  transferredAt?: string | null;
+  transferredBy?: string | null;
   resolutionNote: string | null;
   resolvedAt: string | null;
 }
@@ -420,3 +423,126 @@ export function resolveVehicleSale(
       return data as unknown as ReservationSummary;
     });
 }
+
+/** C4 - Confirmar transferencia de reembolso por venta del vehículo rechazado (POST .../commands/confirm-sale-refund-transfer). */
+export function confirmSaleRefundTransfer(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  transferVoucher: string,
+  transferredAt?: string,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<ReservationSummary> {
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  return (reservationsApiClient as any)
+    .POST('/reservations/{id}/commands/confirm-sale-refund-transfer', {
+      params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+      headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
+      body: { companyId, branchId, transferVoucher, transferredAt },
+    })
+    .then(({ data, error, response }: any) => {
+      if (error || !data) commandError(version, error, response.status);
+      return data as unknown as ReservationSummary;
+    });
+}
+
+/** C3 - Recordatorio 3 horas antes (POST .../commands/register-reminder). */
+export interface ReservationReminderResponse {
+  id: string;
+  reservationId: string;
+  channel: 'WHATSAPP' | 'EMAIL';
+  reminderType: 'HOURS_3_BEFORE';
+  status: 'SENT' | 'FAILED';
+  sentAt?: string | null;
+  failureReason?: string | null;
+  registeredBy: string;
+  createdAt: string;
+}
+
+export function registerReservationReminder(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  channel: 'WHATSAPP' | 'EMAIL',
+  reminderType: 'HOURS_3_BEFORE',
+  status: 'SENT' | 'FAILED',
+  failureReason?: string,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<ReservationSummary> {
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  return (reservationsApiClient as any)
+    .POST('/reservations/{id}/commands/register-reminder', {
+      params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+      headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
+      body: { companyId, branchId, channel, reminderType, status, failureReason },
+    })
+    .then(({ data, error, response }: any) => {
+      if (error || !data) commandError(version, error, response.status);
+      return data as unknown as ReservationSummary;
+    });
+}
+
+/** C1 - Servicio de aeropuerto (POST .../commands/request-airport-service). */
+export interface AirportServiceResponse {
+  id: string;
+  reservationId?: string | null;
+  rentalId?: string | null;
+  scheduledAt: string;
+  location: string;
+  additionalAmount: string;
+  currency: string;
+  notes?: string | null;
+  requestedBy: string;
+  createdAt: string;
+}
+
+export function requestReservationAirportService(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+  version: number,
+  scheduledAt: string,
+  location: string,
+  additionalAmount: string,
+  notes?: string,
+  idempotencyKey = crypto.randomUUID(),
+): Promise<ReservationSummary> {
+  if (version == null) {
+    throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
+  }
+  return (reservationsApiClient as any)
+    .POST('/reservations/{id}/commands/request-airport-service', {
+      params: { path: { id }, header: { 'If-Match': `"${version}"` } },
+      headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
+      body: { companyId, branchId, scheduledAt, location, additionalAmount, notes },
+    })
+    .then(({ data, error, response }: any) => {
+      if (error || !data) commandError(version, error, response.status);
+      return data as unknown as ReservationSummary;
+    });
+}
+
+export async function getReservationAirportService(
+  idToken: string,
+  id: string,
+  companyId: string,
+  branchId: string,
+): Promise<AirportServiceResponse | null> {
+  const { data, error, response } = await (reservationsApiClient as any).GET('/reservations/{id}/airport-service', {
+    params: { path: { id }, query: { companyId, branchId } },
+    headers: { Authorization: `Bearer ${idToken}` },
+  });
+  if (response.status === 404) return null;
+  if (error || !data) throw new ReservationApiError(response.status);
+  return data as unknown as AirportServiceResponse;
+}
+

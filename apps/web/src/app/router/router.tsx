@@ -1,6 +1,7 @@
 import { lazy, type ComponentType } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { LoginScreen } from '../auth/LoginScreen';
+import { PasswordResetScreen } from '../auth/PasswordResetScreen';
 import { ActivationScreen } from '../auth/ActivationScreen';
 import { WorkContextScreen } from '../auth/WorkContextScreen';
 import { DashboardScreen } from '../dashboard/DashboardScreen';
@@ -100,6 +101,14 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <LoginScreen />,
+  },
+  {
+    path: '/login',
+    element: <LoginScreen />,
+  },
+  {
+    path: '/recuperar-acceso',
+    element: <PasswordResetScreen />,
   },
   {
     // Hallazgo de revision (HU-21): ninguna ruta que asuma un usuario

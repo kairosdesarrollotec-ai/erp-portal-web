@@ -80,6 +80,14 @@
   font: inherit;
 }
 
+.input {
+  width: 100%;
+  border: 1px solid #C9C5BC;
+  border-radius: 6px;
+  padding: 0.5rem;
+  font: inherit;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

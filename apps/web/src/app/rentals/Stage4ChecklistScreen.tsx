@@ -22,6 +22,7 @@ import { formatLimaTime } from "../shared/lima-time";
 import { useOnlineStatus } from "../shared/useOnlineStatus";
 import { REQUIRED_EVIDENCE_PHOTOS, REQUIRED_EVIDENCE_VIDEOS, deriveEvidenceSyncState, type EvidenceSyncInput } from "../shared/evidence-sync-state";
 import { VehicleChecklistForm } from "../shared/VehicleChecklistForm";
+import { ZONE_PHOTO_GUIDES } from "../shared/zone-photo-guides";
 import { getFirebaseAuth } from "../providers/firebase";
 import type { OperationalRecordItem } from "../fleet/operational-formats/operational-format-types";
 const REQUIRED_PHOTOS = REQUIRED_EVIDENCE_PHOTOS;
@@ -429,6 +430,11 @@ export function Stage4ChecklistScreen() {
           ))}
         </select>
       </label>
+      {ZONE_PHOTO_GUIDES[zone] && (
+        <p className={styles.summaryLine} data-testid="zone-photo-guide">
+          <strong>Guía para esta zona:</strong> {ZONE_PHOTO_GUIDES[zone]}
+        </p>
+      )}
       <fieldset className={styles.fieldset}>
         <legend>
           Fotos ({photosCount}/{REQUIRED_PHOTOS}

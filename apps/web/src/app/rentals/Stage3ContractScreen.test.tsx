@@ -256,7 +256,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
 
   // ── validación: campos necesarios para formalizar ────────────────────────
 
-  it('"Formalizar y continuar" se habilita con firma capturada y monto ingresado', async () => {
+  it('"Formalizar y continuar" se habilita con firma capturada, huella física y monto ingresado', async () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
@@ -265,6 +265,9 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     fillPaymentProof();
 
     await screen.findByText(/Contrato persona natural/);
+    expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeDisabled();
+
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).not.toBeDisabled();
   });
 
@@ -275,6 +278,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     renderScreen();
 
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     fillPaymentProof();
     await screen.findByText(/Contrato persona natural/);
@@ -293,12 +297,13 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
       ...baseRental,
       status: 'PENDING_DELIVERY',
       version: 4,
-      contract: { id: 'ct-1', documentRef: 'CONTRATO-rent-000', status: 'SIGNED', signedAt: null, createdAt: '', templateVersionId: 'v1' },
+      contract: { id: 'ct-1', documentRef: 'CONTRATO-rent-000', status: 'SIGNED', signedAt: null, createdAt: '', templateVersionId: 'v1', fingerprintTaken: true },
     });
 
     renderScreen();
 
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     fillPaymentProof();
     await screen.findByText(/Contrato persona natural/);
@@ -307,6 +312,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
 
     expect(await screen.findByText('etapa 4')).toBeInTheDocument();
     expect(setRentalMock).toHaveBeenCalled();
+    expect(formalizeContractMock.mock.calls[0][12]).toBe(true);
   });
 
   // ── error de API ──────────────────────────────────────────────────────────
@@ -321,6 +327,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     renderScreen();
 
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     fillPaymentProof();
     await screen.findByText(/Contrato persona natural/);
@@ -351,6 +358,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
 
   async function fillBasics() {
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '1000' } });
     fillPaymentProof();
     await screen.findByText(/Contrato persona natural/);
@@ -399,6 +407,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     useRentalWizardMock.mockReturnValue(makeWizard({ rental: reservationRental }));
     renderScreen();
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '200' } });
     fillPaymentProof();
     await screen.findByText(/Contrato persona natural/);
@@ -412,6 +421,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     formalizeContractMock.mockRejectedValue(new (await import('./rentals-client')).RentalCommandError(400, { code: 'CONTRACT_VARIANT_DRIVER_CONFLICT', detail: 'x' }));
     renderScreen();
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     fillPaymentProof();
     await screen.findByText(/Contrato persona natural/);
@@ -440,6 +450,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
     fireEvent.change(screen.getByLabelText('Tarifa diaria del conductor (S/)'), { target: { value: '100' } });
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     await screen.findByText(/Contrato persona jurídica con conductor/);
     await waitFor(() =>
       expect(getContractTemplateMock).toHaveBeenLastCalledWith('tok', 'rent-1', 'c1', 'b1', { holderType: 'LEGAL', withCompanyDriver: true }),
@@ -451,6 +462,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     // Con conductor de la empresa NO se envia garantia (DEC-ALQ-COMPANY-DRIVER-004).
     expect(formalizeContractMock.mock.calls[0][6]).toBeNull();
     expect(formalizeContractMock.mock.calls[0][7]).toBeNull();
+    expect(formalizeContractMock.mock.calls[0][12]).toBe(true);
   });
 
   it('con conductor de la empresa oculta el cobro de garantia y muestra el mensaje', async () => {
@@ -461,8 +473,9 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     expect(screen.queryByLabelText(/Garantía total \(PEN\)/)).not.toBeInTheDocument();
     expect(screen.getByTestId('no-deposit-company-driver')).toHaveTextContent('Con conductor de la empresa no se cobra garantía');
     fireEvent.change(screen.getByLabelText('Tarifa diaria del conductor (S/)'), { target: { value: '100' } });
-    // formalizar solo exige la firma
+    // formalizar exige la firma y huella
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
   });
 
@@ -489,6 +502,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
     fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
     fireEvent.change(screen.getByLabelText('Tarifa diaria del conductor (S/)'), { target: { value: '100' } });
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
@@ -585,6 +599,7 @@ describe('Stage3ContractScreen - comprobante de garantia, biometria y tercera vi
     formalizeContractMock.mockResolvedValue({ ...baseRental, status: 'PENDING_DELIVERY', version: 4 });
     renderScreen();
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     await screen.findByText(/Contrato persona natural/);
     expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeDisabled();
@@ -607,12 +622,14 @@ describe('Stage3ContractScreen - comprobante de garantia, biometria y tercera vi
       payerIsExternalAgent: false,
       voucherDocumentId: 'doc-77',
     });
+    expect(formalizeContractMock.mock.calls[0][12]).toBe(true);
   });
 
   it('agente externo exige documento y verificacion adicional', async () => {
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     await screen.findByText(/Contrato persona natural/);
     fillPaymentProof();
@@ -632,6 +649,7 @@ describe('Stage3ContractScreen - comprobante de garantia, biometria y tercera vi
     useRentalWizardMock.mockReturnValue(makeWizard({ rental }));
     renderScreen();
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     await screen.findByText(/Contrato persona natural/);
     expect(screen.queryByTestId('payment-proof-form')).not.toBeInTheDocument();
@@ -644,6 +662,7 @@ describe('Stage3ContractScreen - comprobante de garantia, biometria y tercera vi
     formalizeContractMock.mockRejectedValue(new RentalCommandError(422, { code: 'INVALID_DEPOSIT_AMOUNT' }));
     renderScreen();
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
     fillPaymentProof();
     await screen.findByText(/Contrato persona natural/);

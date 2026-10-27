@@ -542,6 +542,21 @@ describe('ChecklistScreen — solicitar eliminación de evidencia', () => {
     const inputSugerencia = screen.getByLabelText(/Sugerencia \/ Observación de combustible/i) as HTMLInputElement;
     expect(inputSugerencia.value).toBe('Edición previa del usuario');
   });
+
+  it('D3: muestra la guia de toma fotografica segun la zona seleccionada en devolucion', async () => {
+    renderChecklist();
+
+    const guide = screen.getByTestId('zone-photo-guide');
+    expect(guide).toBeInTheDocument();
+    expect(guide).toHaveTextContent(/Parachoques delantero, capó/);
+
+    const select = screen.getByLabelText(/Zona del vehículo/);
+    fireEvent.change(select, { target: { value: 'LATERAL_DERECHO' } });
+    expect(screen.getByTestId('zone-photo-guide')).toHaveTextContent(/Puertas derechas, manijas/);
+
+    fireEvent.change(select, { target: { value: 'POSTERIOR' } });
+    expect(screen.getByTestId('zone-photo-guide')).toHaveTextContent(/Parachoques posterior, compuerta/);
+  });
 });
 
 

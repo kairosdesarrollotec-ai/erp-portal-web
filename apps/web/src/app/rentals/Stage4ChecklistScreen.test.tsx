@@ -771,6 +771,22 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
       );
     });
   });
+
+  it('D3: muestra la guia de toma fotografica segun la zona seleccionada', async () => {
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+
+    const guide = screen.getByTestId('zone-photo-guide');
+    expect(guide).toBeInTheDocument();
+    expect(guide).toHaveTextContent(/Parachoques delantero, capó/);
+
+    const select = screen.getByLabelText(/Zona del vehículo/);
+    fireEvent.change(select, { target: { value: 'LATERAL_IZQUIERDO' } });
+    expect(screen.getByTestId('zone-photo-guide')).toHaveTextContent(/Puertas izquierdas, manijas/);
+
+    fireEvent.change(select, { target: { value: 'INTERIOR' } });
+    expect(screen.getByTestId('zone-photo-guide')).toHaveTextContent(/Salón completo, tapicería/);
+  });
 });
 
 

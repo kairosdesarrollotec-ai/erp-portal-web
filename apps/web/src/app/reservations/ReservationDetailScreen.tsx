@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { useReservationDetail } from './useReservationDetail';
@@ -9,6 +9,8 @@ import {
   requestReservationDocumentUploadSession,
   uploadReservationFileToGcs,
   recordReservationDocument,
+  getReservationAirportService,
+  type AirportServiceResponse,
 } from './reservations-client';
 import { getFirebaseAuth } from '../providers/firebase';
 import styles from './ReservationDetailScreen.module.css';
@@ -34,8 +36,21 @@ import { VehicleDataWarnings } from '../shared/VehicleDataWarnings';
  * via location.state (ver NewRentalScreen.tsx).
  */
 export function ReservationDetailScreen() {
-  const { state, reservation, context, savingRequirement, actionError, vehicleUnavailable, uploadPaymentVoucher, uploadDocuments, confirm, cancel, reload } =
-    useReservationDetail();
+  const {
+    state,
+    reservation,
+    context,
+    savingRequirement,
+    actionError,
+    vehicleUnavailable,
+    uploadPaymentVoucher,
+    uploadDocuments,
+    confirm,
+    cancel,
+    registerReminder,
+    requestAirportService,
+    reload,
+  } = useReservationDetail();
   const navigate = useNavigate();
   const { can } = useRolePermissions();
   const [showCancelForm, setShowCancelForm] = useState(false);
@@ -52,6 +67,42 @@ export function ReservationDetailScreen() {
   const [uploadingSignedAcceptance, setUploadingSignedAcceptance] = useState(false);
   const [signedAcceptanceUploadError, setSignedAcceptanceUploadError] = useState<string | null>(null);
   const signedAcceptanceFileRef = useRef<HTMLInputElement>(null);
+
+  const [airportService, setAirportService] = useState<AirportServiceResponse | null>(null);
+  const [showAirportForm, setShowAirportForm] = useState(false);
+  const [airportScheduledAt, setAirportScheduledAt] = useState('');
+  const [airportLocation, setAirportLocation] = useState('Aeropuerto Coronel FAP Alfredo Mendívil Duarte (AYP)');
+  const [airportAmount, setAirportAmount] = useState('50.00');
+  const [airportNotes, setAirportNotes] = useState('');
+
+  const [reminderStatus, setReminderStatus] = useState<'SENT' | 'FAILED' | null>(null);
+  const [reminderFailureReason, setReminderFailureReason] = useState('');
+  const [showReminderFailInput, setShowReminderFailInput] = useState(false);
+
+  const reservationId = reservation?.id;
+  const reservationStatus = reservation?.status;
+  const companyId = context?.companyId;
+  const branchId = context?.branchId;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchAirport() {
+      if (reservationStatus !== 'CONFIRMED' || !reservationId || !companyId || !branchId) return;
+      try {
+        const user = getFirebaseAuth().currentUser;
+        if (!user) return;
+        const idToken = await user.getIdToken();
+        const res = await getReservationAirportService(idToken, reservationId, companyId, branchId);
+        if (!cancelled) setAirportService(res);
+      } catch {
+        // ignore
+      }
+    }
+    void fetchAirport();
+    return () => {
+      cancelled = true;
+    };
+  }, [reservationStatus, reservationId, companyId, branchId]);
 
   /** Decision 22-oct #8: sube el comprobante y envia metodo, nº de operacion y pagador junto con el registro del pago. */
   async function handlePaymentProof(draft: PaymentProofDraft) {
@@ -334,7 +385,20 @@ export function ReservationDetailScreen() {
 
           {reservation.status === 'CANCELLED' && reservation.saleResolution?.refundStatus === 'PENDING_TRANSFER' && (
             <p className={styles.helperText}>
-              Reembolso pendiente de transferencia: Gerencia debe devolver S/ {reservation.requiredPayment.amount} al cliente.
+              Reembolso pendiente de transferencia: Gerencia debe devolver S/ {reservation.requiredPayment.amount} al cliente.{' '}
+              <button
+                type="button"
+                className={styles.linkButton}
+                onClick={() => navigate(`/reservas/${reservation.id}/venta`, { state: context })}
+              >
+                Registrar transferencia de reembolso
+              </button>
+            </p>
+          )}
+
+          {reservation.status === 'CANCELLED' && reservation.saleResolution?.refundStatus === 'TRANSFERRED' && (
+            <p className={styles.helperText} data-testid="detail-refund-transferred">
+              Reembolso transferido. Comprobante: {reservation.saleResolution.transferVoucher ?? 'Registrado'}.
             </p>
           )}
 
@@ -505,6 +569,198 @@ export function ReservationDetailScreen() {
                   Registrar venta del vehículo
                 </button>
               )}
+
+              <div className={styles.actionCard} data-testid="reservation-reminder-card">
+                <p className={styles.actionTitle}>Recordatorio (3 horas antes)</p>
+                <p className={styles.helperText}>
+                  Plantilla de WhatsApp: «Hola {reservation.customer.name}, le recordamos que su reserva del vehículo {reservation.vehicle.label} inicia el {formatLimaDate(reservation.startAt)}. Lo esperamos en VeloxRent.»
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(
+                      `Hola ${reservation.customer.name}, le recordamos que su reserva del vehículo ${reservation.vehicle.label} inicia el ${formatLimaDate(reservation.startAt)}. Lo esperamos en VeloxRent.`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.confirmButton}
+                    style={{ textDecoration: 'none', display: 'inline-block' }}
+                    data-testid="whatsapp-reminder-link"
+                  >
+                    Abrir WhatsApp
+                  </a>
+                  {can('RESERVATION', 'REGISTER_REMINDER') && (
+                    <>
+                      <button
+                        type="button"
+                        className={styles.linkButton}
+                        disabled={savingRequirement === 'REGISTER_REMINDER'}
+                        onClick={async () => {
+                          const res = await registerReminder('WHATSAPP', 'HOURS_3_BEFORE', 'SENT');
+                          if (res) setReminderStatus('SENT');
+                        }}
+                        data-testid="reminder-sent-btn"
+                      >
+                        {savingRequirement === 'REGISTER_REMINDER' ? 'Registrando…' : 'Registrar como enviado'}
+                      </button>
+                      {!showReminderFailInput ? (
+                        <button
+                          type="button"
+                          className={styles.dangerLink}
+                          onClick={() => setShowReminderFailInput(true)}
+                          data-testid="reminder-fail-toggle"
+                        >
+                          Registrar fallo en envío
+                        </button>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <input
+                            type="text"
+                            placeholder="Motivo del fallo"
+                            value={reminderFailureReason}
+                            onChange={(e) => setReminderFailureReason(e.target.value)}
+                            data-testid="reminder-failure-reason-input"
+                          />
+                          <button
+                            type="button"
+                            className={styles.dangerButton}
+                            disabled={savingRequirement === 'REGISTER_REMINDER' || !reminderFailureReason.trim()}
+                            onClick={async () => {
+                              const res = await registerReminder('WHATSAPP', 'HOURS_3_BEFORE', 'FAILED', reminderFailureReason.trim());
+                              if (res) {
+                                setReminderStatus('FAILED');
+                                setShowReminderFailInput(false);
+                              }
+                            }}
+                            data-testid="reminder-fail-submit-btn"
+                          >
+                            Confirmar fallo
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+                {reminderStatus && (
+                  <p className={styles.helperText} style={{ marginTop: '0.5rem' }} data-testid="reminder-status-badge">
+                    Estado del recordatorio: <strong>{reminderStatus === 'SENT' ? 'Enviado con éxito' : 'Fallido'}</strong>
+                  </p>
+                )}
+              </div>
+
+              <div className={styles.actionCard} data-testid="airport-service-card">
+                <p className={styles.actionTitle}>Servicio de aeropuerto (BR-RES-008)</p>
+                {airportService ? (
+                  <div data-testid="airport-service-info">
+                    <p className={styles.helperText}>Lugar: {airportService.location}</p>
+                    <p className={styles.helperText}>Fecha/Hora: {formatLimaDate(airportService.scheduledAt)}</p>
+                    <p className={styles.helperText}>Monto adicional: S/ {parseFloat(airportService.additionalAmount).toFixed(2)}</p>
+                    {airportService.notes && <p className={styles.helperText}>Notas: {airportService.notes}</p>}
+                  </div>
+                ) : showAirportForm ? (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!airportScheduledAt) return;
+                      const res = await requestAirportService(
+                        airportScheduledAt,
+                        airportLocation,
+                        airportAmount,
+                        airportNotes || undefined,
+                      );
+                      if (res) {
+                        setShowAirportForm(false);
+                        setAirportService({
+                          id: 'airport-created',
+                          scheduledAt: airportScheduledAt,
+                          location: airportLocation,
+                          additionalAmount: airportAmount,
+                          currency: 'PEN',
+                          notes: airportNotes,
+                          requestedBy: 'current-user',
+                          createdAt: new Date().toISOString(),
+                        });
+                      }
+                    }}
+                    data-testid="airport-service-form"
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                      <label>
+                        Fecha y hora pactada
+                        <input
+                          type="datetime-local"
+                          required
+                          value={airportScheduledAt}
+                          onChange={(e) => setAirportScheduledAt(e.target.value)}
+                          data-testid="airport-scheduled-at-input"
+                        />
+                      </label>
+                      <label>
+                        Lugar / Aeropuerto
+                        <input
+                          type="text"
+                          required
+                          value={airportLocation}
+                          onChange={(e) => setAirportLocation(e.target.value)}
+                          data-testid="airport-location-input"
+                        />
+                      </label>
+                      <label>
+                        Monto adicional (PEN)
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          required
+                          value={airportAmount}
+                          onChange={(e) => setAirportAmount(e.target.value)}
+                          data-testid="airport-amount-input"
+                        />
+                      </label>
+                      <label>
+                        Notas (opcional)
+                        <textarea
+                          value={airportNotes}
+                          onChange={(e) => setAirportNotes(e.target.value)}
+                          data-testid="airport-notes-input"
+                        />
+                      </label>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                      <button
+                        type="submit"
+                        className={styles.confirmButton}
+                        disabled={savingRequirement === 'REQUEST_AIRPORT_SERVICE'}
+                        data-testid="airport-submit-btn"
+                      >
+                        {savingRequirement === 'REQUEST_AIRPORT_SERVICE' ? 'Guardando…' : 'Solicitar servicio'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.linkButton}
+                        onClick={() => setShowAirportForm(false)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <p className={styles.helperText}>
+                      Traslado o entrega en aeropuerto para esta reserva.
+                    </p>
+                    {can('RESERVATION', 'REQUEST_AIRPORT_SERVICE') && (
+                      <button
+                        type="button"
+                        className={styles.linkButton}
+                        onClick={() => setShowAirportForm(true)}
+                        data-testid="request-airport-btn"
+                      >
+                        Solicitar servicio de aeropuerto
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
 
               {!showCancelForm && can('RESERVATION', 'CANCEL_CUSTOMER_REQUESTED_CHANGE') ? (
                 <button type="button" className={styles.dangerLink} onClick={() => setShowCancelForm(true)}>

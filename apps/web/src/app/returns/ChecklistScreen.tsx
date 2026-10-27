@@ -23,6 +23,7 @@ import { canSyncAction } from "../sync/sync-permissions";
 import { recordVehicleOperationalFormat, listVehicleOperationalRecords } from "../fleet/fleet-client";
 import { FIV_ITEMS, FCKE_ITEMS } from "../shared/vehicle-checklist-items";
 import { VehicleChecklistForm } from "../shared/VehicleChecklistForm";
+import { ZONE_PHOTO_GUIDES } from "../shared/zone-photo-guides";
 import { getFirebaseAuth } from "../providers/firebase";
 import type { OperationalRecordItem } from "../fleet/operational-formats/operational-format-types";
 import styles from "./ReturnForms.module.css";
@@ -373,6 +374,11 @@ export function ChecklistScreen() {
           ))}
         </select>
       </label>
+      {ZONE_PHOTO_GUIDES[zone] && (
+        <p className={styles.summaryLine} data-testid="zone-photo-guide">
+          <strong>Guía para esta zona:</strong> {ZONE_PHOTO_GUIDES[zone]}
+        </p>
+      )}
       <fieldset className={styles.fieldset}>
         <legend>
           Fotos ({photosCount}/{REQUIRED_PHOTOS}

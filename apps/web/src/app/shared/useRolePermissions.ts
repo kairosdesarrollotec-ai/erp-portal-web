@@ -19,7 +19,10 @@ type ReservationAction =
   | 'CANCEL_NO_SHOW'
   | 'CHANGE_VEHICLE'
   | 'FLAG_SALE'
-  | 'RESOLVE_SALE';
+  | 'RESOLVE_SALE'
+  | 'CONFIRM_SALE_REFUND'
+  | 'REGISTER_REMINDER'
+  | 'REQUEST_AIRPORT_SERVICE';
 type FleetAction =
   | 'READ'
   | 'WRITE'

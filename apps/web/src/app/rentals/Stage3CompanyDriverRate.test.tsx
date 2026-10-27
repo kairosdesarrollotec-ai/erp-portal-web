@@ -85,6 +85,7 @@ async function formalizeWithDriver(rate = '100') {
   fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
   fireEvent.change(rateInput(), { target: { value: rate } });
   fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+  fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
 }
 
@@ -111,6 +112,7 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
     renderScreen();
     fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     await waitFor(() => expect(screen.getByLabelText(/Área de firma digital/)).toBeInTheDocument());
     expect(rateInput()).toBeRequired();
     expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeDisabled();

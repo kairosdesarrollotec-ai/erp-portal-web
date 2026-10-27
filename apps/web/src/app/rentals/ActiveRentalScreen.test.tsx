@@ -18,13 +18,20 @@ vi.mock('./useRentalWizard', () => ({ useRentalWizard: () => wizardMock() }));
 
 const requestExtensionMock = vi.fn();
 const reportBreachMock = vi.fn();
+const getAirportServiceMock = vi.fn();
+const requestAirportServiceMock = vi.fn();
 vi.mock('./rentals-extensions-client', async () => {
   const actual = await vi.importActual<typeof import('./rentals-extensions-client')>('./rentals-extensions-client');
   return { ...actual, requestExtension: (...a: unknown[]) => requestExtensionMock(...a) };
 });
 vi.mock('./rentals-client', async () => {
   const actual = await vi.importActual<typeof import('./rentals-client')>('./rentals-client');
-  return { ...actual, reportExtensionBreach: (...a: unknown[]) => reportBreachMock(...a) };
+  return {
+    ...actual,
+    reportExtensionBreach: (...a: unknown[]) => reportBreachMock(...a),
+    getRentalAirportService: (...a: unknown[]) => getAirportServiceMock(...a),
+    requestRentalAirportService: (...a: unknown[]) => requestAirportServiceMock(...a),
+  };
 });
 
 const context = { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede' };
@@ -64,6 +71,9 @@ describe('ActiveRentalScreen (ALQ-10)', () => {
     wizardMock.mockReset();
     requestExtensionMock.mockReset();
     reportBreachMock.mockReset();
+    getAirportServiceMock.mockReset();
+    requestAirportServiceMock.mockReset();
+    getAirportServiceMock.mockResolvedValue(null);
     clearPermissions();
   });
 
@@ -193,6 +203,70 @@ describe('ActiveRentalScreen (ALQ-10)', () => {
     renderScreen();
     expect(screen.getByText(/ya no admite acciones/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Iniciar devolución' })).not.toBeInTheDocument();
+  });
+
+  describe('C1: BR-ALQ-014 Servicio de Aeropuerto en Alquiler Activo', () => {
+    it('muestra el boton si tiene permiso RENTAL.REQUEST_AIRPORT_SERVICE y abre el modal', async () => {
+      setPermissions(['RENTAL.REQUEST_AIRPORT_SERVICE']);
+      wizardMock.mockReturnValue(wizard());
+      renderScreen();
+
+      const btn = screen.getByTestId('request-rental-airport-btn');
+      expect(btn).toBeInTheDocument();
+      fireEvent.click(btn);
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Solicitar servicio de aeropuerto' })).toBeInTheDocument();
+
+      fireEvent.change(screen.getByTestId('modal-airport-scheduled-at'), { target: { value: '2026-10-21T10:00' } });
+      fireEvent.change(screen.getByTestId('modal-airport-location'), { target: { value: 'Aeropuerto AYP' } });
+      fireEvent.change(screen.getByTestId('modal-airport-amount'), { target: { value: '60.00' } });
+
+      requestAirportServiceMock.mockResolvedValueOnce({ ...baseRental, version: 6 });
+      fireEvent.click(screen.getByTestId('modal-airport-submit-btn'));
+
+      await waitFor(() => {
+        expect(requestAirportServiceMock).toHaveBeenCalledWith(
+          'tok',
+          'rent-1',
+          'c1',
+          'b1',
+          5,
+          '2026-10-21T10:00',
+          'Aeropuerto AYP',
+          '60.00',
+          undefined,
+        );
+      });
+    });
+
+    it('renderiza la tarjeta con los datos cuando ya existe servicio de aeropuerto', async () => {
+      getAirportServiceMock.mockResolvedValueOnce({
+        id: 'asp-1',
+        rentalId: 'rent-1',
+        status: 'REQUESTED',
+        scheduledAt: '2026-10-21T10:00:00Z',
+        location: 'Aeropuerto AYP',
+        additionalAmount: '60.00',
+        currency: 'PEN',
+        notes: 'Vuelo LA2100',
+        requestedByUserId: 'u1',
+        requestedAt: '2026-10-20T12:00:00Z',
+        createdAt: '2026-10-20T12:00:00Z',
+        updatedAt: '2026-10-20T12:00:00Z',
+      });
+      wizardMock.mockReturnValue(wizard());
+      renderScreen();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('rental-airport-service-card')).toBeInTheDocument();
+      });
+      expect(screen.getByText('REQUESTED')).toBeInTheDocument();
+      expect(screen.getByText('Aeropuerto AYP')).toBeInTheDocument();
+      expect(screen.getByText('S/ 60.00')).toBeInTheDocument();
+      expect(screen.getByText('Vuelo LA2100')).toBeInTheDocument();
+      expect(screen.queryByTestId('request-rental-airport-btn')).not.toBeInTheDocument();
+    });
   });
 
   it('no tiene violaciones de accesibilidad', async () => {
