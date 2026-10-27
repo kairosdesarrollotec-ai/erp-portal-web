@@ -195,7 +195,7 @@ export async function getExpectationDocument(
   idToken: string,
   employeeId: string,
 ): Promise<ExpectationDocument> {
-  const { data, error, response } = await (hrAdministrationApiClient as any).GET(
+  const { data, error, response } = await hrAdministrationApiClient.GET(
     '/employees/{id}/expectation-document',
     {
       params: { path: { id: employeeId } },
@@ -212,7 +212,7 @@ export async function recordExpectationDocument(
   employeeId: string,
   input: RecordExpectationDocumentInput,
 ): Promise<ExpectationDocument> {
-  const { data, error, response } = await (hrAdministrationApiClient as any).POST(
+  const { data, error, response } = await hrAdministrationApiClient.POST(
     '/employees/{id}/commands/record-expectation-document',
     {
       params: { path: { id: employeeId } },
@@ -223,4 +223,3 @@ export async function recordExpectationDocument(
   if (error || !data) throw toCommandError(error, response?.status ?? 500);
   return data as unknown as ExpectationDocument;
 }
-

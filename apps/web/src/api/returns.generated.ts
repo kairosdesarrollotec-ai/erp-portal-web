@@ -385,6 +385,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/returns/{id}/commands/record-holder-notification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registrar notificación formal al titular ausente (SC-DEV-004.01, EX-DEV-001)
+         * @description Permite a un usuario con permiso operativo registrar la notificación formal realizada al titular ausente del alquiler cuando la recepción vehicular fue efectuada por un tercero.
+         */
+        post: operations["recordHolderNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/returns/{id}/evidence/upload-url": {
         parameters: {
             query?: never;
@@ -828,6 +848,39 @@ export interface components {
             branchId: string;
             notes: string;
         };
+        RecordHolderNotificationRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+            /**
+             * @description Medio o canal utilizado fuera del sistema (WHATSAPP, TELEFONO, EMAIL, CARTA, etc.)
+             * @example WHATSAPP
+             */
+            channel: string;
+            /**
+             * Format: date-time
+             * @description Fecha y hora en que se contactó formalmente al titular
+             */
+            contactedAt: string;
+            /**
+             * @description Identificador o nombre de la persona que realizó la notificación
+             * @example Juan Operador
+             */
+            notifiedBy: string;
+            /** @description Observaciones o detalle de la comunicación con el titular */
+            observations?: string | null;
+        };
+        HolderNotificationResponse: {
+            sent: boolean;
+            /** Format: date-time */
+            sentAt?: string | null;
+            sentBy?: string | null;
+            channel?: string | null;
+            observations?: string | null;
+            /** @description True si el vehículo fue entregado por un tercero y aún no se formaliza la notificación al titular */
+            pending: boolean;
+        };
         RequestReturnEvidenceUploadSessionRequest: {
             /** Format: uuid */
             companyId: string;
@@ -1004,6 +1057,8 @@ export interface components {
             legalEscalatedAt?: string | null;
             legalEscalatedBy?: string | null;
             legalNotes?: string | null;
+            /** @description Registro de la notificación formal al titular ausente (SC-DEV-004.01) */
+            holderNotification?: components["schemas"]["HolderNotificationResponse"] | null;
         };
     };
     responses: never;
@@ -2464,6 +2519,76 @@ export interface operations {
                 content?: never;
             };
             /** @description No autorizado para el contexto o permiso insuficiente (RETURN.CLOSE) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Devolución no encontrada */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Versión no coincide (If-Match) */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Falta header If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    recordHolderNotification: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordHolderNotificationRequest"];
+            };
+        };
+        responses: {
+            /** @description Notificación formal registrada exitosamente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReturnResponse"];
+                };
+            };
+            /** @description Datos inválidos */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Token no autenticado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No autorizado para el contexto o permiso insuficiente (RETURN.COMPLETE_INSPECTION) */
             403: {
                 headers: {
                     [name: string]: unknown;

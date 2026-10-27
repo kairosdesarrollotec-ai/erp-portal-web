@@ -247,6 +247,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rentals/{id}/commands/request-airport-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Registra una solicitud de servicio de aeropuerto como cargo adicional manual (C1, BDD-ALQ 7.1.1)
+         * @description Roles: ADMINISTRACION y GERENCIA (accion RENTAL.REQUEST_AIRPORT_SERVICE de la matriz ADM-02). El monto adicional no altera la tarifa base ni la garantía; queda registrado como cargo adicional.
+         */
+        post: operations["requestRentalAirportService"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rentals/{id}/airport-service": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Obtiene la solicitud de servicio de aeropuerto del alquiler si existe (C1) */
+        get: operations["getRentalAirportService"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rentals/{id}/company-expenses": {
         parameters: {
             query?: never;
@@ -660,6 +697,8 @@ export interface components {
             /** Format: uuid */
             branchId: string;
             documentRef: string;
+            /** @description C5: Huella física tomada en el contrato en papel (no biometría). Obligatorio marcarlo al formalizar el contrato; el valor false se permite pero queda auditado. */
+            fingerprintTaken: boolean;
             /** @description Garantía TOTAL del vehículo (incluye el monto de reserva que se traslada, si lo hay). Omitir con conductor de la empresa. */
             depositAmount?: string;
             /**
@@ -832,6 +871,15 @@ export interface components {
             depositRequired?: boolean;
             /** @description Crédito de reserva sin garantía a la cual aplicarse (saldo a favor; "0.00" si no aplica). */
             reservationCreditExcess?: string;
+            /** @description C5: Si se tomó la huella física en el contrato */
+            fingerprintTaken?: boolean;
+            /** @description Usuario que registró la huella física */
+            fingerprintMarkedBy?: string | null;
+            /**
+             * Format: date-time
+             * @description Fecha y hora del registro de la huella física
+             */
+            fingerprintMarkedAt?: string | null;
             /** Format: date-time */
             createdAt: string;
         };
@@ -1089,6 +1137,41 @@ export interface components {
             reference: string;
             notes?: string | null;
             createdBy: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CommandScopeRequest: {
+            /** Format: uuid */
+            companyId: string;
+            /** Format: uuid */
+            branchId: string;
+        };
+        RequestAirportServiceRequest: components["schemas"]["CommandScopeRequest"] & {
+            /**
+             * Format: date-time
+             * @description Fecha y hora programada para el servicio de aeropuerto
+             */
+            scheduledAt: string;
+            /** @description Lugar o descripción del servicio en aeropuerto */
+            location: string;
+            /** @description Monto adicional manual que se suma como cargo del expediente */
+            additionalAmount: string;
+            /** @description Notas u observaciones adicionales */
+            notes?: string;
+        };
+        AirportServiceResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            targetType: "RESERVATION" | "RENTAL";
+            /** Format: uuid */
+            targetId: string;
+            /** Format: date-time */
+            scheduledAt: string;
+            location: string;
+            additionalAmount: string;
+            notes?: string | null;
+            registeredBy: string;
             /** Format: date-time */
             createdAt: string;
         };
@@ -2121,6 +2204,99 @@ export interface operations {
             };
             /** @description Falta header If-Match */
             428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    requestRentalAirportService: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestAirportServiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Solicitud de aeropuerto registrada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AirportServiceResponse"];
+                };
+            };
+            /** @description ROLE_NOT_ALLOWED o empresa/sede no autorizada */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Alquiler no encontrado en el scope del usuario */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RENTAL_STATE_CONFLICT */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RENTAL_VERSION_CONFLICT */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description IF_MATCH_REQUIRED */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getRentalAirportService: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Solicitud encontrada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AirportServiceResponse"];
+                };
+            };
+            /** @description No existe servicio de aeropuerto para este alquiler */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -601,8 +601,8 @@ export async function recordHolderNotification(
     observations?: string;
   },
 ): Promise<ReturnResponse> {
-  const { data, error, response } = await (returnsApiClient as any).POST('/returns/{id}/commands/record-holder-notification', {
-    params: { path: { id } },
+  const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/record-holder-notification', {
+    params: { path: { id }, header: { 'If-Match': `"${version}"` } },
     headers: commandHeaders(idToken, version),
     body: { companyId, branchId, ...body },
   });

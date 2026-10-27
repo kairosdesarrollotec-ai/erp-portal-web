@@ -670,7 +670,7 @@ export async function requestRentalAirportService(
   additionalAmount: string,
   notes?: string,
 ): Promise<RentalResponse> {
-  const { data, error, response } = await (rentalsApiClient as any).POST('/rentals/{id}/commands/request-airport-service', {
+  const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/request-airport-service', {
     params: { path: { id }, header: { 'If-Match': `"${version}"` } },
     headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
     body: { companyId, branchId, scheduledAt, location, additionalAmount, notes },
@@ -685,15 +685,14 @@ export async function requestRentalAirportService(
 export async function getRentalAirportService(
   idToken: string,
   id: string,
-  companyId: string,
-  branchId: string,
+  _companyId: string,
+  _branchId: string,
 ): Promise<RentalAirportServiceResponse | null> {
-  const { data, error, response } = await (rentalsApiClient as any).GET('/rentals/{id}/airport-service', {
-    params: { path: { id }, query: { companyId, branchId } },
+  const { data, error, response } = await rentalsApiClient.GET('/rentals/{id}/airport-service', {
+    params: { path: { id } },
     headers: { Authorization: `Bearer ${idToken}` },
   });
   if (response.status === 404) return null;
   if (error || !data) throw new RentalApiError(response.status);
   return data as unknown as RentalAirportServiceResponse;
 }
-

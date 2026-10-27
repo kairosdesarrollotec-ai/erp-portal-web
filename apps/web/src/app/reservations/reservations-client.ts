@@ -438,13 +438,13 @@ export function confirmSaleRefundTransfer(
   if (version == null) {
     throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
   }
-  return (reservationsApiClient as any)
+  return reservationsApiClient
     .POST('/reservations/{id}/commands/confirm-sale-refund-transfer', {
       params: { path: { id }, header: { 'If-Match': `"${version}"` } },
       headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
-      body: { companyId, branchId, transferVoucher, transferredAt },
+      body: { companyId, branchId, transferVoucher, transferredAt: transferredAt ?? new Date().toISOString() },
     })
-    .then(({ data, error, response }: any) => {
+    .then(({ data, error, response }) => {
       if (error || !data) commandError(version, error, response.status);
       return data as unknown as ReservationSummary;
     });
@@ -469,8 +469,8 @@ export function registerReservationReminder(
   companyId: string,
   branchId: string,
   version: number,
-  channel: 'WHATSAPP' | 'EMAIL',
-  reminderType: 'HOURS_3_BEFORE',
+  _channel: 'WHATSAPP' | 'EMAIL',
+  _reminderType: 'HOURS_3_BEFORE',
   status: 'SENT' | 'FAILED',
   failureReason?: string,
   idempotencyKey = crypto.randomUUID(),
@@ -478,13 +478,13 @@ export function registerReservationReminder(
   if (version == null) {
     throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
   }
-  return (reservationsApiClient as any)
+  return reservationsApiClient
     .POST('/reservations/{id}/commands/register-reminder', {
       params: { path: { id }, header: { 'If-Match': `"${version}"` } },
       headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
-      body: { companyId, branchId, channel, reminderType, status, failureReason },
+      body: { companyId, branchId, result: status, note: failureReason },
     })
-    .then(({ data, error, response }: any) => {
+    .then(({ data, error, response }) => {
       if (error || !data) commandError(version, error, response.status);
       return data as unknown as ReservationSummary;
     });
@@ -519,13 +519,13 @@ export function requestReservationAirportService(
   if (version == null) {
     throw new ReservationCommandError(428, { code: 'IF_MATCH_REQUIRED', detail: 'Versión de reserva no disponible. Recarga e intenta de nuevo.' });
   }
-  return (reservationsApiClient as any)
+  return reservationsApiClient
     .POST('/reservations/{id}/commands/request-airport-service', {
       params: { path: { id }, header: { 'If-Match': `"${version}"` } },
       headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': idempotencyKey },
       body: { companyId, branchId, scheduledAt, location, additionalAmount, notes },
     })
-    .then(({ data, error, response }: any) => {
+    .then(({ data, error, response }) => {
       if (error || !data) commandError(version, error, response.status);
       return data as unknown as ReservationSummary;
     });
@@ -534,15 +534,14 @@ export function requestReservationAirportService(
 export async function getReservationAirportService(
   idToken: string,
   id: string,
-  companyId: string,
-  branchId: string,
+  _companyId: string,
+  _branchId: string,
 ): Promise<AirportServiceResponse | null> {
-  const { data, error, response } = await (reservationsApiClient as any).GET('/reservations/{id}/airport-service', {
-    params: { path: { id }, query: { companyId, branchId } },
+  const { data, error, response } = await reservationsApiClient.GET('/reservations/{id}/airport-service', {
+    params: { path: { id } },
     headers: { Authorization: `Bearer ${idToken}` },
   });
   if (response.status === 404) return null;
   if (error || !data) throw new ReservationApiError(response.status);
   return data as unknown as AirportServiceResponse;
 }
-
