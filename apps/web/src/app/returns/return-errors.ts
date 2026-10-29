@@ -29,7 +29,8 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   IMMOBILIZATION_PERIOD_NOT_ELAPSED:
     'Aún no corresponde cobrar paralización: no han pasado 24 horas desde el cierre de la devolución.',
   RENTAL_ALREADY_HAS_ACTIVE_RETURN: 'Este alquiler ya tiene una devolución en curso. Búscala en la bandeja de devoluciones.',
-  RENTAL_NOT_RETURNABLE: 'Este alquiler no está activo, por lo que no se puede iniciar su devolución.',
+  RENTAL_NOT_RETURNABLE:
+    'No se puede iniciar la devolución: el alquiler no está activo o tiene una ampliación pendiente (autorízala o recházala primero).',
   RETURN_VERSION_CONFLICT: 'Otra persona modificó esta devolución. Recargamos los datos; revisa y vuelve a intentar.',
   RETURN_STATE_CONFLICT: 'Esta acción ya no corresponde al estado actual de la devolución. Recargamos los datos.',
   DEPOSIT_ALREADY_SETTLED: 'La garantía de este alquiler ya fue liquidada (por ejemplo, retenida por una falta grave). No hay monto que devolver al cliente.',

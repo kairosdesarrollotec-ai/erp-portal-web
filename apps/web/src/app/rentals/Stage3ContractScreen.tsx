@@ -21,6 +21,8 @@ import { usePermissions } from '../shared/usePermissions';
 import { SignaturePad } from '../shared/SignaturePad';
 import { computeGuaranteeBreakdown, formatPen } from './guarantee-breakdown';
 import { describeRentalError } from './rental-errors';
+import { MfaStepUpCancelledError, useMfaStepUp } from '../auth/useMfaStepUp';
+import { MfaChallengeModal } from '../auth/MfaChallengeModal';
 import { NOTARY_RESULT_LABELS, RENTAL_STATUS_LABELS } from './rental-status';
 import { PaymentProofFields } from '../shared/PaymentProofFields';
 import {
@@ -79,6 +81,9 @@ export function Stage3ContractScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [evaluating, setEvaluating] = useState(false);
+  /** V-07: el back exige MFA de los ultimos 5 min para formalizar (MFA_RECENT_REQUIRED). */
+  const [mfaNeeded, setMfaNeeded] = useState(false);
+  const { request: requestMfaStepUp, challenge: mfaChallenge } = useMfaStepUp();
   const [holderType, setHolderType] = useState<ContractHolderType>('NATURAL');
   const [withCompanyDriver, setWithCompanyDriver] = useState(false);
   const [driverRate, setDriverRate] = useState('');
@@ -211,7 +216,7 @@ export function Stage3ContractScreen() {
     }
   }
 
-  async function handleFormalize() {
+  async function handleFormalize(freshToken?: string) {
     if (!rental || !context) return;
     if (needsPaymentProof && hasPaymentErrors(paymentErrors)) {
       setConfirmOpen(false);
@@ -220,7 +225,7 @@ export function Stage3ContractScreen() {
     setBusy(true);
     setError(null);
     try {
-      const idToken = await getIdToken();
+      const idToken = freshToken ?? (await getIdToken());
       // Decisión 8: el voucher se sube con el mecanismo de documentos del alquiler (PAYMENT_VOUCHER) y se envía su id.
       let payment: ReturnType<typeof toGuaranteePaymentBody> | undefined;
       if (needsPaymentProof && paymentDraft.file) {
@@ -285,12 +290,27 @@ export function Stage3ContractScreen() {
       setConfirmOpen(false);
       navigate(`/alquileres/${id}/entrega-04`, { state: context });
     } catch (err) {
-      if (err instanceof RentalCommandError) {
+      if (err instanceof RentalCommandError && err.problem?.code === 'MFA_RECENT_REQUIRED') {
+        setMfaNeeded(true);
+        setError('Para formalizar el contrato debes verificar tu identidad con MFA (válida por 5 minutos). Pulsa «Verificar MFA» y se reintentará la formalización.');
+      } else if (err instanceof RentalCommandError) {
         setError(describeRentalError(err, err.message));
       } else setError('No pudimos formalizar el contrato.');
       setConfirmOpen(false);
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** V-07: reto TR-03 (contrasena + TOTP) y reintento UNICO de la formalizacion con el token renovado. */
+  async function handleVerifyMfa() {
+    try {
+      const freshToken = await requestMfaStepUp();
+      setMfaNeeded(false);
+      await handleFormalize(freshToken);
+    } catch (err) {
+      if (err instanceof MfaStepUpCancelledError) setError(err.message);
+      else setError('No pudimos verificar el MFA. Intenta de nuevo.');
     }
   }
 
@@ -334,6 +354,14 @@ export function Stage3ContractScreen() {
       continueBusy={busy}
       errorMessage={error}
     >
+      {mfaNeeded && (
+        <div className={styles.reviewSection}>
+          <button type="button" className={styles.secondaryButton} onClick={() => void handleVerifyMfa()} disabled={busy}>
+            Verificar MFA
+          </button>
+        </div>
+      )}
+      <MfaChallengeModal {...mfaChallenge} />
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>Evaluación notarial</p>
         {evaluating && <p className={styles.statusText}>Evaluando matriz notarial…</p>}
@@ -686,7 +714,7 @@ export function Stage3ContractScreen() {
               <button type="button" className={styles.secondaryButton} onClick={() => setConfirmOpen(false)}>
                 Cancelar
               </button>
-              <button type="button" className={styles.dangerButton} onClick={handleFormalize} disabled={busy}>
+              <button type="button" className={styles.dangerButton} onClick={() => void handleFormalize()} disabled={busy}>
                 Formalizar
               </button>
             </div>
