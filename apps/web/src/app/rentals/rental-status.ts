@@ -78,4 +78,6 @@ export const EXTENSION_STATUS_LABELS: Record<string, string> = {
   PENDING: 'Pendiente de decisión',
   AUTHORIZED: 'Autorizada',
   REJECTED: 'Rechazada',
+  // BR-ALQ-013: ampliacion no regularizada -> falta grave registrada (garantia retenida, cliente en ROJO).
+  BREACH: 'Falta grave registrada',
 };

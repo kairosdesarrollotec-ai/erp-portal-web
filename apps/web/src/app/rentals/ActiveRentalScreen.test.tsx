@@ -198,6 +198,23 @@ describe('ActiveRentalScreen (ALQ-10)', () => {
     expect(screen.getByRole('button', { name: 'Rechazar ampliación' })).toBeEnabled();
   });
 
+  it.each([
+    ['PENDING', 'Pendiente de decisión'],
+    ['AUTHORIZED', 'Autorizada'],
+    ['REJECTED', 'Rechazada'],
+    ['BREACH', 'Falta grave registrada'],
+  ])('V-18: el estado %s de la ampliación se muestra traducido', (status, label) => {
+    wizardMock.mockReturnValue(
+      wizard({
+        ...baseRental,
+        extensions: [{ id: 'e1', status, requirements: { noticeGiven: true, authorized: false, paid: false, addendumSigned: false } }],
+      }),
+    );
+    renderScreen();
+    expect(screen.getByText(new RegExp(`Estado: ${label}`))).toBeInTheDocument();
+    expect(screen.queryByText(/Estado: BREACH/)).not.toBeInTheDocument();
+  });
+
   it('un alquiler cerrado no ofrece acciones', () => {
     wizardMock.mockReturnValue(wizard({ ...baseRental, status: 'CLOSED' }));
     renderScreen();

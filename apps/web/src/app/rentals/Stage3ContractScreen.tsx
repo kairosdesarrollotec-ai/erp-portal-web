@@ -81,7 +81,7 @@ export function Stage3ContractScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [evaluating, setEvaluating] = useState(false);
-  /** V-07: el back exige MFA de los ultimos 5 min para formalizar (MFA_RECENT_REQUIRED). */
+  /** V-07: si el back volviera a exigir MFA reciente (MFA_RECENT_REQUIRED) para formalizar, se ofrece «Verificar MFA». Desde el 29-oct el back ya no lo exige (decision del usuario); este manejo queda como defensa. */
   const [mfaNeeded, setMfaNeeded] = useState(false);
   const { request: requestMfaStepUp, challenge: mfaChallenge } = useMfaStepUp();
   const [holderType, setHolderType] = useState<ContractHolderType>('NATURAL');

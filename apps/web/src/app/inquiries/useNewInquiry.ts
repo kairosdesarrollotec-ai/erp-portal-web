@@ -74,7 +74,19 @@ function loadStoredDraft(): NewInquiryFormData | null {
   try {
     const raw = sessionStorage.getItem(DRAFT_SESSION_KEY);
     if (!raw) return null;
-    return { ...INITIAL_FORM, ...(JSON.parse(raw) as Partial<NewInquiryFormData>) };
+    // V-13 (29-oct): el borrador protege contra un refresh accidental, pero el CLIENTE no se arrastra de una
+    // consulta/prueba anterior: siempre se vuelve a elegir (y con el cliente, sus datos de identidad).
+    const stored = JSON.parse(raw) as Partial<NewInquiryFormData>;
+    return {
+      ...INITIAL_FORM,
+      ...stored,
+      customerId: INITIAL_FORM.customerId,
+      customerName: INITIAL_FORM.customerName,
+      customerRiskStatus: INITIAL_FORM.customerRiskStatus,
+      documentType: INITIAL_FORM.documentType,
+      document: INITIAL_FORM.document,
+      nationality: INITIAL_FORM.nationality,
+    };
   } catch {
     return null;
   }
