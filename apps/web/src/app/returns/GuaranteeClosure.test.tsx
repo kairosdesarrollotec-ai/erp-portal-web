@@ -99,6 +99,14 @@ describe('GuaranteeScreen (DEV-09)', () => {
     expect(await screen.findByText('pantalla cierre')).toBeInTheDocument();
   });
 
+  it('garantía ya retenida (falta grave): avisa, no devuelve dinero y permite continuar', async () => {
+    getRentalMock.mockResolvedValue({ id: 'rent-1', branchId: 'b1', deposit: { originalAmount: '1000', currency: 'PEN', status: 'RETAINED' } });
+    flowMock.mockReturnValue(makeFlow({ ret: sinDanos() }));
+    mount();
+    expect(await screen.findByTestId('deposit-settled-notice')).toHaveTextContent(/ya fue liquidada/i);
+    expect(screen.getByRole('button', { name: 'Confirmar liberación de garantía' })).toBeEnabled();
+  });
+
   it('no muestra saldo a favor de la reserva (decision 22-oct)', async () => {
     getRentalMock.mockResolvedValue({ id: 'rent-1', branchId: 'b1', deposit: { originalAmount: '200', currency: 'PEN' } });
     flowMock.mockReturnValue(makeFlow({ ret: sinDanos() }));
@@ -368,7 +376,7 @@ describe('ClosureScreen (DEV-10)', () => {
     const setRet = vi.fn();
     const returnWithDamages = makeReturn({
       ...financial(),
-      damages: [dmg()],
+      damages: [dmg({ origin: 'TECHNICAL' })],
       mechanicReportAccepted: false,
     });
     flowMock.mockReturnValue(makeFlow({ ret: returnWithDamages, setRet }));

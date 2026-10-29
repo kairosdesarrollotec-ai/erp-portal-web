@@ -122,6 +122,23 @@ describe('InquiryDetailScreen (CON-04)', () => {
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
+  it('CR-02: el nombre del cliente sale de la consulta, no de un estado de navegación obsoleto', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry());
+    render(
+      <MemoryRouter
+        initialEntries={[
+          { pathname: '/consultas/con-1', state: { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central', customerName: 'DEMO Cliente Extranjero' } },
+        ]}
+      >
+        <Routes>
+          <Route path="/consultas/:id" element={<InquiryDetailScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Maria Quispe')).toBeInTheDocument();
+    expect(screen.queryByText('DEMO Cliente Extranjero')).not.toBeInTheDocument();
+  });
+
   it('muestra el resumen y la cotizacion, resolviendo el nombre del vehiculo (no el UUID)', async () => {
     getInquiryMock.mockResolvedValue(buildInquiry());
     renderScreen();

@@ -118,7 +118,7 @@ describe('fleet-client', () => {
         'token-123',
         {
           companyId: 'comp-1', branchId: 'branch-1', plate: 'XYZ-789', brand: 'Hyundai', model: 'Tucson',
-          depositMinimum: 500, passengerCapacity: 5, fuelPrice: 4.5, suitableForTrocha: false,
+          depositMinimum: 500, passengerCapacity: 5, fuelPrice: 4.5, suitableForTrocha: false, fuelPenaltyPerLine: 12.5,
         },
         'key-abc',
       );
@@ -154,6 +154,7 @@ describe('fleet-client', () => {
           passengerCapacity: 5,
           fuelPrice: 4.5,
           suitableForTrocha: false,
+          fuelPenaltyPerLine: 12.5,
         }),
       ).rejects.toThrow(FleetCommandError);
     });

@@ -50,6 +50,8 @@ export function TechnicalDamageScreen() {
   const risk = lastRisk ?? lastTechnical?.customerRiskStatus ?? null;
   const lastCharge = ret.immobilizationCharges.at(-1);
   const wrongState = ret.status !== 'CON_DANOS' && ret.status !== 'CIERRE_FINANCIERO';
+  // El cargo por paralización corre desde el cierre: también aplica con la devolución CERRADA.
+  const chargeStateBlocked = wrongState && ret.status !== 'CERRADA';
   const amountValue = Number(amount);
   const amountValid = amount.trim() !== '' && Number.isFinite(amountValue) && amountValue >= 0;
 
@@ -133,7 +135,7 @@ export function TechnicalDamageScreen() {
         referencia y el monto de su informe.
       </p>
 
-      {severity === '' && (
+      {severity === '' && !wrongState && (
         <p className={`${styles.banner} ${styles.banner_error}`}>
           Primero clasifica la gravedad.{' '}
           <button type="button" className={styles.textLink} onClick={() => navigate(`/devoluciones/${id}/dano`, { state: context })}>
@@ -182,7 +184,7 @@ export function TechnicalDamageScreen() {
         </div>
       </fieldset>
 
-      <fieldset className={styles.fieldset} disabled={wrongState}>
+      <fieldset className={styles.fieldset} disabled={chargeStateBlocked}>
         <legend>Cargo por paralización (24 h)</legend>
         {elapsed === null ? (
           <p className={styles.summaryLine} role="status">

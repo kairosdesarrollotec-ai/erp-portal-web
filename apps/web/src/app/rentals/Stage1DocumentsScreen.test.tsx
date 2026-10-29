@@ -137,16 +137,16 @@ describe('Stage1DocumentsScreen (ENTREGA-01)', () => {
 
     await upload(container, /Licencia de conducir/, 1);
     await upload(container, /^Pasaporte$/, 2);
-    await upload(container, /Carné de extranjería/, 3);
+    // CR-08: basta pasaporte O CE; aún falta la constancia de hospedaje.
     expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
-    await upload(container, /Constancia de hospedaje/, 4);
+    await upload(container, /Constancia de hospedaje/, 3);
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 
     await screen.findByText('etapa 2');
     expect(validateDocumentsMock.mock.calls[0][5]).toEqual({
       passportValid: true,
-      foreignerCardValid: true,
+      foreignerCardValid: false,
       driverLicenseValid: true,
       addressOrStayProofValid: true,
     });

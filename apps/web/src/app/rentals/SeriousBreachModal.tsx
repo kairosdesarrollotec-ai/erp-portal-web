@@ -46,7 +46,7 @@ const EXTENSION_REQUIREMENTS: { id: RequirementKey; label: string; unmet: string
 /** Ultima solicitud de ampliacion del expediente (la que se evalua como falta grave). */
 function latestExtensionRequirements(rental: RentalResponse): Record<RequirementKey, boolean> {
   const list = rental.extensions ?? [];
-  const last = list.length > 0 ? list[list.length - 1] : null;
+  const last = list.length > 0 ? list[0] : null; // más reciente primero
   const r = last?.requirements;
   return {
     noticeGiven: r?.noticeGiven === true,

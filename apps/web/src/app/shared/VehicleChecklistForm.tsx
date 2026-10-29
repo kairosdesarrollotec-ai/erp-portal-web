@@ -12,7 +12,8 @@ interface VehicleChecklistFormProps {
 }
 
 export function VehicleChecklistForm({ values, onChange, disabled = false }: VehicleChecklistFormProps) {
-  const fuelLines = typeof values['rnc_nivel_combustible_lineas'] === 'number' ? Number(values['rnc_nivel_combustible_lineas']) : 8;
+  // H-06 (28-oct): el nivel NO se asume; hasta que la persona lo elige queda "sin registrar" y se exige para continuar.
+  const fuelLines: number | null = typeof values['rnc_nivel_combustible_lineas'] === 'number' ? Number(values['rnc_nivel_combustible_lineas']) : null;
   const odometerVal = typeof values['odometerKm'] === 'number' ? values['odometerKm'] : values['rnc_kilometraje'];
   const odometer = typeof odometerVal === 'number' ? Number(odometerVal) : '';
 
@@ -32,7 +33,7 @@ export function VehicleChecklistForm({ values, onChange, disabled = false }: Veh
         <div className={styles.rncGrid}>
           <div className={styles.field}>
             <label htmlFor="rnc-fuel-lines" className={styles.label}>
-              Nivel de combustible (Líneas): <strong>{fuelLines} líneas</strong>
+              Nivel de combustible (Líneas): <strong>{fuelLines === null ? 'Sin registrar' : `${fuelLines} líneas`}</strong>
             </label>
             <div className={styles.fuelInputGroup}>
               <input
@@ -41,13 +42,13 @@ export function VehicleChecklistForm({ values, onChange, disabled = false }: Veh
                 min="0"
                 max="32"
                 step="1"
-                value={fuelLines}
+                value={fuelLines ?? ''}
                 disabled={disabled}
                 placeholder="Número de líneas"
                 className={styles.textInput}
                 onChange={(e) => {
                   const val = parseInt(e.target.value, 10);
-                  onChange('rnc_nivel_combustible_lineas', isNaN(val) ? 0 : Math.max(0, val));
+                  if (!isNaN(val)) onChange('rnc_nivel_combustible_lineas', Math.max(0, val));
                 }}
               />
               <div className={styles.fuelQuickBtns} role="group" aria-label="Nivel rápido de combustible">

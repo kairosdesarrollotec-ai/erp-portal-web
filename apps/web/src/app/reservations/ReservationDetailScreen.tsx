@@ -35,6 +35,9 @@ import { VehicleDataWarnings } from '../shared/VehicleDataWarnings';
  * pasando cliente, vehiculo y periodo heredados de la reserva confirmada
  * via location.state (ver NewRentalScreen.tsx).
  */
+/** CR-06: la cancelación por cambio solicitado exige motivo. */
+const CANCEL_NOTE_MIN = 5;
+
 export function ReservationDetailScreen() {
   const {
     state,
@@ -381,6 +384,12 @@ export function ReservationDetailScreen() {
                 </button>
               )}
             </>
+          )}
+
+          {reservation.status === 'CANCELLED' && !reservation.saleResolution && (
+            <p className={styles.helperText} data-testid="detail-lost-amount">
+              Reserva cancelada: el cliente perdió el monto de reserva de S/ {reservation.requiredPayment.amount} (BR-RES-003).
+            </p>
           )}
 
           {reservation.status === 'CANCELLED' && reservation.saleResolution?.refundStatus === 'PENDING_TRANSFER' && (
@@ -773,16 +782,22 @@ export function ReservationDetailScreen() {
                   </p>
                   <textarea
                     className={styles.cancelNote}
-                    placeholder="Motivo del cambio solicitado"
+                    placeholder="Motivo del cambio solicitado (obligatorio)"
+                    aria-label="Motivo del cambio solicitado"
                     value={cancelNote}
                     onChange={(event) => setCancelNote(event.target.value)}
                   />
+                  {cancelNote.trim().length < CANCEL_NOTE_MIN && (
+                    <p className={styles.helperText} data-testid="cancel-note-required">
+                      Indica el motivo (mínimo {CANCEL_NOTE_MIN} caracteres) para cancelar.
+                    </p>
+                  )}
                   <div className={styles.cancelActions}>
                     <button
                       type="button"
                       className={styles.dangerButton}
-                      disabled={savingRequirement === 'CANCEL'}
-                      onClick={() => void cancel('CUSTOMER_REQUESTED_CHANGE', cancelNote || undefined)}
+                      disabled={savingRequirement === 'CANCEL' || cancelNote.trim().length < CANCEL_NOTE_MIN}
+                      onClick={() => void cancel('CUSTOMER_REQUESTED_CHANGE', cancelNote.trim())}
                     >
                       {savingRequirement === 'CANCEL' ? 'Cancelando…' : 'Confirmar cancelación'}
                     </button>

@@ -53,3 +53,29 @@ export function rentalWizardPathForStatus(id: string, status: RentalStatus): str
   const stage = rentalStageForStatus(status) ?? 5;
   return `/alquileres/${id}/entrega-0${stage}`;
 }
+
+/** Resultado de la matriz notarial (BR-ALQ-003/004) en español para el personal. */
+export const NOTARY_RESULT_LABELS: Record<string, string> = {
+  MANDATORY: 'Notaría obligatoria',
+  DOUBLE_DEPOSIT: 'Doble depósito de garantía',
+  THIRD_PATH_ELIGIBLE: 'Elegible para tercera vía (requiere aprobación de Gerencia)',
+  MANUAL_REVIEW: 'Revisión manual requerida (Gerencia)',
+};
+
+export const ALCOHOL_RESULT_LABELS: Record<string, string> = {
+  FAVORABLE: 'Favorable',
+  DESFAVORABLE: 'Desfavorable',
+  RECHAZADO: 'Rechazado',
+};
+
+export const RENTAL_PLAN_LABELS: Record<string, string> = {
+  NORMAL: 'Normal',
+  PLUS: 'Plus',
+  LIBRE: 'Libre (km libre)',
+};
+
+export const EXTENSION_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pendiente de decisión',
+  AUTHORIZED: 'Autorizada',
+  REJECTED: 'Rechazada',
+};

@@ -21,6 +21,7 @@ import { usePermissions } from '../shared/usePermissions';
 import { SignaturePad } from '../shared/SignaturePad';
 import { computeGuaranteeBreakdown, formatPen } from './guarantee-breakdown';
 import { describeRentalError } from './rental-errors';
+import { NOTARY_RESULT_LABELS, RENTAL_STATUS_LABELS } from './rental-status';
 import { PaymentProofFields } from '../shared/PaymentProofFields';
 import {
   emptyPaymentDraft,
@@ -34,12 +35,6 @@ import styles from './RentalStageForms.module.css';
 /** DEC-ALQ-DRIVERRATE-001: monto > 0, maximo 2 decimales y hasta 8 enteros (DECIMAL(10,2)); mismo patron que el backend. */
 const DAILY_RATE_PATTERN = /^(?!0+(\.0{1,2})?$)\d{1,8}(\.\d{1,2})?$/;
 
-const NOTARY_RESULT_LABELS: Record<string, string> = {
-  MANDATORY: 'Notaría obligatoria',
-  DOUBLE_DEPOSIT: 'Doble depósito de garantía',
-  THIRD_PATH_ELIGIBLE: 'Elegible para tercera vía (requiere aprobación de Gerencia)',
-  MANUAL_REVIEW: 'Revisión manual requerida (Gerencia)',
-};
 
 /** DEC-ALQ-THIRDPATH-001 / BR-ALQ-004: que significa cada resultado de la matriz para el personal. */
 const NOTARY_RESULT_EXPLANATIONS: Record<string, string> = {
@@ -67,7 +62,9 @@ export function Stage3ContractScreen() {
   // La tarifa del conductor de la empresa se digita con el mismo permiso que formaliza el contrato (RENTAL.FORMALIZE_CONTRACT).
   const canSetDriverRate = can('RENTAL', 'FORMALIZE_CONTRACT');
 
-  const [evaluation, setEvaluation] = useState<NotaryEvaluationResponse | null>(rental?.notaryEvaluation ?? null);
+  // La evaluación vigente sale del alquiler (que se recarga) salvo que acabemos de evaluar en esta pantalla.
+  const [evaluationOverride, setEvaluation] = useState<NotaryEvaluationResponse | null>(null);
+  const evaluation: NotaryEvaluationResponse | null = evaluationOverride ?? rental?.notaryEvaluation ?? null;
   const [justification, setJustification] = useState('');
   // null = el personal aun no tocó el monto: se propone la garantía exigida (tarifa de Flota, x2 con DOUBLE_DEPOSIT).
   const [paymentAmountInput, setPaymentAmountInput] = useState<string | null>(null);
@@ -387,9 +384,19 @@ export function Stage3ContractScreen() {
               Marca solo si verificaste la biometría del cliente; queda registrada con tu usuario. Debe marcarse antes de evaluar.
             </span>
             <div className={styles.modalActions}>
-              <button type="button" className={styles.retryButton} onClick={() => void handleEvaluate()} disabled={evaluating}>
+              <button
+                type="button"
+                className={styles.retryButton}
+                onClick={() => void handleEvaluate()}
+                disabled={evaluating || !biometricVerified || rental.status !== 'NOTARY_EVALUATION'}
+              >
                 {evaluation ? 'Volver a evaluar' : 'Evaluar notaría'}
               </button>
+              {rental.status !== 'NOTARY_EVALUATION' && (
+                <span className={styles.fieldHint} data-testid="notary-not-applicable">
+                  La evaluación notarial ya no corresponde en esta etapa del alquiler ({RENTAL_STATUS_LABELS[rental.status] ?? rental.status}).
+                </span>
+              )}
             </div>
           </div>
         )}

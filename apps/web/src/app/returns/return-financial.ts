@@ -55,3 +55,17 @@ export function calculateFuelPenalty(
   return round2(lines * ratePerLine);
 }
 
+
+/**
+ * Decisión de negocio 28-oct #1 (H-06): la multa de combustible compara la entrega con la devolución en líneas del RNC
+ * (Formato 06, 0 a 16): líneas faltantes x precio por línea fijado en Flota para el vehículo. null si falta alguna lectura o el
+ * vehículo no tiene precio por línea (se usa entonces el cálculo anterior por nivel de recepción).
+ */
+export function calculateFuelPenaltyByLines(
+  deliveryLines: number | null | undefined,
+  returnLines: number | null | undefined,
+  pricePerLine: number | null | undefined,
+): number | null {
+  if (deliveryLines == null || returnLines == null || !pricePerLine || pricePerLine <= 0) return null;
+  return round2(Math.max(0, deliveryLines - returnLines) * pricePerLine);
+}

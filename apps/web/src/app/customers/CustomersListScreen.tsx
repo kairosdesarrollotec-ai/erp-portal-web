@@ -1,3 +1,4 @@
+import { CUSTOMER_RISK_LABELS } from '../returns/return-status';
 import { useState } from 'react';
 import { Search, Pencil, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +8,8 @@ import { AppHeader } from '../shared/AppHeader';
 import { useRolePermissions } from '../shared/useRolePermissions';
 import styles from './CustomersListScreen.module.css';
 import { formatLimaDate } from '../shared/lima-time';
+
+const RISK_SYMBOLS = { NORMAL: '●', AMBAR: '▲', ROJO: '■' } as const;
 
 export function CustomersListScreen() {
   const navigate = useNavigate();
@@ -107,6 +110,7 @@ export function CustomersListScreen() {
                   <th>Documento</th>
                   <th>Contacto</th>
                   <th>Nacionalidad</th>
+                  <th>Semáforo</th>
                   <th>Fecha de registro</th>
                   <th aria-label="Acciones"></th>
                 </tr>
@@ -137,6 +141,15 @@ export function CustomersListScreen() {
                         </span>
                       ) : (
                         <span>Peruano</span>
+                      )}
+                    </td>
+                    <td data-testid={`customer-risk-${c.id}`} title={c.riskReason ?? undefined}>
+                      <span aria-hidden="true">{RISK_SYMBOLS[c.riskStatus ?? 'NORMAL']}</span>{' '}
+                      {CUSTOMER_RISK_LABELS[c.riskStatus ?? 'NORMAL']}
+                      {c.riskStatus && c.riskStatus !== 'NORMAL' && (
+                        <small data-testid={`customer-risk-reason-${c.id}`} style={{ display: 'block' }}>
+                          {c.riskReason ?? 'Sin motivo registrado (anterior al registro de motivos)'}
+                        </small>
                       )}
                     </td>
                     <td>{formatLimaDate(c.createdAt)}</td>

@@ -33,6 +33,14 @@ beforeEach(() => {
 
 
 // AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
+vi.mock('../fleet/fleet-client', async () => {
+  const actual = await vi.importActual<typeof import('../fleet/fleet-client')>('../fleet/fleet-client');
+  return {
+    ...actual,
+    recordVehicleOperationalFormat: vi.fn().mockResolvedValue({ id: 'rec-1' }),
+    listVehicleOperationalRecords: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+  };
+});
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 
 const SIGNED_DOC: ResponsibilityDocumentDraft = {
@@ -42,7 +50,7 @@ const SIGNED_DOC: ResponsibilityDocumentDraft = {
   signatureData: 'data:image/png;base64,FIRMA',
 };
 function seedDoc(doc: ResponsibilityDocumentDraft = SIGNED_DOC, notes = '') {
-  saveReturnChecklist('ret-1', { ...EMPTY_RETURN_CHECKLIST, responsibilityDocument: doc, notes });
+  saveReturnChecklist('ret-1', { ...EMPTY_RETURN_CHECKLIST, rnc_kilometraje: 51200, rnc_nivel_combustible_lineas: 8, responsibilityDocument: doc, notes });
 }
 
 const flowMock = vi.fn();
@@ -179,6 +187,7 @@ describe('ChecklistScreen (DEV-04)', () => {
     const ctx = { beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), clearRect: vi.fn(), drawImage: vi.fn() };
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/png;base64,TRAZO');
+    saveReturnChecklist('ret-1', { ...EMPTY_RETURN_CHECKLIST, rnc_kilometraje: 51200, rnc_nivel_combustible_lineas: 8 });
     listReturnEvidenceMock.mockResolvedValue(fullEvidence());
     renderChecklist();
     await screen.findByText('Confirmado por el servidor — recepción completa');
@@ -217,6 +226,7 @@ describe('ChecklistScreen (DEV-04)', () => {
       }),
     );
     listReturnEvidenceMock.mockResolvedValue(fullEvidence());
+    saveReturnChecklist('ret-1', { ...EMPTY_RETURN_CHECKLIST, rnc_kilometraje: 51200, rnc_nivel_combustible_lineas: 8 });
     renderChecklist();
     expect(await screen.findByText(/Documento firmado por Pedro Soto/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Nombre de quien firma')).not.toBeInTheDocument();

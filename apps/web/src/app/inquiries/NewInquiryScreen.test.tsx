@@ -377,6 +377,20 @@ describe('NewInquiryScreen (CON-02)', () => {
     expect(screen.getByLabelText('Buscar cliente existente')).toBeInTheDocument();
   });
 
+  it('el error del cliente anterior (p. ej. estado ROJO) desaparece al desvincularlo', async () => {
+    createInquiryMock.mockRejectedValue(new Error('El cliente está en estado ROJO y no se atiende.'));
+    renderScreen();
+    await waitForContext();
+
+    await fillRequiredFields();
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(await screen.findByText(/estado ROJO y no se atiende/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Desvincular cliente' }));
+    expect(screen.queryByText(/estado ROJO y no se atiende/)).not.toBeInTheDocument();
+  });
+
   // Registrar un cliente nuevo desde el modal debe vincularlo automaticamente
   // y usar customerId al enviar la consulta.
   it('registra un cliente nuevo desde el modal, lo vincula y envia customerId', async () => {

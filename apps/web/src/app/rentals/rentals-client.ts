@@ -231,6 +231,7 @@ export interface RentalResponse {
   /** Solo con conductor de la empresa (GET detalle y tras set-company-driver-daily-rate); null/ausente en otro caso. */
   companyDriverCharge?: CompanyDriverChargeResponse | null;
   extensions?: RentalExtensionResponse[];
+  hasExtensionBreach?: boolean;
 }
 
 /** ALQ-01 - bandeja de alquileres (GET /rentals). */
@@ -358,11 +359,13 @@ export async function registerAlcoholTest(
   version: number,
   result: AlcoholTestResult,
   notes?: string,
+  /** A-02 (29-oct): confirmación manual RENIEC/MTC (obligatoria con FAVORABLE); RENIEC admite excepción de Gerencia con motivo. */
+  verification?: { reniecVerified: boolean; mtcVerified: boolean; reniecExceptionReason?: string },
 ): Promise<RentalResponse> {
   const { data, error, response } = await rentalsApiClient.POST('/rentals/{id}/commands/register-alcohol-test', {
     params: { path: { id }, header: { 'If-Match': `"${version}"` } },
     headers: { Authorization: `Bearer ${idToken}`, 'Idempotency-Key': crypto.randomUUID() },
-    body: { companyId, branchId, result, notes } as unknown as RegisterAlcoholTestBody,
+    body: { companyId, branchId, result, notes, ...(verification ?? {}) } as unknown as RegisterAlcoholTestBody,
   });
   if (error || !data) {
     const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;

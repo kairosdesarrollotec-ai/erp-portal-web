@@ -17,6 +17,8 @@ export interface NewInquiryFormData {
   displayMode: DisplayMode;
   customerId?: string | null;
   customerName: string;
+  /** Semáforo del cliente seleccionado (29-oct #3: ROJO no se atiende en ningún proceso). */
+  customerRiskStatus?: 'NORMAL' | 'AMBAR' | 'ROJO' | null;
   documentType: string;
   document: string;
   nationality: Nationality;
@@ -115,10 +117,13 @@ export function useNewInquiry() {
   const isFirstRender = useRef(true);
 
   const onCustomerSelected = useCallback((customer: Customer) => {
+    // Al cambiar de cliente se descarta el error del cliente anterior (p. ej. el aviso de estado ROJO).
+    setError(null);
     setForm((prev) => ({
       ...prev,
       customerId: customer.id,
       customerName: customer.fullName,
+      customerRiskStatus: customer.riskStatus ?? null,
       documentType: customer.documentType,
       document: customer.documentNumber,
       nationality: (customer.nationality as Nationality) || 'PERUANO',
@@ -140,7 +145,8 @@ export function useNewInquiry() {
   } = useInquiryCustomerSearch(context, onCustomerSelected);
 
   const clearSelectedCustomer = useCallback(() => {
-    setForm((prev) => ({ ...prev, customerId: null }));
+    setError(null);
+    setForm((prev) => ({ ...prev, customerId: null, customerRiskStatus: null }));
   }, []);
 
   useEffect(() => {

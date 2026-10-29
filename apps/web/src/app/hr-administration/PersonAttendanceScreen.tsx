@@ -108,6 +108,7 @@ export function PersonAttendanceScreen() {
           employeeId={employee.id}
           employeeName={employee.fullName}
           initialDate={registering || undefined}
+          hireDate={employee.hireDate}
           onCancel={() => setRegistering(null)}
           onSaved={() => {
             setRegistering(null);

@@ -28,6 +28,14 @@ vi.mock('../providers/firebase', () => ({
 vi.mock('../notifications/useNotifications', () => ({
   useNotifications: () => ({ unreadCount: 0, notifications: [], markRead: vi.fn(), reload: vi.fn() }),
 }));
+vi.mock('../fleet/fleet-client', async () => {
+  const actual = await vi.importActual<typeof import('../fleet/fleet-client')>('../fleet/fleet-client');
+  return {
+    ...actual,
+    recordVehicleOperationalFormat: vi.fn().mockResolvedValue({ id: 'rec-1' }),
+    listVehicleOperationalRecords: vi.fn().mockResolvedValue({ items: [], total: 0 }),
+  };
+});
 vi.mock('./useReturnFlow', () => ({ useReturnFlow: () => flowMock() }));
 vi.mock('../../offline/queue/evidence-upload-queue', () => ({ addEvidenceToQueue: vi.fn() }));
 vi.mock('../../offline/queue/sync-draft-store', () => ({ saveFieldEdit: vi.fn().mockResolvedValue(undefined) }));
@@ -68,6 +76,8 @@ beforeEach(() => {
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
   saveReturnChecklist('ret-1', {
     ...EMPTY_RETURN_CHECKLIST,
+    rnc_kilometraje: 51200,
+    rnc_nivel_combustible_lineas: 8,
     responsibilityDocument: { signerName: 'Maria', signerIsHolder: true, signerRelationToHolder: '', signatureData: 'data:image/png;base64,F' },
   });
   setPermissions([...BASE, 'SYNC.SUPERVISE_CONFLICTS']);

@@ -556,6 +556,12 @@ export interface components {
             branchId: string;
             result: components["schemas"]["AlcoholTestResult"];
             notes?: string;
+            /** @description Confirmacion manual de RENIEC (obligatoria con resultado FAVORABLE salvo excepcion de Gerencia) */
+            reniecVerified?: boolean;
+            /** @description Confirmacion manual de MTC (obligatoria con resultado FAVORABLE; sin excepcion) */
+            mtcVerified?: boolean;
+            /** @description Excepcion de RENIEC autorizada por Gerencia (min. 5 caracteres) */
+            reniecExceptionReason?: string;
         };
         EvaluateNotaryRequest: {
             /** Format: uuid */
@@ -811,8 +817,8 @@ export interface components {
             companyId: string;
             /** Format: uuid */
             branchId: string;
-            /** Format: uuid */
-            paymentId?: string;
+            /** @description Referencia del pago previo del periodo adicional (Nº de operación o comprobante). Obligatoria para autorizar. */
+            paymentId: string;
             addendumDocumentRef?: string;
         };
         RejectExtensionRequest: {
@@ -1049,6 +1055,8 @@ export interface components {
             companyDriverCharge?: components["schemas"]["CompanyDriverChargeResponse"] | null;
             /** @description Solo en GET /rentals/{id}. Ampliaciones, la más reciente primero. */
             extensions?: components["schemas"]["RentalExtensionResponse"][];
+            /** @description Solo en el listado (GET /rentals). true si el alquiler tiene una falta grave de ampliación registrada (BR-ALQ-013); el front lo muestra como "Incumplimiento grave". */
+            hasExtensionBreach?: boolean;
         };
         /**
          * @description Tipo de documento del cliente adjunto a un alquiler.

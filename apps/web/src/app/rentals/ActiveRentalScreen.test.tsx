@@ -261,7 +261,7 @@ describe('ActiveRentalScreen (ALQ-10)', () => {
       await waitFor(() => {
         expect(screen.getByTestId('rental-airport-service-card')).toBeInTheDocument();
       });
-      expect(screen.getByText('REQUESTED')).toBeInTheDocument();
+      expect(screen.getByText('Solicitado')).toBeInTheDocument();
       expect(screen.getByText('Aeropuerto AYP')).toBeInTheDocument();
       expect(screen.getByText('S/ 60.00')).toBeInTheDocument();
       expect(screen.getByText('Vuelo LA2100')).toBeInTheDocument();

@@ -1,3 +1,4 @@
+import { EXTENSION_STATUS_LABELS, RENTAL_PLAN_LABELS } from './rental-status';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AppHeader } from '../shared/AppHeader';
@@ -18,6 +19,15 @@ function formatDate(iso: string | null): string {
   if (!iso) return '—';
   return formatLimaDateTime(iso);
 }
+
+// N-06: el back no devuelve estado para el servicio de aeropuerto; se rotula "Solicitado" por defecto.
+const AIRPORT_STATUS_LABELS: Record<string, string> = {
+  REQUESTED: 'Solicitado',
+  SCHEDULED: 'Programado',
+  CONFIRMED: 'Confirmado',
+  COMPLETED: 'Realizado',
+  CANCELLED: 'Cancelado',
+};
 
 /**
  * ALQ-10 - Alquiler activo. Resumen, garantia (con el traslado de la reserva), ampliaciones,
@@ -67,7 +77,8 @@ export function ActiveRentalScreen() {
   const isExtensionPending = rental.status === 'EXTENSION_PENDING';
   const inProgress = isActive || isExtensionPending;
   const deposit = rental.deposit;
-  const lastExtension = rental.extensions && rental.extensions.length > 0 ? rental.extensions[rental.extensions.length - 1] : null;
+  // El back devuelve las ampliaciones con la más reciente primero (requestedAt desc).
+  const lastExtension = rental.extensions && rental.extensions.length > 0 ? rental.extensions[0] : null;
   const incidentsPath = `/incidencias?rentalId=${rental.id}`;
 
   return (
@@ -89,7 +100,7 @@ export function ActiveRentalScreen() {
             <div><dt>Cliente</dt><dd>{rental.customerName}</dd></div>
             <div><dt>Inicio</dt><dd>{formatDate(rental.startAt)}</dd></div>
             <div><dt>Devolución prevista</dt><dd>{formatDate(rental.expectedEndAt)}</dd></div>
-            <div><dt>Plan</dt><dd>{rental.planCode}</dd></div>
+            <div><dt>Plan</dt><dd>{RENTAL_PLAN_LABELS[rental.planCode] ?? rental.planCode}</dd></div>
           </dl>
         </section>
 
@@ -120,11 +131,11 @@ export function ActiveRentalScreen() {
           <section className={styles.card} aria-labelledby="alq10-ampliacion">
             <h2 id="alq10-ampliacion" className={styles.cardTitle}>Ampliación</h2>
             <p className={styles.statusText}>
-              Estado: {lastExtension.status}
+              Estado: {EXTENSION_STATUS_LABELS[lastExtension.status] ?? lastExtension.status}
               {lastExtension.requestedEndAt ? ` — nueva devolución ${formatDate(lastExtension.requestedEndAt)}` : ''}
             </p>
             <ul>
-              <li>Aviso con 12 h: {lastExtension.requirements.noticeGiven == null ? 'sin dato' : lastExtension.requirements.noticeGiven ? 'cumplido' : 'no cumplido'}</li>
+              <li>Aviso con 12 h: {lastExtension.requirements.noticeGiven == null ? (lastExtension.requirements.authorized ? 'verificado al autorizar (el vencimiento cambió)' : 'sin dato') : lastExtension.requirements.noticeGiven ? 'cumplido' : 'no cumplido'}</li>
               <li>Autorización de Gerencia: {lastExtension.requirements.authorized ? 'cumplido' : 'pendiente'}</li>
               <li>Pago del periodo: {lastExtension.requirements.paid ? 'cumplido' : 'pendiente'}</li>
               <li>Adenda firmada: {lastExtension.requirements.addendumSigned ? 'cumplido' : 'pendiente'}</li>
@@ -136,7 +147,7 @@ export function ActiveRentalScreen() {
           <section className={styles.card} aria-labelledby="alq10-aeropuerto" data-testid="rental-airport-service-card">
             <h2 id="alq10-aeropuerto" className={styles.cardTitle}>Servicio de Aeropuerto</h2>
             <dl className={styles.grid}>
-              <div><dt>Estado</dt><dd>{airportService.status}</dd></div>
+              <div><dt>Estado</dt><dd>{AIRPORT_STATUS_LABELS[airportService.status] ?? airportService.status ?? 'Solicitado'}</dd></div>
               <div><dt>Fecha y hora pactada</dt><dd>{formatDate(airportService.scheduledAt)}</dd></div>
               <div><dt>Lugar</dt><dd>{airportService.location}</dd></div>
               <div><dt>Monto adicional</dt><dd>{formatPen(parseFloat(airportService.additionalAmount))}</dd></div>

@@ -200,7 +200,7 @@ export interface components {
             /** @description Tarifa diaria para el plan Libre (km libre/24 h) en PEN. */
             rateLibre?: number;
             /** @description Monto de penalidad por línea faltante de combustible (PEN) según tarifario VR.01. */
-            fuelPenaltyPerLine?: number;
+            fuelPenaltyPerLine: number;
             /**
              * Format: uri
              * @description URL HTTPS de Google Cloud Storage del objeto ya cargado. Obtener previamente via POST /fleet/vehicles/photo-upload-sessions. No se acepta data: URI ni URL de otro proveedor.

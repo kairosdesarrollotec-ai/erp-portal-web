@@ -38,6 +38,8 @@ export function GuaranteeScreen() {
   const [rentalError, setRentalError] = useState(false);
   const [retainedInput, setRetainedInput] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Multa de combustible calculada por líneas del RNC (si no hay una registrada a mano); la informa ManualFuelPenaltyPanel.
+  const [autoFuelPenalty, setAutoFuelPenalty] = useState<number | null>(null);
   const [blocked, setBlocked] = useState(false);
   const tariff = useCosmeticTariff(
     context,
@@ -73,8 +75,10 @@ export function GuaranteeScreen() {
   // Conductor de la empresa: sin garantia (DEC-ALQ-COMPANY-DRIVER-004). close-financial con montos > 0 da 422.
   const noDeposit = ret.depositRequired === false || rental?.depositRequired === false;
   const depositAmount = rental?.deposit && !noDeposit ? Number(rental.deposit.originalAmount) : null;
+  // Garantía ya liquidada antes de la devolución (p. ej. retenida por falta grave de ampliación, BR-ALQ-013): no hay nada que devolver.
+  const depositSettled = !!rental?.deposit && !noDeposit && !!rental.deposit.status && rental.deposit.status !== 'HELD';
   const currency = rental?.deposit?.currency ?? 'PEN';
-  const fuelPenaltyAmount = ret.fuelPenalty?.amount ?? 0;
+  const fuelPenaltyAmount = ret.fuelPenalty?.amount ?? autoFuelPenalty ?? 0;
   const lateChargeAmount = ret.manualLateCharge?.amount ?? 0;
   const baseDamageCharges = ret.status === 'SIN_DANOS' ? 0 : totalCharges(damages, charges);
   const requiredCharges = round2(baseDamageCharges + lateChargeAmount + fuelPenaltyAmount);
@@ -83,8 +87,8 @@ export function GuaranteeScreen() {
   const pendingAmount = damagesWithoutAmount(damages).length;
   const retainedRaw = retainedInput === null ? computedRetained : Number(retainedInput);
   const retainedValid = Number.isFinite(retainedRaw) && retainedRaw >= 0;
-  const retained = depositAmount === null || !retainedValid ? 0 : Math.min(round2(retainedRaw), depositAmount);
-  const refund = depositAmount === null ? 0 : round2(depositAmount - retained);
+  const retained = depositAmount === null ? 0 : depositSettled ? depositAmount : !retainedValid ? 0 : Math.min(round2(retainedRaw), depositAmount);
+  const refund = depositAmount === null || depositSettled ? 0 : round2(depositAmount - retained);
   const extraToCollect = depositAmount !== null && retainedValid ? Math.max(0, round2(retainedRaw - depositAmount)) : 0;
 
   const actionable = ret.status === 'SIN_DANOS' || ret.status === 'CON_DANOS';
@@ -93,7 +97,7 @@ export function GuaranteeScreen() {
   const elapsed = hoursSince(ret.receivedAt);
   const remaining = elapsed === null ? null : Math.ceil(GUARANTEE_WINDOW_HOURS - elapsed);
   const noRecordedDamages = ret.status === 'CON_DANOS' && !hasRecordedCharges;
-  const retainedSufficient = noDeposit || retainedRaw >= Math.min(requiredCharges, depositAmount ?? 0);
+  const retainedSufficient = noDeposit || depositSettled || retainedRaw >= Math.min(requiredCharges, depositAmount ?? 0);
   const canConfirm = actionable && (depositAmount !== null || noDeposit) && retainedValid && retainedSufficient && can('CLOSE_FINANCIAL') && !blocked;
   const money = (n: number) => (currency === 'PEN' ? formatPen(n) : `${n.toFixed(2)} ${currency}`);
 
@@ -142,7 +146,7 @@ export function GuaranteeScreen() {
       <h1 className={styles.pageHeading}>Resolución de garantía — {ret.vehiclePlate ?? 'Vehículo'}</h1>
 
       <ManualLateChargePanel ret={ret} context={context} getIdToken={getIdToken} setRet={setRet} reload={reload} />
-      <ManualFuelPenaltyPanel ret={ret} context={context} getIdToken={getIdToken} setRet={setRet} reload={reload} />
+      <ManualFuelPenaltyPanel onAutoPenalty={setAutoFuelPenalty} ret={ret} context={context} getIdToken={getIdToken} setRet={setRet} reload={reload} />
 
       {!retainedSufficient && (
         <p className={`${styles.banner} ${styles.banner_error}`} role="alert" data-testid="insufficient-retained-banner">
@@ -215,7 +219,7 @@ export function GuaranteeScreen() {
               )}
               {fuelPenaltyAmount > 0 && (
                 <tr>
-                  <td>Penalización por combustible faltante</td>
+                  <td>Penalización por combustible faltante{ret.fuelPenalty ? '' : ' (por líneas del RNC)'}</td>
                   <td>− {money(fuelPenaltyAmount)}</td>
                 </tr>
               )}
@@ -226,7 +230,11 @@ export function GuaranteeScreen() {
                 </tr>
               )}
               <tr>
-                <td>Total retención</td>
+                <td>
+                  {depositSettled && rental?.deposit?.status === 'RETAINED'
+                    ? 'Total retención (garantía retenida íntegra por falta grave)'
+                    : 'Total retención'}
+                </td>
                 <td>− {money(retained)}</td>
               </tr>
               {extraToCollect > 0 && (
@@ -237,6 +245,11 @@ export function GuaranteeScreen() {
               )}
             </tbody>
           </table>
+          {depositSettled && (
+            <p className={styles.summaryLine} role="status" data-testid="deposit-settled-notice">
+              La garantía de este alquiler ya fue liquidada ({rental?.deposit?.status === 'RETAINED' ? 'retenida, p. ej. por una falta grave de ampliación' : 'estado ' + rental?.deposit?.status}): no hay monto a devolver. El cierre continúa sin mover la garantía.
+            </p>
+          )}
           <p className={styles.summaryLine}>Monto a devolver</p>
           <p className={styles.bigAmount} aria-live="polite">
             {money(refund)}
@@ -255,8 +268,10 @@ export function GuaranteeScreen() {
 
       {ret.fuelLevelAtReturn && (
         <p className={styles.summaryLine}>
-          Combustible al recibir: {FUEL_LEVEL_LABELS[ret.fuelLevelAtReturn]} (el llenado por línea S/ 50.00 se descuenta solo si se
-          incluye en el monto retenido).
+          Combustible al recibir: {FUEL_LEVEL_LABELS[ret.fuelLevelAtReturn]}
+          {fuelPenaltyAmount > 0
+            ? ' (la multa por líneas faltantes del RNC ya está incluida en el monto retenido).'
+            : ' (sin multa por combustible: no hay líneas faltantes o el vehículo no tiene tarifa por línea en Flota).'}
         </p>
       )}
 
@@ -305,6 +320,8 @@ export function GuaranteeScreen() {
             </p>
             {noDeposit ? (
               <p className={styles.summaryLine}>Sin garantía (conductor de la empresa): se continúa al cierre sin montos de garantía.</p>
+            ) : depositSettled ? (
+              <p className={styles.summaryLine}>La garantía ya estaba liquidada: se continúa al cierre sin devolver dinero al cliente.</p>
             ) : (
             <p className={styles.summaryLine}>
               Se devolverán <strong>{money(refund)}</strong> al cliente
@@ -316,7 +333,7 @@ export function GuaranteeScreen() {
                 Cancelar
               </button>
               <button type="button" className={styles.dangerButton} onClick={handleConfirm} disabled={busy}>
-                {noDeposit ? 'Continuar' : `Confirmar ${money(refund)}`}
+                {noDeposit || depositSettled ? 'Continuar' : `Confirmar ${money(refund)}`}
               </button>
             </div>
           </div>

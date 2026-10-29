@@ -65,6 +65,30 @@ function fill() {
   fireEvent.change(screen.getByLabelText('Cargo'), { target: { value: 'Conductor' } });
 }
 
+describe('NewEmployeeScreen (alta de personal) - validaciones 29-oct', () => {
+  beforeEach(() => {
+    listAreasMock.mockReset().mockResolvedValue(CATALOG);
+    getCandidateMock.mockReset();
+    setPermissions(['HR_ADMINISTRATION.MANAGE_EMPLOYEES', 'HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_SALARY']);
+  });
+
+  it('R-7: rechaza DNI de 3 dígitos y teléfono con letras; R-5: ingreso futuro', async () => {
+    listEmployeesMock.mockReset().mockResolvedValue({ items: [makeEmployee()], total: 1 });
+    createMock.mockReset();
+    renderScreen();
+    await areaSelect();
+    fill();
+    fireEvent.change(screen.getByLabelText('Número de documento'), { target: { value: '123' } });
+    fireEvent.change(screen.getByLabelText('Teléfono (opcional)'), { target: { value: 'abc' } });
+    fireEvent.change(screen.getByLabelText('Fecha de ingreso'), { target: { value: '2099-01-01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar persona' }));
+    expect(await screen.findByText(/DNI debe tener exactamente 8 dígitos/)).toBeInTheDocument();
+    expect(screen.getByText(/solo puede contener números/)).toBeInTheDocument();
+    expect(screen.getByText(/no sea posterior a hoy/)).toBeInTheDocument();
+    expect(createMock).not.toHaveBeenCalled();
+  });
+});
+
 describe('NewEmployeeScreen (alta de personal)', () => {
   beforeEach(() => {
     listEmployeesMock.mockReset().mockResolvedValue({ items: [makeEmployee()], total: 1 });

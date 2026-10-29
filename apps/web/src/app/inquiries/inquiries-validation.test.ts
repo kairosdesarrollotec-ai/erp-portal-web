@@ -52,3 +52,24 @@ describe('validateNewInquiryForm (finding "sin validacion funcional")', () => {
     expect(errors.travelDate).toMatch(/pasada/);
   });
 });
+
+describe('CR-09: días y personas mínimos', () => {
+  it.each([0, -1, 1.5])('rechaza %s días estimados', (days) => {
+    expect(validateNewInquiryForm(buildForm({ travelDays: days })).travelDays).toBeTruthy();
+  });
+  it('rechaza 0 personas', () => {
+    expect(validateNewInquiryForm(buildForm({ travelers: 0 })).travelers).toBeTruthy();
+  });
+  it('acepta 1 día y 1 persona', () => {
+    expect(hasInquiryFormErrors(validateNewInquiryForm(buildForm({ travelDays: 1, travelers: 1 })))).toBe(false);
+  });
+});
+
+describe('Cliente ROJO (respuesta 29-oct #3)', () => {
+  it('bloquea registrar la consulta de un cliente ROJO', () => {
+    expect(validateNewInquiryForm(buildForm({ customerRiskStatus: 'ROJO' })).customerId).toMatch(/ROJO/);
+  });
+  it('un cliente AMBAR sí puede consultar', () => {
+    expect(hasInquiryFormErrors(validateNewInquiryForm(buildForm({ customerRiskStatus: 'AMBAR' })))).toBe(false);
+  });
+});

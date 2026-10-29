@@ -151,6 +151,33 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
     });
   });
 
+  it('CR-01: si la subida del comprobante falla (503) no se registra documento ni pago', async () => {
+    getReservationMock.mockResolvedValue(buildReservation());
+    requestReservationDocumentUploadSessionMock.mockResolvedValue({
+      uploadUrl: 'https://storage.googleapis.com/upload',
+      objectUrl: 'gs://bucket/voucher.png',
+      expiresAt: '2026-09-16T01:00:00Z',
+    });
+    uploadReservationFileToGcsMock.mockRejectedValue(new Error('Error al subir el archivo a GCS (503)'));
+    recordReservationDocumentMock.mockReset();
+    registerPaymentMock.mockReset();
+    const { container } = renderScreen();
+
+    await screen.findByText('Borrador / No confirmada');
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar pago' }));
+    fireEvent.change(screen.getByLabelText(/Método de pago/), { target: { value: 'YAPE' } });
+    fireEvent.change(screen.getByLabelText(/Nº de operación/), { target: { value: 'OP-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Paga un agente externo' }));
+    fireEvent.change(screen.getByLabelText(/Nombre de quien paga/), { target: { value: 'Carlos Ruiz' } });
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(fileInput, { target: { files: [new File(['v'], 'voucher.png', { type: 'image/png' })] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar comprobante' }));
+
+    expect(await screen.findByText(/No pudimos subir el comprobante/)).toBeInTheDocument();
+    expect(recordReservationDocumentMock).not.toHaveBeenCalled();
+    expect(registerPaymentMock).not.toHaveBeenCalled();
+  });
+
   it('muestra el 422 RESERVATION_EXCEEDS_GUARANTEE de forma clara (sin saldo a favor)', async () => {
     getReservationMock.mockResolvedValue(buildReservation({
       requirements: { paymentValidatedAt: '2026-09-16T00:00:00Z', documentsCompletedAt: '2026-09-16T00:00:00Z' },
@@ -274,6 +301,19 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
       expect(screen.queryByText(/cambió por otra operación/)).not.toBeInTheDocument();
     });
 
+    it('CR-06: sin motivo no se puede confirmar la cancelación por cambio solicitado', async () => {
+      getReservationMock.mockResolvedValue(
+        buildReservation({ status: 'CONFIRMED', version: 2, confirmedAt: '2026-09-16T00:00:00Z' }),
+      );
+      renderScreen();
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancelar por cambio solicitado' }));
+      expect(screen.getByRole('button', { name: 'Confirmar cancelación' })).toBeDisabled();
+      fireEvent.change(screen.getByLabelText('Motivo del cambio solicitado'), { target: { value: '   ' } });
+      expect(screen.getByRole('button', { name: 'Confirmar cancelación' })).toBeDisabled();
+      expect(cancelReservationMock).not.toHaveBeenCalled();
+    });
+
     it('cancelar con un 409 de otro code tampoco es conflicto de sincronizacion', async () => {
       getReservationMock.mockResolvedValue(
         buildReservation({ status: 'CONFIRMED', version: 2, confirmedAt: '2026-09-16T00:00:00Z' }),
@@ -282,6 +322,7 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
       renderScreen();
 
       fireEvent.click(await screen.findByRole('button', { name: 'Cancelar por cambio solicitado' }));
+      fireEvent.change(screen.getByLabelText('Motivo del cambio solicitado'), { target: { value: 'Cambio de fechas' } });
       fireEvent.click(screen.getByRole('button', { name: 'Confirmar cancelación' }));
 
       expect(await screen.findByText('No se pudo completar la operación. Intenta de nuevo.')).toBeInTheDocument();

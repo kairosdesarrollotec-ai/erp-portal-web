@@ -12,7 +12,7 @@ import styles from './ReturnForms.module.css';
 
 const SEVERITIES: { value: DamageSeverity; hint: string }[] = [
   { value: 'LEVE', hint: 'Si el cliente acepta el costo pasa a ámbar y sigue el proceso normal.' },
-  { value: 'MODERADO', hint: 'Cliente observado; si no acepta el costo, va a vía legal.' },
+  { value: 'MODERADO', hint: 'Cliente observado; si no acepta el costo, pasa a Ámbar y se escala a Gerencia.' },
   { value: 'GRAVE', hint: 'El cliente pasa siempre a lista roja; el plazo de 24 h no aplica.' },
 ];
 

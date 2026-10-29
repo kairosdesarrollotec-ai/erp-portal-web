@@ -205,6 +205,9 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
 
     // La evaluacion ya no es automatica: primero se registra (o no) la biometria y luego se evalua.
     expect(evaluateNotaryMock).not.toHaveBeenCalled();
+    // A-01: sin marcar la biometría el botón está deshabilitado.
+    expect(screen.getByRole('button', { name: 'Evaluar notaría' })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText(/Verificación biométrica favorable/));
     fireEvent.click(screen.getByRole('button', { name: 'Evaluar notaría' }));
     await waitFor(() => expect(evaluateNotaryMock).toHaveBeenCalled());
     expect(await screen.findByText('Notaría obligatoria')).toBeInTheDocument();
@@ -216,6 +219,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     useRentalWizardMock.mockReturnValue(makeWizard({ rental: rentalSinEval }));
 
     renderScreen();
+    fireEvent.click(screen.getByLabelText(/Verificación biométrica favorable/));
     fireEvent.click(screen.getByRole('button', { name: 'Evaluar notaría' }));
 
     expect(await screen.findByText(/No pudimos evaluar la matriz notarial/)).toBeInTheDocument();

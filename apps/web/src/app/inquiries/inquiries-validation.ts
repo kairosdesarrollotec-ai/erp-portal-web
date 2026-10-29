@@ -23,6 +23,8 @@ export interface InquiryFormErrors {
   customerId?: string;
   destination?: string;
   travelDate?: string;
+  travelers?: string;
+  travelDays?: string;
 }
 
 function todayISODate(): string {
@@ -35,6 +37,10 @@ export function validateNewInquiryForm(form: NewInquiryFormData): InquiryFormErr
   if (!form.customerId) {
     errors.customerId = 'Busca y selecciona un cliente registrado, o registra uno nuevo, antes de continuar.';
   }
+  if (form.customerId && form.customerRiskStatus === 'ROJO') {
+    errors.customerId =
+      'El cliente está en estado ROJO: no se atiende en ningún proceso (consulta, reserva ni alquiler). Elige otro cliente.';
+  }
   if (form.destination.trim().length === 0) {
     errors.destination = 'Ingresa el destino del viaje.';
   }
@@ -42,6 +48,14 @@ export function validateNewInquiryForm(form: NewInquiryFormData): InquiryFormErr
     errors.travelDate = 'Selecciona la fecha del viaje.';
   } else if (form.travelDate < todayISODate()) {
     errors.travelDate = 'La fecha del viaje no puede ser una fecha pasada.';
+  }
+
+  // CR-09 (29-oct): 0 días / 0 personas ya no se coercionan silenciosamente a 1.
+  if (!Number.isInteger(form.travelDays) || form.travelDays < 1) {
+    errors.travelDays = 'Los días estimados deben ser un entero mayor o igual a 1.';
+  }
+  if (!Number.isInteger(form.travelers) || form.travelers < 1) {
+    errors.travelers = 'El número de personas debe ser un entero mayor o igual a 1.';
   }
 
   return errors;

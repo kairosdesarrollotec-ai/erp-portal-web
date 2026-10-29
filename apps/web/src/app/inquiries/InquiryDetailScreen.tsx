@@ -175,7 +175,7 @@ export function InquiryDetailScreen() {
         )}
 
         <div className={styles.summaryPanel}>
-          <p className={styles.customerLabel}>{navState?.customerName ?? customerName ?? 'Sin cliente registrado'}</p>
+          <p className={styles.customerLabel}>{customerName ?? navState?.customerName ?? 'Sin cliente registrado'}</p>
           <dl className={styles.summaryList}>
             <div>
               <dt>Vehículo cotizado</dt>

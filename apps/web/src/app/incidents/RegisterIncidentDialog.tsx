@@ -30,6 +30,9 @@ interface Props {
 }
 
 /** INC-01 - "Registrar incidencia": alquiler, devolucion opcional, tipo, severidad, descripcion, sugerencia opcional. */
+/** A-06: alquileres sin entregar (o cancelados) no admiten incidencias; el back tambien lo rechaza. */
+const NOT_DELIVERED_STATUSES: ReadonlySet<string> = new Set(['DRAFT', 'VALIDATION', 'NOTARY_EVALUATION', 'CONTRACTING', 'PENDING_DELIVERY', 'CANCELLED']);
+
 export function RegisterIncidentDialog({ context, initialRentalId, initialReturnId, onCreated, onCancel }: Props) {
   const [rentals, setRentals] = useState<RentalResponse[]>([]);
   const [returns, setReturns] = useState<ReturnResponse[]>([]);
@@ -121,7 +124,7 @@ export function RegisterIncidentDialog({ context, initialRentalId, initialReturn
             aria-invalid={submitted && missing.rental}
           >
             <option value="">{loadingCatalog ? 'Cargando alquileres…' : 'Selecciona un alquiler'}</option>
-            {rentals.map((rental) => (
+            {rentals.filter((rental) => !NOT_DELIVERED_STATUSES.has(rental.status)).map((rental) => (
               <option key={rental.id} value={rental.id}>
                 {rental.vehiclePlate} — {rental.customerName}
               </option>
