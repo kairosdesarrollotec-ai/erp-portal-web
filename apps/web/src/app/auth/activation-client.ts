@@ -1,5 +1,16 @@
 import { transversalApiClient } from '../../api/transversal-api-client';
 
+/** Error con la respuesta HTTP del servidor (distingue un 401/403 de un fallo de red, V-27). */
+export class ActivationApiError extends Error {
+  readonly name = 'ActivationApiError';
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 export interface ActivationStatus {
   requiresPasswordChange: boolean;
   requiresMfaEnrollment: boolean;
@@ -17,7 +28,7 @@ export async function getActivationStatus(idToken: string): Promise<ActivationSt
     headers: { Authorization: `Bearer ${idToken}` },
   });
   if (error || !data) {
-    throw new Error(`No se pudo obtener el estado de activacion (${response.status})`);
+    throw new ActivationApiError(`No se pudo obtener el estado de activacion (${response.status})`, response.status);
   }
   return data as unknown as ActivationStatus;
 }
@@ -27,6 +38,6 @@ export async function completeActivation(idToken: string): Promise<void> {
     headers: { Authorization: `Bearer ${idToken}` },
   });
   if (error) {
-    throw new Error(`No se pudo completar la activacion (${response.status})`);
+    throw new ActivationApiError(`No se pudo completar la activacion (${response.status})`, response.status);
   }
 }

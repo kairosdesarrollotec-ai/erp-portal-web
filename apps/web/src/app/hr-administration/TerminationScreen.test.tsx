@@ -8,6 +8,13 @@ import { setPermissions } from '../../test/permissions';
 
 const getEmployeeMock = vi.fn();
 const terminateMock = vi.fn();
+const mfaRequestMock = vi.fn();
+
+vi.mock('../auth/useMfaStepUp', async () => {
+  const actual = await vi.importActual<typeof import('../auth/useMfaStepUp')>('../auth/useMfaStepUp');
+  return { ...actual, useMfaStepUp: () => ({ request: () => mfaRequestMock(), challenge: { state: 'CLOSED' } }) };
+});
+vi.mock('../auth/MfaChallengeModal', () => ({ MfaChallengeModal: () => null }));
 
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
 vi.mock('../providers/firebase', () => ({
@@ -44,6 +51,7 @@ describe('TerminationScreen (ADP-09)', () => {
   beforeEach(() => {
     getEmployeeMock.mockReset().mockResolvedValue(makeDetail());
     terminateMock.mockReset();
+    mfaRequestMock.mockReset();
     setPermissions(['HR_ADMINISTRATION.TERMINATE_EMPLOYMENT']);
   });
 
@@ -161,6 +169,25 @@ describe('TerminationScreen (ADP-09)', () => {
     fireEvent.keyDown(dialog, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(terminateMock).not.toHaveBeenCalled();
+  });
+
+  it('MFA_RECENT_REQUIRED: pide verificar MFA y reintenta una vez con el token renovado', async () => {
+    terminateMock
+      .mockRejectedValueOnce(new HrCommandError(403, { code: 'MFA_RECENT_REQUIRED' }))
+      .mockResolvedValueOnce(termination());
+    mfaRequestMock.mockResolvedValue('fresh');
+    renderScreen();
+    fireEvent.click(await screen.findByLabelText('Renuncia'));
+    fireEvent.change(screen.getByLabelText('Último día trabajado'), { target: { value: '2026-10-09' } });
+    fireEvent.click(screen.getByLabelText(/Se pagó la quincena pendiente/));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar término' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByLabelText(/irreversible/));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/MFA/);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Verificar MFA' }));
+    await waitFor(() => expect(terminateMock).toHaveBeenLastCalledWith('fresh', 'emp-1', expect.objectContaining({ reason: 'RENUNCIA' })));
+    expect(await screen.findByText(/Reclutamiento ya creó la vacante/)).toBeInTheDocument();
   });
 
   it('ya terminado: muestra el error de negocio', async () => {

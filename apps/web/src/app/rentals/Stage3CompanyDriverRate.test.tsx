@@ -91,6 +91,7 @@ async function formalizeWithDriver(rate = '100') {
 
 describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERRATE-001)', () => {
   beforeEach(() => {
+    window.sessionStorage.clear(); // V-15: el borrador de ENTREGA-03 no debe filtrarse entre tests
     formalizeContractMock.mockReset();
     setRateMock.mockReset();
     useRentalWizardMock.mockReset();

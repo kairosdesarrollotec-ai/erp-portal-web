@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getWorkContextAssignments } from '../auth/work-context-client';
+import { isNetworkFailure, recallContext, rememberContext } from '../../offline/session/offline-session';
 
 export interface RentalsWorkContext {
   companyId: string;
@@ -30,6 +31,12 @@ export function useWorkContextForRentals(): {
           setContext(navState);
           setLoading(false);
         }
+        void rememberContext({
+          companyId: navState.companyId,
+          companyName: navState.companyName,
+          branchId: navState.branchId,
+          branchName: navState.branchName,
+        });
         return;
       }
 
@@ -50,11 +57,22 @@ export function useWorkContextForRentals(): {
             branchId: only.branchId,
             branchName: only.branchName,
           });
+          void rememberContext({
+            companyId: only.companyId,
+            companyName: only.companyName,
+            branchId: only.branchId,
+            branchName: only.branchName,
+          });
         } else if (assignments.length > 1) {
           navigate('/seleccion-empresa-sede', { replace: true });
         }
-      } catch {
-        // se deja sin resolver - la pantalla muestra su propio estado defensivo
+      } catch (error) {
+        // V-27: sin red, se usa el contexto de la última verificación del servidor (≤ 8 h, sesión offline).
+        if (isNetworkFailure(error)) {
+          const stored = await recallContext();
+          if (!cancelled && stored) setContext(stored);
+        }
+        // si no hay copia local se deja sin resolver - la pantalla muestra su propio estado defensivo
       } finally {
         if (!cancelled) setLoading(false);
       }

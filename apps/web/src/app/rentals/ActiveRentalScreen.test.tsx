@@ -215,6 +215,26 @@ describe('ActiveRentalScreen (ALQ-10)', () => {
     expect(screen.queryByText(/Estado: BREACH/)).not.toBeInTheDocument();
   });
 
+  it('falta grave: la garantía se ve retenida y el alquiler sigue activo hasta la devolución', () => {
+    wizardMock.mockReturnValue(
+      wizard({
+        ...baseRental,
+        status: 'ACTIVE',
+        deposit: { ...baseRental.deposit, status: 'RETAINED' },
+        extensions: [{ id: 'e1', status: 'BREACH', requirements: { noticeGiven: false, authorized: false, paid: false, addendumSigned: false } }],
+      }),
+    );
+    renderScreen();
+    expect(screen.getByTestId('guarantee-retained-breach')).toHaveTextContent('Retenida por falta grave');
+    expect(screen.getByRole('button', { name: 'Iniciar devolución' })).toBeInTheDocument();
+  });
+
+  it('sin falta grave la garantía no se muestra como retenida', () => {
+    wizardMock.mockReturnValue(wizard({ ...baseRental }));
+    renderScreen();
+    expect(screen.queryByTestId('guarantee-retained-breach')).not.toBeInTheDocument();
+  });
+
   it('un alquiler cerrado no ofrece acciones', () => {
     wizardMock.mockReturnValue(wizard({ ...baseRental, status: 'CLOSED' }));
     renderScreen();

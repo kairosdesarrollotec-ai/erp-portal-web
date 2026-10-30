@@ -12,11 +12,13 @@ interface Props {
   busy: boolean;
   error: string | null;
   onConfirm: () => void;
+  mfaNeeded?: boolean;
+  onVerifyMfa?: () => void;
   onCancel: () => void;
 }
 
 /** ADP-09 - confirmacion reforzada de una accion IRREVERSIBLE que ademas genera una vacante en Reclutamiento. */
-export function TerminationConfirmDialog({ employeeName, reason, noticeDays, settlementPaid, settlementAmount, busy, error, onConfirm, onCancel }: Props) {
+export function TerminationConfirmDialog({ employeeName, reason, noticeDays, settlementPaid, settlementAmount, busy, error, onConfirm, onCancel, mfaNeeded, onVerifyMfa }: Props) {
   const [understood, setUnderstood] = useState(false);
   return (
     <HrDialog
@@ -48,9 +50,15 @@ export function TerminationConfirmDialog({ employeeName, reason, noticeDays, set
         <button type="button" className={styles.secondaryButton} onClick={onCancel} disabled={busy}>
           Cancelar
         </button>
-        <button type="button" className={styles.dangerSolid} onClick={onConfirm} disabled={busy || !understood}>
-          {busy ? 'Guardando…' : 'Confirmar'}
-        </button>
+        {mfaNeeded && onVerifyMfa ? (
+          <button type="button" className={styles.dangerSolid} onClick={onVerifyMfa} disabled={busy}>
+            Verificar MFA
+          </button>
+        ) : (
+          <button type="button" className={styles.dangerSolid} onClick={onConfirm} disabled={busy || !understood}>
+            {busy ? 'Guardando…' : 'Confirmar'}
+          </button>
+        )}
       </div>
     </HrDialog>
   );
