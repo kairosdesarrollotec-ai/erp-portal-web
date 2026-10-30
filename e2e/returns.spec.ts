@@ -12,6 +12,8 @@ async function setup(page: Parameters<typeof loginViaUI>[0], options: InterceptR
 
 /** Completa el documento de responsabilidad del checklist (DEV-04): nombre, titular, firma por trazo. */
 async function signResponsibilityDocument(page: Parameters<typeof loginViaUI>[0], signerName = 'Carlos López') {
+  await page.getByRole('button', { name: '1/2 (8)' }).click();
+  await page.getByLabel('Kilometraje actual (km)').fill('15000');
   await page.getByLabel('Nombre de quien firma').fill(signerName);
   await page.getByRole('radio', { name: /Sí, es el titular/ }).check();
   const canvas = page.getByRole('img', { name: /Firma del documento de responsabilidad/ });
