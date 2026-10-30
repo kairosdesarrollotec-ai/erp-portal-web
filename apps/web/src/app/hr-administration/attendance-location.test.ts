@@ -48,6 +48,11 @@ describe('captureAttendanceLocation (HU-29, ubicación automática)', () => {
     await expect(promise).resolves.toBeNull();
   });
 
+  it('redondea lat/lng a 7 decimales y la precisión a 2 para cumplir el contrato del API', async () => {
+    mockGeolocation((ok) => ok({ coords: { latitude: -12.046430123456789, longitude: -77.042793987654321, accuracy: 38.123456789 } }));
+    await expect(captureAttendanceLocation()).resolves.toEqual({ latitude: -12.0464301, longitude: -77.042794, accuracy: 38.12 });
+  });
+
   it('descarta coordenadas no numéricas y errores síncronos', async () => {
     mockGeolocation((ok) => ok({ coords: { latitude: Number.NaN, longitude: 1, accuracy: 1 } }));
     await expect(captureAttendanceLocation()).resolves.toBeNull();
