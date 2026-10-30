@@ -199,4 +199,11 @@ describe('MyAttendanceScreen (mi asistencia, 22-oct #9)', () => {
     renderScreen();
     expect(await screen.findByText(/No tienes permiso para ver tu asistencia/)).toBeInTheDocument();
   });
+
+  it('V-24: 404 sin ficha vinculada indica cómo resolverlo (pedir a Personal que vincule la cuenta)', async () => {
+    getMyMock.mockRejectedValue(new HrApiError(404));
+    renderScreen();
+    expect(await screen.findByText(/No encontramos tu asistencia en tu empresa y sede\./)).toBeInTheDocument();
+    expect(screen.getByText(/Pide a Personal \(RR\. HH\.\) que vincule tu cuenta a tu ficha de colaborador/)).toBeInTheDocument();
+  });
 });

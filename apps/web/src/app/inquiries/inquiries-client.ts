@@ -150,13 +150,27 @@ export async function getInquiry(
   return data as unknown as InquiryDetail;
 }
 
+/**
+ * V-26: un 400 de validación del backend (ValidationPipe) trae `message` (texto o lista) y no `detail`; sin esto el usuario veía
+ * solo «(400)». Se muestra el detalle de validación o, si no hay, un texto que explica qué revisar.
+ */
+function inquiryProblemText(problem: { detail?: string; message?: string | string[] } | null, status: number): string {
+  if (problem?.detail) return problem.detail;
+  const message = Array.isArray(problem?.message) ? problem?.message.join('; ') : problem?.message;
+  if (message) return message;
+  if (status === 400) {
+    return 'Los datos de la consulta están incompletos o no son válidos (destino, días estimados o vehículo). Revisa la consulta y vuelve a cotizar.';
+  }
+  return `La operación no se pudo completar (${status})`;
+}
+
 /** Cuerpo `problem+json` que el backend devuelve en 409/412/422 (mismo contrato que reservations-client.ts). */
 export class InquiryCommandError extends Error {
   constructor(
     public readonly status: number,
-    public readonly problem: { code?: string; detail?: string } | null,
+    public readonly problem: { code?: string; detail?: string; message?: string | string[] } | null,
   ) {
-    super(problem?.detail ?? `La operación no se pudo completar (${status})`);
+    super(inquiryProblemText(problem, status));
   }
 }
 
@@ -246,7 +260,7 @@ export async function quoteInquiry(
     body: { companyId, branchId, vehicleId, destination, estimatedDays, plan } as unknown as QuoteBody,
   });
   if (error || !data) {
-    const problem = (error as unknown as { code?: string; detail?: string } | null) ?? null;
+    const problem = (error as unknown as { code?: string; detail?: string; message?: string | string[] } | null) ?? null;
     throw new InquiryCommandError(response.status, problem);
   }
   return data as unknown as InquirySummary;

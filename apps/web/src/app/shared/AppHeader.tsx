@@ -39,6 +39,7 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
 
   const { setSidebarOpen } = useWorkSession();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [needsContext, setNeedsContext] = useState(false);
   const { unreadCount } = useNotifications(companyId, branchId);
 
   const branchBadge = companyName && branchName ? `${companyName} — ${branchName}` : null;
@@ -82,7 +83,14 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
           <button
             type="button"
             className={styles.bellButton}
-            onClick={() => setNotificationsOpen(true)}
+            onClick={() => {
+              // V-21: sin empresa y sede elegidas no hay notificaciones que cargar; se avisa en vez de no hacer nada.
+              if (!companyId || !branchId) {
+                setNeedsContext((value) => !value);
+                return;
+              }
+              setNotificationsOpen(true);
+            }}
             aria-label="Notificaciones"
           >
             <Bell size={18} />
@@ -91,6 +99,15 @@ export function AppHeader({ pageTitle, actions, role }: AppHeaderProps) {
           <UserMenuDropdown role={role} />
         </div>
       </header>
+
+      {needsContext && (!companyId || !branchId) && (
+        <p className={styles.contextNotice} role="status">
+          Elige una empresa y sede para ver tus notificaciones.{' '}
+          <button type="button" className={styles.contextNoticeLink} onClick={() => navigate('/modulos', { state: location.state })}>
+            Elegir sede
+          </button>
+        </p>
+      )}
 
       {notificationsOpen && companyId && branchId && (
         <NotificationsPanel

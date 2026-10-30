@@ -160,6 +160,7 @@ function setupUploadMocks() {
 
 describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
   beforeEach(() => {
+    window.sessionStorage.clear(); // V-15: el borrador de ENTREGA-03 no debe filtrarse entre tests
     evaluateNotaryMock.mockReset();
     approveNotaryExceptionMock.mockReset();
     formalizeContractMock.mockReset();
@@ -389,6 +390,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
   };
 
   beforeEach(() => {
+    window.sessionStorage.clear(); // V-15: el borrador de ENTREGA-03 no debe filtrarse entre tests
     getContractTemplateMock.mockReset();
     getContractTemplateMock.mockResolvedValue(templateSelection());
     formalizeContractMock.mockReset();
@@ -574,6 +576,7 @@ describe('Stage3ContractScreen - comprobante de garantia, biometria y tercera vi
   const rentalSinEval = { ...baseRental, notaryEvaluation: null };
 
   beforeEach(() => {
+    window.sessionStorage.clear(); // V-15: el borrador de ENTREGA-03 no debe filtrarse entre tests
     getContractTemplateMock.mockReset();
     getContractTemplateMock.mockResolvedValue(templateSelection());
     formalizeContractMock.mockReset();

@@ -248,11 +248,14 @@ export function InquiryDetailScreen() {
             </p>
           )}
 
+          {/* V-22: sin permiso CONVERT_TO_RESERVATION en la matriz (p. ej. Gerencia) no se ofrece «Reservar este vehículo». */}
           {canReserve && inquiry.customerId && !showReserveForm && (
             <div className={styles.closeActions}>
-              <button type="button" className={styles.primaryButton} onClick={openReserveForm} disabled={saving}>
-                Reservar este vehículo
-              </button>
+              {can('INQUIRY', 'CONVERT_TO_RESERVATION') && (
+                <button type="button" className={styles.primaryButton} onClick={openReserveForm} disabled={saving}>
+                  Reservar este vehículo
+                </button>
+              )}
               {can('INQUIRY', 'CONVERT_TO_RENTAL') && (
                 <button
                   type="button"

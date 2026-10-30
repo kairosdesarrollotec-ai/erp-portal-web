@@ -16,11 +16,13 @@ interface Props {
   subject?: string;
   busy?: boolean;
   wide?: boolean;
+  /** V-24: qué hacer cuando no se encuentra el recurso (se agrega al mensaje de «No encontramos…»). */
+  notFoundHint?: string;
   children: ReactNode;
 }
 
 /** Marco comun de las pantallas ADP: cabecera, regreso, titulo y estados de carga / error. */
-export function HrFrame({ pageTitle, back, context, state, hasData, subject = 'la información', busy, wide, children }: Props) {
+export function HrFrame({ pageTitle, back, context, state, hasData, subject = 'la información', busy, wide, notFoundHint, children }: Props) {
   const navigate = useNavigate();
   return (
     <main className={styles.wrapper}>
@@ -35,7 +37,7 @@ export function HrFrame({ pageTitle, back, context, state, hasData, subject = 'l
         <div aria-live="polite">{state === 'LOADING' && !hasData && <p className={styles.statusText}>Cargando {subject}…</p>}</div>
         {state === 'NOT_FOUND' && (
           <p className={styles.statusText} role="alert">
-            No encontramos {subject} en tu empresa y sede.
+            No encontramos {subject} en tu empresa y sede.{notFoundHint ? ` ${notFoundHint}` : ''}
           </p>
         )}
         {state === 'FORBIDDEN' && (

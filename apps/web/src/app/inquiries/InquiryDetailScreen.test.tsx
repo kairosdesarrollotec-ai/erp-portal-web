@@ -27,8 +27,9 @@ const getCustomerMock = vi.fn();
 const getVehicleMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
+const deniedPermissions = vi.hoisted(() => new Set<string>());
 vi.mock('../shared/useRolePermissions', () => ({
-  useRolePermissions: () => ({ can: () => true }),
+  useRolePermissions: () => ({ can: (module: string, action: string) => !deniedPermissions.has(`${module}.${action}`) }),
 }));
 
 vi.mock('../providers/firebase', () => ({
@@ -205,6 +206,20 @@ describe('InquiryDetailScreen (CON-04)', () => {
       true,
       undefined,
     );
+  });
+
+  it('V-22: sin permiso CONVERT_TO_RESERVATION (p. ej. Gerencia) no se ofrece "Reservar este vehículo"', async () => {
+    deniedPermissions.add('INQUIRY.CONVERT_TO_RESERVATION');
+    try {
+      getInquiryMock.mockResolvedValue(buildInquiry());
+      renderScreen();
+
+      await screen.findByText('Maria Quispe');
+      expect(screen.queryByText('Reservar este vehículo')).not.toBeInTheDocument();
+      expect(screen.getByText('Convertir a Alquiler')).toBeInTheDocument();
+    } finally {
+      deniedPermissions.clear();
+    }
   });
 
   it('ofrece siempre ambos botones: "Reservar este vehículo" y "Convertir a Alquiler"', async () => {

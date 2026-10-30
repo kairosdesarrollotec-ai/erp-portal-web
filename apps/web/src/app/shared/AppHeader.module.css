@@ -319,3 +319,21 @@
     display: none;
   }
 }
+
+.contextNotice {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  background: #fff7e6;
+  border-bottom: 1px solid #f0d9a8;
+}
+
+.contextNoticeLink {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}

@@ -222,7 +222,7 @@ export function MyAttendanceScreen() {
     (queuedItem.queueStatus === 'pending' || queuedItem.queueStatus === 'syncing');
 
   return (
-    <HrFrame pageTitle="Mi asistencia" context={context} state={state} hasData={!!data} subject="tu asistencia" busy={command.saving || syncingQueue}>
+    <HrFrame pageTitle="Mi asistencia" context={context} state={state} hasData={!!data} subject="tu asistencia" notFoundHint="Pide a Personal (RR. HH.) que vincule tu cuenta a tu ficha de colaborador." busy={command.saving || syncingQueue}>
       {data && (
         <>
           <div aria-live="polite">

@@ -531,28 +531,31 @@ export function ReservationDetailScreen() {
                 alquiler o la entrega.
               </p>
 
-              <button
-                type="button"
-                className={styles.confirmButton}
-                disabled={beforeAgreedDate}
-                aria-describedby={beforeAgreedDate ? 'agreed-date-hint' : undefined}
-                onClick={() =>
-                  navigate('/alquileres/nuevo', {
-                    state: {
-                      ...context,
-                      reservationId: reservation.id,
-                      customerId: reservation.customer.id,
-                      customerName: reservation.customer.name,
-                      vehicleId: reservation.vehicle.id,
-                      vehicleLabel: reservation.vehicle.label,
-                      startAt: reservation.startAt,
-                      expectedEndAt: reservation.endAt,
-                    },
-                  })
-                }
-              >
-                Continuar con alquiler
-              </button>
+              {/* V-22: sin permiso RENTAL.CREATE en la matriz (p. ej. Gerencia) no se ofrece «Continuar con alquiler». */}
+              {can('RENTAL', 'CREATE') && (
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  disabled={beforeAgreedDate}
+                  aria-describedby={beforeAgreedDate ? 'agreed-date-hint' : undefined}
+                  onClick={() =>
+                    navigate('/alquileres/nuevo', {
+                      state: {
+                        ...context,
+                        reservationId: reservation.id,
+                        customerId: reservation.customer.id,
+                        customerName: reservation.customer.name,
+                        vehicleId: reservation.vehicle.id,
+                        vehicleLabel: reservation.vehicle.label,
+                        startAt: reservation.startAt,
+                        expectedEndAt: reservation.endAt,
+                      },
+                    })
+                  }
+                >
+                  Continuar con alquiler
+                </button>
+              )}
               {beforeAgreedDate && (
                 <p id="agreed-date-hint" className={styles.helperText} role="status">
                   Disponible el día pactado: {formatLimaDayMonth(reservation.startAt)}. La reserva solo pasa a alquiler

@@ -271,7 +271,9 @@ export function GuaranteeScreen() {
           Combustible al recibir: {FUEL_LEVEL_LABELS[ret.fuelLevelAtReturn]}
           {fuelPenaltyAmount > 0
             ? ' (la multa por líneas faltantes del RNC ya está incluida en el monto retenido).'
-            : ' (sin multa por combustible: no hay líneas faltantes o el vehículo no tiene tarifa por línea en Flota).'}
+            : ret.vehicleFuelPenaltyPerLine
+              ? ' (sin multa por combustible: no hay líneas faltantes).'
+              : ' (el vehículo no tiene precio por línea en Flota: la multa no se calculó; defínelo en Flota o regístrala manualmente arriba).'}
         </p>
       )}
 

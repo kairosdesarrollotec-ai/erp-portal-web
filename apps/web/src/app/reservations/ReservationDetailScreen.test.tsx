@@ -17,8 +17,9 @@ const registerReminderMock = vi.fn();
 const requestAirportMock = vi.fn();
 const getAirportMock = vi.fn();
 
+const deniedPermissions = vi.hoisted(() => new Set<string>());
 vi.mock('../shared/useRolePermissions', () => ({
-  useRolePermissions: () => ({ can: () => true }),
+  useRolePermissions: () => ({ can: (module: string, action: string) => !deniedPermissions.has(`${module}.${action}`) }),
 }));
 
 vi.mock('../providers/firebase', () => ({
@@ -209,6 +210,19 @@ describe('ReservationDetailScreen (RES-04/RES-05)', () => {
       const btn = await screen.findByRole('button', { name: 'Continuar con alquiler' });
       expect(btn).toBeDisabled();
       expect(screen.getByText(/Disponible el día pactado: 05\/03/)).toBeInTheDocument();
+    });
+
+    it('V-22: sin permiso RENTAL.CREATE (p. ej. Gerencia) no se ofrece "Continuar con alquiler"', async () => {
+      deniedPermissions.add('RENTAL.CREATE');
+      try {
+        getReservationMock.mockResolvedValue(confirmed('2026-09-20T14:00:00Z'));
+        renderScreen();
+
+        await screen.findByText(/Vehículo seleccionado para esta reserva/);
+        expect(screen.queryByRole('button', { name: 'Continuar con alquiler' })).not.toBeInTheDocument();
+      } finally {
+        deniedPermissions.clear();
+      }
     });
 
     it('desde la fecha pactada el boton esta habilitado', async () => {

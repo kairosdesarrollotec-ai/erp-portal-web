@@ -23,6 +23,7 @@ import { computeGuaranteeBreakdown, formatPen } from './guarantee-breakdown';
 import { describeRentalError } from './rental-errors';
 import { MfaStepUpCancelledError, useMfaStepUp } from '../auth/useMfaStepUp';
 import { MfaChallengeModal } from '../auth/MfaChallengeModal';
+import { clearStage3Draft, loadStage3Draft, saveStage3Draft } from './stage3-draft';
 import { NOTARY_RESULT_LABELS, RENTAL_STATUS_LABELS } from './rental-status';
 import { PaymentProofFields } from '../shared/PaymentProofFields';
 import {
@@ -67,11 +68,13 @@ export function Stage3ContractScreen() {
   // La evaluación vigente sale del alquiler (que se recarga) salvo que acabemos de evaluar en esta pantalla.
   const [evaluationOverride, setEvaluation] = useState<NotaryEvaluationResponse | null>(null);
   const evaluation: NotaryEvaluationResponse | null = evaluationOverride ?? rental?.notaryEvaluation ?? null;
-  const [justification, setJustification] = useState('');
+  // V-15: borrador de lo digitado (sin atestaciones ni archivos) para no entrar vacío al reabrir la pantalla antes de formalizar.
+  const [initialDraft] = useState(() => loadStage3Draft(id));
+  const [justification, setJustification] = useState(initialDraft?.justification ?? '');
   // null = el personal aun no tocó el monto: se propone la garantía exigida (tarifa de Flota, x2 con DOUBLE_DEPOSIT).
-  const [paymentAmountInput, setPaymentAmountInput] = useState<string | null>(null);
+  const [paymentAmountInput, setPaymentAmountInput] = useState<string | null>(initialDraft?.paymentAmountInput ?? null);
   // Decisión 8: comprobante del cobro (método, nº de operación, pagador, voucher adjunto).
-  const [paymentDraft, setPaymentDraft] = useState<PaymentProofDraft>(() => emptyPaymentDraft());
+  const [paymentDraft, setPaymentDraft] = useState<PaymentProofDraft>(() => ({ ...emptyPaymentDraft(), ...(initialDraft?.payment ?? {}) }));
   // DEC-ALQ-THIRDPATH-001: casilla de verificación biométrica favorable registrada por el personal.
   const [biometricVerified, setBiometricVerified] = useState(false);
   const [fingerprintTaken, setFingerprintTaken] = useState(false);
@@ -84,14 +87,30 @@ export function Stage3ContractScreen() {
   /** V-07: si el back volviera a exigir MFA reciente (MFA_RECENT_REQUIRED) para formalizar, se ofrece «Verificar MFA». Desde el 29-oct el back ya no lo exige (decision del usuario); este manejo queda como defensa. */
   const [mfaNeeded, setMfaNeeded] = useState(false);
   const { request: requestMfaStepUp, challenge: mfaChallenge } = useMfaStepUp();
-  const [holderType, setHolderType] = useState<ContractHolderType>('NATURAL');
-  const [withCompanyDriver, setWithCompanyDriver] = useState(false);
+  const [holderType, setHolderType] = useState<ContractHolderType>(initialDraft?.holderType ?? 'NATURAL');
+  const [withCompanyDriver, setWithCompanyDriver] = useState(initialDraft?.withCompanyDriver ?? false);
   const [driverRate, setDriverRate] = useState('');
   const [rateBusy, setRateBusy] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
   const [rateSaved, setRateSaved] = useState(false);
   const [templateSel, setTemplateSel] = useState<ContractTemplateSelectionResponse | null>(null);
   const [templateState, setTemplateState] = useState<'LOADING' | 'READY' | 'ERROR'>('LOADING');
+
+  useEffect(() => {
+    saveStage3Draft(id, {
+      holderType,
+      withCompanyDriver,
+      justification,
+      paymentAmountInput,
+      payment: {
+        method: paymentDraft.method,
+        operationNumber: paymentDraft.operationNumber,
+        payerType: paymentDraft.payerType,
+        payerName: paymentDraft.payerName,
+        payerDocumentNumber: paymentDraft.payerDocumentNumber,
+      },
+    });
+  }, [id, holderType, withCompanyDriver, justification, paymentAmountInput, paymentDraft]);
 
   /**
    * La evaluación ya no es automática: la casilla de verificación biométrica debe registrarse ANTES de evaluar
@@ -288,6 +307,7 @@ export function Stage3ContractScreen() {
         setRental(updated);
       }
       setConfirmOpen(false);
+      clearStage3Draft(id);
       navigate(`/alquileres/${id}/entrega-04`, { state: context });
     } catch (err) {
       if (err instanceof RentalCommandError && err.problem?.code === 'MFA_RECENT_REQUIRED') {
