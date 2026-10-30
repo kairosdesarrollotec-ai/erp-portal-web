@@ -82,8 +82,8 @@ function renderScreen() {
 const rateInput = () => screen.getByLabelText('Tarifa diaria del conductor (S/)');
 
 async function formalizeWithDriver(rate = '100') {
-  fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
-  fireEvent.change(rateInput(), { target: { value: rate } });
+  fireEvent.click(await screen.findByLabelText(/Con conductor de la empresa/));
+  fireEvent.change(await screen.findByLabelText('Tarifa diaria del conductor (S/)'), { target: { value: rate } });
   fireEvent.click(screen.getByLabelText(/Área de firma digital/));
   fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
@@ -98,19 +98,20 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
     setPermissions(['RENTAL.READ', 'RENTAL.FORMALIZE_CONTRACT']);
   });
 
-  it('sin conductor de la empresa no muestra el campo; al marcarlo aparece con aviso de tarifa por digitar', () => {
+  it('sin conductor de la empresa no muestra el campo; al marcarlo aparece con aviso de tarifa por digitar', async () => {
     useRentalWizardMock.mockReturnValue(wizard(baseRental));
     renderScreen();
     expect(screen.queryByLabelText('Tarifa diaria del conductor (S/)')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
-    expect(rateInput()).toBeEnabled();
+    fireEvent.click(await screen.findByLabelText(/Con conductor de la empresa/));
+    expect(await screen.findByLabelText('Tarifa diaria del conductor (S/)')).toBeEnabled();
     expect(screen.getByTestId('driver-rate-pending')).toHaveTextContent(/obligatoria para formalizar/);
   });
 
   it('Respuestas 2026-10-20 #2: sin tarifa digitada NO se puede formalizar (campo obligatorio)', async () => {
     useRentalWizardMock.mockReturnValue(wizard(baseRental));
     renderScreen();
-    fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
+    fireEvent.click(await screen.findByLabelText(/Con conductor de la empresa/));
+    await screen.findByLabelText('Tarifa diaria del conductor (S/)');
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     await waitFor(() => expect(screen.getByLabelText(/Área de firma digital/)).toBeInTheDocument());
@@ -161,13 +162,13 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
     expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeDisabled();
   });
 
-  it('sin permiso FORMALIZE_CONTRACT el campo queda deshabilitado con aviso', () => {
+  it('sin permiso FORMALIZE_CONTRACT el campo queda deshabilitado con aviso', async () => {
     clearPermissions();
     setPermissions(['RENTAL.READ']);
     useRentalWizardMock.mockReturnValue(wizard(baseRental));
     renderScreen();
-    fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
-    expect(rateInput()).toBeDisabled();
+    fireEvent.click(await screen.findByLabelText(/Con conductor de la empresa/));
+    expect(await screen.findByLabelText('Tarifa diaria del conductor (S/)')).toBeDisabled();
     expect(screen.getByText(/No tienes permiso para digitar la tarifa diaria/)).toBeInTheDocument();
   });
 
