@@ -81,7 +81,8 @@ export function ActiveRentalScreen() {
   const lastExtension = rental.extensions && rental.extensions.length > 0 ? rental.extensions[0] : null;
   const incidentsPath = `/incidencias?rentalId=${rental.id}`;
   // Decisión 30-oct (BR-ALQ-013): ante falta grave la garantía se ve RETENIDA hasta que se solucione en la devolución; el alquiler sigue activo.
-  const guaranteeRetainedForBreach = inProgress && deposit?.status === 'RETAINED' && rental.extensions?.some((e) => e.status === 'BREACH') === true;
+  const hasExtensionBreach = rental.extensions?.some((e) => e.status === 'BREACH') === true;
+  const guaranteeRetainedForBreach = inProgress && deposit?.status === 'RETAINED' && hasExtensionBreach;
 
   return (
     <main className={styles.wrapper}>
@@ -174,9 +175,15 @@ export function ActiveRentalScreen() {
 
         {inProgress && (
           <div className={styles.actions}>
-            <button type="button" className={styles.primary} onClick={() => setExtOpen(true)} disabled={isExtensionPending}>
-              Solicitar ampliación
-            </button>
+            {hasExtensionBreach ? (
+              <p className={styles.notice} data-testid="extension-blocked-breach">
+                No se puede ampliar: el alquiler tiene una falta grave registrada y el cliente está en rojo (BR-ALQ-013). Solo corresponde la devolución.
+              </p>
+            ) : (
+              <button type="button" className={styles.primary} onClick={() => setExtOpen(true)} disabled={isExtensionPending}>
+                Solicitar ampliación
+              </button>
+            )}
             {canRequestAirport && !airportService && (
               <button
                 type="button"

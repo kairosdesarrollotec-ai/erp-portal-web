@@ -229,6 +229,19 @@ describe('ActiveRentalScreen (ALQ-10)', () => {
     expect(screen.getByRole('button', { name: 'Iniciar devolución' })).toBeInTheDocument();
   });
 
+  it('falta grave: no se ofrece solicitar otra ampliación (cliente en rojo, BR-ALQ-013)', () => {
+    wizardMock.mockReturnValue(
+      wizard({
+        ...baseRental,
+        status: 'ACTIVE',
+        extensions: [{ id: 'e1', status: 'BREACH', requirements: { noticeGiven: false, authorized: false, paid: false, addendumSigned: false } }],
+      }),
+    );
+    renderScreen();
+    expect(screen.queryByRole('button', { name: 'Solicitar ampliación' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('extension-blocked-breach')).toHaveTextContent('falta grave');
+  });
+
   it('sin falta grave la garantía no se muestra como retenida', () => {
     wizardMock.mockReturnValue(wizard({ ...baseRental }));
     renderScreen();

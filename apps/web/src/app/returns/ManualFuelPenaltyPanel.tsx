@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { listVehicleOperationalRecords } from '../fleet/fleet-client';
 import { registerReturnFuelPenalty, type ReturnResponse } from './returns-client';
 import { describeReturnError, isStaleReturnError } from './return-errors';
-import { formatPen, calculateFuelPenalty, calculateFuelPenaltyByLines } from './return-financial';
+import { formatPen, calculateFuelPenaltyByLines } from './return-financial';
 import { formatLimaDateTime } from '../shared/lima-time';
 import { useReturnPermissions } from './return-permissions';
 import type { ReturnsWorkContext } from './useWorkContextForReturns';
@@ -57,7 +57,8 @@ export function ManualFuelPenaltyPanel({ ret, context, getIdToken, setRet, reloa
   useEffect(() => {
     onAutoPenalty?.(byLines);
   }, [byLines, onAutoPenalty]);
-  const suggested = byLines ?? (ret.vehicleFuelPenaltyPerLine ? calculateFuelPenalty(ret.fuelLevelAtReturn, ret.vehicleFuelPenaltyPerLine) : 0);
+  // Sin lecturas RNC de entrega y devolución no hay cálculo oficial por líneas: no se sugiere monto por nivel recibido (decisión 30-oct).
+  const suggested = byLines ?? 0;
 
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
@@ -130,7 +131,11 @@ export function ManualFuelPenaltyPanel({ ret, context, getIdToken, setRet, reloa
               {ret.vehicleFuelPenaltyPerLine ? '' : ' (el vehículo aún no tiene precio por línea definido en Flota)'}.
             </>
           )}{' '}
-          {ret.vehicleFuelPenaltyPerLine ? (
+          {ret.vehicleFuelPenaltyPerLine && byLines === null ? (
+            <span data-testid="fuel-penalty-no-readings">
+              Falta la lectura del RNC de la entrega o de la devolución: no hay multa sugerida. Regístrala manualmente si corresponde.
+            </span>
+          ) : ret.vehicleFuelPenaltyPerLine ? (
             <>
               Multa sugerida por faltante: <strong data-testid="fuel-penalty-suggested-amount">{formatPen(suggested)}</strong> (tarifa:{' '}
               {formatPen(ret.vehicleFuelPenaltyPerLine)} / línea).
