@@ -22,7 +22,7 @@
     "audit:all": "node scripts/audit-check.mjs --include-dev"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.9.1",
+    "@hookform/resolvers": "^6.0.0",
     "@radix-ui/react-dialog": "^1.2.0",
     "@radix-ui/react-select": "^2.1.1",
     "@radix-ui/react-slot": "^1.5.0",
