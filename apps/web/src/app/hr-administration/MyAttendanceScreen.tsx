@@ -60,6 +60,8 @@ export function MyAttendanceScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [queuedItem, setQueuedItem] = useState<AttendanceQueueItem | undefined>(undefined);
   const [syncingQueue, setSyncingQueue] = useState(false);
+  // Reintento de la cola: al volver la señal el primer intento puede fallar (red aún inestable) y quedaría en error para siempre.
+  const [retryTick, setRetryTick] = useState(0);
 
   const today = limaToday();
   const todayRecord = data?.items.find((r) => r.date.slice(0, 10) === today);
@@ -116,7 +118,14 @@ export function MyAttendanceScreen() {
         }
       })();
     }
-  }, [online, data?.employeeId, today]);
+  }, [online, data?.employeeId, today, retryTick]);
+
+  // Reintento automático cada 15 s mientras haya señal y la marca local esté en error.
+  useEffect(() => {
+    if (!online || queuedItem?.queueStatus !== 'error') return;
+    const timer = window.setTimeout(() => setRetryTick((n) => n + 1), 15_000);
+    return () => window.clearTimeout(timer);
+  }, [online, queuedItem?.queueStatus, retryTick]);
 
   async function locate() {
     setLocating(true);
@@ -219,7 +228,7 @@ export function MyAttendanceScreen() {
   const hasPendingQueueCheckIn =
     queuedItem &&
     queuedItem.type === 'CHECK_IN' &&
-    (queuedItem.queueStatus === 'pending' || queuedItem.queueStatus === 'syncing');
+    (queuedItem.queueStatus === 'pending' || queuedItem.queueStatus === 'syncing' || queuedItem.queueStatus === 'error');
 
   return (
     <HrFrame pageTitle="Mi asistencia" context={context} state={state} hasData={!!data} subject="tu asistencia" notFoundHint="Pide a Personal (RR. HH.) que vincule tu cuenta a tu ficha de colaborador." busy={command.saving || syncingQueue}>
@@ -252,7 +261,10 @@ export function MyAttendanceScreen() {
 
           {queuedItem?.queueStatus === 'error' && (
             <div className={styles.errorBanner} role="alert" data-testid="queue-status-error">
-              Error al sincronizar marca local: {queuedItem.errorMessage}.
+              Error al sincronizar marca local: {queuedItem.errorMessage}. Se reintentará automáticamente mientras tengas señal.{' '}
+              <button type="button" className={styles.secondaryButton} onClick={() => setRetryTick((n) => n + 1)} disabled={!online || syncingQueue}>
+                Reintentar ahora
+              </button>
             </div>
           )}
 
