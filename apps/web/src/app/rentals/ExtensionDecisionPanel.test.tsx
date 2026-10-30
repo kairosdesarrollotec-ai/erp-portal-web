@@ -48,18 +48,18 @@ describe('ExtensionDecisionPanel (ALQ-11)', () => {
     expect(screen.queryByTestId('extension-decision')).not.toBeInTheDocument();
   });
 
-  it('autorizar exige la adenda, valida el UUID del pago y envia ambos', async () => {
+  it('autorizar exige la adenda y la referencia del pago previo (obligatoria) y envia ambas', async () => {
     setPermissions(['RENTAL.AUTHORIZE_EXTENSION', 'RENTAL.REJECT_EXTENSION']);
     authorizeMock.mockResolvedValue({});
     const onDone = renderPanel();
     const button = screen.getByRole('button', { name: 'Autorizar ampliación' });
     expect(button).toBeDisabled();
     fireEvent.change(screen.getByLabelText(/Referencia de la adenda/), { target: { value: 'ADE-001' } });
-    expect(button).toBeEnabled();
-    fireEvent.change(screen.getByLabelText(/ID del pago/), { target: { value: 'no-uuid' } });
     expect(button).toBeDisabled();
-    const pay = '3f1c7b52-9d0a-4c4e-8a56-1b2c3d4e5f60';
-    fireEvent.change(screen.getByLabelText(/ID del pago/), { target: { value: pay } });
+    expect(screen.getByRole('alert')).toHaveTextContent(/pago es previo/i);
+    const pay = 'OP-889123';
+    fireEvent.change(screen.getByLabelText(/Referencia del pago previo/), { target: { value: pay } });
+    expect(button).toBeEnabled();
     fireEvent.click(button);
     await waitFor(() => expect(authorizeMock).toHaveBeenCalledWith('tok', 'r1', 'c1', 'b1', 7, pay, 'ADE-001'));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
@@ -75,6 +75,7 @@ describe('ExtensionDecisionPanel (ALQ-11)', () => {
 
     authorizeMock.mockRejectedValue(new RentalCommandError(409, { code: 'VEHICLE_UNAVAILABLE_FOR_EXTENSION' }));
     fireEvent.change(screen.getByLabelText(/Referencia de la adenda/), { target: { value: 'ADE-002' } });
+    fireEvent.change(screen.getByLabelText(/Referencia del pago previo/), { target: { value: 'OP-2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Autorizar ampliación' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/otro compromiso/);
   });

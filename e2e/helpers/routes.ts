@@ -140,7 +140,7 @@ export async function interceptRentals(
   options: { list?: object[]; detail?: object; evidence?: object[] } = {},
 ): Promise<void> {
   const list = options.list ?? [EF.RENTAL_FIXTURE];
-  const detail = options.detail ?? EF.RENTAL_FIXTURE;
+  let detail = options.detail ?? EF.RENTAL_FIXTURE;
   const evidence = options.evidence ?? [];
 
   // ENTREGA-04 consulta el estado confirmado por el servidor antes de habilitar
@@ -168,8 +168,9 @@ export async function interceptRentals(
   });
 
   const notaryDetail = {
-    ...EF.RENTAL_FIXTURE,
-    version: 2,
+    ...detail,
+    status: 'CONTRACTING',
+    version: 3,
     notaryEvaluation: {
       result: 'MANDATORY',
       reason: 'Vehículo de categoría que requiere notaría obligatoria.',
@@ -179,6 +180,7 @@ export async function interceptRentals(
 
   const contractDetail = {
     ...notaryDetail,
+    status: 'PENDING_DELIVERY',
     version: 3,
     contract: { documentRef: `CONTRATO-${EF.RENTAL_FIXTURE.id.slice(0, 8)}` },
     deposit: { originalAmount: '500.00', currency: 'PEN' },
@@ -209,27 +211,24 @@ export async function interceptRentals(
   });
 
   // Command: validate-documents
-  await page.route(/\/rentals\/[^/]+\/commands\/validate-documents/, (route) =>
-    route.fulfill({
+  await page.route(/\/rentals\/[^/]+\/commands\/validate-documents/, (route) => {
+    detail = { ...detail, status: 'VALIDATION', version: 2 };
+    return route.fulfill({
       status: 201,
       contentType: 'application/json',
-      body: JSON.stringify({ ...EF.RENTAL_FIXTURE, status: 'VALIDATION', version: 2 }),
-    }),
-  );
+      body: JSON.stringify(detail),
+    });
+  });
 
   // Command: register-alcohol-test
-  await page.route(/\/rentals\/[^/]+\/commands\/register-alcohol-test/, (route) =>
-    route.fulfill({
+  await page.route(/\/rentals\/[^/]+\/commands\/register-alcohol-test/, (route) => {
+    detail = { ...detail, status: 'NOTARY_EVALUATION', alcoholTestResult: 'FAVORABLE', version: 3 };
+    return route.fulfill({
       status: 201,
       contentType: 'application/json',
-      body: JSON.stringify({
-        ...EF.RENTAL_FIXTURE,
-        status: 'NOTARY_EVALUATION',
-        alcoholTestResult: 'FAVORABLE',
-        version: 2,
-      }),
-    }),
-  );
+      body: JSON.stringify(detail),
+    });
+  });
 
   // Query: contract-template selection (holderType/withDriver)
   await page.route(/\/rentals\/[^/]+\/contract-template/, (route) => {
@@ -247,13 +246,14 @@ export async function interceptRentals(
   });
 
   // Command: evaluate-notary
-  await page.route(/\/rentals\/[^/]+\/commands\/evaluate-notary/, (route) =>
-    route.fulfill({
+  await page.route(/\/rentals\/[^/]+\/commands\/evaluate-notary/, (route) => {
+    detail = { ...notaryDetail, alcoholTestResult: detail.alcoholTestResult ?? 'FAVORABLE' };
+    return route.fulfill({
       status: 201,
       contentType: 'application/json',
-      body: JSON.stringify({ rental: notaryDetail, evaluation: notaryDetail.notaryEvaluation }),
-    }),
-  );
+      body: JSON.stringify({ rental: detail, evaluation: notaryDetail.notaryEvaluation }),
+    });
+  });
 
   // Command: approve-notary-exception
   await page.route(/\/rentals\/[^/]+\/commands\/approve-notary-exception/, (route) =>
@@ -265,22 +265,24 @@ export async function interceptRentals(
   );
 
   // Command: formalize-contract
-  await page.route(/\/rentals\/[^/]+\/commands\/formalize-contract/, (route) =>
-    route.fulfill({
+  await page.route(/\/rentals\/[^/]+\/commands\/formalize-contract/, (route) => {
+    detail = { ...contractDetail, alcoholTestResult: detail.alcoholTestResult ?? 'FAVORABLE' };
+    return route.fulfill({
       status: 201,
       contentType: 'application/json',
-      body: JSON.stringify(contractDetail),
-    }),
-  );
+      body: JSON.stringify(detail),
+    });
+  });
 
   // Command: complete-delivery
-  await page.route(/\/rentals\/[^/]+\/commands\/complete-delivery/, (route) =>
-    route.fulfill({
+  await page.route(/\/rentals\/[^/]+\/commands\/complete-delivery/, (route) => {
+    detail = { ...contractDetail, status: 'ACTIVE', version: 5, alcoholTestResult: detail.alcoholTestResult ?? 'FAVORABLE' };
+    return route.fulfill({
       status: 201,
       contentType: 'application/json',
-      body: JSON.stringify({ ...contractDetail, status: 'ACTIVE', version: 4 }),
-    }),
-  );
+      body: JSON.stringify(detail),
+    });
+  });
 
   // POST /rentals/from-reservation/:id
   await page.route(/\/rentals\/from-reservation\/[^?/]+/, (route) =>

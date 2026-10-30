@@ -33,6 +33,8 @@ interface Props {
   employeeId: string;
   employeeName: string;
   initialDate?: string;
+  /** Fecha de ingreso de la persona (YYYY-MM-DD): no se admiten marcas anteriores (R-4, 29-oct). */
+  hireDate?: string;
   onSaved: (record: AttendanceRecord) => void;
   /** El usuario eligio "Falta": se sigue en ADP-03 con la fecha elegida (no se guarda nada aqui). */
   onAbsence: (date: string) => void;
@@ -58,7 +60,7 @@ function buildEvidence(photoRef: string, capturedAt: string, note: string, uploa
   };
 }
 
-export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate, onSaved, onAbsence, onCancel }: Props) {
+export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate, hireDate, onSaved, onAbsence, onCancel }: Props) {
   const [date, setDate] = useState(initialDate ?? limaToday());
   const [choice, setChoice] = useState<Choice>('PRESENTE');
   const [checkIn, setCheckIn] = useState('');
@@ -124,10 +126,19 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
     setUploadError(null);
   }
 
+  // Respuesta 29-oct #6: sin fechas futuras ni anteriores al ingreso.
+  const dateError = !date
+    ? null
+    : date > limaToday()
+      ? 'No se puede registrar asistencia en una fecha futura.'
+      : hireDate && date < hireDate.slice(0, 10)
+        ? 'No se puede registrar asistencia antes de la fecha de ingreso de la persona.'
+        : null;
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setSubmitted(true);
-    if (!date) return;
+    if (!date || dateError) return;
     const minutes = Number(minutesLate);
     if (choice === 'TARDANZA' && (!Number.isInteger(minutes) || minutes <= 0)) return;
     if (choice === 'FALTA') {
@@ -176,7 +187,12 @@ export function RegisterAttendanceDialog({ employeeId, employeeName, initialDate
       <form onSubmit={(e) => void submit(e)} noValidate>
         <div className={styles.field}>
           <label htmlFor="att-date">Fecha</label>
-          <input id="att-date" type="date" className={styles.inputLine} value={date} max={limaToday()} onChange={(e) => setDate(e.target.value)} aria-invalid={submitted && !date} required />
+          <input id="att-date" type="date" className={styles.inputLine} value={date} min={hireDate ? hireDate.slice(0, 10) : undefined} max={limaToday()} onChange={(e) => setDate(e.target.value)} aria-invalid={(submitted && !date) || Boolean(dateError)} required />
+          {dateError && (
+            <span className={styles.error} role="alert">
+              {dateError}
+            </span>
+          )}
           {submitted && !date && (
             <span className={styles.error} role="alert">
               Indica la fecha.

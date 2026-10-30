@@ -340,9 +340,31 @@ describe('ChecklistScreen — transicion offline → sync → synced', () => {
     });
   });
 
+  it('H-06: sin RNC (combustible y kilometraje) el boton Continuar sigue deshabilitado aunque la evidencia este completa', async () => {
+    saveReturnChecklist('ret-1', {
+      ...EMPTY_RETURN_CHECKLIST,
+      responsibilityDocument: {
+        signerName: 'Maria Quispe',
+        signerIsHolder: true,
+        signerRelationToHolder: '',
+        signatureData: 'data:image/png;base64,FIRMA',
+      },
+    });
+    // N-03: el km y el combustible de la recepcion se precargan; aqui la recepcion no los registro.
+    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'INSPECCION', mileageAtReturn: null, fuelLevelAtReturn: null } as never) }));
+    syncManagerMock.mockReturnValue(syncManagerIdle());
+    listReturnEvidenceMock.mockResolvedValue(fullEvidence());
+    renderChecklist();
+    await screen.findByText('Confirmado por el servidor — recepción completa');
+    expect(screen.getByRole('button', { name: 'Continuar a Resultado' })).toBeDisabled();
+    expect(screen.getByText(/Registra el nivel de combustible y el kilometraje/)).toBeInTheDocument();
+  });
+
   it('con evidence completa del servidor, online y sin pendientes, el boton Continuar se habilita', async () => {
     saveReturnChecklist('ret-1', {
       ...EMPTY_RETURN_CHECKLIST,
+      rnc_kilometraje: 51200,
+      rnc_nivel_combustible_lineas: 8,
       responsibilityDocument: {
         signerName: 'Maria Quispe',
         signerIsHolder: true,

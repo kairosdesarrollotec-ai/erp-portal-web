@@ -6,6 +6,7 @@ import { RentalWizardShell } from './RentalWizardShell';
 import { completeDelivery, listRentalEvidence, RentalCommandError } from './rentals-client';
 import { describeRentalError } from './rental-errors';
 import { loadChecklistDraft, clearChecklistDraft } from './rental-checklist-draft';
+import { ALCOHOL_RESULT_LABELS, NOTARY_RESULT_LABELS } from './rental-status';
 import styles from './RentalStageForms.module.css';
 
 /**
@@ -72,13 +73,27 @@ export function Stage5ConfirmationScreen() {
       title="Confirmación de entrega"
       onContinue={() => setConfirmOpen(true)}
       continueLabel="Confirmar entrega"
+      continueDisabled={rental.alcoholTestResult !== 'FAVORABLE'}
       errorMessage={error}
       continueBusy={busy}
     >
+      {rental.alcoholTestResult !== 'FAVORABLE' && (
+        <p className={styles.blockedNotice} role="alert" data-testid="alcohol-required-notice">
+          No se puede confirmar la entrega: el resultado del alcoholímetro debe estar registrado como favorable (etapa Validaciones).
+        </p>
+      )}
+
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>
           Cliente y documentos
-          <a className={styles.editLink} href={`/alquileres/${id}/entrega-01`}>
+          <a
+            className={styles.editLink}
+            href={`/alquileres/${id}/entrega-01`}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/alquileres/${id}/entrega-01`, { state: context ?? undefined });
+            }}
+          >
             Editar
           </a>
         </p>
@@ -90,22 +105,36 @@ export function Stage5ConfirmationScreen() {
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>
           Validaciones y alcoholímetro
-          <a className={styles.editLink} href={`/alquileres/${id}/entrega-02`}>
+          <a
+            className={styles.editLink}
+            href={`/alquileres/${id}/entrega-02`}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/alquileres/${id}/entrega-02`, { state: context ?? undefined });
+            }}
+          >
             Editar
           </a>
         </p>
-        <p className={styles.summaryLine}>Resultado: {rental.alcoholTestResult ?? 'pendiente'}</p>
+        <p className={styles.summaryLine}>Resultado: {rental.alcoholTestResult ? (ALCOHOL_RESULT_LABELS[rental.alcoholTestResult] ?? rental.alcoholTestResult) : 'pendiente'}</p>
       </section>
 
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>
           Garantía y contrato
-          <a className={styles.editLink} href={`/alquileres/${id}/entrega-03`}>
+          <a
+            className={styles.editLink}
+            href={`/alquileres/${id}/entrega-03`}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/alquileres/${id}/entrega-03`, { state: context ?? undefined });
+            }}
+          >
             Editar
           </a>
         </p>
         <p className={styles.summaryLine}>
-          Notaría: {rental.notaryEvaluation?.result ?? 'sin evaluar'} · Contrato:{' '}
+          Notaría: {rental.notaryEvaluation ? (NOTARY_RESULT_LABELS[rental.notaryEvaluation.result] ?? rental.notaryEvaluation.result) : 'sin evaluar'} · Contrato:{' '}
           {rental.contract ? rental.contract.documentRef : 'pendiente'} · Depósito:{' '}
           {rental.depositRequired === false
             ? 'sin garantía (conductor de la empresa)'
@@ -123,7 +152,14 @@ export function Stage5ConfirmationScreen() {
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>
           Checklist y evidencias
-          <a className={styles.editLink} href={`/alquileres/${id}/entrega-04`}>
+          <a
+            className={styles.editLink}
+            href={`/alquileres/${id}/entrega-04`}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/alquileres/${id}/entrega-04`, { state: context ?? undefined });
+            }}
+          >
             Editar
           </a>
         </p>

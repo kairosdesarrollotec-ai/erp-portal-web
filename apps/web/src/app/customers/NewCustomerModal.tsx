@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { X, UserCheck } from 'lucide-react';
 import type { Customer } from './customers-client';
 import type { CustomerFormData } from './useCustomersList';
+import { validateDocumentNumber, validatePhone, validatePersonName } from '../shared/identity-validation';
 import styles from './NewCustomerModal.module.css';
 
 interface NewCustomerModalProps {
@@ -142,8 +143,19 @@ export function NewCustomerModal({
       setValidationError('El nombre completo o razón social es obligatorio.');
       return;
     }
-    if (!documentNumber.trim()) {
-      setValidationError('El número de documento es obligatorio.');
+    const nameError = validatePersonName(fullName);
+    if (nameError) {
+      setValidationError(nameError);
+      return;
+    }
+    const documentError = validateDocumentNumber(documentType, documentNumber);
+    if (documentError) {
+      setValidationError(documentError);
+      return;
+    }
+    const phoneError = validatePhone(phone);
+    if (phoneError) {
+      setValidationError(phoneError);
       return;
     }
 

@@ -147,3 +147,21 @@ describe('inquiries-client', () => {
     });
   });
 });
+
+describe('V-26: error 400 de validación al cotizar', () => {
+  it('InquiryCommandError muestra el detalle de validación del backend en vez de solo el código', () => {
+    expect(new InquiryCommandError(400, { message: ['destination should not be empty', 'estimatedDays must be positive'] }).message).toBe(
+      'destination should not be empty; estimatedDays must be positive',
+    );
+  });
+
+  it('un 400 sin detalle explica qué revisar y no muestra solo «(400)»', () => {
+    const message = new InquiryCommandError(400, null).message;
+    expect(message).toContain('incompletos');
+    expect(message).not.toContain('(400)');
+  });
+
+  it('otros códigos sin detalle mantienen el texto genérico', () => {
+    expect(new InquiryCommandError(500, null).message).toBe('La operación no se pudo completar (500)');
+  });
+});

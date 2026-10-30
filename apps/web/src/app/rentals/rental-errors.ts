@@ -1,4 +1,5 @@
 import { RentalCommandError } from './rentals-client';
+import { RENTAL_STATUS_LABELS } from './rental-status';
 import { requiredDocumentLabel } from '../inquiries/inquiry-status';
 
 /** Codigos de dominio de rentals.yaml (ALQ), traducidos a lenguaje de negocio. */
@@ -79,6 +80,10 @@ export function describeRentalError(
       return `Faltan documentos requeridos: ${missing}. Súbelos y vuelve a intentar.`;
     }
     if (code && DOMAIN_MESSAGES[code]) return DOMAIN_MESSAGES[code];
+    // H-19 (28-oct): el back nombra el estado con su clave interna ("...en estado CONTRACTING"); se muestra la etapa en español.
+    if (code === 'RENTAL_STATE_CONFLICT' && error.message) {
+      return error.message.replace(/\b([A-Z][A-Z_]{3,})\b/g, (token) => (RENTAL_STATUS_LABELS as Record<string, string>)[token] ?? token);
+    }
     return error.message || fallback;
   }
   return fallback;

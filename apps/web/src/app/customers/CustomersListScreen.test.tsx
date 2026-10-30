@@ -69,6 +69,19 @@ describe('CustomersListScreen', () => {
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
+  it('H-17: muestra el semáforo del cliente en la lista (texto + símbolo)', async () => {
+    listCustomersMock.mockResolvedValue({
+      items: [
+        { id: 'cust-r', fullName: 'Cliente Rojo', documentType: 'DNI', documentNumber: '1', nationality: 'PERUANO', riskStatus: 'ROJO', createdAt: '2026-09-28T12:00:00.000Z' },
+        { id: 'cust-n', fullName: 'Cliente Normal', documentType: 'DNI', documentNumber: '2', nationality: 'PERUANO', createdAt: '2026-09-28T12:00:00.000Z' },
+      ],
+      total: 2,
+    });
+    renderScreen();
+    await waitFor(() => expect(screen.getByTestId('customer-risk-cust-r')).toHaveTextContent('Rojo'));
+    expect(screen.getByTestId('customer-risk-cust-n')).toHaveTextContent('Sin observación');
+  });
+
   it('muestra la tabla de clientes con sus datos y badge de documento', async () => {
     listCustomersMock.mockResolvedValue({
       items: [
@@ -180,6 +193,21 @@ describe('CustomersListScreen', () => {
     });
   });
 
+
+  it('CR-10: rechaza DNI de 3 dígitos y nombre de 1 letra sin llamar al API', async () => {
+    listCustomersMock.mockResolvedValue({ items: [], total: 0 });
+    createCustomerMock.mockReset();
+    renderScreen();
+    fireEvent.click(await screen.findByText('Nuevo Cliente'));
+    fireEvent.change(screen.getByPlaceholderText('Ej. 12345678'), { target: { value: '123' } });
+    fireEvent.change(screen.getByPlaceholderText('Ej. Juan Pérez o Inversiones SAC'), { target: { value: 'X' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
+    expect(await screen.findByText(/al menos 3 caracteres/)).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('Ej. Juan Pérez o Inversiones SAC'), { target: { value: 'Carlos Sanchez' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar cliente' }));
+    expect(await screen.findByText(/DNI debe tener exactamente 8 dígitos/)).toBeInTheDocument();
+    expect(createCustomerMock).not.toHaveBeenCalled();
+  });
 
   it('abre el modal de edición con los datos precargados y guarda los cambios', async () => {
     listCustomersMock.mockResolvedValue({

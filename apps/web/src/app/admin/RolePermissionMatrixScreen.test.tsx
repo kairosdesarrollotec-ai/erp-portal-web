@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // AppHeader monta GlobalSearch (react-query); estas pruebas no usan QueryClientProvider.
 vi.mock('../shared/GlobalSearch/GlobalSearch', () => ({ GlobalSearch: () => null }));
@@ -7,6 +7,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { RolePermissionMatrixScreen } from './RolePermissionMatrixScreen';
 import { PermissionCommandError } from './permissions-client';
 import { RoleCommandError } from './roles-client';
+import { INCOMPATIBLE_ACTION_PAIRS } from './useRolePermissionMatrix';
 
 const getRolePermissionMatrixMock = vi.fn();
 const saveRolePermissionMatrixMock = vi.fn();
@@ -149,15 +150,37 @@ describe('RolePermissionMatrixScreen (ADM-02)', () => {
     expect(screen.getByText('Solo lectura')).toBeInTheDocument();
   });
 
-  it('marca en conflicto una combinacion incompatible y bloquea el guardado', async () => {
+  describe('segregacion de funciones (con un par de prueba inyectado)', () => {
+    beforeEach(() => {
+      INCOMPATIBLE_ACTION_PAIRS.push(['RESERVATION.REGISTER_PAYMENT', 'RESERVATION.CONFIRM']);
+    });
+    afterEach(() => {
+      INCOMPATIBLE_ACTION_PAIRS.length = 0;
+    });
+
+    it('marca en conflicto una combinacion incompatible y bloquea el guardado', async () => {
+      renderScreen();
+
+      const registerPaymentCheckbox = await screen.findByRole('checkbox', { name: 'Front Office: Reserva: registrar pago' });
+      fireEvent.click(registerPaymentCheckbox);
+
+      expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
+      expect(screen.getByRole('alert')).toHaveTextContent(/segregación de funciones/);
+      expect(registerPaymentCheckbox.closest('td')).toHaveAttribute('title', expect.stringMatching(/segregación de funciones/));
+    });
+  });
+
+  it('sin pares definidos por el negocio, registrar pago y confirmar a la vez NO marca conflicto y permite guardar', async () => {
+    saveRolePermissionMatrixMock.mockResolvedValue(baseMatrix());
     renderScreen();
 
+    expect(INCOMPATIBLE_ACTION_PAIRS).toHaveLength(0);
     const registerPaymentCheckbox = await screen.findByRole('checkbox', { name: 'Front Office: Reserva: registrar pago' });
     fireEvent.click(registerPaymentCheckbox);
 
-    expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent(/segregación de funciones/);
-    expect(registerPaymentCheckbox.closest('td')).toHaveAttribute('title', expect.stringMatching(/segregación de funciones/));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(registerPaymentCheckbox.closest('td')).not.toHaveAttribute('title', expect.stringMatching(/segregación de funciones/));
+    expect(screen.getByRole('button', { name: 'Guardar cambios' })).not.toBeDisabled();
   });
 
   it('guarda la matriz completa por roleId (todos los roles activos x acciones del catalogo) en el ambito elegido', async () => {

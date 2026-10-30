@@ -35,6 +35,9 @@ import { VehicleDataWarnings } from '../shared/VehicleDataWarnings';
  * pasando cliente, vehiculo y periodo heredados de la reserva confirmada
  * via location.state (ver NewRentalScreen.tsx).
  */
+/** CR-06: la cancelación por cambio solicitado exige motivo. */
+const CANCEL_NOTE_MIN = 5;
+
 export function ReservationDetailScreen() {
   const {
     state,
@@ -383,6 +386,12 @@ export function ReservationDetailScreen() {
             </>
           )}
 
+          {reservation.status === 'CANCELLED' && !reservation.saleResolution && (
+            <p className={styles.helperText} data-testid="detail-lost-amount">
+              Reserva cancelada: el cliente perdió el monto de reserva de S/ {reservation.requiredPayment.amount} (BR-RES-003).
+            </p>
+          )}
+
           {reservation.status === 'CANCELLED' && reservation.saleResolution?.refundStatus === 'PENDING_TRANSFER' && (
             <p className={styles.helperText}>
               Reembolso pendiente de transferencia: Gerencia debe devolver S/ {reservation.requiredPayment.amount} al cliente.{' '}
@@ -522,28 +531,31 @@ export function ReservationDetailScreen() {
                 alquiler o la entrega.
               </p>
 
-              <button
-                type="button"
-                className={styles.confirmButton}
-                disabled={beforeAgreedDate}
-                aria-describedby={beforeAgreedDate ? 'agreed-date-hint' : undefined}
-                onClick={() =>
-                  navigate('/alquileres/nuevo', {
-                    state: {
-                      ...context,
-                      reservationId: reservation.id,
-                      customerId: reservation.customer.id,
-                      customerName: reservation.customer.name,
-                      vehicleId: reservation.vehicle.id,
-                      vehicleLabel: reservation.vehicle.label,
-                      startAt: reservation.startAt,
-                      expectedEndAt: reservation.endAt,
-                    },
-                  })
-                }
-              >
-                Continuar con alquiler
-              </button>
+              {/* V-22: sin permiso RENTAL.CREATE en la matriz (p. ej. Gerencia) no se ofrece «Continuar con alquiler». */}
+              {can('RENTAL', 'CREATE') && (
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  disabled={beforeAgreedDate}
+                  aria-describedby={beforeAgreedDate ? 'agreed-date-hint' : undefined}
+                  onClick={() =>
+                    navigate('/alquileres/nuevo', {
+                      state: {
+                        ...context,
+                        reservationId: reservation.id,
+                        customerId: reservation.customer.id,
+                        customerName: reservation.customer.name,
+                        vehicleId: reservation.vehicle.id,
+                        vehicleLabel: reservation.vehicle.label,
+                        startAt: reservation.startAt,
+                        expectedEndAt: reservation.endAt,
+                      },
+                    })
+                  }
+                >
+                  Continuar con alquiler
+                </button>
+              )}
               {beforeAgreedDate && (
                 <p id="agreed-date-hint" className={styles.helperText} role="status">
                   Disponible el día pactado: {formatLimaDayMonth(reservation.startAt)}. La reserva solo pasa a alquiler
@@ -773,16 +785,22 @@ export function ReservationDetailScreen() {
                   </p>
                   <textarea
                     className={styles.cancelNote}
-                    placeholder="Motivo del cambio solicitado"
+                    placeholder="Motivo del cambio solicitado (obligatorio)"
+                    aria-label="Motivo del cambio solicitado"
                     value={cancelNote}
                     onChange={(event) => setCancelNote(event.target.value)}
                   />
+                  {cancelNote.trim().length < CANCEL_NOTE_MIN && (
+                    <p className={styles.helperText} data-testid="cancel-note-required">
+                      Indica el motivo (mínimo {CANCEL_NOTE_MIN} caracteres) para cancelar.
+                    </p>
+                  )}
                   <div className={styles.cancelActions}>
                     <button
                       type="button"
                       className={styles.dangerButton}
-                      disabled={savingRequirement === 'CANCEL'}
-                      onClick={() => void cancel('CUSTOMER_REQUESTED_CHANGE', cancelNote || undefined)}
+                      disabled={savingRequirement === 'CANCEL' || cancelNote.trim().length < CANCEL_NOTE_MIN}
+                      onClick={() => void cancel('CUSTOMER_REQUESTED_CHANGE', cancelNote.trim())}
                     >
                       {savingRequirement === 'CANCEL' ? 'Cancelando…' : 'Confirmar cancelación'}
                     </button>

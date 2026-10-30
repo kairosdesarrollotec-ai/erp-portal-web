@@ -90,6 +90,19 @@ describe('PersonAttendanceScreen (ADP-02)', () => {
     expect(screen.queryByRole('button', { name: /Registrar marcación del/ })).not.toBeInTheDocument();
   });
 
+  it('R-4/R-5: rechaza fechas futuras y anteriores al ingreso (hireDate 2026-01-10)', async () => {
+    renderScreen();
+    await screen.findByRole('table');
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar marcación del 4' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Fecha'), { target: { value: '2099-01-01' } });
+    expect(within(dialog).getByText(/fecha futura/)).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText('Fecha'), { target: { value: '2026-01-05' } });
+    expect(within(dialog).getByText(/antes de la fecha de ingreso/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Registrar marcación' }));
+    expect(logAttendanceMock).not.toHaveBeenCalled();
+  });
+
   it('registra una marcacion manual sin enviar monto de descuento', async () => {
     logAttendanceMock.mockResolvedValue(makeRecord({ date: '2026-09-04' }));
     renderScreen();

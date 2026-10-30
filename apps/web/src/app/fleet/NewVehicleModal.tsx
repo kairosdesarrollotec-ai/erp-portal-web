@@ -83,9 +83,13 @@ const vehicleSchema = z.object({
   rateLibre: z.string().optional().refine((v) => !v || (Number(v) >= 0 && !isNaN(Number(v))), {
     message: 'La tarifa Libre debe ser un monto mayor o igual a 0.',
   }),
-  fuelPenaltyPerLine: z.string().optional().refine((v) => !v || (Number(v) >= 0 && !isNaN(Number(v))), {
-    message: 'La multa por línea faltante debe ser un monto mayor o igual a 0.',
-  }),
+  // Decisión de negocio 28-oct #1: el precio por línea de combustible es obligatorio al registrar un vehículo.
+  // Obligatorio solo al REGISTRAR (se exige en el submit); en edición de vehículos antiguos puede quedar vacío.
+  fuelPenaltyPerLine: z
+    .string()
+    .refine((v) => v.trim() === '' || (Number(v) > 0 && !isNaN(Number(v))), {
+      message: 'La multa por línea faltante debe ser un monto mayor a 0.',
+    }),
 });
 
 type VehicleFormValues = z.infer<typeof vehicleSchema>;
@@ -258,6 +262,11 @@ export function NewVehicleModal({
     // la reserva/alquiler avisará para completarlos.
     if (!(values.passengerCapacity ?? '').trim()) {
       setError('passengerCapacity', { message: PASSENGER_CAPACITY_REQUIRED_MESSAGE });
+      return;
+    }
+
+    if (!isEditMode && !(values.fuelPenaltyPerLine ?? '').trim()) {
+      setError('fuelPenaltyPerLine', { message: 'Indica la multa de combustible por línea faltante.' });
       return;
     }
 
@@ -536,7 +545,7 @@ export function NewVehicleModal({
 
           <div className={styles.gridTwo}>
             <label className={styles.field}>
-              Multa combustible por línea (S/) (opcional)
+              Multa combustible por línea (S/)
               <input
                 type="number"
                 step="0.01"
@@ -547,7 +556,8 @@ export function NewVehicleModal({
                 disabled={isSubmitting}
                 aria-invalid={!!errors.fuelPenaltyPerLine}
               />
-              <span className={styles.fieldHint}>Multa aplicada por cada línea faltante en la devolución.</span>
+              <span className={styles.fieldHint}>Precio por cada línea de combustible faltante (línea del RNC, 0 a 16): la multa de devolución es líneas faltantes entre entrega y devolución x este precio.</span>
+              {errors.fuelPenaltyPerLine && <span role="alert" className={styles.fieldHint}>{errors.fuelPenaltyPerLine.message}</span>}
             </label>
 
             <label className={styles.field}>

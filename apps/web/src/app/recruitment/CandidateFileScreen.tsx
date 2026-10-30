@@ -121,8 +121,12 @@ export function CandidateFileScreen() {
   const c = candidate;
   const sensitiveHidden = c.isRestrictedView || !can('VIEW_CANDIDATE_SENSITIVE_DATA');
   const decided = Boolean(c.decision);
+  // Respuesta 29-oct #8 (R-10): descartar es irreversible; un descartado no avanza ni agenda.
+  const discarded = c.processState === 'DESCARTADO';
+  // R-2: «Acordar y continuar» exige una negociación ACORDADA registrada.
+  const hasAgreedNegotiation = (c.negotiations ?? []).some((n: NegotiationResponse) => n.outcome === 'ACORDADA');
   const canRegister = can('REGISTER_CANDIDATE');
-  const canDiscard = can('DECIDE_CANDIDATE') && !decided;
+  const canDiscard = can('DECIDE_CANDIDATE') && !decided && !discarded;
   const scope = context ? { companyId: context.companyId, branchId: context.branchId } : null;
   const interviewPath = `/reclutamiento/candidatos/${c.id}/entrevista`;
 
@@ -202,9 +206,11 @@ export function CandidateFileScreen() {
       const updated = await recordNegotiation(idToken, c.id, c.version, scope, input);
       replace(updated);
       setNegotiating(false);
+      // R-2: el aviso solo afirma el cambio de etapa cuando el servidor realmente la cambio
+      // (si el candidato ya estaba en Entrevista o Decision, el acuerdo no la modifica).
       setNotice(
-        input.outcome === 'ACORDADA'
-          ? 'Negociación registrada. El candidato pasó a la etapa Entrevista.'
+        input.outcome === 'ACORDADA' && updated.stage !== c.stage
+          ? `Negociación registrada. El candidato pasó a la etapa ${CANDIDATE_STAGE_LABEL[updated.stage]}.`
           : 'Negociación registrada en el historial.',
       );
     } catch (err) {
@@ -292,7 +298,7 @@ export function CandidateFileScreen() {
               ) : 'Sin CV'}
             </Field>
           </dl>
-          {!sensitiveHidden && canRegister && !decided && (
+          {!sensitiveHidden && canRegister && !decided && !discarded && (
             <div className={styles.cvRow}>
               <input id="cv-file" type="file" className={styles.fileInput} disabled={cvBusy}
                 accept=".pdf,.docx,.jpg,.jpeg,.png,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png"
@@ -347,7 +353,7 @@ export function CandidateFileScreen() {
               ))}
             </ol>
           )}
-          {!sensitiveHidden && canRegister && !decided && (
+          {!sensitiveHidden && canRegister && !decided && !discarded && (
             <p className={styles.guide}>
               <button type="button" className={styles.secondaryButton} onClick={() => { setNegotiationError(null); setNegotiating(true); }}>
                 Registrar negociación
@@ -371,10 +377,25 @@ export function CandidateFileScreen() {
         )}
 
         <div className={styles.actions}>
-          {canRegister && (
-            <button type="button" className={styles.primaryButton} disabled={busy || !scope} onClick={() => void agreeAndContinue()}>
+          {canRegister && !discarded && (
+            <button
+              type="button"
+              className={styles.primaryButton}
+              disabled={busy || !scope || (!sensitiveHidden && !hasAgreedNegotiation)}
+              onClick={() => void agreeAndContinue()}
+            >
               {busy ? 'Guardando…' : 'Acordar y continuar'}
             </button>
+          )}
+          {canRegister && !discarded && !sensitiveHidden && !hasAgreedNegotiation && (
+            <p className={styles.guide} data-testid="agree-required">
+              Registra una negociación con resultado «Acordada» para poder continuar a la entrevista.
+            </p>
+          )}
+          {discarded && (
+            <p className={styles.guide} role="status" data-testid="candidate-discarded">
+              Candidato descartado: la decisión es irreversible; no se puede avanzar ni agendar entrevistas.
+            </p>
           )}
           {canDiscard && (
             <button type="button" className={styles.discardLink} onClick={() => { setDiscardError(null); setDiscarding(true); }}>

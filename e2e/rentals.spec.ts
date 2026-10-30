@@ -34,6 +34,7 @@ async function attachGuaranteePaymentProof(
 async function evaluateNotary(
   page: Parameters<typeof loginViaUI>[0],
 ) {
+  await page.getByLabel('Verificación biométrica favorable').check();
   await page.getByRole('button', { name: 'Evaluar notaría' }).click();
   await expect(page.getByText('Notaría obligatoria', { exact: true })).toBeVisible();
 }
@@ -115,6 +116,8 @@ test.describe('ENTREGA-02 Validaciones y alcoholímetro', () => {
 
     await page.getByRole('radio', { name: 'Favorable', exact: true }).check();
     await page.getByLabel(/Fecha y hora de la prueba/i).fill('2026-10-05T10:30');
+    await page.getByLabel(/Confirmar verificación manual/).first().check();
+    await page.getByLabel(/Confirmar verificación manual/).last().check();
 
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
   });
@@ -127,13 +130,13 @@ test.describe('ENTREGA-03 Garantía y contrato', () => {
     await setupTest(page);
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-03`);
 
-    await expect(page.getByText(/Evaluación notarial/i)).toBeVisible();
+    await expect(page.getByText('Evaluación notarial', { exact: true })).toBeVisible();
     await expect(page.getByText(/Pago de garantía/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /Formalizar/i })).toBeDisabled();
   });
 
   test('Formalizar se habilita tras evaluación, monto y firma', async ({ page }) => {
-    await setupTest(page);
+    await setupTest(page, { detail: { ...RENTAL_FIXTURE, status: 'NOTARY_EVALUATION' } });
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-03`);
 
     await evaluateNotary(page);
@@ -174,7 +177,7 @@ test.describe('ENTREGA-04 Checklist y evidencias', () => {
       try {
         sessionStorage.setItem(
           `kairos.alquiler.${rentalId}.checklist`,
-          JSON.stringify({ technicalMinutes: 30, documentaryMinutes: 15, exceptionReason: '', notes: '' }),
+          JSON.stringify({ rnc_kilometraje: 15000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 30, documentaryMinutes: 15, exceptionReason: '', notes: '' }),
         );
       } catch {
         // sessionStorage may not be available in some contexts
@@ -192,7 +195,7 @@ test.describe('ENTREGA-04 Checklist y evidencias', () => {
 
 test.describe('ENTREGA-05 Confirmación de entrega', () => {
   test('muestra el resumen de las 4 etapas anteriores', async ({ page }) => {
-    await setupTest(page);
+    await setupTest(page, { detail: { ...RENTAL_FIXTURE, status: 'PENDING_DELIVERY', alcoholTestResult: 'FAVORABLE' } });
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-05`);
 
     await expect(page.locator('p').filter({ hasText: 'Cliente y documentos' })).toBeVisible();
@@ -202,7 +205,7 @@ test.describe('ENTREGA-05 Confirmación de entrega', () => {
   });
 
   test('Confirmar entrega abre modal y navega al confirmar', async ({ page }) => {
-    await setupTest(page);
+    await setupTest(page, { detail: { ...RENTAL_FIXTURE, status: 'PENDING_DELIVERY', alcoholTestResult: 'FAVORABLE' } });
     await page.goto(`/alquileres/${RENTAL_FIXTURE.id}/entrega-05`);
 
     await page.getByRole('button', { name: /Confirmar entrega/i }).click();
@@ -224,7 +227,7 @@ test.describe('Flujo completo asistente de entrega', () => {
       try {
         sessionStorage.setItem(
           `kairos.alquiler.${rentalId}.checklist`,
-          JSON.stringify({ technicalMinutes: 30, documentaryMinutes: 15, exceptionReason: '', notes: '' }),
+          JSON.stringify({ rnc_kilometraje: 15000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 30, documentaryMinutes: 15, exceptionReason: '', notes: '' }),
         );
       } catch {
         // no-op
@@ -249,6 +252,8 @@ test.describe('Flujo completo asistente de entrega', () => {
     await expect(page.getByRole('radio', { name: 'Favorable', exact: true })).toBeVisible();
     await page.getByRole('radio', { name: 'Favorable', exact: true }).check();
     await page.getByLabel(/Fecha y hora de la prueba/i).fill('2026-10-05T09:15');
+    await page.getByLabel(/Confirmar verificación manual/).first().check();
+    await page.getByLabel(/Confirmar verificación manual/).last().check();
     await page.getByRole('button', { name: 'Continuar' }).click();
 
     // — Stage 3 —

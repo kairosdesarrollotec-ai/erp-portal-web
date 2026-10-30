@@ -168,6 +168,13 @@ export async function interceptReturns(page: Page, options: InterceptReturnsOpti
   await page.route(/\/rentals\/[^?/]+(\?.*)?$/, (route) => route.fulfill(json(ACTIVE_RENTAL_FIXTURE)));
   await page.route(/\/rentals\/[^/]+\/evidence(\?.*)?$/, (route) => route.fulfill(json([])));
 
+  // FIV, FCKE y RNC se persisten al avanzar desde DEV-04. El mock debe
+  // responder tanto a la lectura inicial como a los tres POST del checklist.
+  await page.route(/\/fleet\/vehicles\/[^/]+\/operational-records(\?.*)?$/, (route) => {
+    if (route.request().method() === 'GET') return route.fulfill(json({ items: [] }));
+    return route.fulfill(json({ id: `operational-${Date.now()}` }, 201));
+  });
+
   // Lista (baja prioridad: se registra primero).
   await page.route(/\/returns(\?.*)?$/, (route) => {
     const request = route.request();

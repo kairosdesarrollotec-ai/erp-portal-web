@@ -253,7 +253,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+      JSON.stringify({ rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
@@ -269,7 +269,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+      JSON.stringify({ rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
@@ -287,14 +287,14 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+      JSON.stringify({ rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled());
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
-    expect(screen.getByText('etapa 5')).toBeInTheDocument();
+    expect(await screen.findByText('etapa 5')).toBeInTheDocument();
   });
 
   // ── confirmación: modal de excepción de tiempo ───────────────────────────
@@ -306,7 +306,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ technicalMinutes: 10, documentaryMinutes: 5, exceptionReason: '', notes: '' }),
+      JSON.stringify({ rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 10, documentaryMinutes: 5, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
@@ -324,7 +324,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ technicalMinutes: 10, documentaryMinutes: 5, exceptionReason: '', notes: '' }),
+      JSON.stringify({ rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 10, documentaryMinutes: 5, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
@@ -335,7 +335,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     fireEvent.change(textarea, { target: { value: 'Cliente solicitó acortar la inspección' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continuar con excepción' }));
 
-    expect(screen.getByText('etapa 5')).toBeInTheDocument();
+    expect(await screen.findByText('etapa 5')).toBeInTheDocument();
   });
 
   // ── vacios: contadores parten en 0 ───────────────────────────────────────
@@ -503,7 +503,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+      JSON.stringify({ rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
@@ -568,7 +568,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+      JSON.stringify({ rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
@@ -584,7 +584,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     ]);
     sessionStorage.setItem(
       CHECKLIST_KEY,
-      JSON.stringify({ technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
+      JSON.stringify({ rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 35, documentaryMinutes: 20, exceptionReason: '', notes: '' }),
     );
     useRentalWizardMock.mockReturnValue(makeWizard());
     renderScreen();
@@ -696,7 +696,7 @@ describe('Stage4ChecklistScreen (ENTREGA-04 / ALQ-09)', () => {
     sessionStorage.setItem(
       CHECKLIST_KEY,
       JSON.stringify({
-        technicalMinutes: 35,
+        rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 35,
         documentaryMinutes: 20,
         exceptionReason: '',
         notes: '',

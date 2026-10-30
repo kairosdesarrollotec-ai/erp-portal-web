@@ -86,6 +86,11 @@ export function RentalsListScreen() {
                         <span className={`${styles.badge} ${styles[`badge_${rental.status}`] ?? ''}`}>
                           {RENTAL_STATUS_LABELS[rental.status]}
                         </span>
+                        {rental.hasExtensionBreach && (
+                          <span className={`${styles.badge} ${styles.badge_BREACH}`} data-testid={`rental-breach-${rental.id}`}>
+                            Incumplimiento grave
+                          </span>
+                        )}
                         {stage && (
                           <div className={styles.progressTrack} aria-hidden="true">
                             <div className={styles.progressFill} style={{ width: `${(stage / 5) * 100}%` }} />

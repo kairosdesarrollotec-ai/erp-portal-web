@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getMyNotifications, markAllNotificationsRead, NotificationItem } from './notifications-client';
 
@@ -13,26 +13,33 @@ export type NotificationsState = 'LOADING' | 'READY' | 'EMPTY' | 'RECOVERABLE_ER
 export function useNotifications(companyId: string | null, branchId: string | null) {
   const [state, setState] = useState<NotificationsState>('LOADING');
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const mounted = useRef(true);
 
   const load = useCallback(async () => {
     if (!companyId || !branchId) return;
     const user = getFirebaseAuth().currentUser;
     if (!user) {
-      setState('RECOVERABLE_ERROR');
+      if (mounted.current) setState('RECOVERABLE_ERROR');
       return;
     }
     try {
       const idToken = await user.getIdToken();
       const result = await getMyNotifications(idToken, companyId, branchId);
-      setNotifications(result);
-      setState(result.length === 0 ? 'EMPTY' : 'READY');
+      if (mounted.current) {
+        setNotifications(result);
+        setState(result.length === 0 ? 'EMPTY' : 'READY');
+      }
     } catch {
-      setState('RECOVERABLE_ERROR');
+      if (mounted.current) setState('RECOVERABLE_ERROR');
     }
   }, [companyId, branchId]);
 
   useEffect(() => {
+    mounted.current = true;
     queueMicrotask(() => void load());
+    return () => {
+      mounted.current = false;
+    };
   }, [load]);
 
   const unreadCount = notifications.filter((n) => n.readAt === null).length;
@@ -44,7 +51,9 @@ export function useNotifications(companyId: string | null, branchId: string | nu
     try {
       const idToken = await user.getIdToken();
       await markAllNotificationsRead(idToken, companyId, branchId);
-      setNotifications((prev) => prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })));
+      if (mounted.current) {
+        setNotifications((prev) => prev.map((n) => ({ ...n, readAt: n.readAt ?? new Date().toISOString() })));
+      }
     } catch {
       // Accion secundaria (contrato punto 7) - si falla, el usuario puede
       // reintentar; no se bloquea el resto del panel.

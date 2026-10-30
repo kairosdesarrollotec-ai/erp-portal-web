@@ -48,6 +48,8 @@ function detail(o: Partial<CandidateDetail> = {}): CandidateDetail {
   } as CandidateDetail;
 }
 
+const AGREED = [{ id: 'n-ok', outcome: 'ACORDADA', offeredSalary: 2500, agreedSalary: 2500, createdAt: '2026-10-02T10:00:00Z' }] as unknown as NegotiationResponse[];
+
 function renderScreen() {
   return render(
     <MemoryRouter initialEntries={[{ pathname: '/reclutamiento/candidatos/cand-1', state: ctx }]}>
@@ -93,7 +95,24 @@ describe('CandidateFileScreen (REC-04)', () => {
     expect(screen.getAllByText(/Este dato requiere permiso adicional/)).toHaveLength(4);
   });
 
+  it('R-2: sin negociación ACORDADA, Acordar y continuar está deshabilitado y explica por qué', async () => {
+    renderScreen();
+    await screen.findByText('Ana Pérez');
+    expect(screen.getByRole('button', { name: 'Acordar y continuar' })).toBeDisabled();
+    expect(screen.getByTestId('agree-required')).toBeInTheDocument();
+  });
+
+  it('R-10: un candidato descartado no puede acordar, descartar de nuevo ni registrar negociación', async () => {
+    getCandidateMock.mockResolvedValue(detail({ processState: 'DESCARTADO', decision: 'RECHAZADO', negotiations: AGREED }));
+    renderScreen();
+    await screen.findByText('Ana Pérez');
+    expect(screen.queryByRole('button', { name: 'Acordar y continuar' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Descartar' })).toBeNull();
+    expect(screen.getByTestId('candidate-discarded')).toBeInTheDocument();
+  });
+
   it('Acordar y continuar mueve a Entrevista y navega', async () => {
+    getCandidateMock.mockResolvedValue(detail({ negotiations: AGREED }));
     changeStageMock.mockResolvedValue({});
     renderScreen();
     await screen.findByText('Ana Pérez');
@@ -103,7 +122,7 @@ describe('CandidateFileScreen (REC-04)', () => {
   });
 
   it('si ya está en Entrevista solo navega, y sin permiso no aparece', async () => {
-    getCandidateMock.mockResolvedValue(detail({ stage: 'ENTREVISTA' }));
+    getCandidateMock.mockResolvedValue(detail({ stage: 'ENTREVISTA', negotiations: AGREED }));
     renderScreen();
     await screen.findByText('Ana Pérez');
     fireEvent.click(screen.getByRole('button', { name: 'Acordar y continuar' }));
@@ -120,6 +139,7 @@ describe('CandidateFileScreen (REC-04)', () => {
   });
 
   it('con conflicto de versión al acordar recarga y avisa sin navegar', async () => {
+    getCandidateMock.mockResolvedValue(detail({ negotiations: AGREED }));
     changeStageMock.mockRejectedValue(new RecruitmentCommandError(409, { code: 'VERSION_CONFLICT' }));
     renderScreen();
     await screen.findByText('Ana Pérez');
@@ -290,6 +310,22 @@ describe('CandidateFileScreen (REC-04)', () => {
       });
       expect(await screen.findByText(/pasó a la etapa Entrevista/)).toBeInTheDocument();
       expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('R-2: si el candidato ya estaba en Decisión, el aviso no afirma un cambio de etapa', async () => {
+      getCandidateMock.mockResolvedValue(detail({ stage: 'DECISION' }));
+      negotiationMock.mockResolvedValue(detail({ version: 5, stage: 'DECISION', negotiations: [nego({ outcome: 'ACORDADA', agreedSalary: 2600 })] }));
+      renderScreen();
+      await screen.findByText('Ana Pérez');
+      fireEvent.click(screen.getByRole('button', { name: 'Registrar negociación' }));
+      const dialog = await screen.findByRole('dialog');
+      fireEvent.change(within(dialog).getByLabelText('Sueldo ofrecido (S/)'), { target: { value: '2400' } });
+      fireEvent.change(within(dialog).getByLabelText('Resultado de esta ronda'), { target: { value: 'ACORDADA' } });
+      fireEvent.change(within(dialog).getByLabelText('Sueldo acordado (S/)'), { target: { value: '2600' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar negociación' }));
+      await waitFor(() => expect(negotiationMock).toHaveBeenCalled());
+      expect(await screen.findByText('Negociación registrada en el historial.')).toBeInTheDocument();
+      expect(screen.queryByText(/pasó a la etapa/)).toBeNull();
     });
 
     it('"No acordada" exige motivo', async () => {

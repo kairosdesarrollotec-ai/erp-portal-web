@@ -1,3 +1,4 @@
+import { validateDocumentNumber, validatePhone } from '../shared/identity-validation';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppHeader } from '../shared/AppHeader';
@@ -88,10 +89,12 @@ function NewEmployee() {
   const salary = baseSalary.trim() === '' ? null : Number(baseSalary);
   const invalid = {
     fullName: !fullName.trim(),
-    documentNumber: !documentNumber.trim(),
+    documentNumber: validateDocumentNumber(documentType || 'DNI', documentNumber) !== null,
+    phone: validatePhone(phone) !== null,
     areaName: catalogReady ? areaChoice === '' || (areaChoice === OTHER_AREA && !areaName.trim()) : !areaId,
     jobTitle: !jobTitle.trim(),
-    hireDate: !hireDate,
+    // R-5 (29-oct): no se admite un ingreso posterior a hoy.
+    hireDate: !hireDate || hireDate > limaToday(),
     baseSalary: canEditSalary && salary !== null && (!Number.isFinite(salary) || salary < 0),
   };
 
@@ -155,7 +158,7 @@ function NewEmployee() {
         <input id="emp-documento" className={styles.input} inputMode="numeric" value={documentNumber} onChange={(e) => setDocumentNumber(e.target.value)} aria-invalid={submitted && invalid.documentNumber} required />
         {submitted && invalid.documentNumber && (
           <p className={styles.fieldError} role="alert">
-            Indica el número de documento.
+            {documentNumber.trim() ? validateDocumentNumber(documentType || 'DNI', documentNumber) : 'Indica el número de documento.'}
           </p>
         )}
 
@@ -212,7 +215,12 @@ function NewEmployee() {
         <label className={styles.fieldLabel} htmlFor="emp-ingreso">
           Fecha de ingreso
         </label>
-        <input id="emp-ingreso" type="date" className={styles.input} value={hireDate} onChange={(e) => setHireDate(e.target.value)} aria-invalid={submitted && invalid.hireDate} required />
+        <input id="emp-ingreso" type="date" className={styles.input} value={hireDate} max={limaToday()} onChange={(e) => setHireDate(e.target.value)} aria-invalid={submitted && invalid.hireDate} required />
+        {submitted && invalid.hireDate && (
+          <p className={styles.fieldError} role="alert">
+            Indica una fecha de ingreso que no sea posterior a hoy.
+          </p>
+        )}
 
         <label className={styles.fieldLabel} htmlFor="emp-correo">
           Correo (opcional)
@@ -223,7 +231,12 @@ function NewEmployee() {
         <label className={styles.fieldLabel} htmlFor="emp-telefono">
           Teléfono (opcional)
         </label>
-        <input id="emp-telefono" type="tel" className={styles.input} value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <input id="emp-telefono" type="tel" className={styles.input} value={phone} onChange={(e) => setPhone(e.target.value)} aria-invalid={submitted && invalid.phone} />
+        {submitted && invalid.phone && (
+          <p className={styles.fieldError} role="alert">
+            {validatePhone(phone)}
+          </p>
+        )}
 
         <label className={styles.fieldLabel} htmlFor="emp-sueldo">
           Sueldo base (opcional)

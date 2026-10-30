@@ -175,7 +175,7 @@ export function InquiryDetailScreen() {
         )}
 
         <div className={styles.summaryPanel}>
-          <p className={styles.customerLabel}>{navState?.customerName ?? customerName ?? 'Sin cliente registrado'}</p>
+          <p className={styles.customerLabel}>{customerName ?? navState?.customerName ?? 'Sin cliente registrado'}</p>
           <dl className={styles.summaryList}>
             <div>
               <dt>Vehículo cotizado</dt>
@@ -248,11 +248,14 @@ export function InquiryDetailScreen() {
             </p>
           )}
 
+          {/* V-22: sin permiso CONVERT_TO_RESERVATION en la matriz (p. ej. Gerencia) no se ofrece «Reservar este vehículo». */}
           {canReserve && inquiry.customerId && !showReserveForm && (
             <div className={styles.closeActions}>
-              <button type="button" className={styles.primaryButton} onClick={openReserveForm} disabled={saving}>
-                Reservar este vehículo
-              </button>
+              {can('INQUIRY', 'CONVERT_TO_RESERVATION') && (
+                <button type="button" className={styles.primaryButton} onClick={openReserveForm} disabled={saving}>
+                  Reservar este vehículo
+                </button>
+              )}
               {can('INQUIRY', 'CONVERT_TO_RENTAL') && (
                 <button
                   type="button"

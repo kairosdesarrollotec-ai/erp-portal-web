@@ -1,3 +1,4 @@
+import { isHttpUrl } from '../shared/identity-validation';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EmployeeStatusBadge } from './EmployeeBadge';
 import { HrFrame } from './HrFrame';
@@ -75,6 +76,11 @@ export function EmployeeFileScreen() {
 
   async function handleRecordDoc() {
     if (!employee || !docUrl.trim()) return;
+    // R-6 (29-oct): solo enlaces http/https (nada de javascript:, rutas relativas ni texto libre).
+    if (!isHttpUrl(docUrl.trim())) {
+      setDocError('Indica un enlace válido que empiece con http:// o https://');
+      return;
+    }
     setDocSubmitting(true);
     setDocError(null);
     try {
@@ -332,7 +338,7 @@ export function EmployeeFileScreen() {
               <div>
                 <dt>Documento firmado</dt>
                 <dd data-testid="expectation-file">
-                  {expectationDoc?.fileUrl ? (
+                  {expectationDoc?.fileUrl && isHttpUrl(expectationDoc.fileUrl) ? (
                     <a href={expectationDoc.fileUrl} target="_blank" rel="noopener noreferrer">
                       Ver documento firmado
                     </a>

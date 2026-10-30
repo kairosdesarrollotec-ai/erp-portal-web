@@ -310,5 +310,52 @@ describe('EmployeeFileScreen (ADP-01 ficha)', () => {
       'https://storage.kairos.pe/expectations/carlos.pdf',
     );
   });
+
+  it('R-6: rechaza enlaces que no son http/https y no llama al API', async () => {
+    recordExpectationDocumentMock.mockReset();
+    getEmployeeMock.mockResolvedValue(makeDetail());
+    getExpectationDocumentMock.mockResolvedValue({
+      id: 'pending-emp-1',
+      employeeId: 'emp-1',
+      companyId: 'comp-1',
+      status: 'PENDIENTE',
+      deadlineDate: '2026-10-26',
+      isOverdue: false,
+      fileUrl: null,
+      signedAt: null,
+      registeredBy: 'SISTEMA',
+      signedRegisteredBy: null,
+      notes: null,
+      createdAt: '2026-10-24T10:00:00Z',
+      updatedAt: '2026-10-24T10:00:00Z',
+    });
+    recordExpectationDocumentMock.mockResolvedValue({
+      id: 'doc-saved-1',
+      employeeId: 'emp-1',
+      companyId: 'comp-1',
+      status: 'FIRMADO',
+      deadlineDate: '2026-10-26',
+      isOverdue: false,
+      fileUrl: 'https://storage.kairos.pe/expectations/carlos.pdf',
+      signedAt: '2026-10-26T12:00:00Z',
+      registeredBy: 'SISTEMA',
+      signedRegisteredBy: 'u@veloxrent.pe',
+      notes: 'Firmado ok',
+      createdAt: '2026-10-24T10:00:00Z',
+      updatedAt: '2026-10-26T12:00:00Z',
+    });
+    setPermissions(['HR_ADMINISTRATION.VIEW_EMPLOYEES', 'HR_ADMINISTRATION.MANAGE_EXPECTATION_DOCUMENT']);
+
+    renderScreen();
+    await screen.findByRole('heading', { name: 'Carlos Pérez' });
+
+    fireEvent.click(await screen.findByTestId('open-record-expectation-modal-btn'));
+    expect(screen.getByRole('dialog', { name: 'Adjuntar documento de expectativas firmado' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('expectation-file-url-input'), { target: { value: 'javascript:alert(1)' } });
+    fireEvent.click(screen.getByTestId('submit-expectation-doc-btn'));
+    expect(await screen.findByText(/http:\/\/ o https:\/\//)).toBeInTheDocument();
+    expect(recordExpectationDocumentMock).not.toHaveBeenCalled();
+  });
 });
 

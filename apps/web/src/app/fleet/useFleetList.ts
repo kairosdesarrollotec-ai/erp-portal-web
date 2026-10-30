@@ -177,6 +177,11 @@ export function useFleetList() {
       if (formData.passengerCapacity === undefined) {
         throw new Error('La capacidad de pasajeros es obligatoria.');
       }
+      // Decisión de negocio 28-oct #1: el precio por línea de combustible es obligatorio al registrar un vehículo.
+      const fuelPenaltyPerLine = formData.fuelPenaltyPerLine;
+      if (fuelPenaltyPerLine === undefined || !(fuelPenaltyPerLine > 0)) {
+        throw new Error('La multa de combustible por línea faltante es obligatoria.');
+      }
       const photoUrl = await resolvePhotoUrl(idToken, context, formData.photoFile, formData.photoUrl);
       await createVehicle(
         idToken,
@@ -198,7 +203,7 @@ export function useFleetList() {
           rateNormal: formData.rateNormal,
           ratePlus: formData.ratePlus,
           rateLibre: formData.rateLibre,
-          fuelPenaltyPerLine: formData.fuelPenaltyPerLine,
+          fuelPenaltyPerLine,
           photoUrl,
         },
         idempotencyKey,

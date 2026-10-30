@@ -17,6 +17,8 @@ export interface NewInquiryFormData {
   displayMode: DisplayMode;
   customerId?: string | null;
   customerName: string;
+  /** Semáforo del cliente seleccionado (29-oct #3: ROJO no se atiende en ningún proceso). */
+  customerRiskStatus?: 'NORMAL' | 'AMBAR' | 'ROJO' | null;
   documentType: string;
   document: string;
   nationality: Nationality;
@@ -72,7 +74,19 @@ function loadStoredDraft(): NewInquiryFormData | null {
   try {
     const raw = sessionStorage.getItem(DRAFT_SESSION_KEY);
     if (!raw) return null;
-    return { ...INITIAL_FORM, ...(JSON.parse(raw) as Partial<NewInquiryFormData>) };
+    // V-13 (29-oct): el borrador protege contra un refresh accidental, pero el CLIENTE no se arrastra de una
+    // consulta/prueba anterior: siempre se vuelve a elegir (y con el cliente, sus datos de identidad).
+    const stored = JSON.parse(raw) as Partial<NewInquiryFormData>;
+    return {
+      ...INITIAL_FORM,
+      ...stored,
+      customerId: INITIAL_FORM.customerId,
+      customerName: INITIAL_FORM.customerName,
+      customerRiskStatus: INITIAL_FORM.customerRiskStatus,
+      documentType: INITIAL_FORM.documentType,
+      document: INITIAL_FORM.document,
+      nationality: INITIAL_FORM.nationality,
+    };
   } catch {
     return null;
   }
@@ -115,10 +129,13 @@ export function useNewInquiry() {
   const isFirstRender = useRef(true);
 
   const onCustomerSelected = useCallback((customer: Customer) => {
+    // Al cambiar de cliente se descarta el error del cliente anterior (p. ej. el aviso de estado ROJO).
+    setError(null);
     setForm((prev) => ({
       ...prev,
       customerId: customer.id,
       customerName: customer.fullName,
+      customerRiskStatus: customer.riskStatus ?? null,
       documentType: customer.documentType,
       document: customer.documentNumber,
       nationality: (customer.nationality as Nationality) || 'PERUANO',
@@ -140,7 +157,8 @@ export function useNewInquiry() {
   } = useInquiryCustomerSearch(context, onCustomerSelected);
 
   const clearSelectedCustomer = useCallback(() => {
-    setForm((prev) => ({ ...prev, customerId: null }));
+    setError(null);
+    setForm((prev) => ({ ...prev, customerId: null, customerRiskStatus: null }));
   }, []);
 
   useEffect(() => {

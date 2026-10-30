@@ -66,5 +66,10 @@ export function buildValidatePayload(
 
 /** Todos los documentos-archivo exigidos estan subidos (los DATA no se suben: los valida el back contra el cliente). */
 export function allDocumentsUploaded(docs: RentalRequiredDocument[], uploaded: ReadonlySet<string>): boolean {
-  return docs.filter((d) => d.kind === 'DOCUMENT').every((d) => uploaded.has(d.code));
+  const identityAlternatives = docs.filter((d) => IDENTITY_EITHER.includes(d.code));
+  const identityOk = identityAlternatives.length === 0 || identityAlternatives.some((d) => uploaded.has(d.code));
+  return identityOk && docs.filter((d) => d.kind === 'DOCUMENT' && !IDENTITY_EITHER.includes(d.code)).every((d) => uploaded.has(d.code));
 }
+
+/** CR-08 (29-oct): el extranjero presenta pasaporte O carné de extranjería (basta uno). */
+export const IDENTITY_EITHER: readonly string[] = ['PASAPORTE', 'CARNE_EXTRANJERIA'];

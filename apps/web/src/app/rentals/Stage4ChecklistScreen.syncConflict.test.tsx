@@ -60,7 +60,7 @@ beforeEach(() => {
     rental: { id: 'rent-1', status: 'PENDING_DELIVERY', customerName: 'Ana', customerDocNumber: '1', vehicleBrand: 'T', vehicleModel: 'Y', vehiclePlate: 'B2C-456', alcoholTestResult: 'FAVORABLE', version: 4, notaryEvaluation: null, contract: null, deposit: null },
   });
   listEvidence.mockResolvedValue(full());
-  localStorage.setItem('kairos.alquiler.rent-1.checklist', JSON.stringify({ technicalMinutes: 40, documentaryMinutes: 20, notes: '', exceptionReason: '' }));
+  sessionStorage.setItem('kairos.alquiler.rent-1.checklist', JSON.stringify({ rnc_kilometraje: 50000, rnc_nivel_combustible_lineas: 8, technicalMinutes: 40, documentaryMinutes: 20, notes: '', exceptionReason: '' }));
 });
 
 describe('ENTREGA-04 Stage4ChecklistScreen + sync.yaml', () => {

@@ -220,6 +220,9 @@ export function ResultScreen() {
                     onClick={() => setCurrentZone(z.value)}
                   >
                     {z.label}
+                    <span aria-hidden="true" data-testid={`zone-mark-${z.value}`}>
+                      {m === 'OK' ? ' ✓' : m === 'DAMAGED' ? ' ⚠' : ' ○'}
+                    </span>
                   </button>
                 </li>
               );

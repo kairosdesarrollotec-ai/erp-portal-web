@@ -31,13 +31,15 @@ type FleetAction =
   | 'REGISTER_VEHICLE_OPERATIONAL_FORMAT'
   | 'VIEW_VEHICLE_OPERATIONAL_FORMAT';
 type CustomerAction = 'READ' | 'WRITE';
+type RentalAction = 'CREATE';
 
-export type PermissionModule = 'FLEET' | 'CUSTOMER' | 'INQUIRY' | 'RESERVATION';
+export type PermissionModule = 'FLEET' | 'CUSTOMER' | 'INQUIRY' | 'RESERVATION' | 'RENTAL';
 type ActionFor<M extends PermissionModule> =
   M extends 'FLEET' ? FleetAction
   : M extends 'CUSTOMER' ? CustomerAction
   : M extends 'INQUIRY' ? InquiryAction
   : M extends 'RESERVATION' ? ReservationAction
+  : M extends 'RENTAL' ? RentalAction
   : never;
 
 export function useRolePermissions() {
