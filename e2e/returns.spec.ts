@@ -188,6 +188,8 @@ test.describe('DEV-04 Checklist de recepción', () => {
   test('si quien firma no es el titular se exige la relación con el titular', async ({ page }) => {
     await setup(page, { initial: { status: 'INSPECCION', customerPresent: false }, evidence: makeReturnEvidence() });
     await page.goto('/devoluciones/ret-e2e-001/checklist');
+    await page.getByRole('button', { name: '1/2 (8)' }).click();
+    await page.getByLabel('Kilometraje actual (km)').fill('15000');
     await page.getByLabel('Nombre de quien firma').fill('Pedro Soto');
     await page.getByRole('radio', { name: /No, es otra persona/ }).check();
     const canvas = page.getByRole('img', { name: /Firma del documento de responsabilidad/ });
