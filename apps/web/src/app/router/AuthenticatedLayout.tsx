@@ -1,8 +1,9 @@
 import { Suspense } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { AppSidebar } from '../shared/AppSidebar';
 import { useSyncPermissionsWithContext } from '../shared/useSyncPermissionsWithContext';
-import { GuardLoadingScreen } from './GuardScreens';
+import { GuardLoadingScreen, OfflineRestrictedScreen } from './GuardScreens';
+import { isOfflineAllowedPath, useOfflineMode } from '../../offline/session/offline-mode';
 import { useExpiredDraftPurge } from '../../offline/queue/use-expired-draft-purge';
 import { useLocalDataProtection } from '../../offline/crypto/use-local-data-protection';
 import styles from './AuthenticatedLayout.module.css';
@@ -22,6 +23,10 @@ export function AuthenticatedLayout() {
   useLocalDataProtection();
   // Respuestas 2026-10-20 #25: el borrador offline que no se termina en 72 h se borra (al iniciar y cada 30 min).
   const { notice, dismiss } = useExpiredDraftPurge();
+  // V-27: sin conexión (sesión offline de 8 h) solo los 2 checklists y Sincronización (SDD-TRANSVERSAL §17.1).
+  const offlineActive = useOfflineMode((s) => s.active);
+  const { pathname } = useLocation();
+  const restricted = offlineActive && !isOfflineAllowedPath(pathname);
 
   return (
     <div className={styles.shell}>
@@ -35,8 +40,16 @@ export function AuthenticatedLayout() {
             </button>
           </div>
         )}
+        {offlineActive && (
+          <div className={styles.draftNotice} role="status">
+            <span>
+              Sin conexión: tu trabajo se guarda en este dispositivo. Al volver la señal se verificará tu cuenta y se
+              sincronizará.
+            </span>
+          </div>
+        )}
         <Suspense fallback={<GuardLoadingScreen />}>
-          <Outlet />
+          {restricted ? <OfflineRestrictedScreen /> : <Outlet />}
         </Suspense>
       </div>
     </div>

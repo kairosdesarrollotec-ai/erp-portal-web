@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getWorkContextAssignments } from '../auth/work-context-client';
 import type { CustomersWorkContext } from './customers-nav-state';
+import { recallWorkContext } from '../auth/work-context-memory';
 
 export function useWorkContextForCustomers(): {
   context: CustomersWorkContext | null;
@@ -38,8 +39,9 @@ export function useWorkContextForCustomers(): {
           }
         }
 
-        if (assignments.length === 1) {
-          const only = assignments[0];
+        const onlyOrRemembered = assignments.length === 1 ? assignments[0] : recallWorkContext(assignments);
+        if (onlyOrRemembered) {
+          const only = onlyOrRemembered;
           setContext({
             companyId: only.companyId,
             companyName: only.companyName,

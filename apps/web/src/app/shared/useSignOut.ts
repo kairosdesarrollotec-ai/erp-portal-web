@@ -1,3 +1,4 @@
+import { forgetWorkContext } from '../auth/work-context-memory';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
@@ -5,6 +6,8 @@ import { useWorkSession } from './useWorkSession';
 import { usePermissionsStore } from './usePermissions';
 import { countPendingUnsyncedItems, discardUserCryptoKeys } from '../../offline/crypto/local-encryption';
 import { purgeLocalSensitiveData } from '../../offline/crypto/sealed-store';
+import { clearOfflineSession } from '../../offline/session/offline-session';
+import { useOfflineMode } from '../../offline/session/offline-mode';
 
 /** Texto del aviso cuando se cierra sesión con datos todavía sin sincronizar (SDD-00 §17.4). */
 export function describePendingOnSignOut(pending: { evidence: number; fieldEdits: number; attendance: number }): string {
@@ -37,6 +40,8 @@ export function useSignOut() {
 
     clearSession();
     usePermissionsStore.getState().reset();
+    clearOfflineSession();
+    useOfflineMode.getState().setActive(false);
     try {
       await purgeLocalSensitiveData();
     } catch {
@@ -50,6 +55,7 @@ export function useSignOut() {
       }
     }
     try {
+      forgetWorkContext();
       await signOut(getFirebaseAuth());
     } finally {
       navigate('/');

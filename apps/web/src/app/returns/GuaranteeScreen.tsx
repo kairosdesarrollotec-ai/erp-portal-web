@@ -272,7 +272,9 @@ export function GuaranteeScreen() {
           {fuelPenaltyAmount > 0
             ? ' (la multa por líneas faltantes del RNC ya está incluida en el monto retenido).'
             : ret.vehicleFuelPenaltyPerLine
-              ? ' (sin multa por combustible: no hay líneas faltantes).'
+              ? autoFuelPenalty === null
+                ? ' (la multa por líneas no se pudo calcular: falta la lectura del RNC de la entrega o de la devolución; regístrala manualmente arriba si corresponde).'
+                : ' (sin multa por combustible: no hay líneas faltantes).'
               : ' (el vehículo no tiene precio por línea en Flota: la multa no se calculó; defínelo en Flota o regístrala manualmente arriba).'}
         </p>
       )}

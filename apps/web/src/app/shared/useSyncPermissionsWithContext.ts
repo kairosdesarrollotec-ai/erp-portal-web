@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getWorkContextAssignments } from '../auth/work-context-client';
 import { usePermissionsStore } from './usePermissions';
+import { isNetworkFailure, recallContext } from '../../offline/session/offline-session';
 
 interface ContextState {
   companyId?: string;
@@ -44,7 +45,14 @@ export function useSyncPermissionsWithContext(): void {
           companyId: assignments[0].companyId,
           branchId: assignments[0].branchId,
         });
-      } catch {
+      } catch (error) {
+        // V-27: sin red, el contexto de la última verificación (≤ 8 h) permite cargar los permisos guardados.
+        if (isNetworkFailure(error)) {
+          const stored = await recallContext();
+          if (cancelled || !stored) return;
+          if (usePermissionsStore.getState().status !== 'idle') return;
+          await usePermissionsStore.getState().load({ companyId: stored.companyId, branchId: stored.branchId });
+        }
         // Sin contexto resuelto los permisos siguen sin cargar (deny-by-default).
       }
     })();
@@ -52,4 +60,16 @@ export function useSyncPermissionsWithContext(): void {
       cancelled = true;
     };
   }, [companyId, branchId]);
+
+  // V-27: al volver la conexión, los permisos tomados de la copia local se reemplazan por los del servidor.
+  useEffect(() => {
+    const refresh = () => {
+      const { fromSnapshot, contextKey, load } = usePermissionsStore.getState();
+      if (!fromSnapshot || !contextKey) return;
+      const [storedCompanyId, storedBranchId] = contextKey.split(':');
+      void load({ companyId: storedCompanyId, branchId: storedBranchId }, { force: true });
+    };
+    window.addEventListener('online', refresh);
+    return () => window.removeEventListener('online', refresh);
+  }, []);
 }
