@@ -242,6 +242,17 @@ describe('GuaranteeScreen (DEV-09)', () => {
     expect(screen.queryByText(/sin multa por combustible: no hay líneas faltantes/)).not.toBeInTheDocument();
   });
 
+  it('V-20: con precio por línea pero sin lecturas RNC no afirma que no hay líneas faltantes', async () => {
+    flowMock.mockReturnValue(
+      makeFlow({ ret: makeReturn({ status: 'SIN_DANOS', receivedAt: new Date().toISOString(), fuelLevelAtReturn: 'ONE_QUARTER', vehicleFuelPenaltyPerLine: 35 }) }),
+    );
+    mount();
+
+    await screen.findByLabelText('Resumen de garantía');
+    expect(screen.getByText(/la multa por líneas no se pudo calcular: falta la lectura del RNC/)).toBeInTheDocument();
+    expect(screen.queryByText(/sin multa por combustible: no hay líneas faltantes/)).not.toBeInTheDocument();
+  });
+
   it('descuenta la penalización por combustible registrada de la garantía (DEC-DEV-FUEL-PENALTY-001)', async () => {
     flowMock.mockReturnValue(
       makeFlow({
