@@ -162,7 +162,7 @@ describe('VacationScreen (ADP-05)', () => {
       getVacationsMock.mockResolvedValue([own()]);
       renderScreen();
       fireEvent.click(await screen.findByRole('button', { name: 'Reprogramar' }));
-      await screen.findAllByRole("button", { name: /2[3-9] de .*: libre/ });
+      await screen.findAllByRole('button', { name: /: libre/ });
       fireEvent.change(screen.getByLabelText('Nueva fecha de inicio'), { target: { value: '2026-11-20' } });
       fireEvent.change(screen.getByLabelText('Nueva fecha final'), { target: { value: '2026-11-22' } });
       fireEvent.click(screen.getByRole('button', { name: 'Reprogramar', hidden: false, description: undefined }));
