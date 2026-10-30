@@ -78,3 +78,17 @@ describe('AppHeader', () => {
     expect(screen.getByText(/VeloxRent — Lima Norte/)).toBeInTheDocument();
   });
 });
+
+describe('AppHeader - V-21 campana sin empresa y sede', () => {
+  it('sin empresa/sede en el contexto la campana avisa que hay que elegir sede (en vez de no hacer nada)', async () => {
+    const { fireEvent } = await import('@testing-library/react');
+    render(
+      <MemoryRouter>
+        <AppHeader />
+      </MemoryRouter>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Notificaciones' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/Elige una empresa y sede/);
+    expect(screen.getByRole('button', { name: 'Elegir sede' })).toBeInTheDocument();
+  });
+});

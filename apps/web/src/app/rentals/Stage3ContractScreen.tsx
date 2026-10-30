@@ -21,6 +21,10 @@ import { usePermissions } from '../shared/usePermissions';
 import { SignaturePad } from '../shared/SignaturePad';
 import { computeGuaranteeBreakdown, formatPen } from './guarantee-breakdown';
 import { describeRentalError } from './rental-errors';
+import { MfaStepUpCancelledError, useMfaStepUp } from '../auth/useMfaStepUp';
+import { MfaChallengeModal } from '../auth/MfaChallengeModal';
+import { clearStage3Draft, loadStage3Draft, saveStage3Draft } from './stage3-draft';
+import { NOTARY_RESULT_LABELS, RENTAL_STATUS_LABELS } from './rental-status';
 import { PaymentProofFields } from '../shared/PaymentProofFields';
 import {
   emptyPaymentDraft,
@@ -34,12 +38,6 @@ import styles from './RentalStageForms.module.css';
 /** DEC-ALQ-DRIVERRATE-001: monto > 0, maximo 2 decimales y hasta 8 enteros (DECIMAL(10,2)); mismo patron que el backend. */
 const DAILY_RATE_PATTERN = /^(?!0+(\.0{1,2})?$)\d{1,8}(\.\d{1,2})?$/;
 
-const NOTARY_RESULT_LABELS: Record<string, string> = {
-  MANDATORY: 'Notaría obligatoria',
-  DOUBLE_DEPOSIT: 'Doble depósito de garantía',
-  THIRD_PATH_ELIGIBLE: 'Elegible para tercera vía (requiere aprobación de Gerencia)',
-  MANUAL_REVIEW: 'Revisión manual requerida (Gerencia)',
-};
 
 /** DEC-ALQ-THIRDPATH-001 / BR-ALQ-004: que significa cada resultado de la matriz para el personal. */
 const NOTARY_RESULT_EXPLANATIONS: Record<string, string> = {
@@ -67,12 +65,16 @@ export function Stage3ContractScreen() {
   // La tarifa del conductor de la empresa se digita con el mismo permiso que formaliza el contrato (RENTAL.FORMALIZE_CONTRACT).
   const canSetDriverRate = can('RENTAL', 'FORMALIZE_CONTRACT');
 
-  const [evaluation, setEvaluation] = useState<NotaryEvaluationResponse | null>(rental?.notaryEvaluation ?? null);
-  const [justification, setJustification] = useState('');
+  // La evaluación vigente sale del alquiler (que se recarga) salvo que acabemos de evaluar en esta pantalla.
+  const [evaluationOverride, setEvaluation] = useState<NotaryEvaluationResponse | null>(null);
+  const evaluation: NotaryEvaluationResponse | null = evaluationOverride ?? rental?.notaryEvaluation ?? null;
+  // V-15: borrador de lo digitado (sin atestaciones ni archivos) para no entrar vacío al reabrir la pantalla antes de formalizar.
+  const [initialDraft] = useState(() => loadStage3Draft(id));
+  const [justification, setJustification] = useState(initialDraft?.justification ?? '');
   // null = el personal aun no tocó el monto: se propone la garantía exigida (tarifa de Flota, x2 con DOUBLE_DEPOSIT).
-  const [paymentAmountInput, setPaymentAmountInput] = useState<string | null>(null);
+  const [paymentAmountInput, setPaymentAmountInput] = useState<string | null>(initialDraft?.paymentAmountInput ?? null);
   // Decisión 8: comprobante del cobro (método, nº de operación, pagador, voucher adjunto).
-  const [paymentDraft, setPaymentDraft] = useState<PaymentProofDraft>(() => emptyPaymentDraft());
+  const [paymentDraft, setPaymentDraft] = useState<PaymentProofDraft>(() => ({ ...emptyPaymentDraft(), ...(initialDraft?.payment ?? {}) }));
   // DEC-ALQ-THIRDPATH-001: casilla de verificación biométrica favorable registrada por el personal.
   const [biometricVerified, setBiometricVerified] = useState(false);
   const [fingerprintTaken, setFingerprintTaken] = useState(false);
@@ -82,14 +84,33 @@ export function Stage3ContractScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [evaluating, setEvaluating] = useState(false);
-  const [holderType, setHolderType] = useState<ContractHolderType>('NATURAL');
-  const [withCompanyDriver, setWithCompanyDriver] = useState(false);
+  /** V-07: si el back volviera a exigir MFA reciente (MFA_RECENT_REQUIRED) para formalizar, se ofrece «Verificar MFA». Desde el 29-oct el back ya no lo exige (decision del usuario); este manejo queda como defensa. */
+  const [mfaNeeded, setMfaNeeded] = useState(false);
+  const { request: requestMfaStepUp, challenge: mfaChallenge } = useMfaStepUp();
+  const [holderType, setHolderType] = useState<ContractHolderType>(initialDraft?.holderType ?? 'NATURAL');
+  const [withCompanyDriver, setWithCompanyDriver] = useState(initialDraft?.withCompanyDriver ?? false);
   const [driverRate, setDriverRate] = useState('');
   const [rateBusy, setRateBusy] = useState(false);
   const [rateError, setRateError] = useState<string | null>(null);
   const [rateSaved, setRateSaved] = useState(false);
   const [templateSel, setTemplateSel] = useState<ContractTemplateSelectionResponse | null>(null);
   const [templateState, setTemplateState] = useState<'LOADING' | 'READY' | 'ERROR'>('LOADING');
+
+  useEffect(() => {
+    saveStage3Draft(id, {
+      holderType,
+      withCompanyDriver,
+      justification,
+      paymentAmountInput,
+      payment: {
+        method: paymentDraft.method,
+        operationNumber: paymentDraft.operationNumber,
+        payerType: paymentDraft.payerType,
+        payerName: paymentDraft.payerName,
+        payerDocumentNumber: paymentDraft.payerDocumentNumber,
+      },
+    });
+  }, [id, holderType, withCompanyDriver, justification, paymentAmountInput, paymentDraft]);
 
   /**
    * La evaluación ya no es automática: la casilla de verificación biométrica debe registrarse ANTES de evaluar
@@ -214,7 +235,7 @@ export function Stage3ContractScreen() {
     }
   }
 
-  async function handleFormalize() {
+  async function handleFormalize(freshToken?: string) {
     if (!rental || !context) return;
     if (needsPaymentProof && hasPaymentErrors(paymentErrors)) {
       setConfirmOpen(false);
@@ -223,7 +244,7 @@ export function Stage3ContractScreen() {
     setBusy(true);
     setError(null);
     try {
-      const idToken = await getIdToken();
+      const idToken = freshToken ?? (await getIdToken());
       // Decisión 8: el voucher se sube con el mecanismo de documentos del alquiler (PAYMENT_VOUCHER) y se envía su id.
       let payment: ReturnType<typeof toGuaranteePaymentBody> | undefined;
       if (needsPaymentProof && paymentDraft.file) {
@@ -286,14 +307,30 @@ export function Stage3ContractScreen() {
         setRental(updated);
       }
       setConfirmOpen(false);
+      clearStage3Draft(id);
       navigate(`/alquileres/${id}/entrega-04`, { state: context });
     } catch (err) {
-      if (err instanceof RentalCommandError) {
+      if (err instanceof RentalCommandError && err.problem?.code === 'MFA_RECENT_REQUIRED') {
+        setMfaNeeded(true);
+        setError('Para formalizar el contrato debes verificar tu identidad con MFA (válida por 5 minutos). Pulsa «Verificar MFA» y se reintentará la formalización.');
+      } else if (err instanceof RentalCommandError) {
         setError(describeRentalError(err, err.message));
       } else setError('No pudimos formalizar el contrato.');
       setConfirmOpen(false);
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** V-07: reto TR-03 (contrasena + TOTP) y reintento UNICO de la formalizacion con el token renovado. */
+  async function handleVerifyMfa() {
+    try {
+      const freshToken = await requestMfaStepUp();
+      setMfaNeeded(false);
+      await handleFormalize(freshToken);
+    } catch (err) {
+      if (err instanceof MfaStepUpCancelledError) setError(err.message);
+      else setError('No pudimos verificar el MFA. Intenta de nuevo.');
     }
   }
 
@@ -337,6 +374,14 @@ export function Stage3ContractScreen() {
       continueBusy={busy}
       errorMessage={error}
     >
+      {mfaNeeded && (
+        <div className={styles.reviewSection}>
+          <button type="button" className={styles.secondaryButton} onClick={() => void handleVerifyMfa()} disabled={busy}>
+            Verificar MFA
+          </button>
+        </div>
+      )}
+      <MfaChallengeModal {...mfaChallenge} />
       <section className={styles.reviewSection}>
         <p className={styles.reviewSectionTitle}>Evaluación notarial</p>
         {evaluating && <p className={styles.statusText}>Evaluando matriz notarial…</p>}
@@ -387,9 +432,19 @@ export function Stage3ContractScreen() {
               Marca solo si verificaste la biometría del cliente; queda registrada con tu usuario. Debe marcarse antes de evaluar.
             </span>
             <div className={styles.modalActions}>
-              <button type="button" className={styles.retryButton} onClick={() => void handleEvaluate()} disabled={evaluating}>
+              <button
+                type="button"
+                className={styles.retryButton}
+                onClick={() => void handleEvaluate()}
+                disabled={evaluating || !biometricVerified || rental.status !== 'NOTARY_EVALUATION'}
+              >
                 {evaluation ? 'Volver a evaluar' : 'Evaluar notaría'}
               </button>
+              {rental.status !== 'NOTARY_EVALUATION' && (
+                <span className={styles.fieldHint} data-testid="notary-not-applicable">
+                  La evaluación notarial ya no corresponde en esta etapa del alquiler ({RENTAL_STATUS_LABELS[rental.status] ?? rental.status}).
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -679,7 +734,7 @@ export function Stage3ContractScreen() {
               <button type="button" className={styles.secondaryButton} onClick={() => setConfirmOpen(false)}>
                 Cancelar
               </button>
-              <button type="button" className={styles.dangerButton} onClick={handleFormalize} disabled={busy}>
+              <button type="button" className={styles.dangerButton} onClick={() => void handleFormalize()} disabled={busy}>
                 Formalizar
               </button>
             </div>

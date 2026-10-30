@@ -29,9 +29,11 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   IMMOBILIZATION_PERIOD_NOT_ELAPSED:
     'Aún no corresponde cobrar paralización: no han pasado 24 horas desde el cierre de la devolución.',
   RENTAL_ALREADY_HAS_ACTIVE_RETURN: 'Este alquiler ya tiene una devolución en curso. Búscala en la bandeja de devoluciones.',
-  RENTAL_NOT_RETURNABLE: 'Este alquiler no está activo, por lo que no se puede iniciar su devolución.',
+  RENTAL_NOT_RETURNABLE:
+    'No se puede iniciar la devolución: el alquiler no está activo o tiene una ampliación pendiente (autorízala o recházala primero).',
   RETURN_VERSION_CONFLICT: 'Otra persona modificó esta devolución. Recargamos los datos; revisa y vuelve a intentar.',
   RETURN_STATE_CONFLICT: 'Esta acción ya no corresponde al estado actual de la devolución. Recargamos los datos.',
+  DEPOSIT_ALREADY_SETTLED: 'La garantía de este alquiler ya fue liquidada (por ejemplo, retenida por una falta grave). No hay monto que devolver al cliente.',
   INVALID_RETURN_STATE_TRANSITION: 'Esta acción ya no corresponde al estado actual de la devolución. Recargamos los datos.',
   RETURN_SCOPE_FORBIDDEN: 'Esta devolución pertenece a otra empresa o sede y no puedes operarla desde tu contexto de trabajo.',
   RETURN_REMINDER_NOT_FOUND: 'Esta devolución todavía no tiene un recordatorio generado.',
@@ -60,6 +62,7 @@ const STATUS_MESSAGES: Record<number, string> = {
   412: 'Otra persona modificó esta devolución. Recargamos los datos; revisa y vuelve a intentar.',
   422: 'La operación no cumple las reglas de negocio vigentes.',
   428: 'No pudimos validar la versión del expediente. Recarga la pantalla.',
+  503: 'El almacenamiento de archivos no está disponible en este momento (no es un problema de tu conexión). Avisa a soporte.',
 };
 
 /** INCIDENT_STILL_OPEN (HTTP 422; se tolera 409 por compatibilidad): estado BLOCKED de DEV-09/DEV-10. */

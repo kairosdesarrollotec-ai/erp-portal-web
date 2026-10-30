@@ -55,6 +55,7 @@ export function Stage4ChecklistScreen() {
   const navigate = useNavigate();
   const [draft, setDraft] = useState<RentalChecklistDraft>(() => loadChecklistDraft(id));
   const [showExceptionModal, setShowExceptionModal] = useState(false);
+  const [formatsError, setFormatsError] = useState<string | null>(null);
   const [zone, setZone] = useState<RentalEvidenceZone>("FRONTAL");
   const queryClient = useQueryClient();
   const isOnline = useOnlineStatus();
@@ -231,8 +232,8 @@ export function Stage4ChecklistScreen() {
       cancelled = true;
     };
   }, [id, context, rental?.vehicleId, isOnline, getIdToken]);
-  async function persistChecklistFormats() {
-    if (!context || !id || !rental?.vehicleId) return;
+  async function persistChecklistFormats(): Promise<boolean> {
+    if (!context || !id || !rental?.vehicleId) return true; // nada que persistir sin vehículo/contexto
     try {
       const idToken = await getIdToken();
       const vehicleId = rental.vehicleId;
@@ -244,11 +245,12 @@ export function Stage4ChecklistScreen() {
         exceptionReason: draft.exceptionReason?.trim() || null,
       };
       for (const item of FIV_ITEMS) {
-        if (draft[item.key] !== undefined) fivData[item.key] = draft[item.key];
+        // Decisión 28-oct #7: FIV completo; lo que se ve marcado "B" por defecto se guarda explícito.
+        fivData[item.key] = draft[item.key] ?? "B";
       }
       const fckeData: Record<string, unknown> = {};
       for (const item of FCKE_ITEMS) {
-        if (draft[item.key] !== undefined) fckeData[item.key] = draft[item.key];
+        fckeData[item.key] = draft[item.key] ?? "B";
       }
       const fuelLines = typeof draft.rnc_nivel_combustible_lineas === "number" ? Number(draft.rnc_nivel_combustible_lineas) : undefined;
       const rawOdometer = draft.odometerKm ?? draft.rnc_kilometraje;
@@ -296,6 +298,7 @@ export function Stage4ChecklistScreen() {
             formatType: "FORMATO_06_RNC",
             processType: "RENTAL",
             processId: id,
+            odometerKm: odometer,
             fuelLevelLines: fuelLines,
             data: {
               responsable: performedBy,
@@ -312,18 +315,24 @@ export function Stage4ChecklistScreen() {
             performedBy,
           },
           `rental-${id}-rnc`,
-        ).catch(() => undefined),
+        ),
       ]);
+      return true;
     } catch {
-      // Fallback a borrador local
+      return false;
     }
   }
-  function handleContinue() {
+  async function handleContinue() {
     if (timeBelowMinimum && !draft.exceptionReason.trim()) {
       setShowExceptionModal(true);
       return;
     }
-    void persistChecklistFormats();
+    setFormatsError(null);
+    const saved = await persistChecklistFormats();
+    if (!saved) {
+      setFormatsError("No se pudieron guardar los formatos FIV, FCKE y RNC. Revisa la conexión e intenta de nuevo.");
+      return;
+    }
     navigate(`/alquileres/${id}/entrega-05`, { state: context ?? undefined });
   }
   if (state === "LOADING") return <p className={styles.statusText}>Cargando expediente…</p>;
@@ -335,9 +344,22 @@ export function Stage4ChecklistScreen() {
   // El botón Continuar se deshabilita si: el checklist no está completo,
   // o estamos offline, o hay sincronización en progreso, o hay items pendientes
   // (ADR-KAI-004: complete-delivery solo online), o documentación legal en 'M'.
-  const continueDisabled = !checklistComplete || !isOnline || syncing || pendingCount > 0 || legalDocsBlocked;
+  // Decisión 28-oct #7 (H-20): RNC (combustible y km) obligatorio para continuar; tiempos 30+15 o excepción con motivo.
+  const rawKm = draft.odometerKm ?? draft.rnc_kilometraje;
+  const rncComplete = typeof draft.rnc_nivel_combustible_lineas === "number" && typeof rawKm === "number";
+  const continueDisabled = !checklistComplete || !isOnline || syncing || pendingCount > 0 || legalDocsBlocked || !rncComplete;
   return (
     <RentalWizardShell stage={4} title="Checklist y evidencias" cancelControl={<CancelRentalControl rental={rental} context={context} getIdToken={getIdToken} />} onContinue={handleContinue} continueDisabled={continueDisabled}>
+      {!rncComplete && (
+        <p className={styles.statusText} role="alert" data-testid="rnc-required-notice">
+          Falta el registro RNC: indica el nivel de combustible (líneas) y el kilometraje para poder continuar.
+        </p>
+      )}
+      {formatsError && (
+        <p className={styles.statusText} role="alert" data-testid="formats-error">
+          {formatsError}
+        </p>
+      )}
       {legalDocsBlocked && (
         <div className={styles.offlineBanner} role="alert" style={{ background: "#fef2f2", borderColor: "#f87171", color: "#991b1b" }}>
           <span>
@@ -502,9 +524,13 @@ export function Stage4ChecklistScreen() {
                 type="button"
                 className={styles.dangerButton}
                 disabled={!draft.exceptionReason.trim()}
-                onClick={() => {
+                onClick={async () => {
                   setShowExceptionModal(false);
-                  void persistChecklistFormats();
+                  setFormatsError(null);
+                  if (!(await persistChecklistFormats())) {
+                    setFormatsError("No se pudieron guardar los formatos FIV, FCKE y RNC. Revisa la conexión e intenta de nuevo.");
+                    return;
+                  }
                   navigate(`/alquileres/${id}/entrega-05`, { state: context ?? undefined });
                 }}
               >

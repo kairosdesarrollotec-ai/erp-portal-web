@@ -16,14 +16,15 @@ import { MfaStepUpCancelledError, useMfaStepUp } from '../auth/useMfaStepUp';
 
 /**
  * ADM-02 - contrato punto 8: "ciertas combinaciones de permisos
- * incompatibles no se permiten a la vez". Mismo par PROVISIONAL que
- * valida el backend (permission-action-catalog.ts) - se replica aqui
- * solo para dar feedback inmediato en la celda (borde rojo + tooltip),
- * el backend sigue siendo quien realmente lo bloquea al guardar.
+ * incompatibles no se permiten a la vez". El negocio no ha definido pares
+ * concretos (la doc solo da un ejemplo), asi que la lista esta vacia, igual
+ * que en el backend (permission-action-catalog.ts). Se retiro el par
+ * provisional REGISTER_PAYMENT + CONFIRM de Reserva porque Front Office
+ * registra el pago y confirma en el proceso real. El mecanismo queda listo
+ * para dar feedback inmediato en la celda (borde rojo + tooltip) cuando se
+ * definan pares; el backend sigue siendo quien bloquea al guardar.
  */
-const INCOMPATIBLE_ACTION_PAIRS: readonly [string, string][] = [
-  ['RESERVATION.REGISTER_PAYMENT', 'RESERVATION.CONFIRM'],
-];
+export const INCOMPATIBLE_ACTION_PAIRS: [string, string][] = [];
 
 function actionKey(module: string, action: string): string {
   return `${module}.${action}`;

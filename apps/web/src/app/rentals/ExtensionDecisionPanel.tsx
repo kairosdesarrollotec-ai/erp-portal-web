@@ -7,7 +7,6 @@ import { describeRentalError } from './rental-errors';
 import { formatLimaDateTime } from '../shared/lima-time';
 import styles from './ActiveRentalScreen.module.css';
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface Props {
   rental: RentalResponse;
@@ -32,7 +31,7 @@ export function ExtensionDecisionPanel({ rental, context, getIdToken, onDone }: 
 
   if (rental.status !== 'EXTENSION_PENDING') return null;
   const extensions = rental.extensions ?? [];
-  const pending = extensions.find((e) => e.status === 'PENDING') ?? extensions[extensions.length - 1] ?? null;
+  const pending = extensions.find((e) => e.status === 'PENDING') ?? extensions[0] ?? null;
 
   if (!canAuthorize && !canReject) {
     return (
@@ -43,7 +42,7 @@ export function ExtensionDecisionPanel({ rental, context, getIdToken, onDone }: 
   }
 
   const paymentIdTrim = paymentId.trim();
-  const paymentIdValid = paymentIdTrim === '' || UUID_RE.test(paymentIdTrim);
+  const paymentIdValid = paymentIdTrim.length > 0;
   const canSubmitAuthorize = canAuthorize && addendumRef.trim().length > 0 && paymentIdValid && busy === null;
 
   async function run(kind: 'AUTHORIZE' | 'REJECT') {
@@ -54,7 +53,7 @@ export function ExtensionDecisionPanel({ rental, context, getIdToken, onDone }: 
       if (kind === 'AUTHORIZE') {
         await authorizeExtension(
           idToken, rental.id, context.companyId, context.branchId, rental.version,
-          paymentIdTrim || undefined, addendumRef.trim(),
+          paymentIdTrim, addendumRef.trim(),
         );
       } else {
         await rejectExtension(idToken, rental.id, context.companyId, context.branchId, rental.version);
@@ -82,9 +81,9 @@ export function ExtensionDecisionPanel({ rental, context, getIdToken, onDone }: 
             <input value={addendumRef} onChange={(e) => setAddendumRef(e.target.value)} maxLength={120} />
           </label>
           <label className={styles.statusText} style={{ display: 'grid', gap: 4 }}>
-            ID del pago del periodo adicional (opcional)
-            <input value={paymentId} onChange={(e) => setPaymentId(e.target.value)} aria-invalid={!paymentIdValid} />
-            {!paymentIdValid && <span role="alert">El ID del pago debe ser un UUID válido.</span>}
+            Referencia del pago previo del periodo adicional (Nº de operación o comprobante)
+            <input value={paymentId} onChange={(e) => setPaymentId(e.target.value)} maxLength={100} />
+            {!paymentIdValid && <span role="alert">El pago es previo: registra su referencia para poder autorizar.</span>}
           </label>
         </>
       )}

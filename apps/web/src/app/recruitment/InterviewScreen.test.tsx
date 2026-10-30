@@ -116,7 +116,7 @@ describe('InterviewScreen (REC-05)', () => {
     const combo = screen.getByRole('combobox', { name: 'Entrevistador' });
     await waitFor(() => expect(combo).toHaveValue('Yo Mismo'));
     expect(interviewersMock.mock.calls[0].slice(0, 3)).toEqual(['fake-id-token', { companyId: 'c1', branchId: 'b1' }, undefined]);
-    await user.type(screen.getByLabelText('Fecha y hora'), '2026-10-10T09:00');
+    await user.type(screen.getByLabelText('Fecha y hora'), '2099-10-10T09:00');
     await user.type(screen.getByLabelText('Enlace de la videollamada'), 'https://meet.google.com/xyz');
     expect(button).toBeEnabled();
     await user.click(button);
@@ -127,6 +127,20 @@ describe('InterviewScreen (REC-05)', () => {
     expect(scope).toEqual({ companyId: 'c1', branchId: 'b1' });
     expect(input).toMatchObject({ isVirtual: true, meetUrl: 'https://meet.google.com/xyz', interviewerId: 'me-uid' });
     expect(new Date(input.scheduledAt).toString()).not.toBe('Invalid Date');
+  });
+
+  it('no permite agendar una entrevista con fecha pasada', async () => {
+    const user = setupUser();
+    getCandidateMock.mockResolvedValue(makeCandidate());
+    renderScreen();
+
+    const button = await screen.findByRole('button', { name: 'Agendar entrevista' });
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Entrevistador' })).toHaveValue('Yo Mismo'));
+    await user.type(screen.getByLabelText('Fecha y hora'), '2020-01-10T09:00');
+    await user.type(screen.getByLabelText('Enlace de la videollamada'), 'https://meet.google.com/xyz');
+    expect(await screen.findByText(/no puede agendarse en una fecha u hora pasada/)).toBeInTheDocument();
+    expect(button).toBeDisabled();
+    expect(scheduleMock).not.toHaveBeenCalled();
   });
 
   it('el buscador filtra con q y envía el id del entrevistador elegido', async () => {
@@ -142,7 +156,7 @@ describe('InterviewScreen (REC-05)', () => {
     await waitFor(() => expect(interviewersMock.mock.calls.at(-1)?.[2]).toBe('luc'));
     const option = await screen.findByRole('option', { name: 'Lucía Paredes' });
     // Sin elegir nadie, no se puede agendar.
-    await user.type(screen.getByLabelText('Fecha y hora'), '2026-10-10T09:00');
+    await user.type(screen.getByLabelText('Fecha y hora'), '2099-10-10T09:00');
     await user.type(screen.getByLabelText('Enlace de la videollamada'), 'https://meet.google.com/xyz');
     expect(screen.getByRole('button', { name: 'Agendar entrevista' })).toBeDisabled();
     fireEvent.mouseDown(option);

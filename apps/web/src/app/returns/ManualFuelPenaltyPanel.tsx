@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { userLabel } from './user-label';
+import { FUEL_LEVEL_LABELS } from './return-status';
+import { useEffect, useState } from 'react';
+import { listVehicleOperationalRecords } from '../fleet/fleet-client';
 import { registerReturnFuelPenalty, type ReturnResponse } from './returns-client';
 import { describeReturnError, isStaleReturnError } from './return-errors';
-import { formatPen, calculateFuelPenalty } from './return-financial';
+import { formatPen, calculateFuelPenalty, calculateFuelPenaltyByLines } from './return-financial';
 import { formatLimaDateTime } from '../shared/lima-time';
 import { useReturnPermissions } from './return-permissions';
 import type { ReturnsWorkContext } from './useWorkContextForReturns';
@@ -13,6 +16,8 @@ interface Props {
   getIdToken: () => Promise<string>;
   setRet: (ret: ReturnResponse) => void;
   reload: () => Promise<void>;
+  /** Informa la multa calculada por líneas del RNC (null si no aplica) para que la garantía la incluya en el neto. */
+  onAutoPenalty?: (amount: number | null) => void;
 }
 
 /**
@@ -20,10 +25,39 @@ interface Props {
  * Se descuenta de la garantía al igual que el cargo por retraso. El usuario autorizado
  * puede registrar o ajustar el monto con su sustento obligatorio.
  */
-export function ManualFuelPenaltyPanel({ ret, context, getIdToken, setRet, reload }: Props) {
+export function ManualFuelPenaltyPanel({ ret, context, getIdToken, setRet, reload, onAutoPenalty }: Props) {
   const { can } = useReturnPermissions();
   const registered = ret.fuelPenalty ?? null;
-  const suggested = calculateFuelPenalty(ret.fuelLevelAtReturn, ret.vehicleFuelPenaltyPerLine ?? 50.00);
+  // Decisión 28-oct #1: sugerencia = líneas del RNC faltantes (entrega vs devolución) x precio por línea del vehículo.
+  const [readings, setReadings] = useState<{ delivery: number | null; returned: number | null } | null>(null);
+  useEffect(() => {
+    if (!context || !ret.vehicleId) return;
+    let cancelled = false;
+    getIdToken()
+      .then((token) =>
+        listVehicleOperationalRecords(token, ret.vehicleId, {
+          companyId: context.companyId,
+          branchId: context.branchId,
+          formatType: 'FORMATO_06_RNC',
+        } as never),
+      )
+      .then((res) => {
+        if (cancelled) return;
+        const items = res.items as unknown as Array<{ processType: string | null; processId: string | null; fuelLevelLines: number | null }>;
+        const latest = (type: string, pid: string) => items.find((r) => r.processType === type && r.processId === pid)?.fuelLevelLines ?? null;
+        setReadings({ delivery: latest('RENTAL', ret.rentalId), returned: latest('RETURN', ret.id) });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [context, ret.vehicleId, ret.rentalId, ret.id, getIdToken]);
+  const byLines = calculateFuelPenaltyByLines(readings?.delivery, readings?.returned, ret.vehicleFuelPenaltyPerLine);
+  // Sin precio por línea en Flota no se inventa una tarifa: no hay sugerencia y el monto se registra manualmente (decisión 28-oct #1).
+  useEffect(() => {
+    onAutoPenalty?.(byLines);
+  }, [byLines, onAutoPenalty]);
+  const suggested = byLines ?? (ret.vehicleFuelPenaltyPerLine ? calculateFuelPenalty(ret.fuelLevelAtReturn, ret.vehicleFuelPenaltyPerLine) : 0);
 
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
@@ -79,15 +113,31 @@ export function ManualFuelPenaltyPanel({ ret, context, getIdToken, setRet, reloa
           {registered.registeredAt && (
             <p className={styles.summaryLine}>
               Registrado: {formatLimaDateTime(registered.registeredAt)}
-              {registered.registeredById ? ` por ${registered.registeredById}` : ''}
+              {registered.registeredById ? ` por ${userLabel(registered.registeredById)}` : ''}
             </p>
           )}
         </div>
       ) : (
         <p className={styles.summaryLine}>
-          Nivel recibido: <strong>{ret.fuelLevelAtReturn ?? 'No registrado'}</strong>. Multa sugerida por faltante:{' '}
-          <strong data-testid="fuel-penalty-suggested-amount">{formatPen(suggested)}</strong> (tarifa:{' '}
-          {formatPen(ret.vehicleFuelPenaltyPerLine ?? 50.00)} / línea).
+          {byLines !== null ? (
+            <>
+              Entrega: <strong>{readings?.delivery} líneas</strong> · Devolución: <strong>{readings?.returned} líneas</strong> · Faltan{' '}
+              <strong>{Math.max(0, (readings?.delivery ?? 0) - (readings?.returned ?? 0))}</strong>.
+            </>
+          ) : (
+            <>
+              Nivel recibido: <strong>{ret.fuelLevelAtReturn ? FUEL_LEVEL_LABELS[ret.fuelLevelAtReturn] : 'No registrado'}</strong>
+              {ret.vehicleFuelPenaltyPerLine ? '' : ' (el vehículo aún no tiene precio por línea definido en Flota)'}.
+            </>
+          )}{' '}
+          {ret.vehicleFuelPenaltyPerLine ? (
+            <>
+              Multa sugerida por faltante: <strong data-testid="fuel-penalty-suggested-amount">{formatPen(suggested)}</strong> (tarifa:{' '}
+              {formatPen(ret.vehicleFuelPenaltyPerLine)} / línea).
+            </>
+          ) : (
+            <span data-testid="fuel-penalty-no-price">Sin precio por línea no hay multa sugerida: define el precio en Flota o registra el monto manualmente.</span>
+          )}
         </p>
       )}
 

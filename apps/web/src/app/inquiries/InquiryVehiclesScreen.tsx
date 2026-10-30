@@ -45,7 +45,7 @@ export function InquiryVehiclesScreen() {
   const showVirtualEvidence = navState?.displayMode === 'VIRTUAL';
 
   const filteredVehicles = vehicles.filter((v) => {
-    if (!vehicleFitsParty(v, navState?.travelers)) return false;
+    // CR-11 / respuesta 29-oct #10: la capacidad solo INFORMA al cliente, no oculta ni bloquea el vehículo.
     const q = search.trim().toLowerCase();
     const matchesSearch = q === '' || v.model.toLowerCase().includes(q);
     const matchesMin = priceMin === '' || v.dailyRate >= Number(priceMin);
@@ -180,6 +180,11 @@ export function InquiryVehiclesScreen() {
                   <span className={styles.rateTotal}>
                     {vehicle.passengerCapacity != null ? `Capacidad: ${vehicle.passengerCapacity} pasajeros` : 'Capacidad no registrada'}
                   </span>
+                  {!vehicleFitsParty(vehicle, navState?.travelers) && (
+                    <p className={styles.busyNotice} role="status" data-testid="capacity-info">
+                      Este vehículo tiene capacidad para {vehicle.passengerCapacity} pasajeros y el cliente indicó {navState?.travelers}. Informa al cliente; no bloquea la cotización.
+                    </p>
+                  )}
                   {vehicle.vehicleWarnings.map((warning) => (
                     <p key={warning} className={styles.busyNotice} role="status">
                       {warning}

@@ -284,6 +284,29 @@ describe('NewInquiryScreen (CON-02)', () => {
     );
   });
 
+  // V-13 (29-oct): un borrador guardado por una prueba/consulta anterior no arrastra su cliente.
+  it('V-13: el borrador restaurado no conserva el cliente de la consulta anterior (se vuelve a elegir)', async () => {
+    sessionStorage.setItem(
+      'kairos.consultas.nueva.borrador',
+      JSON.stringify({
+        customerId: 'cust-viejo',
+        customerName: 'Cliente de la prueba anterior',
+        customerRiskStatus: 'ROJO',
+        documentType: 'DNI',
+        document: '123',
+        destination: 'Cusco',
+      }),
+    );
+    renderScreen();
+    await waitForContext();
+
+    expect(screen.queryByText('Cliente de la prueba anterior')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Cliente de la prueba anterior')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('123')).not.toBeInTheDocument();
+    // el resto del borrador (destino) sí se restaura
+    expect((screen.getByText('Destino').closest('label')!.querySelector('input') as HTMLInputElement).value).toBe('Cusco');
+  });
+
   // Integración Módulo de Clientes (PR 4): buscar y vincular un cliente
   // existente debe rellenar el formulario y enviar customerId (no prospect).
   it('busca clientes existentes, vincula el seleccionado y envia customerId en vez de prospect', async () => {
@@ -375,6 +398,20 @@ describe('NewInquiryScreen (CON-02)', () => {
 
     expect(screen.queryByText('Cliente vinculado')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Buscar cliente existente')).toBeInTheDocument();
+  });
+
+  it('el error del cliente anterior (p. ej. estado ROJO) desaparece al desvincularlo', async () => {
+    createInquiryMock.mockRejectedValue(new Error('El cliente está en estado ROJO y no se atiende.'));
+    renderScreen();
+    await waitForContext();
+
+    await fillRequiredFields();
+    fireEvent.click(screen.getByRole('button', { name: 'Sí' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
+    expect(await screen.findByText(/estado ROJO y no se atiende/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Desvincular cliente' }));
+    expect(screen.queryByText(/estado ROJO y no se atiende/)).not.toBeInTheDocument();
   });
 
   // Registrar un cliente nuevo desde el modal debe vincularlo automaticamente

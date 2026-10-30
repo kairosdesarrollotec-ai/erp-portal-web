@@ -52,7 +52,8 @@ export function ClosureScreen() {
   const doc = ret.responsibilityDocument;
   const closed = ret.status === 'CERRADA';
   const actionable = ret.status === 'CIERRE_FINANCIERO';
-  const hasDamages = Boolean(ret.damages && ret.damages.length > 0);
+  // Decisión 28-oct #2: el informe de Motrix se exige solo ante daño técnico; el estético se cobra por tarifario.
+  const hasDamages = Boolean(ret.damages && ret.damages.some((d) => d.origin === 'TECHNICAL'));
   const mechanicReportGate = !hasDamages || ret.mechanicReportAccepted === true;
   const offlineGate = !ret.hasPendingOfflineChanges;
   const canSubmit = actionable && !blocked && offlineGate && mechanicReportGate && can('CLOSE') && (!wantsAct || signature.trim().length > 0);
@@ -170,6 +171,8 @@ export function ClosureScreen() {
           Expediente escalado a Legal ({formatLimaDateTime(ret.legalEscalatedAt)})
           {ret.legalCaseNumber ? ` · Caso N° ${ret.legalCaseNumber}` : ''}
           {ret.legalEscalationReason ? ` · Motivo: ${ret.legalEscalationReason}` : ''}
+          {/* El back solo devuelve `legalNotes` (motivo + n.° de caso en un unico campo, contrato returns.yaml). */}
+          {!ret.legalCaseNumber && !ret.legalEscalationReason && ret.legalNotes ? ` · ${ret.legalNotes}` : ''}
         </p>
       )}
 
@@ -308,6 +311,13 @@ export function ClosureScreen() {
               <p className={`${styles.banner} ${styles.banner_error}`} role="alert">
                 Este vehículo presenta daños. Es requisito obligatorio que el cliente acepte el informe del taller mecánico/Motrix antes de archivar el expediente.
               </p>
+              {ret.mechanicReportAccepted === false && !!ret.mechanicReportAcceptedAt && (
+                <p className={`${styles.banner} ${styles.banner_info}`} data-testid="mechanic-report-rejected">
+                  ✗ El cliente rechazó el informe mecánico
+                  {ret.mechanicReportAcceptedAt ? ` (${formatLimaDateTime(ret.mechanicReportAcceptedAt)})` : ''}
+                  . Puedes anotar la escalación legal o registrar su aceptación para poder archivar.
+                </p>
+              )}
               {actionable && (
                 <div className={styles.actionRow}>
                   <button

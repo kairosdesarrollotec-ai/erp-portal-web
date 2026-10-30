@@ -19,6 +19,18 @@ vi.mock('./useRentalWizard', () => ({
   useRentalWizard: () => useRentalWizardMock(),
 }));
 
+const mfaRequestMock = vi.fn();
+vi.mock('../auth/useMfaStepUp', async () => {
+  const actual = await vi.importActual<typeof import('../auth/useMfaStepUp')>('../auth/useMfaStepUp');
+  return {
+    ...actual,
+    useMfaStepUp: () => ({
+      request: (...args: unknown[]) => mfaRequestMock(...args),
+      challenge: { isOpen: false, state: 'READY' as const, requirePassword: true, onConfirm: vi.fn(), onCancel: vi.fn() },
+    }),
+  };
+});
+
 const evaluateNotaryMock = vi.fn();
 const approveNotaryExceptionMock = vi.fn();
 const formalizeContractMock = vi.fn();
@@ -148,9 +160,11 @@ function setupUploadMocks() {
 
 describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
   beforeEach(() => {
+    window.sessionStorage.clear(); // V-15: el borrador de ENTREGA-03 no debe filtrarse entre tests
     evaluateNotaryMock.mockReset();
     approveNotaryExceptionMock.mockReset();
     formalizeContractMock.mockReset();
+    mfaRequestMock.mockReset();
     setupUploadMocks();
     getContractTemplateMock.mockReset();
     getContractTemplateMock.mockResolvedValue(templateSelection());
@@ -205,6 +219,9 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
 
     // La evaluacion ya no es automatica: primero se registra (o no) la biometria y luego se evalua.
     expect(evaluateNotaryMock).not.toHaveBeenCalled();
+    // A-01: sin marcar la biometría el botón está deshabilitado.
+    expect(screen.getByRole('button', { name: 'Evaluar notaría' })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText(/Verificación biométrica favorable/));
     fireEvent.click(screen.getByRole('button', { name: 'Evaluar notaría' }));
     await waitFor(() => expect(evaluateNotaryMock).toHaveBeenCalled());
     expect(await screen.findByText('Notaría obligatoria')).toBeInTheDocument();
@@ -216,6 +233,7 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
     useRentalWizardMock.mockReturnValue(makeWizard({ rental: rentalSinEval }));
 
     renderScreen();
+    fireEvent.click(screen.getByLabelText(/Verificación biométrica favorable/));
     fireEvent.click(screen.getByRole('button', { name: 'Evaluar notaría' }));
 
     expect(await screen.findByText(/No pudimos evaluar la matriz notarial/)).toBeInTheDocument();
@@ -338,6 +356,30 @@ describe('Stage3ContractScreen (ENTREGA-03 / ALQ-07 + ALQ-08)', () => {
       await screen.findByText('El alquiler no está en estado válido para formalizar'),
     ).toBeInTheDocument();
   });
+  it('V-07: con MFA_RECENT_REQUIRED muestra «Verificar MFA» y reintenta la formalización con el token renovado', async () => {
+    const { RentalCommandError } = await import('./rentals-client');
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    formalizeContractMock
+      .mockRejectedValueOnce(new RentalCommandError(403, { code: 'MFA_RECENT_REQUIRED', detail: 'MFA requerido' }))
+      .mockResolvedValueOnce({ ...baseRental, status: 'PENDING_DELIVERY', version: 4 });
+    mfaRequestMock.mockResolvedValue('fresh-token');
+
+    renderScreen();
+    fireEvent.click(screen.getByLabelText(/Área de firma digital/));
+    fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
+    fireEvent.change(screen.getByLabelText(/Garantía total \(PEN\)/), { target: { value: '500' } });
+    fillPaymentProof();
+    await screen.findByText(/Contrato persona natural/);
+    fireEvent.click(screen.getByRole('button', { name: 'Formalizar y continuar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Formalizar' }));
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Verificar MFA' }));
+
+    await waitFor(() => expect(formalizeContractMock).toHaveBeenCalledTimes(2));
+    expect(mfaRequestMock).toHaveBeenCalledTimes(1);
+    expect(formalizeContractMock.mock.calls[1][0]).toBe('fresh-token');
+  });
+
 });
 
 describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DOC-003)', () => {
@@ -348,6 +390,7 @@ describe('Stage3ContractScreen - traslado de reserva y plantilla (P0-03 a, BR-DO
   };
 
   beforeEach(() => {
+    window.sessionStorage.clear(); // V-15: el borrador de ENTREGA-03 no debe filtrarse entre tests
     getContractTemplateMock.mockReset();
     getContractTemplateMock.mockResolvedValue(templateSelection());
     formalizeContractMock.mockReset();
@@ -533,6 +576,7 @@ describe('Stage3ContractScreen - comprobante de garantia, biometria y tercera vi
   const rentalSinEval = { ...baseRental, notaryEvaluation: null };
 
   beforeEach(() => {
+    window.sessionStorage.clear(); // V-15: el borrador de ENTREGA-03 no debe filtrarse entre tests
     getContractTemplateMock.mockReset();
     getContractTemplateMock.mockResolvedValue(templateSelection());
     formalizeContractMock.mockReset();

@@ -238,6 +238,7 @@ describe('FleetListScreen', () => {
     fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '5' } });
     fireEvent.change(screen.getByLabelText(/^Precio del combustible/), { target: { value: '4.5' } });
 
+    fireEvent.change(screen.getByLabelText(/^Multa combustible por línea/), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
 
     await waitFor(() => {
@@ -267,6 +268,7 @@ describe('FleetListScreen', () => {
     fireEvent.change(screen.getByPlaceholderText('Toyota, Hyundai, Nissan...'), { target: { value: 'Hyundai' } });
     fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), { target: { value: 'Tucson' } });
     expect(screen.getByLabelText(/^Capacidad de pasajeros/)).toBeRequired();
+    fireEvent.change(screen.getByLabelText(/^Multa combustible por línea/), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
 
     expect(
@@ -287,6 +289,7 @@ describe('FleetListScreen', () => {
     fireEvent.change(screen.getByPlaceholderText('Toyota, Hyundai, Nissan...'), { target: { value: 'Hyundai' } });
     fireEvent.change(screen.getByPlaceholderText('Hilux, Tucson, Frontier...'), { target: { value: 'Tucson' } });
     fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '7' } });
+    fireEvent.change(screen.getByLabelText(/^Multa combustible por línea/), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
 
     await waitFor(() => {
@@ -309,6 +312,7 @@ describe('FleetListScreen', () => {
     fireEvent.change(screen.getByLabelText(/^Garantía/), { target: { value: '500' } });
     fireEvent.change(screen.getByLabelText(/^Capacidad de pasajeros/), { target: { value: '61' } });
     fireEvent.change(screen.getByLabelText(/^Precio del combustible/), { target: { value: '4.5' } });
+    fireEvent.change(screen.getByLabelText(/^Multa combustible por línea/), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
 
     expect(await screen.findByText('La capacidad de pasajeros debe ser un entero entre 1 y 60.')).toBeInTheDocument();
@@ -348,6 +352,7 @@ describe('FleetListScreen', () => {
     fireEvent.change(fileInput);
 
     // Envía el formulario
+    fireEvent.change(screen.getByLabelText(/^Multa combustible por línea/), { target: { value: '12.5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Registrar Vehículo' }));
 
     await waitFor(() => {

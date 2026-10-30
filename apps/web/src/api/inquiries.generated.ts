@@ -254,7 +254,7 @@ export interface components {
             /** @description BR-CON-004 / CON-P06. Documentos que se informan al cliente segun su nacionalidad (solo informativo; Consulta no recibe documentos). Vacio si el cliente no tiene nacionalidad registrada. */
             requiredDocuments: {
                 /** @enum {string} */
-                code: "RECIBO_AGUA_O_LUZ" | "CONSTANCIA_HOSPEDAJE";
+                code: "DNI" | "PASAPORTE_O_CE" | "LICENCIA_CONDUCIR" | "RECIBO_AGUA_O_LUZ" | "CONSTANCIA_HOSPEDAJE";
                 label: string;
             }[];
             /**

@@ -175,3 +175,9 @@
     text-transform: uppercase;
   }
 }
+
+.badge_BREACH {
+  margin-left: 6px;
+  background: #fde8e8;
+  color: #9b1c1c;
+}

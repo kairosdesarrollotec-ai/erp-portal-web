@@ -6,7 +6,7 @@ import { useReturnFlow } from "./useReturnFlow";
 import { useReturnEvidence } from "./useReturnEvidence";
 import { isResponsibilityDocumentComplete, loadReturnChecklist, saveReturnChecklist, type ResponsibilityDocumentDraft, type ReturnChecklistDraft } from "./return-session-draft";
 import { SignaturePad } from "./SignaturePad";
-import { PHOTO_TYPES, REQUIRED_PHOTOS, REQUIRED_VIDEOS, RETURN_ZONES, VIDEO_TYPES } from "./return-evidence";
+import { ALCOHOL_TEST_EVIDENCE_ZONE, PHOTO_TYPES, REQUIRED_PHOTOS, REQUIRED_VIDEOS, RETURN_ZONES, VIDEO_TYPES } from "./return-evidence";
 import { useReturnPermissions } from "./return-permissions";
 import { getResponsibilityTemplate, type ResponsibilityTemplateResult } from "./returns-client";
 import { addEvidenceToQueue } from "../../offline/queue/evidence-upload-queue";
@@ -27,6 +27,9 @@ import { ZONE_PHOTO_GUIDES } from "../shared/zone-photo-guides";
 import { getFirebaseAuth } from "../providers/firebase";
 import type { OperationalRecordItem } from "../fleet/operational-formats/operational-format-types";
 import styles from "./ReturnForms.module.css";
+/** Recepción (5 niveles) → líneas del RNC (0–16). */
+const RECEPTION_FUEL_TO_LINES: Record<string, number> = { EMPTY: 0, ONE_QUARTER: 4, HALF: 8, THREE_QUARTERS: 12, FULL: 16 };
+
 export function ChecklistScreen() {
   const { id, state, ret, context, getIdToken } = useReturnFlow();
   const navigate = useNavigate();
@@ -42,6 +45,9 @@ export function ChecklistScreen() {
   const [template, setTemplate] = useState<ResponsibilityTemplateResult | null>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [queueError, setQueueError] = useState<string | null>(null);
+  const [formatsError, setFormatsError] = useState<string | null>(null);
+  // Decisión 28-oct #1: lectura del RNC de la ENTREGA, para compararla con la de devolución.
+  const [deliveryRnc, setDeliveryRnc] = useState<{ lines: number | null; km: number | null } | null>(null);
   const serverSync = useChecklistSyncStatus({
     checklistType: "RECEPCION",
     sourceId: id,
@@ -96,8 +102,10 @@ export function ChecklistScreen() {
     getIdToken()
       .then((token) => listVehicleOperationalRecords(token, ret.vehicleId, { companyId: context.companyId, branchId: context.branchId }))
       .then((res) => {
-        if (cancelled || !res.items.length) return;
+        if (cancelled) return;
         const returnRecords = res.items as unknown as OperationalRecordItem[];
+        const delivery = returnRecords.find((r) => r.formatType === "FORMATO_06_RNC" && r.processType === "RENTAL" && r.processId === ret.rentalId);
+        if (delivery) setDeliveryRnc({ lines: delivery.fuelLevelLines ?? null, km: delivery.odometerKm ?? null });
         const patch: Record<string, unknown> = {};
         for (const rec of returnRecords.filter((r) => r.processType === "RETURN" && r.processId === id)) {
           if (rec.odometerKm !== null && rec.odometerKm !== undefined) {
@@ -114,6 +122,15 @@ export function ChecklistScreen() {
             patch.notes = rec.observations;
           }
         }
+        // Combustible capturado en Recepción: precarga el RNC (una sola fuente de verdad, editable).
+        const recFuel = ret?.fuelLevelAtReturn ? RECEPTION_FUEL_TO_LINES[ret.fuelLevelAtReturn] : undefined;
+        if (recFuel !== undefined && patch.rnc_nivel_combustible_lineas === undefined) {
+          patch.rnc_nivel_combustible_lineas = recFuel;
+        }
+        // Kilometraje capturado en Recepción: precarga el RNC (editable).
+        if (typeof ret?.mileageAtReturn === "number" && patch.rnc_kilometraje === undefined && patch.odometerKm === undefined) {
+          patch.rnc_kilometraje = ret.mileageAtReturn;
+        }
         setDraft((prev) => {
           const next = { ...patch, ...prev };
           if (!prev.notes && patch.notes) next.notes = patch.notes as string;
@@ -124,10 +141,11 @@ export function ChecklistScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, context, ret?.vehicleId, online, getIdToken]);
+  }, [id, context, ret?.vehicleId, ret?.fuelLevelAtReturn, ret?.mileageAtReturn, online, getIdToken]);
   const guard = returnFlowGuard({ state, hasReturn: Boolean(ret) });
   if (guard || !ret) return guard;
-  const photosCount = evidence.filter((e) => e.type === "PHOTO").length;
+  // BR-DEV-009: la foto del alcoholímetro (zona ALCOHOL_TEST) es aparte y no cuenta dentro de las 35.
+  const photosCount = evidence.filter((e) => e.type === "PHOTO" && e.zone !== ALCOHOL_TEST_EVIDENCE_ZONE).length;
   const videosCount = evidence.filter((e) => e.type === "VIDEO").length;
   const syncInput: EvidenceSyncInput = {
     isOnline: online,
@@ -151,7 +169,9 @@ export function ChecklistScreen() {
   const totalPending = syncerPending;
   const hasPending = totalPending > 0;
   const canCapture = can("UPLOAD_EVIDENCE") && !uploading && !wrongState;
-  const continueDisabled = !online || syncerSyncing || hasPending || !synced || !docComplete;
+  // H-06 (28-oct): el RNC (combustible y kilometraje) es obligatorio al devolver: se compara con el de la entrega.
+  const rncComplete = typeof draft.rnc_nivel_combustible_lineas === "number" && typeof (draft.odometerKm ?? draft.rnc_kilometraje) === "number";
+  const continueDisabled = !online || syncerSyncing || hasPending || !synced || !docComplete || !rncComplete;
   function update(patch: Partial<ReturnChecklistDraft>) {
     if (id && !online) {
       for (const [key, value] of Object.entries(patch)) {
@@ -206,8 +226,8 @@ export function ChecklistScreen() {
     void upload(type, zone, files);
   }
   const photoPct = Math.min(100, Math.round((photosCount / REQUIRED_PHOTOS) * 100));
-  async function persistReturnFormats() {
-    if (!context || !id || !ret?.vehicleId) return;
+  async function persistReturnFormats(): Promise<boolean> {
+    if (!context || !id || !ret?.vehicleId) return true;
     try {
       const idToken = await getIdToken();
       const vehicleId = ret.vehicleId;
@@ -225,7 +245,7 @@ export function ChecklistScreen() {
       const rawOdometer = draft.odometerKm ?? draft.rnc_kilometraje;
       const odometer = typeof rawOdometer === "number" ? Number(rawOdometer) : undefined;
       const performedBy = getFirebaseAuth().currentUser?.displayName ?? "operador";
-      await Promise.all([
+      const results = await Promise.allSettled([
         recordVehicleOperationalFormat(
           idToken,
           vehicleId,
@@ -241,7 +261,7 @@ export function ChecklistScreen() {
             performedBy,
           },
           `return-${id}-fiv`,
-        ).catch(() => undefined),
+        ),
         recordVehicleOperationalFormat(
           idToken,
           vehicleId,
@@ -255,7 +275,7 @@ export function ChecklistScreen() {
             performedBy,
           },
           `return-${id}-fcke`,
-        ).catch(() => undefined),
+        ),
         recordVehicleOperationalFormat(
           idToken,
           vehicleId,
@@ -265,6 +285,7 @@ export function ChecklistScreen() {
             formatType: "FORMATO_06_RNC",
             processType: "RETURN",
             processId: id,
+            odometerKm: odometer,
             fuelLevelLines: fuelLines,
             data: {
               responsable: performedBy,
@@ -281,14 +302,21 @@ export function ChecklistScreen() {
             performedBy,
           },
           `return-${id}-rnc`,
-        ).catch(() => undefined),
+        ),
       ]);
+      return results.every((r) => r.status === "fulfilled");
     } catch {
-      return;
+      return false;
     }
   }
-  function handleContinue() {
-    void persistReturnFormats();
+  async function handleContinue() {
+    // Los formatos (RNC/FIV/FCKE) alimentan la multa de combustible y el cierre: si no se guardan, no se avanza en silencio.
+    setFormatsError(null);
+    const saved = await persistReturnFormats();
+    if (!saved) {
+      setFormatsError("No pudimos guardar el RNC, el FIV o el FCKE. Reintenta antes de continuar.");
+      return;
+    }
     navigate(`/devoluciones/${id}/resultado`, { state: context });
   }
   return (
@@ -445,6 +473,21 @@ export function ChecklistScreen() {
             })}
           </ul>
         </fieldset>
+      )}
+      {deliveryRnc && (
+        <p className={styles.summaryLine} data-testid="delivery-rnc-reading">
+          Lectura de la entrega (RNC): {deliveryRnc.lines ?? "—"} líneas · {deliveryRnc.km ?? "—"} km. La multa de combustible se calcula con las líneas faltantes frente a este nivel.
+        </p>
+      )}
+      {!rncComplete && (
+        <p className={`${styles.banner} ${styles.banner_warning}`} role="status">
+          Registra el nivel de combustible y el kilometraje (RNC) para continuar.
+        </p>
+      )}
+      {formatsError && (
+        <p className={`${styles.banner} ${styles.banner_error}`} role="alert">
+          {formatsError}
+        </p>
       )}
       <VehicleChecklistForm values={draft} onChange={(k, v) => update({ [k]: v, fivDone: true, fckeDone: true })} disabled={wrongState} />
       <fieldset className={styles.fieldset}>

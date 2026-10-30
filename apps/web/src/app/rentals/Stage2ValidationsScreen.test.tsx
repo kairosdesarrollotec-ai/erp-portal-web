@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage2ValidationsScreen } from './Stage2ValidationsScreen';
+import { clearPermissions, setPermissions } from '../../test/permissions';
 
 vi.mock('../shared/AppHeader', () => ({ AppHeader: () => <header>cabecera</header> }));
 
@@ -32,6 +33,11 @@ vi.mock('./rentals-client', async () => {
     recordEvidence: (...args: unknown[]) => recordEvidenceMock(...args),
   };
 });
+
+function confirmManualChecks() {
+  fireEvent.click(screen.getAllByLabelText('Confirmar verificación manual')[0]);
+  fireEvent.click(screen.getAllByLabelText('Confirmar verificación manual')[1]);
+}
 
 // ── fixtures ────────────────────────────────────────────────────────────────
 
@@ -87,6 +93,7 @@ function renderScreen() {
 
 describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
   beforeEach(() => {
+    clearPermissions();
     registerAlcoholTestMock.mockReset();
     requestSessionMock.mockReset();
     uploadGcsMock.mockReset();
@@ -142,7 +149,32 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
     expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled(); // aún falta la hora
 
     fireEvent.change(screen.getByLabelText(/Fecha y hora de la prueba/), { target: { value: '2024-01-01T10:30' } });
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled(); // faltan RENIEC y MTC
+
+    confirmManualChecks();
     expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled();
+  });
+
+  it('A-02: con RENIEC confirmado pero MTC pendiente, Continuar sigue bloqueado (MTC no admite excepción)', () => {
+    setPermissions(['RENTAL.APPROVE_NOTARY_EXCEPTION']);
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+    fireEvent.click(screen.getByLabelText('Favorable'));
+    fireEvent.change(screen.getByLabelText(/Fecha y hora de la prueba/), { target: { value: '2024-01-01T10:30' } });
+    fireEvent.click(screen.getByLabelText(/Excepción de Gerencia \(solo RENIEC\)/));
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
+    fireEvent.click(screen.getAllByLabelText('Confirmar verificación manual')[1]);
+    expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled(); // falta el motivo de la excepción
+    fireEvent.change(screen.getByLabelText(/Motivo de la excepción/), { target: { value: 'RENIEC caído' } });
+    expect(screen.getByRole('button', { name: 'Continuar' })).not.toBeDisabled();
+    clearPermissions();
+  });
+
+  it('A-02: sin permiso de Gerencia no se ofrece la excepción de RENIEC', () => {
+    clearPermissions();
+    useRentalWizardMock.mockReturnValue(makeWizard());
+    renderScreen();
+    expect(screen.queryByLabelText(/Excepción de Gerencia/)).not.toBeInTheDocument();
   });
 
   it.each([['Desfavorable'], ['Se negó']])(
@@ -179,7 +211,7 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
     await waitFor(() => expect(registerAlcoholTestMock).toHaveBeenCalled());
     expect(requestSessionMock).toHaveBeenCalledWith('tok', 'rent-1', 'c1', 'b1', 'PHOTO', 'ALCOHOL_TEST', 'image/jpeg', 1);
     expect(recordEvidenceMock).toHaveBeenCalledWith('tok', 'rent-1', 'c1', 'b1', 'PHOTO', 'ALCOHOL_TEST', 'https://gcs/obj');
-    expect(registerAlcoholTestMock).toHaveBeenCalledWith('tok', 'rent-1', 'c1', 'b1', 2, 'DESFAVORABLE', undefined);
+    expect(registerAlcoholTestMock).toHaveBeenCalledWith('tok', 'rent-1', 'c1', 'b1', 2, 'DESFAVORABLE', undefined, undefined);
     expect(setRentalMock).toHaveBeenCalled();
   });
 
@@ -221,6 +253,7 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
 
     fireEvent.click(screen.getByLabelText('Favorable'));
     fireEvent.change(screen.getByLabelText(/Fecha y hora de la prueba/), { target: { value: '2024-01-01T10:30' } });
+    confirmManualChecks();
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(await screen.findByText('etapa 3')).toBeInTheDocument();
@@ -233,6 +266,7 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
       2,
       'FAVORABLE',
       expect.stringContaining('10:30'),
+      { reniecVerified: true, mtcVerified: true },
     );
   });
 
@@ -249,6 +283,7 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
 
     fireEvent.click(screen.getByLabelText('Favorable'));
     fireEvent.change(screen.getByLabelText(/Fecha y hora de la prueba/), { target: { value: '2024-01-01T10:30' } });
+    confirmManualChecks();
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(await screen.findByText('Conflicto de versión detectado')).toBeInTheDocument();
@@ -262,6 +297,7 @@ describe('Stage2ValidationsScreen (ENTREGA-02 / ALQ-04)', () => {
 
     fireEvent.click(screen.getByLabelText('Favorable'));
     fireEvent.change(screen.getByLabelText(/Fecha y hora de la prueba/), { target: { value: '2024-01-01T10:30' } });
+    confirmManualChecks();
     fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
 
     expect(await screen.findByText(/No pudimos registrar la validación/)).toBeInTheDocument();

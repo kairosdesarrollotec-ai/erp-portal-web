@@ -27,8 +27,9 @@ const getCustomerMock = vi.fn();
 const getVehicleMock = vi.fn();
 const getWorkContextAssignmentsMock = vi.fn();
 
+const deniedPermissions = vi.hoisted(() => new Set<string>());
 vi.mock('../shared/useRolePermissions', () => ({
-  useRolePermissions: () => ({ can: () => true }),
+  useRolePermissions: () => ({ can: (module: string, action: string) => !deniedPermissions.has(`${module}.${action}`) }),
 }));
 
 vi.mock('../providers/firebase', () => ({
@@ -122,6 +123,23 @@ describe('InquiryDetailScreen (CON-04)', () => {
     getWorkContextAssignmentsMock.mockReset().mockResolvedValue(oneAssignment);
   });
 
+  it('CR-02: el nombre del cliente sale de la consulta, no de un estado de navegación obsoleto', async () => {
+    getInquiryMock.mockResolvedValue(buildInquiry());
+    render(
+      <MemoryRouter
+        initialEntries={[
+          { pathname: '/consultas/con-1', state: { companyId: 'c1', companyName: 'VeloxRent', branchId: 'b1', branchName: 'Sede Central', customerName: 'DEMO Cliente Extranjero' } },
+        ]}
+      >
+        <Routes>
+          <Route path="/consultas/:id" element={<InquiryDetailScreen />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText('Maria Quispe')).toBeInTheDocument();
+    expect(screen.queryByText('DEMO Cliente Extranjero')).not.toBeInTheDocument();
+  });
+
   it('muestra el resumen y la cotizacion, resolviendo el nombre del vehiculo (no el UUID)', async () => {
     getInquiryMock.mockResolvedValue(buildInquiry());
     renderScreen();
@@ -188,6 +206,20 @@ describe('InquiryDetailScreen (CON-04)', () => {
       true,
       undefined,
     );
+  });
+
+  it('V-22: sin permiso CONVERT_TO_RESERVATION (p. ej. Gerencia) no se ofrece "Reservar este vehículo"', async () => {
+    deniedPermissions.add('INQUIRY.CONVERT_TO_RESERVATION');
+    try {
+      getInquiryMock.mockResolvedValue(buildInquiry());
+      renderScreen();
+
+      await screen.findByText('Maria Quispe');
+      expect(screen.queryByText('Reservar este vehículo')).not.toBeInTheDocument();
+      expect(screen.getByText('Convertir a Alquiler')).toBeInTheDocument();
+    } finally {
+      deniedPermissions.clear();
+    }
   });
 
   it('ofrece siempre ambos botones: "Reservar este vehículo" y "Convertir a Alquiler"', async () => {

@@ -22,6 +22,8 @@ import {
   listReturnReminders,
   listReturnAlerts,
   registerReturnReminder,
+  recordMechanicReport,
+  escalateLegal,
   ReturnApiError,
   ReturnCommandError,
   ReturnEvidenceUploadError,
@@ -471,3 +473,29 @@ describe('returns-client - recordatorios y alertas', () => {
   });
 });
 
+describe('returns-client - cuerpo segun contrato returns.yaml (DEV-10)', () => {
+  it('record-mechanic-report envia la observacion como `notes` (el back rechaza campos extra con 400)', async () => {
+    let body: Record<string, unknown> | undefined;
+    server.use(
+      http.post(`${BASE_URL}/returns/r1/commands/record-mechanic-report`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ id: 'r1' });
+      }),
+    );
+    await recordMechanicReport('t', 'r1', 'c1', 'b1', 2, { accepted: true, observation: 'Aceptado por el cliente' });
+    expect(body).toEqual({ companyId: 'c1', branchId: 'b1', accepted: true, notes: 'Aceptado por el cliente' });
+  });
+
+  it('escalate-legal envia un unico `notes` con el motivo y el numero de caso', async () => {
+    let body: Record<string, unknown> | undefined;
+    server.use(
+      http.post(`${BASE_URL}/returns/r1/commands/escalate-legal`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ id: 'r1' });
+      }),
+    );
+    await escalateLegal('t', 'r1', 'c1', 'b1', 2, { reason: 'Apropiacion ilicita', legalCaseNumber: 'CASO-99' });
+    expect(body).toEqual({ companyId: 'c1', branchId: 'b1', notes: 'Apropiacion ilicita (Caso legal N.° CASO-99)' });
+    expect(body).not.toHaveProperty('reason');
+  });
+});

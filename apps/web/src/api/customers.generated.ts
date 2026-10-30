@@ -111,6 +111,13 @@ export interface components {
             phone?: string | null;
             address?: string | null;
             /**
+             * @description Semáforo del cliente (BR-DEV-007/008). NORMAL equivale a sin observación; solo avanza NORMAL -> AMBAR -> ROJO.
+             * @enum {string}
+             */
+            riskStatus?: "NORMAL" | "AMBAR" | "ROJO";
+            /** @description Motivo del último cambio del semáforo (H-17). Null si nunca cambió o es anterior al registro de motivos. */
+            riskReason?: string | null;
+            /**
              * Format: date-time
              * @description Timestamp ISO 8601 UTC de creación
              */

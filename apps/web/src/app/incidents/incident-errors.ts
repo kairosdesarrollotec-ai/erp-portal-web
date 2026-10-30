@@ -2,6 +2,8 @@ import { IncidentCommandError } from './incidents-client';
 
 /** Codigos de dominio de incidents.yaml, traducidos a lenguaje de negocio. */
 const DOMAIN_MESSAGES: Record<string, string> = {
+  INCIDENT_RENTAL_NOT_DELIVERED:
+    'Este alquiler aún no fue entregado, por lo que no admite incidencias. Si el vehículo tiene una incidencia, ofrece al cliente otro vehículo de características iguales o similares.',
   VERSION_CONFLICT: 'Otra persona modificó esta incidencia. Recargamos los datos; revisa y vuelve a intentar.',
   INCIDENT_NOT_OPEN: 'Esta incidencia ya no está abierta, por lo que no admite más cambios. Recargamos los datos.',
   INCIDENT_DIRECT_RESOLVE_NOT_ALLOWED:

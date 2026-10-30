@@ -13,6 +13,7 @@ import {
   type RentalEvidenceContentType,
 } from './rentals-client';
 import { describeRentalError } from './rental-errors';
+import { usePermissions } from '../shared/usePermissions';
 import styles from './RentalStageForms.module.css';
 
 /** Mismo límite que la foto de DEV-03 (return-evidence.MAX_PHOTO_BYTES). */
@@ -36,15 +37,24 @@ export function Stage2ValidationsScreen() {
   const [notes, setNotes] = useState('');
   const [reniecConfirmed, setReniecConfirmed] = useState(false);
   const [mtcConfirmed, setMtcConfirmed] = useState(false);
+  const [reniecException, setReniecException] = useState(false);
+  const [exceptionReason, setExceptionReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { can } = usePermissions();
+  // Respuesta 29-oct #1: RENIEC admite excepción de Gerencia; MTC nunca.
+  const canApproveException = can('RENTAL', 'APPROVE_NOTARY_EXCEPTION');
 
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoUploaded, setPhotoUploaded] = useState(false);
 
   const unfavorable = result === 'DESFAVORABLE' || result === 'RECHAZADO';
+  // Respuesta 29-oct #1: la confirmación manual RENIEC + MTC es obligatoria para continuar
+  // con una entrega (resultado favorable). RENIEC puede sustituirse por excepción de Gerencia.
+  const reniecOk = reniecConfirmed || (reniecException && canApproveException && exceptionReason.trim().length >= 5);
+  const validationsOk = reniecOk && mtcConfirmed;
   const canContinue =
-    (result === 'FAVORABLE' && !!testDateTime) || (unfavorable && (photoUploaded || photo !== null));
+    (result === 'FAVORABLE' && !!testDateTime && validationsOk) || (unfavorable && (photoUploaded || photo !== null));
 
   async function handleContinue() {
     if (!rental || !context || result === null) return;
@@ -82,7 +92,16 @@ export function Stage2ValidationsScreen() {
         result,
         unfavorable
           ? notes.trim() || undefined
-          : notes ? `${notes} (fecha/hora: ${testDateTime})` : `fecha/hora: ${testDateTime}`,
+          : `${notes ? `${notes} ` : ''}(fecha/hora: ${testDateTime}${
+              reniecException && !reniecConfirmed ? '; RENIEC: excepción de Gerencia' : ''
+            })`,
+        unfavorable
+          ? undefined
+          : {
+              reniecVerified: reniecConfirmed,
+              mtcVerified: mtcConfirmed,
+              ...(reniecException && !reniecConfirmed ? { reniecExceptionReason: exceptionReason.trim() } : {}),
+            },
       );
       setRental(updated);
       if (unfavorable) navigate('/alquileres', { state: context });
@@ -121,6 +140,18 @@ export function Stage2ValidationsScreen() {
             <input type="checkbox" checked={reniecConfirmed} onChange={(e) => setReniecConfirmed(e.target.checked)} />
             Confirmar verificación manual
           </label>
+          {canApproveException && !reniecConfirmed && (
+            <label className={styles.checkboxRow} style={{ marginTop: '0.5rem', fontSize: '12px' }}>
+              <input type="checkbox" checked={reniecException} onChange={(e) => setReniecException(e.target.checked)} />
+              Excepción de Gerencia (solo RENIEC)
+            </label>
+          )}
+          {canApproveException && !reniecConfirmed && reniecException && (
+            <label className={styles.fieldLabel}>
+              Motivo de la excepción (mín. 5 caracteres)
+              <input className={styles.input} value={exceptionReason} onChange={(e) => setExceptionReason(e.target.value)} />
+            </label>
+          )}
         </div>
 
         <div className={styles.statusCard}>
@@ -134,6 +165,11 @@ export function Stage2ValidationsScreen() {
           </label>
         </div>
       </div>
+      {result === 'FAVORABLE' && !validationsOk && (
+        <p className={styles.fieldHint} role="status" data-testid="validations-pending-hint">
+          Para continuar confirma manualmente la verificación de RENIEC y MTC (RENIEC admite excepción de Gerencia; MTC no).
+        </p>
+      )}
 
       <fieldset className={styles.fieldset}>
         <legend>Resultado del alcoholímetro (tolerancia cero)</legend>

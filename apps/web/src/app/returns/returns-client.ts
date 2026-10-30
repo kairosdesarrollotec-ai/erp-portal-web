@@ -429,7 +429,8 @@ export async function recordMechanicReport(
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/record-mechanic-report', {
     params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
-    body: { companyId, branchId, ...input } as unknown as never,
+    // Contrato returns.yaml (RecordMechanicReportRequest): la observacion viaja como `notes`.
+    body: { companyId, branchId, accepted: input.accepted, notes: input.observation } as unknown as never,
   });
   if (error || !data) {
     throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);
@@ -449,7 +450,12 @@ export async function escalateLegal(
   const { data, error, response } = await returnsApiClient.POST('/returns/{id}/commands/escalate-legal', {
     params: { path: { id } } as unknown as never,
     headers: commandHeaders(idToken, version),
-    body: { companyId, branchId, ...input } as unknown as never,
+    // Contrato returns.yaml (EscalateLegalRequest): un unico campo `notes` (motivo + n.o de caso si existe).
+    body: {
+      companyId,
+      branchId,
+      notes: input.legalCaseNumber ? `${input.reason} (Caso legal N.° ${input.legalCaseNumber})` : input.reason,
+    } as unknown as never,
   });
   if (error || !data) {
     throw new ReturnCommandError(response.status, (error as unknown as { code?: string; detail?: string } | null) ?? null);

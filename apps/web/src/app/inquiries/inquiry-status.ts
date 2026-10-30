@@ -32,6 +32,7 @@ export type InquiryNationality = 'PERUANO' | 'EXTRANJERO';
 export const REQUIRED_DOCUMENT_LABELS: Record<string, string> = {
   DNI: 'DNI',
   PASAPORTE: 'Pasaporte',
+  PASAPORTE_O_CE: 'Pasaporte o carné de extranjería',
   LICENCIA_CONDUCIR: 'Licencia de conducir',
   RECIBO_AGUA_O_LUZ: 'Recibo de agua o luz (comprobante de domicilio)',
   CONSTANCIA_HOSPEDAJE: 'Constancia de hospedaje',

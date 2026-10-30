@@ -138,10 +138,14 @@ export function InterviewScreen() {
   const interviews = [...(candidate?.interviews ?? [])].sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt));
   const firstPendingId = interviews.find((i) => i.result === 'PENDIENTE')?.id;
   const anyEvaluated = interviews.some((i) => i.result !== 'PENDIENTE');
-  const canSchedule = can('MANAGE_INTERVIEW') && !candidate?.decision;
+  const discarded = candidate?.processState === 'DESCARTADO';
+  const canSchedule = can('MANAGE_INTERVIEW') && !candidate?.decision && !discarded;
 
   const modeValid = mode === 'VIRTUAL' ? /^https?:\/\/\S+$/i.test(meetUrl.trim()) : location.trim().length > 0;
-  const scheduleValid = when !== '' && limaDateTimeToInstant(when) !== null && interviewerId.trim() !== '' && modeValid;
+  const whenInstant = when !== '' ? limaDateTimeToInstant(when) : null;
+  // Decisiones 29-oct: no se agenda una entrevista con fecha u hora pasada.
+  const whenInPast = whenInstant !== null && new Date(whenInstant).getTime() < Date.now();
+  const scheduleValid = when !== '' && whenInstant !== null && !whenInPast && interviewerId.trim() !== '' && modeValid;
 
   async function submitSchedule(event: FormEvent) {
     event.preventDefault();
@@ -201,6 +205,12 @@ export function InterviewScreen() {
 
           <CandidateSummary candidate={candidate} />
 
+          {discarded && (
+            <p className={styles.errorBanner} role="status" data-testid="interview-discarded">
+              Candidato descartado: la decisión es irreversible; no se pueden agendar ni evaluar entrevistas.
+            </p>
+          )}
+
           <section aria-labelledby="int-agenda-title" className={styles.card}>
             <h2 id="int-agenda-title" className={styles.sectionTitle}>
               Agenda de entrevistas
@@ -229,7 +239,7 @@ export function InterviewScreen() {
                     </p>
                     {interview.interviewerId && <p className={styles.entryMeta}>Entrevistador: {interview.interviewerId}</p>}
                     {interview.qualitativeNotes && <p className={styles.entryText}>{interview.qualitativeNotes}</p>}
-                    {interview.result === 'PENDIENTE' && can('MANAGE_INTERVIEW') && !candidate.decision && (
+                    {interview.result === 'PENDIENTE' && can('MANAGE_INTERVIEW') && !candidate.decision && !discarded && (
                       <ResultForm
                         interview={interview}
                         focusOnMount={interview.id === firstPendingId}
@@ -270,6 +280,11 @@ export function InterviewScreen() {
                   aria-required="true"
                 />
                 <p className={styles.hint}>Duración referencial: ~15 min (no es un límite).</p>
+                {whenInPast && (
+                  <p className={styles.errorBanner} role="alert">
+                    La entrevista no puede agendarse en una fecha u hora pasada.
+                  </p>
+                )}
                 <fieldset className={styles.fieldset}>
                   <legend>Modalidad</legend>
                   <label className={styles.radioRow}>

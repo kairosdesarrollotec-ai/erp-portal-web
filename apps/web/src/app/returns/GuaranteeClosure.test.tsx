@@ -99,6 +99,14 @@ describe('GuaranteeScreen (DEV-09)', () => {
     expect(await screen.findByText('pantalla cierre')).toBeInTheDocument();
   });
 
+  it('garantía ya retenida (falta grave): avisa, no devuelve dinero y permite continuar', async () => {
+    getRentalMock.mockResolvedValue({ id: 'rent-1', branchId: 'b1', deposit: { originalAmount: '1000', currency: 'PEN', status: 'RETAINED' } });
+    flowMock.mockReturnValue(makeFlow({ ret: sinDanos() }));
+    mount();
+    expect(await screen.findByTestId('deposit-settled-notice')).toHaveTextContent(/ya fue liquidada/i);
+    expect(screen.getByRole('button', { name: 'Confirmar liberación de garantía' })).toBeEnabled();
+  });
+
   it('no muestra saldo a favor de la reserva (decision 22-oct)', async () => {
     getRentalMock.mockResolvedValue({ id: 'rent-1', branchId: 'b1', deposit: { originalAmount: '200', currency: 'PEN' } });
     flowMock.mockReturnValue(makeFlow({ ret: sinDanos() }));
@@ -221,6 +229,17 @@ describe('GuaranteeScreen (DEV-09)', () => {
     mount();
     expect(await screen.findByTestId('lateness-charge-card')).toHaveTextContent('S/ 100.00');
     expect(screen.getByTestId('late-guarantee-penalty')).toHaveTextContent('S/ 300.00');
+  });
+
+  it('V-20: sin precio por línea en Flota el texto de combustible no se contradice con el panel de multa', async () => {
+    flowMock.mockReturnValue(
+      makeFlow({ ret: makeReturn({ status: 'SIN_DANOS', receivedAt: new Date().toISOString(), fuelLevelAtReturn: 'ONE_QUARTER', vehicleFuelPenaltyPerLine: null }) }),
+    );
+    mount();
+
+    await screen.findByLabelText('Resumen de garantía');
+    expect(screen.getByText(/el vehículo no tiene precio por línea en Flota: la multa no se calculó/)).toBeInTheDocument();
+    expect(screen.queryByText(/sin multa por combustible: no hay líneas faltantes/)).not.toBeInTheDocument();
   });
 
   it('descuenta la penalización por combustible registrada de la garantía (DEC-DEV-FUEL-PENALTY-001)', async () => {
@@ -368,7 +387,7 @@ describe('ClosureScreen (DEV-10)', () => {
     const setRet = vi.fn();
     const returnWithDamages = makeReturn({
       ...financial(),
-      damages: [dmg()],
+      damages: [dmg({ origin: 'TECHNICAL' })],
       mechanicReportAccepted: false,
     });
     flowMock.mockReturnValue(makeFlow({ ret: returnWithDamages, setRet }));

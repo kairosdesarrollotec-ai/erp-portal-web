@@ -326,6 +326,20 @@ describe('TechnicalDamageScreen (DEV-08)', () => {
     await waitFor(() => expect(refresh).toHaveBeenCalled());
   });
 
+  it('con la devolucion CERRADA (>24 h) el cargo por paralizacion sigue disponible y se aplica', async () => {
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    flowMock.mockReturnValue(makeFlow({ ret: makeReturn({ status: 'CERRADA', closedAt: hoursAgo(30) }), refresh }));
+    chargeMock.mockResolvedValue({ id: 'chg-2', returnId: 'ret-1', daysCharged: 1, dailyRate: 100, totalAmount: 100, createdAt: 'x' });
+    mount();
+
+    expect(screen.queryByText(/Primero clasifica la gravedad/)).not.toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'Aplicar cargo por paralización' });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    await waitFor(() => expect(chargeMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+  });
+
   it('muestra la tarifa y el total del ultimo cargo que devuelve el expediente', () => {
     flowMock.mockReturnValue(
       makeFlow({

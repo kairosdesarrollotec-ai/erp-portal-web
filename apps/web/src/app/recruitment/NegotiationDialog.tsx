@@ -123,7 +123,7 @@ export function NegotiationDialog({ candidateName, salaryExpectation, busy, erro
             })}
             {touched && problems.agreed && <span className={styles.error} role="alert">Indica el sueldo acordado (monto válido).</span>}
             {input('ng-agreed-cond', 'Condiciones acordadas (opcional)', agreedConditions, setAgreedConditions)}
-            <p className={styles.description}>Al acordar, el candidato pasa a la etapa Entrevista.</p>
+            <p className={styles.description}>Al acordar, el candidato pasa a la etapa Entrevista si aún no la alcanzó.</p>
           </fieldset>
         )}
 

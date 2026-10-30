@@ -197,8 +197,13 @@ export function NewInquiryScreen() {
            * permitia registrar la consulta sin cliente formal via
            * `prospect`. Ver fieldErrors.customerId mas abajo.
            */}
-          {!form.customerId && fieldErrors.customerId && (
+          {fieldErrors.customerId && form.customerRiskStatus !== 'ROJO' && (
             <span className={styles.fieldError}>{fieldErrors.customerId}</span>
+          )}
+          {form.customerId && form.customerRiskStatus === 'ROJO' && (
+            <span className={styles.fieldError} role="alert" data-testid="customer-rojo-block">
+              El cliente está en estado ROJO: no se atiende en ningún proceso (consulta, reserva ni alquiler). Elige otro cliente.
+            </span>
           )}
 
           {form.customerId && (
@@ -247,8 +252,10 @@ export function NewInquiryScreen() {
               type="number"
               min={1}
               value={form.travelers}
-              onChange={(event) => updateForm({ travelers: Number(event.target.value) || 1 })}
+              onChange={(event) => updateForm({ travelers: Number(event.target.value) })}
+              aria-invalid={Boolean(fieldErrors.travelers)}
             />
+            {fieldErrors.travelers && <span className={styles.fieldError}>{fieldErrors.travelers}</span>}
           </label>
           <label className={styles.field}>
             <span>Días estimados</span>
@@ -257,8 +264,10 @@ export function NewInquiryScreen() {
               type="number"
               min={1}
               value={form.travelDays}
-              onChange={(event) => updateForm({ travelDays: Number(event.target.value) || 1 })}
+              onChange={(event) => updateForm({ travelDays: Number(event.target.value) })}
+              aria-invalid={Boolean(fieldErrors.travelDays)}
             />
+            {fieldErrors.travelDays && <span className={styles.fieldError}>{fieldErrors.travelDays}</span>}
           </label>
           <label className={styles.field}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
