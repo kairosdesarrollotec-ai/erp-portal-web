@@ -1,3 +1,4 @@
+import { forgetWorkContext } from '../auth/work-context-memory';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { getFirebaseAuth } from '../providers/firebase';
@@ -54,6 +55,7 @@ export function useSignOut() {
       }
     }
     try {
+      forgetWorkContext();
       await signOut(getFirebaseAuth());
     } finally {
       navigate('/');

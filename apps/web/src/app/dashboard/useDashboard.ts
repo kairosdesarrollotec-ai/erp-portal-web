@@ -6,6 +6,7 @@ import { getWorkContextAssignments } from '../auth/work-context-client';
 import type { RoleRef } from '../shared/role-ref';
 import { useWorkSession } from '../shared/useWorkSession';
 import { usePermissionsStore } from '../shared/usePermissions';
+import { recallWorkContext } from '../auth/work-context-memory';
 
 /**
  * TR-06 (HU-24) - estados: LOADING, READY (rol resuelto, tablero EMPTY
@@ -62,8 +63,9 @@ export function useDashboard() {
       try {
         const idToken = await user.getIdToken();
         const assignments = await getWorkContextAssignments(idToken);
-        if (assignments.length === 1) {
-          const only = assignments[0];
+        const onlyOrRemembered = assignments.length === 1 ? assignments[0] : recallWorkContext(assignments);
+        if (onlyOrRemembered) {
+          const only = onlyOrRemembered;
           return {
             companyId: only.companyId,
             companyName: only.companyName,

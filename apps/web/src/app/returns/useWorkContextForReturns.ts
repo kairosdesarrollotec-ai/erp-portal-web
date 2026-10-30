@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getWorkContextAssignments } from '../auth/work-context-client';
 import { isNetworkFailure, recallContext, rememberContext } from '../../offline/session/offline-session';
+import { recallWorkContext } from '../auth/work-context-memory';
 
 export interface ReturnsWorkContext {
   companyId: string;
@@ -59,8 +60,9 @@ export function useWorkContextForReturns(): {
         const idToken = await user.getIdToken();
         const assignments = await getWorkContextAssignments(idToken);
         if (cancelled) return;
-        if (assignments.length === 1) {
-          const only = assignments[0];
+        const onlyOrRemembered = assignments.length === 1 ? assignments[0] : recallWorkContext(assignments);
+        if (onlyOrRemembered) {
+          const only = onlyOrRemembered;
           setContext({
             companyId: only.companyId,
             companyName: only.companyName,
