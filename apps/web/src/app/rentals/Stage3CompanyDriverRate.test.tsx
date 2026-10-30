@@ -5,6 +5,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Stage3ContractScreen } from './Stage3ContractScreen';
 import { RentalCommandError } from './rentals-client';
 import { clearPermissions, setPermissions } from '../../test/permissions';
+import { clearStage3Draft } from './stage3-draft';
 
 // DEC-ALQ-DRIVERRATE-001 (F-02): tarifa diaria del conductor de la empresa digitable en ENTREGA-03.
 
@@ -81,9 +82,14 @@ function renderScreen() {
 
 const rateInput = () => screen.getByLabelText('Tarifa diaria del conductor (S/)');
 
+async function enableCompanyDriver() {
+  await waitFor(() => expect(screen.queryByText('Buscando plantilla…')).not.toBeInTheDocument());
+  fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
+  return screen.findByLabelText('Tarifa diaria del conductor (S/)');
+}
+
 async function formalizeWithDriver(rate = '100') {
-  fireEvent.click(await screen.findByLabelText(/Con conductor de la empresa/));
-  fireEvent.change(await screen.findByLabelText('Tarifa diaria del conductor (S/)'), { target: { value: rate } });
+  fireEvent.change(await enableCompanyDriver(), { target: { value: rate } });
   fireEvent.click(screen.getByLabelText(/Área de firma digital/));
   fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Formalizar y continuar' })).toBeEnabled());
@@ -94,6 +100,7 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
     formalizeContractMock.mockReset();
     setRateMock.mockReset();
     useRentalWizardMock.mockReset();
+    clearStage3Draft('rent-1');
     clearPermissions();
     setPermissions(['RENTAL.READ', 'RENTAL.FORMALIZE_CONTRACT']);
   });
@@ -102,16 +109,14 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
     useRentalWizardMock.mockReturnValue(wizard(baseRental));
     renderScreen();
     expect(screen.queryByLabelText('Tarifa diaria del conductor (S/)')).not.toBeInTheDocument();
-    fireEvent.click(await screen.findByLabelText(/Con conductor de la empresa/));
-    expect(await screen.findByLabelText('Tarifa diaria del conductor (S/)')).toBeEnabled();
+    expect(await enableCompanyDriver()).toBeEnabled();
     expect(screen.getByTestId('driver-rate-pending')).toHaveTextContent(/obligatoria para formalizar/);
   });
 
   it('Respuestas 2026-10-20 #2: sin tarifa digitada NO se puede formalizar (campo obligatorio)', async () => {
     useRentalWizardMock.mockReturnValue(wizard(baseRental));
     renderScreen();
-    fireEvent.click(await screen.findByLabelText(/Con conductor de la empresa/));
-    await screen.findByLabelText('Tarifa diaria del conductor (S/)');
+    await enableCompanyDriver();
     fireEvent.click(screen.getByLabelText(/Área de firma digital/));
     fireEvent.click(screen.getByTestId('fingerprint-taken-checkbox'));
     await waitFor(() => expect(screen.getByLabelText(/Área de firma digital/)).toBeInTheDocument());
@@ -167,8 +172,7 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
     setPermissions(['RENTAL.READ']);
     useRentalWizardMock.mockReturnValue(wizard(baseRental));
     renderScreen();
-    fireEvent.click(await screen.findByLabelText(/Con conductor de la empresa/));
-    expect(await screen.findByLabelText('Tarifa diaria del conductor (S/)')).toBeDisabled();
+    expect(await enableCompanyDriver()).toBeDisabled();
     expect(screen.getByText(/No tienes permiso para digitar la tarifa diaria/)).toBeInTheDocument();
   });
 
@@ -271,8 +275,7 @@ describe('ENTREGA-03: tarifa diaria del conductor de la empresa (DEC-ALQ-DRIVERR
   it('accesibilidad (axe): campo con tarifa invalida y aviso previo a formalizar', async () => {
     useRentalWizardMock.mockReturnValue(wizard(baseRental));
     const { container } = renderScreen();
-    fireEvent.click(screen.getByLabelText(/Con conductor de la empresa/));
-    fireEvent.change(rateInput(), { target: { value: '0' } });
+    fireEvent.change(await enableCompanyDriver(), { target: { value: '0' } });
     expect(await axe(container)).toHaveNoViolations();
   });
 });
