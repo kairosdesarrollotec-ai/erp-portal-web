@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { rememberWorkContext } from './work-context-memory';
 import { useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import {
@@ -65,6 +66,7 @@ export function useWorkContext() {
       try {
         const idToken = await user.getIdToken();
         await selectWorkContext(idToken, assignment.companyId, assignment.branchId);
+        rememberWorkContext(assignment);
         navigate('/tablero', {
           state: {
             companyId: assignment.companyId,

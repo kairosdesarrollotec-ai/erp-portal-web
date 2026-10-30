@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { MfaChallengeModal } from '../auth/MfaChallengeModal';
+import { MfaStepUpCancelledError, useMfaStepUp } from '../auth/useMfaStepUp';
 import { AppHeader } from '../shared/AppHeader';
 import { HrFrame } from './HrFrame';
 import { TerminationConfirmDialog } from './TerminationConfirmDialog';
 import { getEmployee, terminateEmployment, type EmployeeDetail, type TerminationResult } from './hr-client';
 import { TERMINATION_REASON_LABEL, formatSoles, noticeDaysBetween, type TerminationReason } from './hr-domain';
 import { formatDate } from './hr-format';
+import { hrErrorCode } from './hr-errors';
 import { useHrPermissions } from './hr-permissions';
 import { useHrCommand, useUnsavedWarning } from './useHrCommand';
 import { useHrResource } from './useHrResource';
@@ -22,6 +25,8 @@ function Termination() {
   const { id } = useParams();
   const { state, data: employee, context, reload } = useHrResource<EmployeeDetail>(id ? (token, scope) => getEmployee(token, id, scope) : null, id ?? '');
   const command = useHrCommand({ context, reload });
+  const { request: requestMfaStepUp, challenge: mfaChallenge } = useMfaStepUp();
+  const [mfaNeeded, setMfaNeeded] = useState(false);
 
   const [reason, setReason] = useState<TerminationReason | ''>('');
   // Renuncia
@@ -68,21 +73,38 @@ function Termination() {
     setConfirming(true);
   }
 
-  async function confirm() {
+  async function confirm(freshToken?: string) {
     if (!id || reason === '') return;
     const notes =
       reason === 'RENUNCIA'
         ? [noticeDate ? `Fecha de aviso: ${formatDate(noticeDate)}.` : 'Sin previo aviso.', `Último día trabajado: ${formatDate(lastDay)}.`].join(' ')
         : `Motivo del despido: ${dismissalReason.trim()}`;
-    const res = await command.run(
-      (token) => terminateEmployment(token, id, { reason, noticeDays, finalSettlementPaid: settlementPaid, settlementAmount: amount, notes }),
-      'No pudimos registrar el término. Intenta de nuevo.',
-    );
+    setMfaNeeded(false);
+    const res = await command.run(async (token) => {
+      try {
+        return await terminateEmployment(freshToken ?? token, id, { reason, noticeDays, finalSettlementPaid: settlementPaid, settlementAmount: amount, notes });
+      } catch (err) {
+        // TR-03 / SDD 15.5: terminar la relacion laboral exige MFA reciente (<= 5 min).
+        if (hrErrorCode(err) === 'MFA_RECENT_REQUIRED') setMfaNeeded(true);
+        throw err;
+      }
+    }, 'No pudimos registrar el término. Intenta de nuevo.');
     if (res.ok) {
       setConfirming(false);
       setResult(res.value);
     } else if (res.stale) {
       setConfirming(false);
+    }
+  }
+
+  /** Reto TR-03 (contraseña + TOTP) y reintento unico del termino con el token renovado. */
+  async function handleVerifyMfa() {
+    try {
+      const freshToken = await requestMfaStepUp();
+      await confirm(freshToken);
+    } catch (err) {
+      if (err instanceof MfaStepUpCancelledError) command.setError(err.message);
+      else command.setError('No pudimos verificar el MFA. Intenta de nuevo.');
     }
   }
 
@@ -241,6 +263,7 @@ function Termination() {
         </form>
       )}
 
+      <MfaChallengeModal {...mfaChallenge} />
       {confirming && employee && reason !== '' && (
         <TerminationConfirmDialog
           employeeName={employee.fullName}
@@ -251,6 +274,8 @@ function Termination() {
           busy={command.saving}
           error={command.error}
           onConfirm={() => void confirm()}
+          mfaNeeded={mfaNeeded}
+          onVerifyMfa={() => void handleVerifyMfa()}
           onCancel={() => setConfirming(false)}
         />
       )}

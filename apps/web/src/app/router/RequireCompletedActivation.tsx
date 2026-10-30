@@ -3,8 +3,19 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getActivationStatus } from '../auth/activation-client';
 import { GuardBlockingScreen, GuardLoadingScreen } from './GuardScreens';
+import {
+  isNetworkFailure,
+  isSessionRevoked,
+  markSessionVerified,
+  readOfflineSnapshot,
+} from '../../offline/session/offline-session';
+import { useOfflineMode } from '../../offline/session/offline-mode';
+import { revokeLocalSession } from '../../offline/session/revoke-local-session';
 
-type ActivationGuardState = 'CHECKING' | 'COMPLETED' | 'PENDING' | 'ERROR';
+type ActivationGuardState = 'CHECKING' | 'COMPLETED' | 'PENDING' | 'ERROR' | 'OFFLINE' | 'REVOKED';
+
+/** Reverificación mientras se trabaja sin conexión (V-27): al volver la red y, por si el evento `online` no llega, cada 30 s. */
+const OFFLINE_RECHECK_MS = 30_000;
 
 /**
  * Guard de ruta - hallazgo de revision: `/tablero` no debe ser accesible
@@ -14,6 +25,11 @@ type ActivationGuardState = 'CHECKING' | 'COMPLETED' | 'PENDING' | 'ERROR';
  * confirma de forma expresa que ambos flags son `false`; un timeout/401/
  * 403/5xx deja al usuario en un estado bloqueante y reintentable, nunca
  * pasa de largo.
+ *
+ * V-27 (SDD-KAIROS-TRANSVERSAL §17): UNICA excepción — si la verificación falla por RED (el servidor no respondió) y
+ * este dispositivo guarda una verificación hecha por el servidor hace menos de 8 h (sesión offline), se permite
+ * arrancar en modo sin conexión; AuthenticatedLayout limita ese modo a los 2 checklists y Sincronización. Al volver la
+ * red se reverifica con el servidor: un 401/403 (sesión revocada) bloquea el acceso y elimina los datos locales (§17.3).
  *
  * Se aplica solo a `/tablero` (no a `/activar-cuenta`, que es justamente la
  * pantalla para resolver una activacion pendiente) y va anidado dentro de
@@ -40,9 +56,30 @@ export function RequireCompletedActivation() {
         if (cancelled) return;
         const activationCompleted =
           status.requiresPasswordChange === false && status.requiresMfaEnrollment === false;
+        if (activationCompleted) {
+          await markSessionVerified();
+          if (cancelled) return;
+          useOfflineMode.getState().setActive(false);
+        }
         setState(activationCompleted ? 'COMPLETED' : 'PENDING');
-      } catch {
-        if (!cancelled) setState('ERROR');
+      } catch (error) {
+        if (cancelled) return;
+        if (isSessionRevoked(error)) {
+          await revokeLocalSession();
+          if (!cancelled) setState('REVOKED');
+          return;
+        }
+        if (isNetworkFailure(error)) {
+          const snapshot = await readOfflineSnapshot();
+          if (cancelled) return;
+          if (snapshot) {
+            useOfflineMode.getState().setActive(true);
+            setState('OFFLINE');
+            return;
+          }
+        }
+        // Una reverificación silenciosa que falla no expulsa a quien ya trabaja sin conexión.
+        setState((prev) => (prev === 'OFFLINE' ? 'OFFLINE' : 'ERROR'));
       }
     }
 
@@ -52,8 +89,25 @@ export function RequireCompletedActivation() {
     };
   }, [attempt]);
 
+  useEffect(() => {
+    if (state !== 'OFFLINE') return;
+    const recheck = () => setAttempt((n) => n + 1);
+    window.addEventListener('online', recheck);
+    const timer = window.setInterval(() => {
+      if (typeof navigator === 'undefined' || navigator.onLine) recheck();
+    }, OFFLINE_RECHECK_MS);
+    return () => {
+      window.removeEventListener('online', recheck);
+      window.clearInterval(timer);
+    };
+  }, [state]);
+
   if (state === 'CHECKING') {
     return <GuardLoadingScreen />;
+  }
+
+  if (state === 'REVOKED') {
+    return <Navigate to="/" replace />;
   }
 
   if (state === 'PENDING') {

@@ -6,6 +6,7 @@ import { getWorkContextAssignments } from '../auth/work-context-client';
 import type { RoleRef } from '../shared/role-ref';
 import { useWorkSession } from '../shared/useWorkSession';
 import { usePermissionsStore } from '../shared/usePermissions';
+import { recallWorkContext } from '../auth/work-context-memory';
 
 /**
  * TR-11 (HU-25) - estados del hub de módulos de navegación.
@@ -46,8 +47,9 @@ export function useModuleHub() {
       try {
         const idToken = await user.getIdToken();
         const assignments = await getWorkContextAssignments(idToken);
-        if (assignments.length === 1) {
-          const only = assignments[0];
+        const onlyOrRemembered = assignments.length === 1 ? assignments[0] : recallWorkContext(assignments);
+        if (onlyOrRemembered) {
+          const only = onlyOrRemembered;
           return {
             companyId: only.companyId,
             companyName: only.companyName,

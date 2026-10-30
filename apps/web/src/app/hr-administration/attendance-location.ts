@@ -44,7 +44,13 @@ export function captureAttendanceLocation(timeoutMs: number = ATTENDANCE_LOCATIO
             finish(null);
             return;
           }
-          finish({ latitude, longitude, ...(Number.isFinite(accuracy) ? { accuracy } : {}) });
+          // El API acepta como máximo 8 decimales en lat/lng y 2 en precisión; el navegador devuelve más (HR-ASIST).
+          const round = (n: number, d: number) => Number(n.toFixed(d));
+          finish({
+            latitude: round(latitude, 7),
+            longitude: round(longitude, 7),
+            ...(Number.isFinite(accuracy) ? { accuracy: round(accuracy, 2) } : {}),
+          });
         },
         () => finish(null),
         { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 60_000 },

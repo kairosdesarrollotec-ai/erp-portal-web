@@ -91,6 +91,11 @@ export function RentalsListScreen() {
                             Incumplimiento grave
                           </span>
                         )}
+                        {rental.hasExtensionBreach && (rental.status === 'ACTIVE' || rental.status === 'RETURN_IN_PROGRESS') && (
+                          <span className={`${styles.badge} ${styles.badge_BREACH}`} data-testid={`rental-guarantee-retained-${rental.id}`}>
+                            Garantía retenida por falta grave
+                          </span>
+                        )}
                         {stage && (
                           <div className={styles.progressTrack} aria-hidden="true">
                             <div className={styles.progressFill} style={{ width: `${(stage / 5) * 100}%` }} />

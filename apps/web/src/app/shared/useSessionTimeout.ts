@@ -1,3 +1,4 @@
+import { forgetWorkContext } from '../auth/work-context-memory';
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
@@ -69,6 +70,7 @@ export function useSessionTimeout(): void {
       useWorkSession.getState().clearSession();
       usePermissionsStore.getState().reset();
       try {
+        forgetWorkContext();
         await signOut(getFirebaseAuth());
       } catch {
         // Aun si signOut falla, se saca al usuario de las pantallas protegidas.

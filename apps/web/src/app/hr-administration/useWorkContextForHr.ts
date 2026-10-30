@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getWorkContextAssignments } from '../auth/work-context-client';
+import { recallWorkContext } from '../auth/work-context-memory';
 
 export interface HrWorkContext {
   companyId: string;
@@ -47,8 +48,9 @@ export function useWorkContextForHr(): { context: HrWorkContext | null; loading:
         const idToken = await user.getIdToken();
         const assignments = await getWorkContextAssignments(idToken);
         if (cancelled) return;
-        if (assignments.length === 1) {
-          const only = assignments[0];
+        const onlyOrRemembered = assignments.length === 1 ? assignments[0] : recallWorkContext(assignments);
+        if (onlyOrRemembered) {
+          const only = onlyOrRemembered;
           setContext({
             companyId: only.companyId,
             companyName: only.companyName,
