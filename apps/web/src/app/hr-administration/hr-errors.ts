@@ -63,6 +63,7 @@ const DOMAIN_MESSAGES: Record<string, string> = {
   INVALID_ATTENDANCE_RECORD: 'El registro de asistencia no es válido: una tardanza necesita los minutos de tardanza.',
   DEDUCTIONS_BEFORE_MONTH_END: 'Los descuentos se aplican al cerrar el mes: todavía no se puede aplicar.',
   // 403
+  MFA_RECENT_REQUIRED: 'Para esta operación debes verificar tu identidad con MFA (válida por 5 minutos). Pulsa «Verificar MFA» y se reintentará.',
   EMPLOYEE_SALARY_GERENCIA_ONLY: 'El sueldo base solo lo cambia Gerencia. No se guardó ningún cambio de la ficha.',
   // 400
   INVALID_DATE_RANGE: 'La fecha de inicio debe ser anterior o igual a la fecha de término.',

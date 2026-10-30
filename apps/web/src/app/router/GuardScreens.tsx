@@ -46,6 +46,28 @@ export function GuardBlockingScreen({ onRetry }: { onRetry: () => void }) {
 }
 
 /**
+ * V-27 · SDD-KAIROS-TRANSVERSAL §17.1: sin conexión solo funcionan los checklists de entrega y de recepción de devolución
+ * (y Sincronización). Cualquier otra sección exige conexión.
+ */
+export function OfflineRestrictedScreen() {
+  return (
+    <main className={styles.wrapper}>
+      <div className={styles.card}>
+        <p className={styles.brand}>Kairos Corporation</p>
+        <div className={styles.notice} role="alert">
+          <WifiOff className={styles.noticeIcon} size={40} aria-hidden="true" />
+          <h1 className={styles.noticeTitle}>Esta sección requiere conexión</h1>
+          <p className={styles.noticeSubtitle}>
+            Sin conexión solo puedes seguir capturando el checklist de entrega o de recepción de devolución. Lo que ya
+            capturaste se guarda en este dispositivo y se envía cuando vuelva la señal.
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/**
  * TR-10 variante FORBIDDEN (PANTALLAS-V2-B-TRANSVERSAL): el motivo se explica en términos generales, sin revelar qué
  * información específica no se puede ver. Acción primaria: «Volver al inicio».
  */

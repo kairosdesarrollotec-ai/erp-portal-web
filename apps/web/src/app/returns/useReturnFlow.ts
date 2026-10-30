@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getReturn, ReturnApiError, ReturnResponse } from './returns-client';
 import { useWorkContextForReturns } from './useWorkContextForReturns';
+import { isNetworkFailure, recallResource, rememberResource } from '../../offline/session/offline-session';
 
 /**
  * Hook base del proceso de Devolucion (DEV-03..DEV-10). Carga el expediente por
@@ -38,7 +39,18 @@ export function useReturnFlow() {
         }
         setRet(result);
         setState('READY');
+        // V-27: copia cifrada del expediente para reabrir el checklist sin conexión (≤ 8 h).
+        void rememberResource(`return:${id}`, result);
       } catch (error) {
+        // V-27: sin red, se muestra el último expediente conocido (el estado de dominio real lo valida el servidor al sincronizar).
+        if (isNetworkFailure(error)) {
+          const stored = await recallResource<ReturnResponse>(`return:${id}`);
+          if (stored && stored.branchId === context.branchId) {
+            setRet(stored);
+            setState('READY');
+            return;
+          }
+        }
         if (silent) return;
         if (error instanceof ReturnApiError && (error.status === 404 || error.status === 403)) {
           setState('NOT_FOUND');

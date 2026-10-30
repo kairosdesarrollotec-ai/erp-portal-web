@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { getFirebaseAuth } from '../providers/firebase';
 import { getRental, RentalApiError, RentalResponse } from './rentals-client';
 import { useWorkContextForRentals } from './useWorkContextForRentals';
+import { isNetworkFailure, recallResource, rememberResource } from '../../offline/session/offline-session';
 
 /**
  * Hook base del asistente de Entrega (ENTREGA-01..05). Carga el expediente
@@ -35,7 +36,18 @@ export function useRentalWizard() {
       const result = await getRental(idToken, id, context.companyId, context.branchId);
       setRental(result);
       setState('READY');
+      // V-27: copia cifrada del expediente para reabrir ENTREGA-04 sin conexión (≤ 8 h).
+      void rememberResource(`rental:${id}`, result);
     } catch (error) {
+      // V-27: sin red, se muestra el último expediente conocido (el servidor lo valida al sincronizar).
+      if (isNetworkFailure(error) && context) {
+        const stored = await recallResource<RentalResponse>(`rental:${id}`);
+        if (stored) {
+          setRental(stored);
+          setState('READY');
+          return;
+        }
+      }
       if (error instanceof RentalApiError && error.status === 404) {
         setState('NOT_FOUND');
       } else {

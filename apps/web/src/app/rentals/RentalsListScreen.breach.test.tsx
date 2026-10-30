@@ -95,6 +95,13 @@ describe('RentalsListScreen — Registrar falta grave (BR-ALQ-013)', () => {
     expect(screen.queryByRole('button', { name: /Registrar falta grave/i })).not.toBeInTheDocument();
   });
 
+  it('alquiler ACTIVE con falta grave muestra la garantía retenida', async () => {
+    setPermissions([]);
+    listRentalsMock.mockResolvedValue([{ ...baseRental, status: 'ACTIVE', hasExtensionBreach: true, deposit: { ...baseRental.deposit, status: 'RETAINED' } }]);
+    renderScreen();
+    expect(await screen.findByTestId('rental-guarantee-retained-rent-1')).toHaveTextContent('Garantía retenida por falta grave');
+  });
+
   it('abre el modal SeriousBreachModal al hacer clic en el botón', async () => {
     setPermissions(['RENTAL.REPORT_EXTENSION_BREACH']);
     listRentalsMock.mockResolvedValue([{ ...baseRental, status: 'EXTENSION_PENDING' }]);

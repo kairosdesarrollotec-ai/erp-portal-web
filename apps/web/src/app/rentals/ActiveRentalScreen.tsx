@@ -80,6 +80,8 @@ export function ActiveRentalScreen() {
   // El back devuelve las ampliaciones con la más reciente primero (requestedAt desc).
   const lastExtension = rental.extensions && rental.extensions.length > 0 ? rental.extensions[0] : null;
   const incidentsPath = `/incidencias?rentalId=${rental.id}`;
+  // Decisión 30-oct (BR-ALQ-013): ante falta grave la garantía se ve RETENIDA hasta que se solucione en la devolución; el alquiler sigue activo.
+  const guaranteeRetainedForBreach = inProgress && deposit?.status === 'RETAINED' && rental.extensions?.some((e) => e.status === 'BREACH') === true;
 
   return (
     <main className={styles.wrapper}>
@@ -108,6 +110,12 @@ export function ActiveRentalScreen() {
           <h2 id="alq10-garantia" className={styles.cardTitle}>Garantía</h2>
           {deposit ? (
             <dl className={styles.grid} data-testid="active-guarantee">
+              {guaranteeRetainedForBreach && (
+                <div data-testid="guarantee-retained-breach">
+                  <dt>Estado de la garantía</dt>
+                  <dd>Retenida por falta grave (hasta que se solucione en la devolución)</dd>
+                </div>
+              )}
               <div><dt>Garantía total</dt><dd>{formatPen(parseFloat(deposit.originalAmount))}</dd></div>
               <div>
                 <dt>Reserva aplicada</dt>

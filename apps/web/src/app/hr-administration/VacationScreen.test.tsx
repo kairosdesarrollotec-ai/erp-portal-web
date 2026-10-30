@@ -162,7 +162,12 @@ describe('VacationScreen (ADP-05)', () => {
       getVacationsMock.mockResolvedValue([own()]);
       renderScreen();
       fireEvent.click(await screen.findByRole('button', { name: 'Reprogramar' }));
+<<<<<<< HEAD
       await screen.findAllByRole('button', { name: /: libre/ });
+=======
+      // El calendario depende de la fecha de hoy: basta con que haya días libres (antes fijaba días 23-29).
+      await screen.findAllByRole('button', { name: /\d+ de .*: libre/ });
+>>>>>>> b64bd8f (feat(web): V-27 recarga offline de checklists, garantia retenida por falta grave, MFA al registrar termino)
       fireEvent.change(screen.getByLabelText('Nueva fecha de inicio'), { target: { value: '2026-11-20' } });
       fireEvent.change(screen.getByLabelText('Nueva fecha final'), { target: { value: '2026-11-22' } });
       fireEvent.click(screen.getByRole('button', { name: 'Reprogramar', hidden: false, description: undefined }));
